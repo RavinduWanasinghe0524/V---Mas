@@ -19,7 +19,7 @@ public interface ServiceRecordService {
 
     List<ServiceRecordDto> filterServiceRecords(ServiceFilterRequest filter);
 
-    List<ServiceRecordDto> getServiceRecordsByVehicle(Long vehicleId);
+    List<ServiceRecordDto> getServiceRecordsByVehicle(String vehicleRegNumber);
 
     net.javaguids.ems_backend.dto.ServiceRecordStatsDto getServiceStats();
 

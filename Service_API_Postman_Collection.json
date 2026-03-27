@@ -20,7 +20,7 @@
 						"header": [{"key": "Content-Type", "value": "application/json"}],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"vehicleId\": 1,\n  \"serviceType\": \"GENERAL_INSPECTION\",\n  \"serviceDate\": \"2026-03-27\",\n  \"currentMileageKm\": 50000,\n  \"serviceCost\": 5000.0,\n  \"technicianWorkshop\": \"ABC Motors\",\n  \"nextServiceDue\": \"2026-09-27\",\n  \"description\": \"Oil change, filter replacement, and general checkup\"\n}"
+							"raw": "{\n  \"vehicleRegNumber\": \"KA01AB1234\",\n  \"serviceType\": \"GENERAL_INSPECTION\",\n  \"serviceDate\": \"2026-03-27\",\n  \"currentMileageKm\": 50000,\n  \"serviceCost\": 5000.0,\n  \"technicianWorkshop\": \"ABC Motors\",\n  \"nextServiceDue\": \"2026-09-27\",\n  \"description\": \"Oil change, filter replacement, and general checkup\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/services",
@@ -42,7 +42,7 @@
 						"header": [{"key": "Content-Type", "value": "application/json"}],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"vehicleId\": 1,\n  \"serviceType\": \"ENGINE_TUNE_UP\",\n  \"serviceDate\": \"2026-03-27\",\n  \"currentMileageKm\": 50500,\n  \"serviceCost\": 15000.0,\n  \"technicianWorkshop\": \"XYZ Mechanics\",\n  \"nextServiceDue\": \"2026-06-27\",\n  \"description\": \"Fixed engine knocking issue\"\n}"
+							"raw": "{\n  \"vehicleRegNumber\": \"KA01AB1234\",\n  \"serviceType\": \"ENGINE_TUNE_UP\",\n  \"serviceDate\": \"2026-03-27\",\n  \"currentMileageKm\": 50500,\n  \"serviceCost\": 15000.0,\n  \"technicianWorkshop\": \"XYZ Mechanics\",\n  \"nextServiceDue\": \"2026-06-27\",\n  \"description\": \"Fixed engine knocking issue\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/services/1",
@@ -123,9 +123,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/services/vehicle/1",
+							"raw": "{{baseUrl}}/api/services/vehicle/KA01AB1234",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "services", "vehicle", "1"]
+							"path": ["api", "services", "vehicle", "KA01AB1234"]
 						},
 						"description": "Get all service records for a specific vehicle."
 					},
@@ -142,7 +142,7 @@
 						"header": [{"key": "Content-Type", "value": "application/json"}],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"fromDate\": \"2026-01-01\",\n  \"toDate\": \"2026-12-31\",\n  \"serviceType\": \"GENERAL_INSPECTION\",\n  \"vehicleId\": 1\n}"
+							"raw": "{\n  \"fromDate\": \"2026-01-01\",\n  \"toDate\": \"2026-12-31\",\n  \"serviceType\": \"GENERAL_INSPECTION\",\n  \"vehicleRegNumber\": \"KA01AB1234\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/services/filter",
