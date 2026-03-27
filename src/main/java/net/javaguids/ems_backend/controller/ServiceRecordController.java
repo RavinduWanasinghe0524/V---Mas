@@ -72,11 +72,11 @@ public class ServiceRecordController {
         return ApiResponseUtil.success("Service records filtered successfully", records, HttpStatus.OK);
     }
 
-    // GET /api/services/vehicle/{vehicleId} — Get all services for a specific vehicle
-    @GetMapping("/vehicle/{vehicleId}")
+    // GET /api/services/vehicle/{vehicleRegNumber} — Get all services for a specific vehicle
+    @GetMapping("/vehicle/{vehicleRegNumber}")
     public ResponseEntity<ApiResponse<List<ServiceRecordDto>>> getServiceRecordsByVehicle(
-            @PathVariable Long vehicleId) {
-        List<ServiceRecordDto> records = serviceRecordService.getServiceRecordsByVehicle(vehicleId);
+            @PathVariable String vehicleRegNumber) {
+        List<ServiceRecordDto> records = serviceRecordService.getServiceRecordsByVehicle(vehicleRegNumber);
         return ApiResponseUtil.success("Service records for vehicle fetched successfully", records, HttpStatus.OK);
     }
 
