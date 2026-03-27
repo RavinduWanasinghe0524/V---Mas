@@ -1,0 +1,221 @@
+{
+	"info": {
+		"_postman_id": "service-module-v1",
+		"name": "V-Mas Service Module - Postman Collection",
+		"description": "Complete Postman collection for Service endpoints.\n\n⚠️ PREREQUISITE: Run 'Login' from the VMAS API collection first to get the tokens.\nAdmin/Controller can create, update, and delete service records. Drivers can only view (read/watch) service records.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Admin & Controller - CRUD Operations (Create/Update/Delete)",
+			"item": [
+				{
+					"name": "Create Service Record",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{adminToken}}", "type": "string"}]
+						},
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"vehicleId\": 1,\n  \"serviceType\": \"GENERAL_INSPECTION\",\n  \"serviceDate\": \"2026-03-27\",\n  \"currentMileageKm\": 50000,\n  \"serviceCost\": 5000.0,\n  \"technicianWorkshop\": \"ABC Motors\",\n  \"nextServiceDue\": \"2026-09-27\",\n  \"description\": \"Oil change, filter replacement, and general checkup\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/services",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "services"]
+						},
+						"description": "Admin or Controller creates a new service record."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Service Record",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{adminToken}}", "type": "string"}]
+						},
+						"method": "PUT",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"vehicleId\": 1,\n  \"serviceType\": \"ENGINE_TUNE_UP\",\n  \"serviceDate\": \"2026-03-27\",\n  \"currentMileageKm\": 50500,\n  \"serviceCost\": 15000.0,\n  \"technicianWorkshop\": \"XYZ Mechanics\",\n  \"nextServiceDue\": \"2026-06-27\",\n  \"description\": \"Fixed engine knocking issue\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/services/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "services", "1"]
+						},
+						"description": "Admin or Controller updates an existing service record by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Service Record",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{adminToken}}", "type": "string"}]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/services/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "services", "1"]
+						},
+						"description": "Admin or Controller deletes a service record by ID."
+					},
+					"response": []
+				}
+			],
+			"description": "Secure operations strictly limited to users with ADMIN or CONTROLLER roles."
+		},
+		{
+			"name": "2. All Users (Including Driver) - View/Watch Operations",
+			"item": [
+				{
+					"name": "Get All Service Records",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/services",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "services"]
+						},
+						"description": "Get a list of all service records."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Service Record by ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/services/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "services", "1"]
+						},
+						"description": "Get details of a specific service record by its ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Service Records by Vehicle ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/services/vehicle/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "services", "vehicle", "1"]
+						},
+						"description": "Get all service records for a specific vehicle."
+					},
+					"response": []
+				},
+				{
+					"name": "Filter Service Records",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fromDate\": \"2026-01-01\",\n  \"toDate\": \"2026-12-31\",\n  \"serviceType\": \"GENERAL_INSPECTION\",\n  \"vehicleId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/services/filter",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "services", "filter"]
+						},
+						"description": "Filter service records by date range, service type, vehicle IDs, etc."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Service Stats",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/services/stats",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "services", "stats"]
+						},
+						"description": "Get summary statistics for all services."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Upcoming Services",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/services/upcoming",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "services", "upcoming"]
+						},
+						"description": "Get upcoming services scheduled within the next 30 days."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Recent Services",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/services/recent",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "services", "recent"]
+						},
+						"description": "Get the 5 most recently created service records."
+					},
+					"response": []
+				}
+			],
+			"description": "View-only operations available to all authenticated roles (Admin, Controller, and Driver)."
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		}
+	]
+}
