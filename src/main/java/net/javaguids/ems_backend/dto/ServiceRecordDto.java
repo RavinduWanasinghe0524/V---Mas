@@ -15,9 +15,7 @@ public class ServiceRecordDto {
 
     private Long id;
 
-    // Vehicle info
-    private Long vehicleId;
-    private String vehicleName;   // populated on fetch for display purposes
+    private String vehicleRegNumber;
 
     private ServiceType serviceType;
 

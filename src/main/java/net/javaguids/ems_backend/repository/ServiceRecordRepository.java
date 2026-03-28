@@ -11,7 +11,7 @@ import java.util.List;
 public interface ServiceRecordRepository
         extends JpaRepository<ServiceRecord, Long>, JpaSpecificationExecutor<ServiceRecord> {
 
-    List<ServiceRecord> findByVehicleId(Long vehicleId);
+    List<ServiceRecord> findByVehicleRegNumber(String vehicleRegNumber);
 
     List<ServiceRecord> findTop5ByOrderByServiceDateDesc();
 

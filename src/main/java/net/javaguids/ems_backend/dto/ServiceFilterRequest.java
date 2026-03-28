@@ -15,7 +15,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class ServiceFilterRequest {
 
-    private Long vehicleId;
+    private String vehicleRegNumber;
     private ServiceType serviceType;
     private LocalDate fromDate;
     private LocalDate toDate;
