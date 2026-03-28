@@ -6,7 +6,7 @@ import net.javaguids.ems_backend.dto.RegisterRequest;
 import net.javaguids.ems_backend.dto.UserDto;
 import net.javaguids.ems_backend.entity.User;
 import net.javaguids.ems_backend.enums.AccountStatus;
-import net.javaguids.ems_backend.exception.ResourceNotFoundExeption;
+import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.repository.UserRepository;
 import net.javaguids.ems_backend.security.JwtUtil;
 import net.javaguids.ems_backend.service.UserService;
@@ -52,11 +52,11 @@ public class UserServiceImpl implements UserService {
         user.setAccountStatus(AccountStatus.ACTIVE);
         user.setProfilePicture(request.getProfilePicture());
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
-        String token = jwtUtil.generateToken(user.getUserName(), user.getRole().name());
+        String token = jwtUtil.generateToken(savedUser.getUserName(), savedUser.getRole().name());
 
-        return new AuthResponse(token, user.getUserName(), user.getRole().name(), "Registration successful");
+        return new AuthResponse(token, mapToDto(savedUser));
     }
 
     @Override
@@ -69,7 +69,7 @@ public class UserServiceImpl implements UserService {
 
         String token = jwtUtil.generateToken(user.getUserName(), user.getRole().name());
 
-        return new AuthResponse(token, user.getUserName(), user.getRole().name(), "Login successful");
+        return new AuthResponse(token, mapToDto(user));
     }
 
     @Override
@@ -82,7 +82,7 @@ public class UserServiceImpl implements UserService {
     public UserDto getUserById(Long id) {
         Long requiredId = Objects.requireNonNull(id);
         User user = userRepository.findById(requiredId)
-                .orElseThrow(() -> new ResourceNotFoundExeption("User not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         return mapToDto(user);
     }
 
@@ -111,7 +111,7 @@ public class UserServiceImpl implements UserService {
     public UserDto updateUser(Long id, UserDto userDto) {
         Long requiredId = Objects.requireNonNull(id);
         User user = userRepository.findById(requiredId)
-                .orElseThrow(() -> new ResourceNotFoundExeption("User not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
         user.setUserName(userDto.getUserName());
         user.setEmail(userDto.getEmail());
@@ -127,7 +127,7 @@ public class UserServiceImpl implements UserService {
     public void deleteUser(Long id) {
         Long requiredId = Objects.requireNonNull(id);
         User user = userRepository.findById(requiredId)
-                .orElseThrow(() -> new ResourceNotFoundExeption("User not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         userRepository.delete(Objects.requireNonNull(user));
     }
 

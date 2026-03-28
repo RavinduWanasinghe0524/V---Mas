@@ -1,0 +1,863 @@
+{
+	"info": {
+		"_postman_id": "fuel-analysis-module-v4",
+		"name": "V-Mas Fuel & Analysis Module - Complete",
+		"description": "Complete Postman collection for Fuel & Analysis endpoints.\n\n⚠️ PREREQUISITES:\n- Login as DRIVER  → saves {{driverToken}}\n- Login as CONTROLLER → saves {{controllerToken}}\n\nFolders 1-4 use {{driverToken}}. Folder 5 (Controller) uses {{controllerToken}}.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "fuel-module"
+	},
+	"item": [
+		{
+			"name": "1. Driver - Add Fuel Log",
+			"item": [
+				{
+					"name": "Add First Log - Good Efficiency Vehicle",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response has success=true and driverUsername\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data.id).to.exist;",
+									"    pm.expect(jsonData.data.driverUsername).to.exist;",
+									"    pm.environment.set(\"fuelLogId\", jsonData.data.id);",
+									"    console.log(\"✅ Saved fuelLogId:\", jsonData.data.id);",
+									"    console.log(\"✅ driverUsername:\", jsonData.data.driverUsername);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"vehicleRegNumber\": \"KA01AB1234\",\n  \"fuelType\": \"Diesel\",\n  \"liters\": 50.0,\n  \"costPerLiter\": 95.5,\n  \"mileage\": 15000.0,\n  \"date\": \"2026-03-21\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/add",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "add"]
+						},
+						"description": "Driver adds first fuel log. The logged-in driver's username is stored automatically on the record."
+					},
+					"response": []
+				},
+				{
+					"name": "Add Second Log - Calculate Good Efficiency",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test(\"Efficiency should be calculated\", function () {",
+									"    console.log(\"Expected Efficiency: (15560 - 15000) / 45 = 12.44 km/L (Good)\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"vehicleRegNumber\": \"KA01AB1234\",\n  \"fuelType\": \"Diesel\",\n  \"liters\": 45.0,\n  \"costPerLiter\": 96.0,\n  \"mileage\": 15560.0,\n  \"date\": \"2026-03-22\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/add",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "add"]
+						},
+						"description": "Add second log. Expected efficiency: (15560-15000)/45 = 12.44 km/L"
+					},
+					"response": []
+				},
+				{
+					"name": "Add Log - Auto Calculate Total Cost",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Total cost auto-calculated\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data.totalCost).to.eql(4080);",
+									"    console.log(\"Auto-calculated: 40 * 102 = 4080\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"vehicleRegNumber\": \"KA02CD5678\",\n  \"fuelType\": \"Petrol\",\n  \"liters\": 40.0,\n  \"costPerLiter\": 102.0,\n  \"mileage\": 10000.0,\n  \"date\": \"2026-03-20\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/add",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "add"]
+						},
+						"description": "Test auto-calculation of totalCost (not provided in request). Expected: 40 * 102 = 4080"
+					},
+					"response": []
+				},
+				{
+					"name": "🚨 Add Log - TRIGGER LOW EFFICIENCY NOTIFICATION",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test(\"LOW EFFICIENCY ALERT\", function () {",
+									"    console.log(\"⚠️ EXPECTED: Notification created!\");",
+									"    console.log(\"Efficiency: (10200-10000)/50 = 4.0 km/L < 5 threshold\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"vehicleRegNumber\": \"KA02CD5678\",\n  \"fuelType\": \"Petrol\",\n  \"liters\": 50.0,\n  \"costPerLiter\": 103.0,\n  \"mileage\": 10200.0,\n  \"date\": \"2026-03-21\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/add",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "add"]
+						},
+						"description": "🚨 Should trigger a LOW_EFFICIENCY notification!\n\nCalculation: (10200 - 10000) / 50 = 4.0 km/L < 5 km/L"
+					},
+					"response": []
+				}
+			],
+			"description": "Driver adds fuel logs. Uses {{driverToken}} from VMAS collection login."
+		},
+		{
+			"name": "2. Driver - View My Logs",
+			"item": [
+				{
+					"name": "Get My Fuel Logs (driver's own history only)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Returns only this driver's logs\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"    if (jsonData.data.length > 0) {",
+									"        var username = jsonData.data[0].driverUsername;",
+									"        console.log(\"✅ All logs belong to driver:\", username);",
+									"        jsonData.data.forEach(function(log) {",
+									"            pm.expect(log.driverUsername).to.eql(username);",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/my-logs",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "my-logs"]
+						},
+						"description": "Returns ONLY the fuel logs added by the currently logged-in driver."
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Fuel Log By ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Log belongs to this driver\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data.driverUsername).to.exist;",
+									"    console.log(\"✅ driverUsername:\", jsonData.data.driverUsername);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/my-logs/{{fuelLogId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "my-logs", "{{fuelLogId}}"]
+						},
+						"description": "Get a specific log by ID — only succeeds if it belongs to the logged-in driver."
+					},
+					"response": []
+				},
+				{
+					"name": "❌ Get Another Driver's Log (Should Fail 404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404 - Access blocked\", function () {",
+									"    pm.response.to.have.status(404);",
+									"    console.log(\"✅ Correctly blocked access to another driver's log\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/my-logs/99999",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "my-logs", "99999"]
+						},
+						"description": "Security test: ID 99999 doesn't belong to this driver → 404."
+					},
+					"response": []
+				}
+			],
+			"description": "Driver views only their own logs."
+		},
+		{
+			"name": "3. Driver - Update My Log",
+			"item": [
+				{
+					"name": "Update My Fuel Log",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Log updated successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data.liters).to.eql(55.0);",
+									"    console.log(\"✅ Updated liters:\", jsonData.data.liters);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "PUT",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"vehicleRegNumber\": \"KA01AB1234\",\n  \"fuelType\": \"Diesel\",\n  \"liters\": 55.0,\n  \"costPerLiter\": 95.5,\n  \"mileage\": 15000.0,\n  \"date\": \"2026-03-21\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/my-logs/{{fuelLogId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "my-logs", "{{fuelLogId}}"]
+						},
+						"description": "Driver updates their own fuel log. Uses {{fuelLogId}} saved from Add step."
+					},
+					"response": []
+				},
+				{
+					"name": "❌ Update Another Driver's Log (Should Fail 404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404 - Update blocked\", function () {",
+									"    pm.response.to.have.status(404);",
+									"    console.log(\"✅ Correctly blocked update of another driver's log\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "PUT",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"vehicleRegNumber\": \"KA01AB1234\",\n  \"fuelType\": \"Diesel\",\n  \"liters\": 99.9,\n  \"costPerLiter\": 1.0,\n  \"mileage\": 1.0,\n  \"date\": \"2026-03-21\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/my-logs/99999",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "my-logs", "99999"]
+						},
+						"description": "Security test: Log 99999 not owned by this driver → 404."
+					},
+					"response": []
+				}
+			],
+			"description": "Driver updates only their own logs."
+		},
+		{
+			"name": "4. Analytics (Admin/Shared)",
+			"item": [
+				{
+					"name": "Get Current Month Summary",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Summary has all required fields\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.have.property('totalDiesel');",
+									"    pm.expect(jsonData.data).to.have.property('totalPetrol');",
+									"    pm.expect(jsonData.data).to.have.property('totalVolume');",
+									"    pm.expect(jsonData.data).to.have.property('totalCost');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/summary",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "summary"]
+						},
+						"description": "Current month summary (all drivers combined)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Monthly Chart Data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Chart data has months and fuel type arrays\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data.months).to.be.an('array').with.lengthOf(12);",
+									"    pm.expect(jsonData.data.data.Diesel).to.be.an('array');",
+									"    pm.expect(jsonData.data.data.Petrol).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/chart",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "chart"]
+						},
+						"description": "Monthly consumption data for React Bar Chart."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Vehicle Stats",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Stats is array with required fields\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"    if (jsonData.data.length > 0) {",
+									"        pm.expect(jsonData.data[0]).to.have.property('vehicleRegNumber');",
+									"        pm.expect(jsonData.data[0]).to.have.property('fuelEfficiency');",
+									"        pm.expect(jsonData.data[0]).to.have.property('totalSpending');",
+									"        pm.expect(jsonData.data[0]).to.have.property('efficiencyStatus');",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/stats",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "stats"]
+						},
+						"description": "All vehicles with efficiency and spending stats."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Fuel Log by ID (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/log/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "log", "1"]
+						},
+						"description": "Get any fuel log by ID (replace 1 with actual ID)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Logs for Specific Vehicle",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/vehicle/KA01AB1234",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "vehicle", "KA01AB1234"]
+						},
+						"description": "All logs for a specific vehicle (all drivers, admin view)."
+					},
+					"response": []
+				}
+			],
+			"description": "Analytics endpoints — no driver scoping."
+		},
+		{
+			"name": "5. Controller - Fuel Management",
+			"item": [
+				{
+					"name": "Get ALL Fuel Logs (Every Driver)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Returns array of all fuel logs\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"    if (jsonData.data.length > 0) {",
+									"        pm.environment.set('controllerFuelLogId', jsonData.data[0].id);",
+									"        console.log('✅ Total logs:', jsonData.data.length);",
+									"        console.log('✅ Saved controllerFuelLogId:', jsonData.data[0].id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{controllerToken}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/all",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "all"]
+						},
+						"description": "Controller gets EVERY fuel log in the system across all drivers and vehicles, sorted newest first."
+					},
+					"response": []
+				},
+				{
+					"name": "Add Fuel Log (Controller)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test(\"Fuel log created by controller\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data.id).to.exist;",
+									"    pm.environment.set('controllerFuelLogId', jsonData.data.id);",
+									"    console.log('✅ Controller created fuel log ID:', jsonData.data.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{controllerToken}}", "type": "string"}]
+						},
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"vehicleRegNumber\": \"KA03EF9999\",\n  \"fuelType\": \"Diesel\",\n  \"liters\": 60.0,\n  \"costPerLiter\": 98.0,\n  \"mileage\": 20000.0,\n  \"date\": \"2026-03-27\",\n  \"driverUsername\": \"driver1\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/controller/add",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "controller", "add"]
+						},
+						"description": "Controller adds a fuel log. Can optionally include 'driverUsername' to assign it to a specific driver. totalCost is auto-calculated if omitted (liters × costPerLiter)."
+					},
+					"response": []
+				},
+				{
+					"name": "Search Fuel Log by ID (Controller)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Returns correct fuel log\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data).to.have.property('id');",
+									"    pm.expect(jsonData.data).to.have.property('vehicleRegNumber');",
+									"    pm.expect(jsonData.data).to.have.property('driverUsername');",
+									"    console.log('✅ Found log:', JSON.stringify(jsonData.data));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{controllerToken}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/controller/search/{{controllerFuelLogId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "controller", "search", "{{controllerFuelLogId}}"]
+						},
+						"description": "Controller searches for a specific fuel log by ID. Uses {{controllerFuelLogId}} auto-saved from 'Get ALL' or 'Add' step."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Fuel Log (Controller)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Fuel log updated successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data.liters).to.eql(75.0);",
+									"    console.log('✅ Updated log ID:', jsonData.data.id, '| Liters:', jsonData.data.liters);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{controllerToken}}", "type": "string"}]
+						},
+						"method": "PUT",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"vehicleRegNumber\": \"KA03EF9999\",\n  \"fuelType\": \"Diesel\",\n  \"liters\": 75.0,\n  \"costPerLiter\": 98.0,\n  \"mileage\": 20500.0,\n  \"date\": \"2026-03-27\",\n  \"driverUsername\": \"driver1\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/controller/{{controllerFuelLogId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "controller", "{{controllerFuelLogId}}"]
+						},
+						"description": "Controller updates ANY fuel log by ID — no ownership restriction. Uses {{controllerFuelLogId}} from previous steps."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Fuel Log (Controller)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Fuel log deleted successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    console.log('✅ Deleted fuel log ID:', pm.environment.get('controllerFuelLogId'));",
+									"    pm.environment.unset('controllerFuelLogId');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{controllerToken}}", "type": "string"}]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/controller/{{controllerFuelLogId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "controller", "{{controllerFuelLogId}}"]
+						},
+						"description": "Controller deletes ANY fuel log by ID. Uses {{controllerFuelLogId}} from previous steps.\n\n⚠️ Run AFTER 'Add Fuel Log (Controller)' or set controllerFuelLogId manually."
+					},
+					"response": []
+				},
+				{
+					"name": "❌ Driver Cannot Access Controller Add (Should Fail 403)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 403 - Access Denied\", function () {",
+									"    pm.response.to.have.status(403);",
+									"    console.log('✅ Correctly blocked: DRIVER role cannot call controller endpoint');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"vehicleRegNumber\": \"HACK-ATTEMPT\",\n  \"fuelType\": \"Petrol\",\n  \"liters\": 1.0,\n  \"costPerLiter\": 1.0,\n  \"mileage\": 1.0\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/controller/add",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "controller", "add"]
+						},
+						"description": "Security test: A DRIVER JWT should be rejected with 403 when trying to call the controller-only endpoint."
+					},
+					"response": []
+				}
+			],
+			"description": "Controller/Admin fuel management: full CRUD on any fuel log. Requires CONTROLLER or ADMIN role JWT ({{controllerToken}})."
+		},
+		{
+			"name": "6. Test Scenarios",
+			"item": [
+				{
+					"name": "SCENARIO: Low Efficiency - Step 1",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"vehicleRegNumber\": \"TEST-LOW-EFF-01\",\n  \"fuelType\": \"Petrol\",\n  \"liters\": 40.0,\n  \"costPerLiter\": 100.0,\n  \"mileage\": 10000.0,\n  \"date\": \"2026-03-20\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/add",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "add"]
+						},
+						"description": "Step 1: Add first log for test vehicle."
+					},
+					"response": []
+				},
+				{
+					"name": "SCENARIO: Low Efficiency - Step 2 (TRIGGERS ALERT)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"🚨 LOW EFFICIENCY NOTIFICATION TRIGGERED\", function () {",
+									"    console.log(\"Efficiency: (10180-10000)/50 = 3.6 km/L < 5 km/L\");",
+									"    console.log(\"Check: SELECT * FROM notifications WHERE vehicle_reg_number = 'TEST-LOW-EFF-01';\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{driverToken}}", "type": "string"}]
+						},
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"vehicleRegNumber\": \"TEST-LOW-EFF-01\",\n  \"fuelType\": \"Petrol\",\n  \"liters\": 50.0,\n  \"costPerLiter\": 100.0,\n  \"mileage\": 10180.0,\n  \"date\": \"2026-03-21\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/add",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "add"]
+						},
+						"description": "Step 2: Efficiency = (10180-10000)/50 = 3.6 km/L < 5 → CREATES NOTIFICATION!"
+					},
+					"response": []
+				}
+			],
+			"description": "End-to-end test scenarios."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {"type": "text/javascript", "exec": [""]}
+		},
+		{
+			"listen": "test",
+			"script": {"type": "text/javascript", "exec": [""]}
+		}
+	],
+	"variable": [
+		{
+			"key": "fuelLogId",
+			"value": "1",
+			"type": "string",
+			"description": "Auto-filled when you run 'Add First Log' (Driver)"
+		},
+		{
+			"key": "controllerFuelLogId",
+			"value": "1",
+			"type": "string",
+			"description": "Auto-filled when you run 'Get ALL Fuel Logs' or 'Add Fuel Log (Controller)'"
+		}
+	]
+}
