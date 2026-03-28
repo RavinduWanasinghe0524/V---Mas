@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
-import { serviceAPI, vehicleAPI } from '../services/api'
+import { serviceAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
 const statusColors = {
@@ -12,7 +12,7 @@ const statusColors = {
 }
 
 const initialForm = {
-  vehicleId: '',
+  vehicleRegNumber: '',
   serviceType: 'OIL_CHANGE',
   serviceTypeDetail: '',
   serviceDate: '',
@@ -28,7 +28,6 @@ const ServicePage = () => {
   const isDriver = user?.role === 'DRIVER'
 
   const [services, setServices] = useState([])
-  const [vehicles, setVehicles] = useState([])
   const [stats, setStats] = useState(null)
   const [filter, setFilter] = useState('ALL')
 
@@ -44,14 +43,12 @@ const ServicePage = () => {
 
   const loadData = async () => {
     try {
-      const [servicesRes, statsRes, vehiclesRes] = await Promise.all([
+      const [servicesRes, statsRes] = await Promise.all([
         serviceAPI.getAllServices(),
-        serviceAPI.getServiceStats(),
-        vehicleAPI.getAllVehicles()
+        serviceAPI.getServiceStats()
       ])
       setServices(servicesRes.data.data || [])
       setStats(statsRes.data.data)
-      setVehicles(vehiclesRes.data.data || vehiclesRes.data || [])
     } catch (error) {
       console.error("Error loading service data", error)
     }
@@ -71,7 +68,7 @@ const ServicePage = () => {
 
   const handleEdit = (service) => {
     setFormData({
-      vehicleId: service.vehicleId || '',
+      vehicleRegNumber: service.vehicleRegNumber || '',
       serviceType: service.serviceType || 'OIL_CHANGE',
       serviceTypeDetail: service.serviceTypeDetail || '',
       serviceDate: service.serviceDate ? service.serviceDate.substring(0, 10) : '',
@@ -188,7 +185,7 @@ const ServicePage = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
               <thead>
                 <tr style={{ background: '#f9fafb', borderBottom: '1.5px solid #f0f0f0' }}>
-                  {['Vehicle ID', 'Service Type', 'Workshop', 'Date', 'Cost (LKR)', 'Status', 'Actions'].map((h, i) => (
+                  {['License Plate', 'Service Type', 'Workshop', 'Date', 'Cost (LKR)', 'Status', 'Actions'].map((h, i) => (
                     // Hide Actions for Driver
                     (isDriver && h === 'Actions') ? null :
                     <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: '#374151', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
@@ -203,7 +200,7 @@ const ServicePage = () => {
                   const sc = statusColors[status] || statusColors.COMPLETED
                   return (
                     <tr key={s.id} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                      <td style={{ padding: '12px 16px', fontWeight: 600, color: '#6366f1' }}>V-{s.vehicleId}</td>
+                      <td style={{ padding: '12px 16px', fontWeight: 600, color: '#6366f1' }}>{s.vehicleRegNumber || '-'}</td>
                       <td style={{ padding: '12px 16px', color: '#374151' }}>{s.serviceType}</td>
                       <td style={{ padding: '12px 16px', color: '#6b7280' }}>{s.technicianWorkshop}</td>
                       <td style={{ padding: '12px 16px', color: '#374151' }}>{s.serviceDate ? s.serviceDate.substring(0, 10) : '-'}</td>
@@ -230,27 +227,25 @@ const ServicePage = () => {
 
           {/* Add/Edit Modal */}
           {showModal && (
-            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-              <div style={{ background: '#fff', padding: 24, borderRadius: 12, width: '400px', maxWidth: '90%' }}>
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+              <div style={{ background: '#fff', padding: 24, borderRadius: 12, width: '450px', maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
                 <h2 style={{ marginTop: 0, marginBottom: 16 }}>{isEditing ? 'Edit Service' : 'Schedule Service'}</h2>
                 <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Vehicle (License Plate)*</label>
-                    <select required name="vehicleId" value={formData.vehicleId} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }}>
-                      <option value="" disabled>Select a Vehicle</option>
-                      {vehicles.map(v => (
-                        <option key={v.id} value={v.id}>{v.registrationNo}</option>
-                      ))}
-                    </select>
+                    <input required type="text" name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={handleFormChange} placeholder="e.g. KA01AB1234" style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Service Type*</label>
                     <select required name="serviceType" value={formData.serviceType} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }}>
                       <option value="OIL_CHANGE">Oil Change</option>
-                      <option value="TUNE_UP">Tune Up</option>
+                      <option value="ENGINE_TUNE_UP">Engine Tune Up</option>
                       <option value="BRAKE_SERVICE">Brake Service</option>
                       <option value="TIRE_ROTATION">Tire Rotation</option>
-                      <option value="WHEEL_ALIGNMENT">Wheel Alignment</option>
+                      <option value="TRANSMISSION_SERVICE">Transmission Service</option>
+                      <option value="AC_SERVICE">AC Service</option>
+                      <option value="BATTERY_REPLACEMENT">Battery Replacement</option>
+                      <option value="GENERAL_INSPECTION">General Inspection</option>
                       <option value="OTHER">Other</option>
                     </select>
                   </div>
@@ -265,12 +260,24 @@ const ServicePage = () => {
                     <input required type="date" name="serviceDate" value={formData.serviceDate} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
                   </div>
                   <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Current Mileage (km)*</label>
+                    <input required type="number" name="currentMileageKm" value={formData.currentMileageKm} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
+                  </div>
+                  <div>
                     <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Cost (LKR)*</label>
                     <input required type="number" step="0.01" name="serviceCost" value={formData.serviceCost} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Workshop</label>
-                    <input type="text" name="technicianWorkshop" value={formData.technicianWorkshop} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Workshop*</label>
+                    <input required type="text" name="technicianWorkshop" value={formData.technicianWorkshop} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Next Service Due (Optional)</label>
+                    <input type="date" name="nextServiceDue" value={formData.nextServiceDue} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Description / Notes (Optional)</label>
+                    <textarea name="description" value={formData.description} onChange={handleFormChange} rows={2} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6, fontFamily: 'inherit' }}></textarea>
                   </div>
                   <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
                     <button type="button" onClick={() => setShowModal(false)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
