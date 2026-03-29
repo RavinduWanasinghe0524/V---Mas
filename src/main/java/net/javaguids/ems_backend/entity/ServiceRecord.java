@@ -21,9 +21,8 @@ public class ServiceRecord {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vehicle_id", nullable = false)
-    private Vehicle vehicle;
+    @Column(name = "vehicle_reg_number", nullable = false, length = 20)
+    private String vehicleRegNumber;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "service_type", nullable = false, length = 100)

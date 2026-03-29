@@ -5,12 +5,10 @@ import lombok.AllArgsConstructor;
 import net.javaguids.ems_backend.dto.ServiceFilterRequest;
 import net.javaguids.ems_backend.dto.ServiceRecordDto;
 import net.javaguids.ems_backend.entity.ServiceRecord;
-import net.javaguids.ems_backend.entity.Vehicle;
 import net.javaguids.ems_backend.enums.ServiceType;
 import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.mapper.ServiceRecordMapper;
 import net.javaguids.ems_backend.repository.ServiceRecordRepository;
-import net.javaguids.ems_backend.repository.VehicleRepository;
 import net.javaguids.ems_backend.service.ServiceRecordService;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -21,20 +19,16 @@ import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
+@SuppressWarnings("null")
 public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     private final ServiceRecordRepository serviceRecordRepository;
-    private final VehicleRepository vehicleRepository;
 
     @Override
     public ServiceRecordDto createServiceRecord(ServiceRecordDto dto) {
         validateServiceTypeDetail(dto.getServiceType(), dto.getServiceTypeDetail());
 
-        Vehicle vehicle = vehicleRepository.findById(dto.getVehicleId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Vehicle not found with id: " + dto.getVehicleId()));
-
-        ServiceRecord record = ServiceRecordMapper.mapToServiceRecord(dto, vehicle);
+        ServiceRecord record = ServiceRecordMapper.mapToServiceRecord(dto);
         ServiceRecord saved = serviceRecordRepository.save(record);
         return ServiceRecordMapper.mapToServiceRecordDto(saved);
     }
@@ -63,11 +57,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
 
         validateServiceTypeDetail(dto.getServiceType(), dto.getServiceTypeDetail());
 
-        Vehicle vehicle = vehicleRepository.findById(dto.getVehicleId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Vehicle not found with id: " + dto.getVehicleId()));
-
-        record.setVehicle(vehicle);
+        record.setVehicleRegNumber(dto.getVehicleRegNumber());
         record.setServiceType(dto.getServiceType());
         record.setServiceTypeDetail(dto.getServiceTypeDetail());
         record.setServiceDate(dto.getServiceDate());
@@ -94,8 +84,8 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
         Specification<ServiceRecord> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (filter.getVehicleId() != null) {
-                predicates.add(cb.equal(root.get("vehicle").get("id"), filter.getVehicleId()));
+            if (filter.getVehicleRegNumber() != null) {
+                predicates.add(cb.equal(root.get("vehicleRegNumber"), filter.getVehicleRegNumber()));
             }
             if (filter.getServiceType() != null) {
                 predicates.add(cb.equal(root.get("serviceType"), filter.getServiceType()));
@@ -117,11 +107,8 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
     }
 
     @Override
-    public List<ServiceRecordDto> getServiceRecordsByVehicle(Long vehicleId) {
-        if (!vehicleRepository.existsById(vehicleId)) {
-            throw new ResourceNotFoundException("Vehicle not found with id: " + vehicleId);
-        }
-        return serviceRecordRepository.findByVehicleId(vehicleId)
+    public List<ServiceRecordDto> getServiceRecordsByVehicle(String vehicleRegNumber) {
+        return serviceRecordRepository.findByVehicleRegNumber(vehicleRegNumber)
                 .stream()
                 .map(ServiceRecordMapper::mapToServiceRecordDto)
                 .collect(Collectors.toList());

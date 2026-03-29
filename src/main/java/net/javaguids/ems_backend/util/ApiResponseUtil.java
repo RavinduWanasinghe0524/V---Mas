@@ -9,11 +9,13 @@ public final class ApiResponseUtil {
     private ApiResponseUtil() {
     }
 
+    @SuppressWarnings("null")
     public static <T> ResponseEntity<ApiResponse<T>> success(String message, T data, HttpStatus status) {
         ApiResponse<T> body = new ApiResponse<>(true, message, data);
         return new ResponseEntity<>(body, status);
     }
 
+    @SuppressWarnings("null")
     public static ResponseEntity<ApiResponse<Object>> error(String message, HttpStatus status) {
         ApiResponse<Object> body = new ApiResponse<>(false, message, null);
         return new ResponseEntity<>(body, status);
