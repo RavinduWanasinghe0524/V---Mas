@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
-@SuppressWarnings("null")
 public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     private final ServiceRecordRepository serviceRecordRepository;
