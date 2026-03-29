@@ -50,11 +50,10 @@ const FuelAnalysisPage = () => {
           setVehicleStats(statsRes.data.data || [])
         }
         
-        // Load driver's own vehicle logs
-        if (isDriver && user?.vehicleRegNumber) {
-          const logsRes = await fuelAPI.getLogsByVehicle(user.vehicleRegNumber)
+        // Load driver's own logs using the driver-scoped endpoint GET /api/fuel/my-logs
+        if (isDriver) {
+          const logsRes = await fuelAPI.getMyLogs()
           setMyVehicleLogs(logsRes.data.data || [])
-          setFormData(prev => ({ ...prev, vehicleRegNumber: user.vehicleRegNumber }))
         }
       } catch (error) {
         console.error('Error loading fuel data:', error)
@@ -87,13 +86,14 @@ const FuelAnalysisPage = () => {
         date: formData.date
       }
       
+      // Driver endpoint: POST /api/fuel/add
       await fuelAPI.addFuelLog(payload)
       
-      // Reload data
+      // Reload summary, chart and the driver's own logs
       const [summaryRes, chartRes, logsRes] = await Promise.all([
         fuelAPI.getSummary(),
         fuelAPI.getChartData(),
-        fuelAPI.getLogsByVehicle(formData.vehicleRegNumber)
+        fuelAPI.getMyLogs()          // <-- uses correct driver-scoped endpoint
       ])
       
       setSummary(summaryRes.data.data)
@@ -102,7 +102,7 @@ const FuelAnalysisPage = () => {
       
       // Reset form
       setFormData({
-        vehicleRegNumber: user?.vehicleRegNumber || '',
+        vehicleRegNumber: '',
         fuelType: 'Diesel',
         liters: '',
         costPerLiter: '',

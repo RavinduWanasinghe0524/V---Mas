@@ -26,14 +26,10 @@ const FuelLogPage = () => {
   // Load fuel logs
   useEffect(() => {
     const loadLogs = async () => {
-      if (!user?.vehicleRegNumber) {
-        setLoading(false)
-        return
-      }
-      
       try {
         setLoading(true)
-        const logsRes = await fuelAPI.getLogsByVehicle(user.vehicleRegNumber)
+        // Driver-scoped endpoint: GET /api/fuel/my-logs
+        const logsRes = await fuelAPI.getMyLogs()
         setMyVehicleLogs(logsRes.data.data || [])
       } catch (error) {
         console.error('Error loading fuel logs:', error)
@@ -68,8 +64,8 @@ const FuelLogPage = () => {
       
       await fuelAPI.addFuelLog(payload)
       
-      // Reload logs
-      const logsRes = await fuelAPI.getLogsByVehicle(formData.vehicleRegNumber)
+      // Reload driver's own logs via the correct endpoint
+      const logsRes = await fuelAPI.getMyLogs()
       setMyVehicleLogs(logsRes.data.data || [])
       
       // Reset form
