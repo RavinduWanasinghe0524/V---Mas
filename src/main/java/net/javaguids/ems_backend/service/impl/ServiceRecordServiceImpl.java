@@ -5,12 +5,10 @@ import lombok.AllArgsConstructor;
 import net.javaguids.ems_backend.dto.ServiceFilterRequest;
 import net.javaguids.ems_backend.dto.ServiceRecordDto;
 import net.javaguids.ems_backend.entity.ServiceRecord;
-import net.javaguids.ems_backend.entity.Vehicle;
 import net.javaguids.ems_backend.enums.ServiceType;
 import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.mapper.ServiceRecordMapper;
 import net.javaguids.ems_backend.repository.ServiceRecordRepository;
-import net.javaguids.ems_backend.repository.VehicleRepository;
 import net.javaguids.ems_backend.service.ServiceRecordService;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -21,6 +19,7 @@ import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
+@SuppressWarnings("null")
 public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     private final ServiceRecordRepository serviceRecordRepository;
