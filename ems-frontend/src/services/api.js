@@ -65,12 +65,25 @@ export const vehicleAPI = {
 }
 
 export const fuelAPI = {
+  // ── Driver-scoped (uses /api/fuel/add & /api/fuel/my-logs) ──────────────
   addFuelLog:           (data)           => api.post('/fuel/add', data),
-  getFuelLogById:       (id)             => api.get(`/fuel/${id}`),
-  getLogsByVehicle:     (vehicleRegNumber) => api.get(`/fuel/vehicle/${vehicleRegNumber}`),
+  getMyLogs:            ()               => api.get('/fuel/my-logs'),
+  getMyLogById:         (id)             => api.get(`/fuel/my-logs/${id}`),
+  updateMyLog:          (id, data)       => api.put(`/fuel/my-logs/${id}`, data),
+
+  // ── Analytics / shared ──────────────────────────────────────────────────
   getSummary:           ()               => api.get('/fuel/summary'),
   getChartData:         ()               => api.get('/fuel/chart'),
   getVehicleStats:      ()               => api.get('/fuel/stats'),
+  getFuelLogById:       (id)             => api.get(`/fuel/log/${id}`),
+  getLogsByVehicle:     (reg)            => api.get(`/fuel/vehicle/${reg}`),
+
+  // ── Controller / Admin (uses /api/fuel/controller/*) ────────────────────
+  getAllFuelLogs:        ()               => api.get('/fuel/all'),
+  controllerAddLog:     (data)           => api.post('/fuel/controller/add', data),
+  controllerSearchById: (id)             => api.get(`/fuel/controller/search/${id}`),
+  controllerUpdateLog:  (id, data)       => api.put(`/fuel/controller/${id}`, data),
+  controllerDeleteLog:  (id)             => api.delete(`/fuel/controller/${id}`),
 }
 
 export const serviceAPI = {

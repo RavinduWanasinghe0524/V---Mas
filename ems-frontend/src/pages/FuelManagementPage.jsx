@@ -25,7 +25,8 @@ const FuelManagementPage = () => {
     liters: '',
     costPerLiter: '',
     mileage: '',
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split('T')[0],
+    driverUsername: ''
   })
   const [submitting, setSubmitting] = useState(false)
   
@@ -56,22 +57,12 @@ const FuelManagementPage = () => {
   const loadAllLogs = async () => {
     try {
       setLoading(true)
-      const statsRes = await fuelAPI.getVehicleStats()
-      const vehicles = statsRes.data.data || []
-      
-      // Load logs for all vehicles
-      const allLogsPromises = vehicles.map(v => 
-        fuelAPI.getLogsByVehicle(v.vehicleRegNumber).catch(() => ({ data: { data: [] } }))
-      )
-      
-      const logsResults = await Promise.all(allLogsPromises)
-      const allVehicleLogs = logsResults.flatMap(res => res.data.data || [])
-      
-      // Sort by date descending
-      allVehicleLogs.sort((a, b) => new Date(b.date) - new Date(a.date))
-      
-      setAllLogs(allVehicleLogs)
-      calculateStats(allVehicleLogs, vehicles.length)
+      // Use the dedicated controller endpoint: GET /api/fuel/all
+      const res = await fuelAPI.getAllFuelLogs()
+      const logs = res.data.data || []
+      const vehicleCount = [...new Set(logs.map(l => l.vehicleRegNumber))].length
+      setAllLogs(logs)
+      calculateStats(logs, vehicleCount)
     } catch (error) {
       console.error('Error loading fuel logs:', error)
     } finally {
@@ -146,10 +137,12 @@ const FuelManagementPage = () => {
         liters: parseFloat(formData.liters),
         costPerLiter: parseFloat(formData.costPerLiter),
         mileage: parseFloat(formData.mileage),
-        date: formData.date
+        date: formData.date,
+        driverUsername: formData.driverUsername || undefined
       }
       
-      await fuelAPI.addFuelLog(payload)
+      // Use controller-scoped add endpoint: POST /api/fuel/controller/add
+      await fuelAPI.controllerAddLog(payload)
       
       // Reset form and reload
       setFormData({
@@ -158,7 +151,8 @@ const FuelManagementPage = () => {
         liters: '',
         costPerLiter: '',
         mileage: '',
-        date: new Date().toISOString().split('T')[0]
+        date: new Date().toISOString().split('T')[0],
+        driverUsername: ''
       })
       setActiveTab('all')
       await loadAllLogs()
@@ -184,10 +178,29 @@ const FuelManagementPage = () => {
   }
 
   const handleSaveEdit = async () => {
-    // Note: Backend needs PUT endpoint for update
-    // For now, we'll show an alert
-    alert('⚠️ Edit functionality requires backend PUT endpoint: /api/fuel/{id}')
-    setEditingLog(null)
+    if (!editingLog) return
+    setSubmitting(true)
+    try {
+      const payload = {
+        vehicleRegNumber: editingLog.vehicleRegNumber,
+        fuelType: editingLog.fuelType,
+        liters: parseFloat(editingLog.liters),
+        costPerLiter: parseFloat(editingLog.costPerLiter),
+        mileage: parseFloat(editingLog.mileage),
+        date: editingLog.date,
+        driverUsername: editingLog.driverUsername || undefined
+      }
+      // Use controller update endpoint: PUT /api/fuel/controller/{id}
+      await fuelAPI.controllerUpdateLog(editingLog.id, payload)
+      setEditingLog(null)
+      await loadAllLogs()
+      alert('✅ Fuel log updated successfully!')
+    } catch (error) {
+      console.error('Error updating fuel log:', error)
+      alert('❌ Failed to update: ' + (error.response?.data?.message || error.message))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const handleDeleteClick = (log) => {
@@ -196,11 +209,20 @@ const FuelManagementPage = () => {
   }
 
   const handleConfirmDelete = async () => {
-    // Note: Backend needs DELETE endpoint
-    // For now, we'll show an alert
-    alert('⚠️ Delete functionality requires backend DELETE endpoint: /api/fuel/{id}')
-    setShowDeleteModal(false)
-    setDeletingLog(null)
+    if (!deletingLog) return
+    try {
+      // Use controller delete endpoint: DELETE /api/fuel/controller/{id}
+      await fuelAPI.controllerDeleteLog(deletingLog.id)
+      setShowDeleteModal(false)
+      setDeletingLog(null)
+      await loadAllLogs()
+      alert('✅ Fuel log deleted successfully!')
+    } catch (error) {
+      console.error('Error deleting fuel log:', error)
+      alert('❌ Failed to delete: ' + (error.response?.data?.message || error.message))
+      setShowDeleteModal(false)
+      setDeletingLog(null)
+    }
   }
 
   const getEfficiencyBadge = (efficiency) => {
@@ -649,6 +671,26 @@ const FuelManagementPage = () => {
                       }}
                     />
                   </div>
+
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+                      Driver Username <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional)</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      name="driverUsername" 
+                      value={formData.driverUsername} 
+                      onChange={handleInputChange}
+                      placeholder="e.g., driver1 (leave blank if unassigned)"
+                      style={{ 
+                        width: '100%', 
+                        padding: '10px 14px', 
+                        borderRadius: 8, 
+                        border: '1.5px solid #d1d5db', 
+                        fontSize: '0.9rem'
+                      }}
+                    />
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: 12 }}>
@@ -759,15 +801,97 @@ const FuelManagementPage = () => {
                       }}
                     />
                   </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+                      Fuel Type
+                    </label>
+                    <select 
+                      name="fuelType" 
+                      value={editingLog.fuelType} 
+                      onChange={handleInputChange}
+                      style={{ 
+                        width: '100%', 
+                        padding: '10px 14px', 
+                        borderRadius: 8, 
+                        border: '1.5px solid #d1d5db', 
+                        fontSize: '0.9rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="Diesel">⛽ Diesel</option>
+                      <option value="Petrol">⛽ Petrol</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+                      Mileage (km)
+                    </label>
+                    <input 
+                      type="number" 
+                      name="mileage" 
+                      value={editingLog.mileage} 
+                      onChange={handleInputChange}
+                      step="0.1"
+                      style={{ 
+                        width: '100%', 
+                        padding: '10px 14px', 
+                        borderRadius: 8, 
+                        border: '1.5px solid #d1d5db', 
+                        fontSize: '0.9rem'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+                      Date
+                    </label>
+                    <input 
+                      type="date" 
+                      name="date" 
+                      value={editingLog.date} 
+                      onChange={handleInputChange}
+                      style={{ 
+                        width: '100%', 
+                        padding: '10px 14px', 
+                        borderRadius: 8, 
+                        border: '1.5px solid #d1d5db', 
+                        fontSize: '0.9rem'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+                      Driver Username <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional)</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      name="driverUsername" 
+                      value={editingLog.driverUsername || ''} 
+                      onChange={handleInputChange}
+                      placeholder="e.g., driver1"
+                      style={{ 
+                        width: '100%', 
+                        padding: '10px 14px', 
+                        borderRadius: 8, 
+                        border: '1.5px solid #d1d5db', 
+                        fontSize: '0.9rem'
+                      }}
+                    />
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: 12 }}>
                   <button 
                     onClick={handleSaveEdit}
+                    disabled={submitting}
                     className="btn btn-primary"
                     style={{ flex: 1 }}
                   >
-                    Save Changes
+                    {submitting ? 'Saving...' : 'Save Changes'}
                   </button>
                   <button 
                     onClick={handleCancelEdit}
