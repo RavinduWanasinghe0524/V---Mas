@@ -52,6 +52,12 @@ export const userAPI = {
   deleteUser:  (id)       => api.delete(`/users/${id}`),
 }
 
+export const profileAPI = {
+  getMyProfile:    ()     => api.get('/users/me'),
+  updateMyProfile: (data) => api.put('/users/me', data),
+  changePassword:  (data) => api.put('/users/me/password', data),
+}
+
 export const employeeAPI = {
   getAllEmployees:  ()         => api.get('/employees'),
   getEmployeeById: (id)       => api.get(`/employees/${id}`),
