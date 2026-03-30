@@ -11,7 +11,7 @@ const FuelManagementPage = () => {
   const [allLogs, setAllLogs] = useState([])
   const [filteredLogs, setFilteredLogs] = useState([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('all') // 'all' or 'add'
+  const [activeTab, setActiveTab] = useState('all') // 'all', 'add', or 'deleted'
   
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
@@ -52,7 +52,7 @@ const FuelManagementPage = () => {
   // Apply filters
   useEffect(() => {
     applyFilters()
-  }, [allLogs, searchTerm, filterFuelType, filterStatus])
+  }, [allLogs, searchTerm, filterFuelType, filterStatus, activeTab])
 
   const loadAllLogs = async () => {
     try {
@@ -60,9 +60,11 @@ const FuelManagementPage = () => {
       // Use the dedicated controller endpoint: GET /api/fuel/all
       const res = await fuelAPI.getAllFuelLogs()
       const logs = res.data.data || []
-      const vehicleCount = [...new Set(logs.map(l => l.vehicleRegNumber))].length
+      // Stats use only active (non-deleted) logs
+      const activeLogs = logs.filter(l => !l.isDeleted)
+      const vehicleCount = [...new Set(activeLogs.map(l => l.vehicleRegNumber))].length
       setAllLogs(logs)
-      calculateStats(logs, vehicleCount)
+      calculateStats(activeLogs, vehicleCount)
     } catch (error) {
       console.error('Error loading fuel logs:', error)
     } finally {
@@ -89,19 +91,28 @@ const FuelManagementPage = () => {
 
   const applyFilters = () => {
     let filtered = [...allLogs]
-    
+
+    // For the deleted tab, only show soft-deleted logs
+    if (activeTab === 'deleted') {
+      setFilteredLogs(filtered.filter(log => log.isDeleted))
+      return
+    }
+
+    // For the 'all' tab, hide soft-deleted logs
+    filtered = filtered.filter(log => !log.isDeleted)
+
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(log => 
+      filtered = filtered.filter(log =>
         log.vehicleRegNumber.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
-    
+
     // Fuel type filter
     if (filterFuelType !== 'all') {
       filtered = filtered.filter(log => log.fuelType === filterFuelType)
     }
-    
+
     // Status filter (based on efficiency)
     if (filterStatus !== 'all') {
       filtered = filtered.filter(log => {
@@ -113,7 +124,7 @@ const FuelManagementPage = () => {
         return true
       })
     }
-    
+
     setFilteredLogs(filtered)
   }
 
@@ -303,10 +314,38 @@ const FuelManagementPage = () => {
               >
                 ➕ Add Fuel Log
               </button>
+              <button
+                onClick={() => setActiveTab('deleted')}
+                style={{
+                  padding: '12px 24px',
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: activeTab === 'deleted' ? '3px solid #ef4444' : '3px solid transparent',
+                  color: activeTab === 'deleted' ? '#ef4444' : '#6b7280',
+                  fontWeight: activeTab === 'deleted' ? 700 : 500,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  marginBottom: '-2px'
+                }}
+              >
+                🗑️ Deleted Logs
+                <span style={{
+                  marginLeft: 8,
+                  background: activeTab === 'deleted' ? '#ef4444' : '#e5e7eb',
+                  color: activeTab === 'deleted' ? '#fff' : '#6b7280',
+                  borderRadius: 10,
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  padding: '2px 7px'
+                }}>
+                  {allLogs.filter(l => l.isDeleted).length}
+                </span>
+              </button>
             </div>
           </div>
 
-          {/* Statistics Cards */}
+          {/* All Fuel Logs tab */}
           {activeTab === 'all' && (
             <>
               <div className="stats-grid" style={{ marginBottom: 24 }}>
@@ -404,7 +443,7 @@ const FuelManagementPage = () => {
                     Manage and monitor all fuel entries
                   </p>
                 </div>
-                
+
                 <div style={{ overflowX: 'auto' }}>
                   {filteredLogs.length === 0 ? (
                     <div style={{ padding: 60, textAlign: 'center', color: '#9ca3af' }}>
@@ -416,15 +455,15 @@ const FuelManagementPage = () => {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                       <thead style={{ background: '#f9fafb' }}>
                         <tr style={{ borderBottom: '1.5px solid #f0f0f0' }}>
-                          {['Vehicle', 'Date', 'Fuel Type', 'Liters', 'Cost/L', 'Total Cost', 'Mileage', 'Efficiency', 'Status', 'Actions'].map(h => (
-                            <th key={h} style={{ 
-                              padding: '12px 16px', 
-                              textAlign: 'left', 
-                              fontWeight: 700, 
-                              color: '#374151', 
-                              fontSize: '0.75rem', 
-                              textTransform: 'uppercase', 
-                              letterSpacing: '0.05em' 
+                          {['Vehicle', 'Date', 'Fuel Type', 'Liters', 'Cost/L', 'Total Cost', 'Mileage', 'Efficiency', 'Record Status', 'Actions'].map(h => (
+                            <th key={h} style={{
+                              padding: '12px 16px',
+                              textAlign: 'left',
+                              fontWeight: 700,
+                              color: '#374151',
+                              fontSize: '0.75rem',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em'
                             }}>
                               {h}
                             </th>
@@ -433,8 +472,8 @@ const FuelManagementPage = () => {
                       </thead>
                       <tbody>
                         {filteredLogs.map((log, i) => (
-                          <tr key={log.id} style={{ 
-                            borderBottom: '1px solid #f3f4f6', 
+                          <tr key={log.id} style={{
+                            borderBottom: '1px solid #f3f4f6',
                             background: i % 2 === 0 ? '#fff' : '#fafafa',
                             transition: 'background 0.15s ease'
                           }}
@@ -448,13 +487,13 @@ const FuelManagementPage = () => {
                               {new Date(log.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                             </td>
                             <td style={{ padding: '14px 16px' }}>
-                              <span style={{ 
-                                padding: '4px 10px', 
-                                borderRadius: 6, 
-                                fontSize: '0.75rem', 
-                                fontWeight: 600, 
-                                background: log.fuelType === 'Diesel' ? '#eef2ff' : '#fff7ed', 
-                                color: log.fuelType === 'Diesel' ? '#6366f1' : '#f59e0b' 
+                              <span style={{
+                                padding: '4px 10px',
+                                borderRadius: 6,
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                background: log.fuelType === 'Diesel' ? '#eef2ff' : '#fff7ed',
+                                color: log.fuelType === 'Diesel' ? '#6366f1' : '#f59e0b'
                               }}>
                                 {log.fuelType}
                               </span>
@@ -465,9 +504,9 @@ const FuelManagementPage = () => {
                             <td style={{ padding: '14px 16px', color: '#6b7280' }}>{log.mileage.toFixed(1)} km</td>
                             <td style={{ padding: '14px 16px' }}>
                               {log.fuelEfficiency ? (
-                                <span style={{ 
-                                  fontWeight: 700, 
-                                  color: log.fuelEfficiency > 10 ? '#10b981' : log.fuelEfficiency > 5 ? '#6366f1' : '#f59e0b' 
+                                <span style={{
+                                  fontWeight: 700,
+                                  color: log.fuelEfficiency > 10 ? '#10b981' : log.fuelEfficiency > 5 ? '#6366f1' : '#f59e0b'
                                 }}>
                                   {log.fuelEfficiency.toFixed(2)} km/L
                                 </span>
@@ -475,11 +514,43 @@ const FuelManagementPage = () => {
                                 <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>—</span>
                               )}
                             </td>
+                            {/* Record Status column */}
                             <td style={{ padding: '14px 16px' }}>
-                              {(() => {
-                                const badge = getEfficiencyBadge(log.fuelEfficiency)
-                                return <span className={`badge ${badge.class}`}>{badge.text}</span>
-                              })()}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                {log.isUpdated ? (
+                                  <span title={log.updatedAt ? `Updated: ${new Date(log.updatedAt).toLocaleString()}` : 'Updated'} style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    padding: '3px 9px',
+                                    borderRadius: 20,
+                                    fontSize: '0.7rem',
+                                    fontWeight: 700,
+                                    background: '#eef2ff',
+                                    color: '#6366f1',
+                                    border: '1px solid #c7d2fe',
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    ✏️ Updated
+                                  </span>
+                                ) : (
+                                  <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    padding: '3px 9px',
+                                    borderRadius: 20,
+                                    fontSize: '0.7rem',
+                                    fontWeight: 600,
+                                    background: '#f0fdf4',
+                                    color: '#16a34a',
+                                    border: '1px solid #bbf7d0',
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    ✅ Original
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td style={{ padding: '14px 16px' }}>
                               <div style={{ display: 'flex', gap: 6 }}>
@@ -529,6 +600,104 @@ const FuelManagementPage = () => {
                 </div>
               </div>
             </>
+          )}
+
+          {/* Deleted Logs tab */}
+          {activeTab === 'deleted' && (
+            <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #f0f0f0', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+              <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div>
+                  <h3 style={{ margin: 0, fontWeight: 700, color: '#ef4444', fontSize: '0.95rem' }}>
+                    🗑️ Soft-Deleted Fuel Logs ({filteredLogs.length})
+                  </h3>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#9ca3af' }}>
+                    These records have been marked as deleted. They are retained for audit purposes.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ overflowX: 'auto' }}>
+                {filteredLogs.length === 0 ? (
+                  <div style={{ padding: 60, textAlign: 'center', color: '#9ca3af' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: 12 }}>🗑️</div>
+                    <p style={{ fontWeight: 600, marginBottom: 6 }}>No deleted logs</p>
+                    <p style={{ fontSize: '0.85rem' }}>No fuel logs have been deleted yet.</p>
+                  </div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                    <thead style={{ background: '#fef2f2' }}>
+                      <tr style={{ borderBottom: '1.5px solid #fecaca' }}>
+                        {['Vehicle', 'Fuel Type', 'Liters', 'Total Cost', 'Date', 'Driver', 'Deleted At'].map(h => (
+                          <th key={h} style={{
+                            padding: '12px 16px',
+                            textAlign: 'left',
+                            fontWeight: 700,
+                            color: '#991b1b',
+                            fontSize: '0.75rem',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em'
+                          }}>
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredLogs.map((log, i) => (
+                        <tr key={log.id} style={{
+                          borderBottom: '1px solid #fee2e2',
+                          background: i % 2 === 0 ? '#fff5f5' : '#fff',
+                          opacity: 0.85
+                        }}>
+                          <td style={{ padding: '14px 16px', fontWeight: 600, color: '#dc2626' }}>
+                            {log.vehicleRegNumber}
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <span style={{
+                              padding: '4px 10px',
+                              borderRadius: 6,
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              background: '#fee2e2',
+                              color: '#dc2626'
+                            }}>
+                              {log.fuelType}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px', color: '#6b7280' }}>{log.liters.toFixed(2)} L</td>
+                          <td style={{ padding: '14px 16px', fontWeight: 700, color: '#374151' }}>Rs. {log.totalCost.toLocaleString()}</td>
+                          <td style={{ padding: '14px 16px', color: '#6b7280' }}>
+                            {new Date(log.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                          </td>
+                          <td style={{ padding: '14px 16px', color: '#6b7280' }}>{log.driverUsername || '—'}</td>
+                          <td style={{ padding: '14px 16px' }}>
+                            {log.deletedAt ? (
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                padding: '3px 9px',
+                                borderRadius: 20,
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                background: '#fee2e2',
+                                color: '#dc2626',
+                                border: '1px solid #fecaca',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                🗑️ {new Date(log.deletedAt).toLocaleString()}
+                              </span>
+                            ) : (
+                              <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>—</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
           )}
 
           {/* Add Fuel Log Form */}

@@ -1,8 +1,8 @@
 {
 	"info": {
-		"_postman_id": "fuel-analysis-module-v4",
-		"name": "V-Mas Fuel & Analysis Module - Complete",
-		"description": "Complete Postman collection for Fuel & Analysis endpoints.\n\n⚠️ PREREQUISITES:\n- Login as DRIVER  → saves {{driverToken}}\n- Login as CONTROLLER → saves {{controllerToken}}\n\nFolders 1-4 use {{driverToken}}. Folder 5 (Controller) uses {{controllerToken}}.",
+		"_postman_id": "fuel-analysis-module-v5",
+		"name": "V-Mas Fuel & Analysis Module - Complete (v5)",
+		"description": "Complete Postman collection for Fuel & Analysis endpoints.\n\n⚠️ PREREQUISITES:\n- Login as DRIVER  → saves {{driverToken}}\n- Login as CONTROLLER → saves {{controllerToken}}\n\nFolders 1-4 use {{driverToken}}. Folder 5 (Controller) uses {{controllerToken}}.\n\n📌 NEW IN v5 (Audit Tracking):\n- Every fuel log now carries audit fields: isUpdated, updatedAt, isDeleted, deletedAt\n- Controller UPDATE sets isUpdated=true and records updatedAt timestamp\n- Controller DELETE is now a SOFT-DELETE: isDeleted=true + deletedAt recorded; row is kept in DB\n- GET /api/fuel/all returns ALL logs (active + soft-deleted) so controller can audit history\n- Soft-deleted logs no longer appear in driver views or frontend stats",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "fuel-module"
 	},
@@ -533,7 +533,7 @@
 			"name": "5. Controller - Fuel Management",
 			"item": [
 				{
-					"name": "Get ALL Fuel Logs (Every Driver)",
+					"name": "Get ALL Fuel Logs (Active + Soft-Deleted)",
 					"event": [
 						{
 							"listen": "test",
@@ -542,14 +542,23 @@
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
-									"pm.test(\"Returns array of all fuel logs\", function () {",
+									"pm.test(\"Returns array of all fuel logs (active + soft-deleted)\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData.success).to.eql(true);",
 									"    pm.expect(jsonData.data).to.be.an('array');",
 									"    if (jsonData.data.length > 0) {",
-									"        pm.environment.set('controllerFuelLogId', jsonData.data[0].id);",
-									"        console.log('✅ Total logs:', jsonData.data.length);",
-									"        console.log('✅ Saved controllerFuelLogId:', jsonData.data[0].id);",
+									"        var first = jsonData.data[0];",
+									"        pm.environment.set('controllerFuelLogId', first.id);",
+									"        console.log('✅ Total logs (inc. soft-deleted):', jsonData.data.length);",
+									"        console.log('✅ Saved controllerFuelLogId:', first.id);",
+									"        // Verify audit fields are present",
+									"        pm.expect(first).to.have.property('isUpdated');",
+									"        pm.expect(first).to.have.property('isDeleted');",
+									"        console.log('✅ Audit fields present — isUpdated:', first.isUpdated, '| isDeleted:', first.isDeleted);",
+									"        // Count active vs soft-deleted",
+									"        var active  = jsonData.data.filter(function(l) { return !l.isDeleted; }).length;",
+									"        var deleted = jsonData.data.filter(function(l) { return l.isDeleted; }).length;",
+									"        console.log('📊 Active:', active, '| Soft-deleted:', deleted);",
 									"    }",
 									"});"
 								],
@@ -569,7 +578,7 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["api", "fuel", "all"]
 						},
-						"description": "Controller gets EVERY fuel log in the system across all drivers and vehicles, sorted newest first."
+						"description": "Controller gets EVERY fuel log in the system (active + soft-deleted), sorted newest first.\n\n📌 NEW: Each log now contains audit fields:\n- isUpdated (boolean) — true if the log was ever edited\n- updatedAt (datetime) — when it was last edited\n- isDeleted (boolean) — true if soft-deleted\n- deletedAt (datetime) — when it was soft-deleted"
 					},
 					"response": []
 				},
@@ -655,7 +664,7 @@
 					"response": []
 				},
 				{
-					"name": "Update Fuel Log (Controller)",
+					"name": "Update Fuel Log (Controller) — Sets isUpdated=true",
 					"event": [
 						{
 							"listen": "test",
@@ -664,11 +673,17 @@
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
-									"pm.test(\"Fuel log updated successfully\", function () {",
+									"pm.test(\"Fuel log updated — liters changed\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData.success).to.eql(true);",
 									"    pm.expect(jsonData.data.liters).to.eql(75.0);",
 									"    console.log('✅ Updated log ID:', jsonData.data.id, '| Liters:', jsonData.data.liters);",
+									"});",
+									"pm.test(\"isUpdated flag is now TRUE and updatedAt is set\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data.isUpdated).to.eql(true);",
+									"    pm.expect(jsonData.data.updatedAt).to.exist;",
+									"    console.log('✅ isUpdated:', jsonData.data.isUpdated, '| updatedAt:', jsonData.data.updatedAt);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -691,12 +706,12 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["api", "fuel", "controller", "{{controllerFuelLogId}}"]
 						},
-						"description": "Controller updates ANY fuel log by ID — no ownership restriction. Uses {{controllerFuelLogId}} from previous steps."
+						"description": "Controller updates ANY fuel log by ID — no ownership restriction.\n\n📌 NEW: On success the response will include:\n- isUpdated: true\n- updatedAt: \"<ISO timestamp>\"\n\nThe frontend will display an ✏️ Updated badge on this record."
 					},
 					"response": []
 				},
 				{
-					"name": "Delete Fuel Log (Controller)",
+					"name": "🗑️ Soft-Delete Fuel Log (Controller) — isDeleted=true",
 					"event": [
 						{
 							"listen": "test",
@@ -705,11 +720,12 @@
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
-									"pm.test(\"Fuel log deleted successfully\", function () {",
+									"pm.test(\"Soft-delete succeeded — row is retained in DB\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData.success).to.eql(true);",
-									"    console.log('✅ Deleted fuel log ID:', pm.environment.get('controllerFuelLogId'));",
-									"    pm.environment.unset('controllerFuelLogId');",
+									"    console.log('✅ Soft-deleted fuel log ID:', pm.environment.get('controllerFuelLogId'));",
+									"    console.log('📌 Row still exists in DB with isDeleted=true and deletedAt set');",
+									"    console.log('👉 Run the next request (Verify Soft-Deleted Log) to confirm');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -728,7 +744,49 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["api", "fuel", "controller", "{{controllerFuelLogId}}"]
 						},
-						"description": "Controller deletes ANY fuel log by ID. Uses {{controllerFuelLogId}} from previous steps.\n\n⚠️ Run AFTER 'Add Fuel Log (Controller)' or set controllerFuelLogId manually."
+						"description": "⚠️ CHANGED: This is now a SOFT-DELETE (not hard delete).\n\nThe DB row is NOT removed. Instead:\n- isDeleted is set to true\n- deletedAt is set to current timestamp\n\nThe record still appears in GET /api/fuel/all (controller view only) under the 'Deleted Logs' tab in the frontend.\nIt is hidden from driver views and excluded from fleet statistics.\n\n⚠️ Run AFTER 'Add Fuel Log (Controller)' or set controllerFuelLogId manually."
+					},
+					"response": []
+				},
+				{
+					"name": "✅ Verify Soft-Deleted Log Still Exists in GET /all",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"At least one soft-deleted log exists in the full list\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"    var deletedLogs = jsonData.data.filter(function(l) { return l.isDeleted === true; });",
+									"    pm.expect(deletedLogs.length).to.be.greaterThan(0);",
+									"    console.log('✅ Soft-deleted logs found:', deletedLogs.length);",
+									"    var log = deletedLogs[0];",
+									"    pm.expect(log.isDeleted).to.eql(true);",
+									"    pm.expect(log.deletedAt).to.exist;",
+									"    console.log('✅ isDeleted:', log.isDeleted, '| deletedAt:', log.deletedAt);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{controllerToken}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fuel/all",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fuel", "all"]
+						},
+						"description": "After soft-deleting a log, call GET /api/fuel/all again.\nThe test confirms that:\n1. The deleted log STILL appears in the response (row not removed from DB)\n2. Its isDeleted field is true\n3. Its deletedAt timestamp is populated\n\nThis verifies the full audit trail is intact."
 					},
 					"response": []
 				},
@@ -769,7 +827,7 @@
 					"response": []
 				}
 			],
-			"description": "Controller/Admin fuel management: full CRUD on any fuel log. Requires CONTROLLER or ADMIN role JWT ({{controllerToken}})."
+			"description": "Controller/Admin fuel management: full CRUD on any fuel log. Requires CONTROLLER or ADMIN role JWT ({{controllerToken}}).\n\n📌 Audit Trail (NEW in v5):\n- UPDATE → response includes isUpdated=true and updatedAt timestamp\n- DELETE → soft-delete only; row kept with isDeleted=true and deletedAt\n- GET /all → returns active + soft-deleted logs; frontend separates them into tabs"
 		},
 		{
 			"name": "6. Test Scenarios",
