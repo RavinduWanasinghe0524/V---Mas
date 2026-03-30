@@ -1,8 +1,10 @@
 package net.javaguids.ems_backend.service.impl;
 
 import net.javaguids.ems_backend.dto.AuthResponse;
+import net.javaguids.ems_backend.dto.ChangePasswordRequest;
 import net.javaguids.ems_backend.dto.LoginRequest;
 import net.javaguids.ems_backend.dto.RegisterRequest;
+import net.javaguids.ems_backend.dto.UpdateProfileRequest;
 import net.javaguids.ems_backend.dto.UserDto;
 import net.javaguids.ems_backend.entity.User;
 import net.javaguids.ems_backend.enums.AccountStatus;
@@ -129,6 +131,50 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(requiredId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         userRepository.delete(Objects.requireNonNull(user));
+    }
+
+    @Override
+    public UserDto getMyProfile(String username) {
+        User user = userRepository.findByUserName(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        return mapToDto(user);
+    }
+
+    @Override
+    public UserDto updateMyProfile(String username, UpdateProfileRequest request) {
+        User user = userRepository.findByUserName(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (request.getEmail() != null && !request.getEmail().equals(user.getEmail())) {
+            if (userRepository.existsByEmail(request.getEmail())) {
+                throw new RuntimeException("Email already in use");
+            }
+            user.setEmail(request.getEmail());
+        }
+
+        if (request.getProfilePicture() != null) {
+            user.setProfilePicture(request.getProfilePicture());
+        }
+
+        User updatedUser = userRepository.save(user);
+        return mapToDto(updatedUser);
+    }
+
+    @Override
+    public void changePassword(String username, ChangePasswordRequest request) {
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new RuntimeException("New passwords do not match");
+        }
+
+        User user = userRepository.findByUserName(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new RuntimeException("Current password is incorrect");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 
     private UserDto mapToDto(User user) {

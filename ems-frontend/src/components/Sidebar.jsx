@@ -10,6 +10,7 @@ const navItems = {
     { label: 'Fuel Analysis', icon: '⛽', to: '/fuel-analysis' },
     { label: 'Location',      icon: '📍', to: '/location'      },
     { label: 'Reports',       icon: '📈', to: '/reports'       },
+    { label: 'My Profile',    icon: '👤', to: '/profile'       },
   ],
   CONTROLLER: [
     { label: 'Dashboard', icon: '📊', to: '/dashboard' },
