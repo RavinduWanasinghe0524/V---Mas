@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -213,7 +214,7 @@ public class FuelServiceImpl implements FuelService {
 
     @Override
     public List<FuelLogDto> getAllFuelLogs() {
-        log.info("Controller fetching all fuel logs");
+        log.info("Controller fetching all fuel logs (including soft-deleted)");
         return fuelLogRepository.findAll()
                 .stream()
                 .sorted(Comparator.comparing(FuelLog::getDate).reversed())
@@ -274,6 +275,10 @@ public class FuelServiceImpl implements FuelService {
             fuelLog.setDriverUsername(fuelLogDto.getDriverUsername());
         }
 
+        // Mark as updated
+        fuelLog.setIsUpdated(true);
+        fuelLog.setUpdatedAt(LocalDateTime.now());
+
         FuelLog updated = fuelLogRepository.save(fuelLog);
         log.info("Fuel log {} updated by controller", id);
         return mapToDto(updated);
@@ -282,11 +287,14 @@ public class FuelServiceImpl implements FuelService {
     @Override
     @Transactional
     public void deleteFuelLog(Long id) {
-        log.info("Controller deleting fuel log id: {}", id);
+        log.info("Controller soft-deleting fuel log id: {}", id);
         FuelLog fuelLog = fuelLogRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("FuelLog not found with id: " + id));
-        fuelLogRepository.delete(fuelLog);
-        log.info("Fuel log {} deleted by controller", id);
+        // Soft-delete: mark as deleted instead of removing the row
+        fuelLog.setIsDeleted(true);
+        fuelLog.setDeletedAt(LocalDateTime.now());
+        fuelLogRepository.save(fuelLog);
+        log.info("Fuel log {} soft-deleted by controller", id);
     }
 
     // ==================== PRIVATE HELPER METHODS ====================
@@ -386,16 +394,21 @@ public class FuelServiceImpl implements FuelService {
      * Convert FuelLog entity to DTO
      */
     private FuelLogDto mapToDto(FuelLog fuelLog) {
-        return new FuelLogDto(
-            fuelLog.getId(),
-            fuelLog.getVehicleRegNumber(),
-            fuelLog.getFuelType(),
-            fuelLog.getLiters(),
-            fuelLog.getCostPerLiter(),
-            fuelLog.getTotalCost(),
-            fuelLog.getMileage(),
-            fuelLog.getDate(),
-            fuelLog.getDriverUsername()
-        );
+        FuelLogDto dto = new FuelLogDto();
+        dto.setId(fuelLog.getId());
+        dto.setVehicleRegNumber(fuelLog.getVehicleRegNumber());
+        dto.setFuelType(fuelLog.getFuelType());
+        dto.setLiters(fuelLog.getLiters());
+        dto.setCostPerLiter(fuelLog.getCostPerLiter());
+        dto.setTotalCost(fuelLog.getTotalCost());
+        dto.setMileage(fuelLog.getMileage());
+        dto.setDate(fuelLog.getDate());
+        dto.setDriverUsername(fuelLog.getDriverUsername());
+        // Audit fields
+        dto.setIsUpdated(fuelLog.getIsUpdated() != null && fuelLog.getIsUpdated());
+        dto.setUpdatedAt(fuelLog.getUpdatedAt());
+        dto.setIsDeleted(fuelLog.getIsDeleted() != null && fuelLog.getIsDeleted());
+        dto.setDeletedAt(fuelLog.getDeletedAt());
+        return dto;
     }
 }
