@@ -24,8 +24,10 @@ public class FuelLogDto {
     private String driverUsername;
 
     // Audit / status fields
+    private String uploadedBy;
     private Boolean isUpdated;
     private LocalDateTime updatedAt;
+    private String updatedBy;
     private Boolean isDeleted;
     private LocalDateTime deletedAt;
 
