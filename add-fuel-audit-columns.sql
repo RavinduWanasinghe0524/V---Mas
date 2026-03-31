@@ -5,7 +5,9 @@
 -- ============================================================
 
 ALTER TABLE fuel_logs
+    ADD COLUMN IF NOT EXISTS uploaded_by VARCHAR(255) NULL,
     ADD COLUMN IF NOT EXISTS is_updated  BOOLEAN  NOT NULL DEFAULT FALSE,
     ADD COLUMN IF NOT EXISTS updated_at  DATETIME NULL,
+    ADD COLUMN IF NOT EXISTS updated_by  VARCHAR(255) NULL,
     ADD COLUMN IF NOT EXISTS is_deleted  BOOLEAN  NOT NULL DEFAULT FALSE,
     ADD COLUMN IF NOT EXISTS deleted_at  DATETIME NULL;

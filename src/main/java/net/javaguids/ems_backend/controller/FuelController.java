@@ -155,9 +155,12 @@ public class FuelController {
     @PreAuthorize("hasAnyRole('CONTROLLER', 'ADMIN')")
     @PostMapping("/controller/add")
     public ResponseEntity<ApiResponse<FuelLogDto>> addFuelLogByController(
-            @RequestBody FuelLogDto fuelLogDto) {
-        log.info("POST /api/fuel/controller/add - Controller adding fuel log for vehicle: {}",
-                 fuelLogDto.getVehicleRegNumber());
+            @RequestBody FuelLogDto fuelLogDto,
+            Principal principal) {
+        String uploaderUsername = principal.getName();
+        log.info("POST /api/fuel/controller/add - Controller '{}' adding fuel log for vehicle: {}",
+                 uploaderUsername, fuelLogDto.getVehicleRegNumber());
+        fuelLogDto.setUploadedBy(uploaderUsername); // Track who uploaded
         FuelLogDto savedLog = fuelService.addFuelLogByController(fuelLogDto);
         return ApiResponseUtil.success("Fuel log added by controller successfully", savedLog, HttpStatus.CREATED);
     }
@@ -170,8 +173,11 @@ public class FuelController {
     @PutMapping("/controller/{id}")
     public ResponseEntity<ApiResponse<FuelLogDto>> updateFuelLogByController(
             @PathVariable Long id,
-            @RequestBody FuelLogDto fuelLogDto) {
-        log.info("PUT /api/fuel/controller/{} - Controller updating fuel log", id);
+            @RequestBody FuelLogDto fuelLogDto,
+            Principal principal) {
+        String updaterUsername = principal.getName();
+        log.info("PUT /api/fuel/controller/{} - Controller '{}' updating fuel log", id, updaterUsername);
+        fuelLogDto.setUpdatedBy(updaterUsername); // Track who updated
         FuelLogDto updated = fuelService.updateFuelLogByController(id, fuelLogDto);
         return ApiResponseUtil.success("Fuel log updated by controller successfully", updated, HttpStatus.OK);
     }

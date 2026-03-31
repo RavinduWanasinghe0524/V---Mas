@@ -455,7 +455,7 @@ const FuelManagementPage = () => {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                       <thead style={{ background: '#f9fafb' }}>
                         <tr style={{ borderBottom: '1.5px solid #f0f0f0' }}>
-                          {['Vehicle', 'Date', 'Fuel Type', 'Liters', 'Cost/L', 'Total Cost', 'Mileage', 'Efficiency', 'Record Status', 'Actions'].map(h => (
+                          {['Vehicle', 'Date', 'Fuel Type', 'Liters', 'Cost/L', 'Total Cost', 'Mileage', 'Efficiency', 'Uploaded By', 'Record Status', 'Actions'].map(h => (
                             <th key={h} style={{
                               padding: '12px 16px',
                               textAlign: 'left',
@@ -514,11 +514,23 @@ const FuelManagementPage = () => {
                                 <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>—</span>
                               )}
                             </td>
+                            {/* Uploaded By column */}
+                            <td style={{ padding: '14px 16px' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <span style={{
+                                  fontSize: '0.75rem',
+                                  fontWeight: 600,
+                                  color: '#374151'
+                                }}>
+                                  {log.uploadedBy || log.driverUsername || '—'}
+                                </span>
+                              </div>
+                            </td>
                             {/* Record Status column */}
                             <td style={{ padding: '14px 16px' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                 {log.isUpdated ? (
-                                  <span title={log.updatedAt ? `Updated: ${new Date(log.updatedAt).toLocaleString()}` : 'Updated'} style={{
+                                  <span title={log.updatedAt && log.updatedBy ? `Updated by ${log.updatedBy} on ${new Date(log.updatedAt).toLocaleString()}` : log.updatedAt ? `Updated: ${new Date(log.updatedAt).toLocaleString()}` : 'Updated'} style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     gap: 4,
@@ -529,9 +541,10 @@ const FuelManagementPage = () => {
                                     background: '#eef2ff',
                                     color: '#6366f1',
                                     border: '1px solid #c7d2fe',
-                                    whiteSpace: 'nowrap'
+                                    whiteSpace: 'nowrap',
+                                    cursor: 'help'
                                   }}>
-                                    ✏️ Updated
+                                    ✏️ {log.updatedBy ? `Edited by ${log.updatedBy}` : 'Updated'}
                                   </span>
                                 ) : (
                                   <span style={{
@@ -627,7 +640,7 @@ const FuelManagementPage = () => {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                     <thead style={{ background: '#fef2f2' }}>
                       <tr style={{ borderBottom: '1.5px solid #fecaca' }}>
-                        {['Vehicle', 'Fuel Type', 'Liters', 'Total Cost', 'Date', 'Driver', 'Deleted At'].map(h => (
+                        {['Vehicle', 'Fuel Type', 'Liters', 'Total Cost', 'Date', 'Uploaded By', 'Deleted At'].map(h => (
                           <th key={h} style={{
                             padding: '12px 16px',
                             textAlign: 'left',
@@ -669,7 +682,7 @@ const FuelManagementPage = () => {
                           <td style={{ padding: '14px 16px', color: '#6b7280' }}>
                             {new Date(log.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                           </td>
-                          <td style={{ padding: '14px 16px', color: '#6b7280' }}>{log.driverUsername || '—'}</td>
+                          <td style={{ padding: '14px 16px', color: '#6b7280' }}>{log.uploadedBy || log.driverUsername || '—'}</td>
                           <td style={{ padding: '14px 16px' }}>
                             {log.deletedAt ? (
                               <span style={{

@@ -47,6 +47,10 @@ public class FuelLog {
 
     // ── Audit fields ────────────────────────────────────────────────────────
 
+    /** Username of who uploaded/created this fuel log. */
+    @Column(nullable = true)
+    private String uploadedBy;
+
     /** True if this log has ever been edited after creation. */
     @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isUpdated = false;
@@ -54,6 +58,10 @@ public class FuelLog {
     /** Timestamp of the most recent update (null if never updated). */
     @Column(nullable = true)
     private LocalDateTime updatedAt;
+
+    /** Username of who last updated this fuel log. */
+    @Column(nullable = true)
+    private String updatedBy;
 
     /** True if this log has been soft-deleted by a controller/admin. */
     @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
