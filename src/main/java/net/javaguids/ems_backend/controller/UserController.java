@@ -2,7 +2,9 @@ package net.javaguids.ems_backend.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import net.javaguids.ems_backend.dto.ApiResponse;
+import net.javaguids.ems_backend.dto.ChangePasswordRequest;
 import net.javaguids.ems_backend.dto.RegisterRequest;
+import net.javaguids.ems_backend.dto.UpdateProfileRequest;
 import net.javaguids.ems_backend.dto.UserDto;
 import net.javaguids.ems_backend.entity.User;
 import net.javaguids.ems_backend.repository.UserRepository;
@@ -28,6 +30,30 @@ public class UserController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserDto>> getMyProfile() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        log.info("Get own profile request for user: {}", username);
+        UserDto user = userService.getMyProfile(username);
+        return ApiResponseUtil.success("Profile fetched successfully", user, HttpStatus.OK);
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<ApiResponse<UserDto>> updateMyProfile(@RequestBody UpdateProfileRequest request) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        log.info("Update profile request for user: {}", username);
+        UserDto updatedUser = userService.updateMyProfile(username, request);
+        return ApiResponseUtil.success("Profile updated successfully", updatedUser, HttpStatus.OK);
+    }
+
+    @PutMapping("/me/password")
+    public ResponseEntity<ApiResponse<Object>> changePassword(@RequestBody ChangePasswordRequest request) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        log.info("Change password request for user: {}", username);
+        userService.changePassword(username, request);
+        return ApiResponseUtil.success("Password changed successfully", null, HttpStatus.OK);
+    }
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")

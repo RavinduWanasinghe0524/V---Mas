@@ -50,6 +50,7 @@ public class FuelServiceImpl implements FuelService {
         fuelLog.setMileage(fuelLogDto.getMileage());
         fuelLog.setDate(fuelLogDto.getDate() != null ? fuelLogDto.getDate() : LocalDate.now());
         fuelLog.setDriverUsername(driverUsername); // ← tie this log to the driver
+        fuelLog.setUploadedBy(driverUsername); // ← track who uploaded it
 
         // Save the fuel log
         FuelLog savedLog = fuelLogRepository.save(fuelLog);
@@ -101,6 +102,11 @@ public class FuelServiceImpl implements FuelService {
         if (fuelLogDto.getDate() != null) {
             fuelLog.setDate(fuelLogDto.getDate());
         }
+
+        // Mark as updated
+        fuelLog.setIsUpdated(true);
+        fuelLog.setUpdatedAt(LocalDateTime.now());
+        fuelLog.setUpdatedBy(driverUsername);
 
         FuelLog updated = fuelLogRepository.save(fuelLog);
         log.info("Fuel log {} updated by driver '{}'", id, driverUsername);
@@ -244,6 +250,7 @@ public class FuelServiceImpl implements FuelService {
         fuelLog.setDate(fuelLogDto.getDate() != null ? fuelLogDto.getDate() : LocalDate.now());
         // driverUsername may be supplied in the DTO (optional for controller)
         fuelLog.setDriverUsername(fuelLogDto.getDriverUsername());
+        fuelLog.setUploadedBy(fuelLogDto.getUploadedBy()); // ← track who uploaded it
 
         FuelLog savedLog = fuelLogRepository.save(fuelLog);
         log.info("Controller saved fuel log with ID: {}", savedLog.getId());
@@ -275,9 +282,10 @@ public class FuelServiceImpl implements FuelService {
             fuelLog.setDriverUsername(fuelLogDto.getDriverUsername());
         }
 
-        // Mark as updated
+        // Mark as updated and track who updated it
         fuelLog.setIsUpdated(true);
         fuelLog.setUpdatedAt(LocalDateTime.now());
+        fuelLog.setUpdatedBy(fuelLogDto.getUpdatedBy());
 
         FuelLog updated = fuelLogRepository.save(fuelLog);
         log.info("Fuel log {} updated by controller", id);
@@ -405,8 +413,10 @@ public class FuelServiceImpl implements FuelService {
         dto.setDate(fuelLog.getDate());
         dto.setDriverUsername(fuelLog.getDriverUsername());
         // Audit fields
+        dto.setUploadedBy(fuelLog.getUploadedBy());
         dto.setIsUpdated(fuelLog.getIsUpdated() != null && fuelLog.getIsUpdated());
         dto.setUpdatedAt(fuelLog.getUpdatedAt());
+        dto.setUpdatedBy(fuelLog.getUpdatedBy());
         dto.setIsDeleted(fuelLog.getIsDeleted() != null && fuelLog.getIsDeleted());
         dto.setDeletedAt(fuelLog.getDeletedAt());
         return dto;
