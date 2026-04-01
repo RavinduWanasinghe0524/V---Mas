@@ -16,6 +16,7 @@ const FuelAnalysisPage = () => {
   const [chartData, setChartData] = useState({ months: [], data: { Diesel: [], Petrol: [] } })
   const [vehicleStats, setVehicleStats] = useState([])
   const [myVehicleLogs, setMyVehicleLogs] = useState([])
+  const [allFuelLogs, setAllFuelLogs] = useState([])
   const [loading, setLoading] = useState(true)
   
   // State for Add Fuel Log Form (Driver only)
@@ -44,10 +45,18 @@ const FuelAnalysisPage = () => {
         setSummary(summaryRes.data.data || { totalDiesel: 0, totalPetrol: 0, totalVolume: 0, totalCost: 0 })
         setChartData(chartRes.data.data || { months: [], data: { Diesel: [], Petrol: [] } })
         
-        // Load vehicle stats for admin/controller
+        // Load vehicle stats and all fuel logs for admin/controller
         if (isAdmin || isController) {
-          const statsRes = await fuelAPI.getVehicleStats()
+          const [statsRes, allLogsRes] = await Promise.all([
+            fuelAPI.getVehicleStats(),
+            fuelAPI.getAllFuelLogs()
+          ])
           setVehicleStats(statsRes.data.data || [])
+          // Filter out soft-deleted logs and sort by date (most recent first)
+          const activeLogs = (allLogsRes.data.data || [])
+            .filter(log => !log.isDeleted)
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+          setAllFuelLogs(activeLogs)
         }
         
         // Load driver's own logs using the driver-scoped endpoint GET /api/fuel/my-logs
@@ -348,48 +357,128 @@ const FuelAnalysisPage = () => {
 
           {/* Admin/Controller: Vehicle Statistics Table */}
           {(isAdmin || isController) && (
-            <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #f0f0f0', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-              <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid #f3f4f6' }}>
-                <h3 style={{ margin: 0, fontWeight: 700, color: '#111827', fontSize: '0.95rem' }}>Vehicle Fuel Statistics</h3>
-                <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#9ca3af' }}>Fuel efficiency and spending overview</p>
-              </div>
-              {vehicleStats.length === 0 ? (
-                <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>
-                  <p>No vehicle statistics available yet.</p>
+            <>
+              <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #f0f0f0', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 24 }}>
+                <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid #f3f4f6' }}>
+                  <h3 style={{ margin: 0, fontWeight: 700, color: '#111827', fontSize: '0.95rem' }}>Vehicle Fuel Statistics</h3>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#9ca3af' }}>Fuel efficiency and spending overview</p>
                 </div>
-              ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                  <thead>
-                    <tr style={{ background: '#f9fafb', borderBottom: '1.5px solid #f0f0f0' }}>
-                      {['Vehicle', 'Fuel Efficiency', 'Total Spending', 'Status'].map(h => (
-                        <th key={h} style={{ padding: '11px 16px', textAlign: 'left', fontWeight: 700, color: '#374151', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {vehicleStats.map((v, i) => {
-                      const badge = getEfficiencyBadge(v.efficiencyStatus)
-                      return (
-                        <tr key={v.vehicleRegNumber} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                          <td style={{ padding: '11px 16px' }}>
-                            <div style={{ fontWeight: 600, color: '#6366f1' }}>{v.vehicleRegNumber}</div>
-                          </td>
-                          <td style={{ padding: '11px 16px', fontWeight: 600, color: '#111827' }}>
-                            {v.fuelEfficiency !== null ? `${v.fuelEfficiency.toFixed(2)} km/L` : 'N/A'}
-                          </td>
-                          <td style={{ padding: '11px 16px', fontWeight: 600, color: '#6366f1' }}>
-                            Rs. {v.totalSpending.toLocaleString()}
-                          </td>
-                          <td style={{ padding: '11px 16px' }}>
-                            <span className={`badge ${badge.class}`}>{badge.text}</span>
-                          </td>
+                {vehicleStats.length === 0 ? (
+                  <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>
+                    <p>No vehicle statistics available yet.</p>
+                  </div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                    <thead>
+                      <tr style={{ background: '#f9fafb', borderBottom: '1.5px solid #f0f0f0' }}>
+                        {['Vehicle', 'Fuel Efficiency', 'Total Spending', 'Status'].map(h => (
+                          <th key={h} style={{ padding: '11px 16px', textAlign: 'left', fontWeight: 700, color: '#374151', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {vehicleStats.map((v, i) => {
+                        const badge = getEfficiencyBadge(v.efficiencyStatus)
+                        return (
+                          <tr key={v.vehicleRegNumber} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                            <td style={{ padding: '11px 16px' }}>
+                              <div style={{ fontWeight: 600, color: '#6366f1' }}>{v.vehicleRegNumber}</div>
+                            </td>
+                            <td style={{ padding: '11px 16px', fontWeight: 600, color: '#111827' }}>
+                              {v.fuelEfficiency !== null ? `${v.fuelEfficiency.toFixed(2)} km/L` : 'N/A'}
+                            </td>
+                            <td style={{ padding: '11px 16px', fontWeight: 600, color: '#6366f1' }}>
+                              Rs. {v.totalSpending.toLocaleString()}
+                            </td>
+                            <td style={{ padding: '11px 16px' }}>
+                              <span className={`badge ${badge.class}`}>{badge.text}</span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {/* All Fuel Logs with Audit Information */}
+              <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #f0f0f0', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+                <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid #f3f4f6' }}>
+                  <h3 style={{ margin: 0, fontWeight: 700, color: '#111827', fontSize: '0.95rem' }}>All Fuel Logs - Audit View</h3>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#9ca3af' }}>Complete log history showing who created and updated each entry</p>
+                </div>
+                
+                <div style={{ maxHeight: 500, overflowY: 'auto' }}>
+                  {allFuelLogs.length === 0 ? (
+                    <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>
+                      <div style={{ fontSize: '3rem', marginBottom: 12 }}>⛽</div>
+                      <p style={{ fontWeight: 600, marginBottom: 6 }}>No fuel logs yet</p>
+                      <p style={{ fontSize: '0.85rem' }}>Fuel logs will appear here once created</p>
+                    </div>
+                  ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                      <thead style={{ position: 'sticky', top: 0, background: '#f9fafb', zIndex: 1 }}>
+                        <tr style={{ borderBottom: '1.5px solid #f0f0f0' }}>
+                          {['Vehicle', 'Date', 'Fuel Type', 'Liters', 'Cost', 'Mileage', 'Created By', 'Updated By', 'Status'].map(h => (
+                            <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: '#374151', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
+                          ))}
                         </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
+                      </thead>
+                      <tbody>
+                        {allFuelLogs.map((log, i) => (
+                          <tr key={log.id} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                            <td style={{ padding: '10px 14px', fontWeight: 600, color: '#6366f1', fontSize: '0.8rem' }}>
+                              {log.vehicleRegNumber}
+                            </td>
+                            <td style={{ padding: '10px 14px', color: '#374151', fontSize: '0.8rem' }}>
+                              {new Date(log.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </td>
+                            <td style={{ padding: '10px 14px' }}>
+                              <span style={{ padding: '3px 8px', borderRadius: 4, fontSize: '0.7rem', fontWeight: 600, background: log.fuelType === 'Diesel' ? '#eef2ff' : '#fff7ed', color: log.fuelType === 'Diesel' ? '#6366f1' : '#f59e0b' }}>
+                                {log.fuelType}
+                              </span>
+                            </td>
+                            <td style={{ padding: '10px 14px', color: '#374151', fontWeight: 600, fontSize: '0.8rem' }}>{log.liters.toFixed(1)} L</td>
+                            <td style={{ padding: '10px 14px', fontWeight: 600, color: '#111827', fontSize: '0.8rem' }}>Rs. {Math.round(log.totalCost).toLocaleString()}</td>
+                            <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: '0.8rem' }}>{log.mileage.toFixed(0)} km</td>
+                            <td style={{ padding: '10px 14px' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#16a34a' }}>
+                                {log.uploadedBy || log.driverUsername || '—'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '10px 14px' }}>
+                              {log.isUpdated && log.updatedBy ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6366f1' }}>
+                                    {log.updatedBy}
+                                  </span>
+                                  <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>
+                                    {log.updatedAt ? new Date(log.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>—</span>
+                              )}
+                            </td>
+                            <td style={{ padding: '10px 14px' }}>
+                              {log.isUpdated ? (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 12, fontSize: '0.68rem', fontWeight: 700, background: '#eef2ff', color: '#6366f1', border: '1px solid #c7d2fe' }}>
+                                  ✏️ Edited
+                                </span>
+                              ) : (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 12, fontSize: '0.68rem', fontWeight: 600, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
+                                  ✅ Original
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            </>
           )}
 
         </div>
