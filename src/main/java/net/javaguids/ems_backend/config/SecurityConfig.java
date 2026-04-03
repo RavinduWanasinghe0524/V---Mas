@@ -48,8 +48,29 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
+                        // ── Public ──────────────────────────────────────────────
                         .requestMatchers("/api/auth/**").permitAll()
+
+                        // ── Service records — CRUD for ADMIN/CONTROLLER, read for DRIVER ──
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/services", "/api/services/**").hasAnyRole("ADMIN", "CONTROLLER", "DRIVER")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST,
+                                "/api/services", "/api/services/filter").hasAnyRole("ADMIN", "CONTROLLER")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT,
+                                "/api/services/**").hasAnyRole("ADMIN", "CONTROLLER")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE,
+                                "/api/services/**").hasAnyRole("ADMIN", "CONTROLLER")
+
+                        // ── Fuel ────────────────────────────────────────────────
                         .requestMatchers("/api/fuel/**").authenticated()
+
+                        // ── Vehicles ─────────────────────────────────────────────
+                        .requestMatchers("/api/vehicles/**").authenticated()
+
+                        // ── Users / admin ────────────────────────────────────────
+                        .requestMatchers("/api/users/**").hasAnyRole("ADMIN", "CONTROLLER")
+
+                        // ── Everything else requires login ───────────────────────
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(restAuthenticationEntryPoint)
