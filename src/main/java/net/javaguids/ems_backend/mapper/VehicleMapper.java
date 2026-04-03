@@ -1,11 +1,13 @@
 package net.javaguids.ems_backend.mapper;
 
 import net.javaguids.ems_backend.dto.VehicleDto;
+import net.javaguids.ems_backend.entity.User;
 import net.javaguids.ems_backend.entity.Vehicle;
 
 public class VehicleMapper {
 
     public static VehicleDto mapToVehicleDto(Vehicle vehicle) {
+        User driver = vehicle.getDriver();
         return new VehicleDto(
                 vehicle.getId(),
                 vehicle.getVehicleName(),
@@ -14,7 +16,9 @@ public class VehicleMapper {
                 vehicle.getModel(),
                 vehicle.getYear(),
                 vehicle.getCurrentMileageKm(),
-                vehicle.getCreatedAt()
+                vehicle.getCreatedAt(),
+                driver != null ? driver.getId() : 0,
+                driver != null ? driver.getUserName() : "Not Assigned"
         );
     }
 
