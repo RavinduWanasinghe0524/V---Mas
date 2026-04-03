@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @AllArgsConstructor
@@ -41,7 +42,11 @@ public class VehicleServiceImpl implements VehicleService {
 
     @Override
     public List<VehicleDto> getAllVehicles() {
-        return vehicleRepository.findAll().stream().map(VehicleMapper::mapToVehicleDto).collect(Collectors.toList());
+        List<Vehicle> vehicles = vehicleRepository.findAll();
+        Stream<VehicleDto> vehicleDtoStream = vehicles.stream().map(VehicleMapper::mapToVehicleDto);
+        return vehicleRepository.findAll().stream()
+                .map(VehicleMapper::mapToVehicleDto)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -53,14 +58,19 @@ public class VehicleServiceImpl implements VehicleService {
             throw new RuntimeException("Vehicle with registration number '" + vehicleDto.getRegistrationNo() + "' already exists.");
         }
 
-//        vehicle.setVehicleName(vehicleDto.getVehicleName());
-        vehicle.setRegistrationNo(vehicleDto.getRegistrationNo());
-        vehicle.setManufacturer(vehicleDto.getManufacturer());
-        vehicle.setModel(vehicleDto.getModel());
-        vehicle.setYear(vehicleDto.getYear());
-        vehicle.setCurrentMileageKm(vehicleDto.getCurrentMileageKm());
+        Vehicle newVehicle= new Vehicle();
+        newVehicle.setId(vehicle.getId());
+        newVehicle.setStatus(vehicle.getStatus());
 
-        Vehicle updated = vehicleRepository.save(vehicle);
+//        vehicle.setVehicleName(vehicleDto.getVehicleName());
+        newVehicle.setRegistrationNo(vehicleDto.getRegistrationNo());
+        newVehicle.setManufacturer(vehicleDto.getManufacturer());
+        newVehicle.setModel(vehicleDto.getModel());
+        newVehicle.setYear(vehicleDto.getYear());
+        newVehicle.setFuelType(vehicle.getFuelType());
+        newVehicle.setCurrentMileageKm(vehicleDto.getCurrentMileageKm());
+
+        Vehicle updated = vehicleRepository.save(newVehicle);
         return VehicleMapper.mapToVehicleDto(updated);
     }
 

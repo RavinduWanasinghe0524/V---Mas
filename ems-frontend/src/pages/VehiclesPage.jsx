@@ -115,7 +115,7 @@ const VehiclesPage = () => {
       registrationNo: vehicle.registrationNo || '',
       manufacturer: vehicle.manufacturer || '',
       year: vehicle.year || '',
-      fuelType: vehicle.fuel || '',
+      fuelType: vehicle.fuelType?.toUpperCase() || '',
       driverId: vehicle.driverId || '',
       currentMileageKm: vehicle.currentMileageKm || ''
     })
@@ -148,7 +148,7 @@ const VehiclesPage = () => {
         registrationNo: editFormData.registrationNo,
         manufacturer: editFormData.manufacturer,
         year: editFormData.year,
-        fuel: editFormData.fuelType,
+        fuelType: editFormData.fuelType.toUpperCase(),
         driverId: editFormData.driverId,
         currentMileageKm: editFormData.currentMileageKm
       })
@@ -262,7 +262,7 @@ const VehiclesPage = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ background: '#f9fafb', borderBottom: '1.5px solid #f0f0f0' }}>
-                    {['Reg. No.', 'Make / Model', 'Year', 'Fuel', 'Driver', 'Mileage (km)', 'Status', 'Actions'].map(h => (
+                    {['Reg. No.', 'Make / Model', 'Year', 'Fuel Type', 'Driver', 'Mileage (km)', 'Status', 'Actions'].map(h => (
                       <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: '#374151', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
                     ))}
                   </tr>
@@ -279,7 +279,7 @@ const VehiclesPage = () => {
                         <td style={{ padding: '12px 16px', fontWeight: 600, color: '#6366f1' }}>{v.registrationNo ?? 'N/A'}</td>
                         <td style={{ padding: '12px 16px', color: '#374151' }}>{v.manufacturer ?? 'N/A'} {v.model ?? 'N/A'}</td>
                         <td style={{ padding: '12px 16px', color: '#6b7280' }}>{v.year ?? 'N/A'}</td>
-                        <td style={{ padding: '12px 16px', color: '#6b7280' }}>{v.fuel ?? 'N/A'}</td>
+                        <td style={{ padding: '12px 16px', color: '#6b7280' }}>{v.fuelType ?? 'N/A'}</td>
                         <td style={{ padding: '12px 16px', color: '#374151' }}>{v.driverName ?? 'N/A'}</td>
                         <td style={{ padding: '12px 16px', color: '#6b7280' }}>{v.currentMileageKm ?? 'N/A'}</td>
                         <td style={{ padding: '12px 16px' }}>
@@ -383,10 +383,10 @@ const VehiclesPage = () => {
                   <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Fuel Type</label>
                   <select name="fuelType" value={editFormData.fuelType} onChange={handleEditChange} required style={{ width: '100%', padding: '8px 14px', borderRadius: 8, border: '1.5px solid #e5e7eb', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit', color: '#374151' }}>
                     <option value="">Select Fuel Type</option>
-                    <option value="Petrol">Petrol</option>
-                    <option value="Diesel">Diesel</option>
-                    <option value="Electric">Electric</option>
-                    <option value="Hybrid">Hybrid</option>
+                    <option value="PETROL">Petrol</option>
+                    <option value="DIESEL">Diesel</option>
+                    <option value="ELECTRIC">Electric</option>
+                    <option value="HYBRID">Hybrid</option>
                   </select>
                 </div>
                 <div style={{ marginBottom: 16 }}>

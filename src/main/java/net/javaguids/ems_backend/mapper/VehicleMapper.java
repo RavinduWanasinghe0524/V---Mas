@@ -20,7 +20,8 @@ public class VehicleMapper {
                 vehicle.getCreatedAt(),
                 driver != null ? driver.getId() : 0,
                 driver != null ? driver.getUserName() : "Not Assigned",
-                vehicle.getStatus()
+                vehicle.getStatus(),
+                vehicle.getFuelType()
         );
     }
 
@@ -34,6 +35,7 @@ public class VehicleMapper {
         vehicle.setCurrentMileageKm(dto.getCurrentMileageKm());
         vehicle.setChassisNo(dto.getChassisNumber());
         vehicle.setStatus(dto.getStatus());
+        vehicle.setFuelType(dto.getFuelType());
         return vehicle;
     }
 }

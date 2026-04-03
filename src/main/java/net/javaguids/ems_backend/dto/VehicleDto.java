@@ -1,6 +1,7 @@
 package net.javaguids.ems_backend.dto;
 
 import lombok.*;
+import net.javaguids.ems_backend.enums.FuelTypes;
 import net.javaguids.ems_backend.enums.VehicleSatus;
 
 import java.time.LocalDateTime;
@@ -23,4 +24,5 @@ public class VehicleDto {
     private long driverId;
     private String driverName;
     private VehicleSatus status;
+    private FuelTypes fuelType;
 }
