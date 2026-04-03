@@ -32,9 +32,22 @@ const VehiclesPage = () => {
   const { user, isAdmin } = useAuth()
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [editingVehicle, setEditingVehicle] = useState(null)
+  const [deletingVehicle, setDeletingVehicle] = useState(null)
   const [employees, setEmployees] = useState([])
   const [vehicles, setVehicles] = useState([])
   const [formData, setFormData] = useState({
+    model: '',
+    registrationNo: '',
+    manufacturer: '',
+    year: '',
+    fuelType: '',
+    driverId: '',
+    currentMileageKm: ''
+  })
+  const [editFormData, setEditFormData] = useState({
     model: '',
     registrationNo: '',
     manufacturer: '',
@@ -93,6 +106,81 @@ const VehiclesPage = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const openEditModal = (vehicle) => {
+    setEditingVehicle(vehicle)
+    setEditFormData({
+      model: vehicle.model || '',
+      registrationNo: vehicle.registrationNo || '',
+      manufacturer: vehicle.manufacturer || '',
+      year: vehicle.year || '',
+      fuelType: vehicle.fuel || '',
+      driverId: vehicle.driverId || '',
+      currentMileageKm: vehicle.currentMileageKm || ''
+    })
+    setIsEditModalOpen(true)
+  }
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false)
+    setEditingVehicle(null)
+    setEditFormData({
+      model: '',
+      registrationNo: '',
+      manufacturer: '',
+      year: '',
+      fuelType: '',
+      driverId: '',
+      currentMileageKm: ''
+    })
+  }
+
+  const handleEditChange = (e) => {
+    setEditFormData({ ...editFormData, [e.target.name]: e.target.value })
+  }
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      await vehicleAPI.updateVehicle(editingVehicle.id, {
+        model: editFormData.model,
+        registrationNo: editFormData.registrationNo,
+        manufacturer: editFormData.manufacturer,
+        year: editFormData.year,
+        fuel: editFormData.fuelType,
+        driverId: editFormData.driverId,
+        currentMileageKm: editFormData.currentMileageKm
+      })
+      // Reload vehicles
+      const response = await vehicleAPI.getAllVehicles()
+      setVehicles(response.data.data || [])
+      closeEditModal()
+    } catch (err) {
+      console.error('Error updating vehicle:', err)
+    }
+  }
+
+  const openDeleteModal = (vehicle) => {
+    setDeletingVehicle(vehicle)
+    setIsDeleteModalOpen(true)
+  }
+
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false)
+    setDeletingVehicle(null)
+  }
+
+  const handleDeleteConfirm = async () => {
+    try {
+      if (!deletingVehicle) return
+      await vehicleAPI.deleteVehicle(deletingVehicle.id)
+      const response = await vehicleAPI.getAllVehicles()
+      setVehicles(response.data.data || [])
+      closeDeleteModal()
+    } catch (err) {
+      console.error('Error deleting vehicle:', err)
+    }
   }
 
 
@@ -201,8 +289,8 @@ const VehiclesPage = () => {
                         </td>
                         <td style={{ padding: '12px 16px' }}>
                           <div style={{ display: 'flex', gap: 6 }}>
-                            <button style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Edit</button>
-                            <button style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #fee2e2', background: '#fff5f5', color: '#dc2626', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Delete</button>
+                            <button onClick={() => openEditModal(v)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Edit</button>
+                            <button onClick={() => openDeleteModal(v)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #fee2e2', background: '#fff5f5', color: '#dc2626', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Delete</button>
                           </div>
                         </td>
                       </tr>
@@ -229,10 +317,6 @@ const VehiclesPage = () => {
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Registration Number</label>
                   <input type="text" name="registrationNo" value={formData.registrationNo} onChange={handleChange} required style={{ width: '100%', padding: '8px 14px', borderRadius: 8, border: '1.5px solid #e5e7eb', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit', color: '#374151' }} />
-                </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Chassis Number</label>
-                  <input type="text" name="chassisNumber" value={formData.chassisNumber} onChange={handleChange} required style={{ width: '100%', padding: '8px 14px', borderRadius: 8, border: '1.5px solid #e5e7eb', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit', color: '#374151' }} />
                 </div>
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Manufacturer</label>
@@ -268,6 +352,76 @@ const VehiclesPage = () => {
                   <button type="submit" className="btn btn-primary" style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#6366f1', color: '#fff', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}>Add Vehicle</button>
                 </div>
               </form>
+            </div>
+          </div>
+        )
+      }
+
+      {
+        isEditModalOpen && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div style={{ background: '#fff', borderRadius: 14, padding: 24, width: '90%', maxWidth: 500, boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+              <h2 style={{ marginBottom: 20, color: '#374151' }}>Edit Vehicle</h2>
+              <form onSubmit={handleEditSubmit}>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Model</label>
+                  <input type="text" name="model" value={editFormData.model} onChange={handleEditChange} required style={{ width: '100%', padding: '8px 14px', borderRadius: 8, border: '1.5px solid #e5e7eb', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit', color: '#374151' }} />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Registration Number</label>
+                  <input type="text" name="registrationNo" value={editFormData.registrationNo} onChange={handleEditChange} required style={{ width: '100%', padding: '8px 14px', borderRadius: 8, border: '1.5px solid #e5e7eb', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit', color: '#374151' }} />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Manufacturer</label>
+                  <input type="text" name="manufacturer" value={editFormData.manufacturer} onChange={handleEditChange} required style={{ width: '100%', padding: '8px 14px', borderRadius: 8, border: '1.5px solid #e5e7eb', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit', color: '#374151' }} />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Year</label>
+                  <input type="number" min={1985} name="year" value={editFormData.year} onChange={handleEditChange} required style={{ width: '100%', padding: '8px 14px', borderRadius: 8, border: '1.5px solid #e5e7eb', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit', color: '#374151' }} />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Fuel Type</label>
+                  <select name="fuelType" value={editFormData.fuelType} onChange={handleEditChange} required style={{ width: '100%', padding: '8px 14px', borderRadius: 8, border: '1.5px solid #e5e7eb', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit', color: '#374151' }}>
+                    <option value="">Select Fuel Type</option>
+                    <option value="Petrol">Petrol</option>
+                    <option value="Diesel">Diesel</option>
+                    <option value="Electric">Electric</option>
+                    <option value="Hybrid">Hybrid</option>
+                  </select>
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Driver</label>
+                  <select name="driverId" value={editFormData.driverId} onChange={handleEditChange} style={{ width: '100%', padding: '8px 14px', borderRadius: 8, border: '1.5px solid #e5e7eb', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit', color: '#374151' }}>
+                    <option value="">Select Driver</option>
+                    {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                  </select>
+                </div>
+                <div style={{ marginBottom: 24 }}>
+                  <label style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Current Mileage</label>
+                  <input type="number" name="currentMileageKm" value={editFormData.currentMileageKm} onChange={handleEditChange} required style={{ width: '100%', padding: '8px 14px', borderRadius: 8, border: '1.5px solid #e5e7eb', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit', color: '#374151' }} />
+                </div>
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                  <button type="button" onClick={closeEditModal} style={{ padding: '8px 16px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: '#fff', color: '#6b7280', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#6366f1', color: '#fff', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}>Update Vehicle</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )
+      }
+
+      {
+        isDeleteModalOpen && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}>
+            <div style={{ background: '#fff', borderRadius: 14, padding: 24, width: '90%', maxWidth: 420, boxShadow: '0 10px 25px rgba(0,0,0,0.15)' }}>
+              <h3 style={{ marginBottom: 16, color: '#111827' }}>Confirm Deletion</h3>
+              <p style={{ marginBottom: 20, color: '#4b5563' }}>
+                Are you sure you want to delete vehicle {deletingVehicle?.registrationNo ?? ''} ({deletingVehicle?.manufacturer ?? ''} {deletingVehicle?.model ?? ''})?
+              </p>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <button type="button" onClick={closeDeleteModal} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                <button type="button" onClick={handleDeleteConfirm} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#dc2626', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Delete</button>
+              </div>
             </div>
           </div>
         )
