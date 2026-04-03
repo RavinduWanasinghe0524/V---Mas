@@ -36,6 +36,10 @@ public class Vehicle {
     @Column(name = "current_mileage_km")
     private Integer currentMileageKm;
 
+    @OneToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "driver_id", nullable = true)
+    private User driver;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

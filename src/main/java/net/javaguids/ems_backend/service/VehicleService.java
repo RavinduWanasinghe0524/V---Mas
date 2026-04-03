@@ -1,6 +1,7 @@
 package net.javaguids.ems_backend.service;
 
 import net.javaguids.ems_backend.dto.VehicleDto;
+import org.apache.coyote.BadRequestException;
 
 import java.util.List;
 
@@ -15,4 +16,8 @@ public interface VehicleService {
     VehicleDto updateVehicle(Long id, VehicleDto vehicleDto);
 
     void deleteVehicle(Long id);
+
+    VehicleDto getAssignedVehicle(String username);
+
+    VehicleDto assignDriver(Long vehicleId, Long driverId) throws BadRequestException;
 }

@@ -18,4 +18,6 @@ public class VehicleDto {
     private Integer year;
     private Integer currentMileageKm;
     private LocalDateTime createdAt;
+    private long driverId;
+    private String driverName;
 }
