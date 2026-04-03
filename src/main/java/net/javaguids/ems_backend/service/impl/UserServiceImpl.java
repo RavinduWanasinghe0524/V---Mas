@@ -156,7 +156,7 @@ public class UserServiceImpl implements UserService {
             user.setProfilePicture(request.getProfilePicture());
         }
 
-        User updatedUser = userRepository.save(user);
+        User updatedUser = userRepository.save(java.util.Objects.requireNonNull(user));
         return mapToDto(updatedUser);
     }
 
