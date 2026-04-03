@@ -2,6 +2,7 @@ package net.javaguids.ems_backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import net.javaguids.ems_backend.enums.VehicleSatus;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -18,8 +19,11 @@ public class Vehicle {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "vehicle_name", nullable = false, length = 150)
+    @Column(name = "vehicle_name", nullable = true, length = 150)
     private String vehicleName;
+
+    @Column(name = "chassis_no", nullable = false, length = 150)
+    private String chassisNo;
 
     @Column(name = "registration_no", nullable = false, unique = true, length = 50)
     private String registrationNo;
@@ -43,4 +47,7 @@ public class Vehicle {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "status",nullable = false)
+    private VehicleSatus status;
 }

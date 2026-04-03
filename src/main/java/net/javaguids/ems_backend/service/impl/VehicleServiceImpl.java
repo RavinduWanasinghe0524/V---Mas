@@ -53,7 +53,7 @@ public class VehicleServiceImpl implements VehicleService {
             throw new RuntimeException("Vehicle with registration number '" + vehicleDto.getRegistrationNo() + "' already exists.");
         }
 
-        vehicle.setVehicleName(vehicleDto.getVehicleName());
+//        vehicle.setVehicleName(vehicleDto.getVehicleName());
         vehicle.setRegistrationNo(vehicleDto.getRegistrationNo());
         vehicle.setManufacturer(vehicleDto.getManufacturer());
         vehicle.setModel(vehicleDto.getModel());

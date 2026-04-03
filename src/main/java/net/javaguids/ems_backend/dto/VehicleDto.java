@@ -1,6 +1,7 @@
 package net.javaguids.ems_backend.dto;
 
 import lombok.*;
+import net.javaguids.ems_backend.enums.VehicleSatus;
 
 import java.time.LocalDateTime;
 
@@ -11,8 +12,9 @@ import java.time.LocalDateTime;
 public class VehicleDto {
 
     private Long id;
-    private String vehicleName;
+//    private String vehicleName;
     private String registrationNo;
+    private String chassisNumber;
     private String manufacturer;
     private String model;
     private Integer year;
@@ -20,4 +22,5 @@ public class VehicleDto {
     private LocalDateTime createdAt;
     private long driverId;
     private String driverName;
+    private VehicleSatus status;
 }

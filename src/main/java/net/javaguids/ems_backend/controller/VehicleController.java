@@ -3,6 +3,7 @@ package net.javaguids.ems_backend.controller;
 import lombok.AllArgsConstructor;
 import net.javaguids.ems_backend.dto.ApiResponse;
 import net.javaguids.ems_backend.dto.VehicleDto;
+import net.javaguids.ems_backend.enums.VehicleSatus;
 import net.javaguids.ems_backend.security.CustomUserDetailsService;
 import net.javaguids.ems_backend.service.VehicleService;
 import net.javaguids.ems_backend.util.ApiResponseUtil;
@@ -31,6 +32,7 @@ public class VehicleController {
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     @PostMapping
     public ResponseEntity<ApiResponse<VehicleDto>> createVehicle(@RequestBody VehicleDto vehicleDto) {
+        vehicleDto.setStatus(VehicleSatus.ACTIVE);
         VehicleDto saved = vehicleService.createVehicle(vehicleDto);
         return ApiResponseUtil.success("Vehicle created successfully", saved, HttpStatus.CREATED);
     }
