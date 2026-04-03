@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { serviceAPI } from '../services/api'
@@ -6,51 +7,31 @@ import { useAuth } from '../context/AuthContext'
 
 const statusColors = {
   SCHEDULED:   { bg: '#dbeafe', color: '#1e40af' },
-  IN_PROGRESS: { bg: '#fef3c7', color: '#92400e' },
   COMPLETED:   { bg: '#d1fae5', color: '#065f46' },
-  CANCELLED:   { bg: '#fee2e2', color: '#991b1b' },
-}
-
-const initialForm = {
-  vehicleRegNumber: '',
-  serviceType: 'OIL_CHANGE',
-  serviceTypeDetail: '',
-  serviceDate: '',
-  currentMileageKm: '',
-  serviceCost: '',
-  technicianWorkshop: '',
-  nextServiceDue: '',
-  description: ''
 }
 
 const ServicePage = () => {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const isDriver = user?.role === 'DRIVER'
 
   const [services, setServices] = useState([])
-  const [stats, setStats] = useState(null)
-  const [filter, setFilter] = useState('ALL')
+  const [stats, setStats]       = useState(null)
+  const [filter, setFilter]     = useState('ALL')
+  const [search, setSearch]     = useState('')
 
-  // Modal State
-  const [showModal, setShowModal] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
-  const [formData, setFormData] = useState(initialForm)
-  const [editId, setEditId] = useState(null)
-
-  useEffect(() => {
-    loadData()
-  }, [])
+  useEffect(() => { loadData() }, [])
 
   const loadData = async () => {
     try {
       const [servicesRes, statsRes] = await Promise.all([
         serviceAPI.getAllServices(),
-        serviceAPI.getServiceStats()
+        serviceAPI.getServiceStats(),
       ])
       setServices(servicesRes.data.data || [])
       setStats(statsRes.data.data)
-    } catch (error) {
-      console.error("Error loading service data", error)
+    } catch (err) {
+      console.error('Error loading service data', err)
     }
   }
 
@@ -59,80 +40,51 @@ const ServicePage = () => {
       try {
         await serviceAPI.deleteService(id)
         loadData()
-      } catch (error) {
-        console.error("Error deleting service", error)
+      } catch (err) {
+        console.error('Error deleting service', err)
         alert('Failed to delete service record.')
       }
     }
   }
 
-  const handleEdit = (service) => {
-    setFormData({
-      vehicleRegNumber: service.vehicleRegNumber || '',
-      serviceType: service.serviceType || 'OIL_CHANGE',
-      serviceTypeDetail: service.serviceTypeDetail || '',
-      serviceDate: service.serviceDate ? service.serviceDate.substring(0, 10) : '',
-      currentMileageKm: service.currentMileageKm || '',
-      serviceCost: service.serviceCost || '',
-      technicianWorkshop: service.technicianWorkshop || '',
-      nextServiceDue: service.nextServiceDue ? service.nextServiceDue.substring(0, 10) : '',
-      description: service.description || ''
-    })
-    setEditId(service.id)
-    setIsEditing(true)
-    setShowModal(true)
-  }
-
-  const handleCreateNew = () => {
-    setFormData(initialForm)
-    setIsEditing(false)
-    setEditId(null)
-    setShowModal(true)
-  }
-
-  const handleFormChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
-
-  const handleFormSubmit = async (e) => {
-    e.preventDefault()
-    try {
-      if (isEditing) {
-        await serviceAPI.updateService(editId, formData)
-      } else {
-        await serviceAPI.createService(formData)
-      }
-      setShowModal(false)
-      loadData()
-    } catch (error) {
-      console.error("Error saving service", error)
-      alert(error.response?.data?.message || 'Error saving service record.')
-    }
-  }
-
-  // Frontend matching for status since backend does not currently have a "status" field defined in the entity snippet shown
-  // We'll calculate a pseudo status based on schedule date or just default to COMPLETED if not implemented
   const getStatus = (s) => {
     const today = new Date()
     const scheduled = new Date(s.serviceDate)
-    if (scheduled > today) return 'SCHEDULED'
-    return 'COMPLETED'
+    return scheduled > today ? 'SCHEDULED' : 'COMPLETED'
   }
 
-  const filtered = services.filter(s => filter === 'ALL' || getStatus(s) === filter)
+  const filtered = services.filter(s => {
+    if (filter !== 'ALL' && getStatus(s) !== filter) return false
+    if (search) {
+      const q = search.toLowerCase()
+      return (
+        s.vehicleRegNumber?.toLowerCase().includes(q) ||
+        s.serviceType?.toLowerCase().includes(q) ||
+        s.technicianWorkshop?.toLowerCase().includes(q)
+      )
+    }
+    return true
+  })
 
   return (
     <div className="app-shell">
       <Sidebar />
       <div className="main-content">
-        <Topbar title={isDriver ? 'Service History' : 'Service'} subtitle={`Home / ${isDriver ? 'Service History' : 'Service'}`} />
+        <Topbar
+          title={isDriver ? 'Service History' : 'Service'}
+          subtitle={`Home / ${isDriver ? 'Service History' : 'Service'}`}
+        />
         <div className="page-body">
 
+          {/* Welcome banner */}
           <div className="welcome-banner">
             <div className="welcome-text">
               <h1>{isDriver ? 'Service History 🔧' : 'Service & Maintenance 🔧'}</h1>
-              <p>{isDriver ? 'View past service and maintenance history.' : 'Track and manage all vehicle service appointments and maintenance records.'}</p>
+              <p>
+                {isDriver
+                  ? 'View past service and maintenance history.'
+                  : 'Track and manage all vehicle service appointments and maintenance records.'}
+              </p>
             </div>
             <div className="welcome-icon">🔧</div>
           </div>
@@ -142,20 +94,44 @@ const ServicePage = () => {
             <div className="stats-grid" style={{ marginBottom: 24 }}>
               <div className="stat-card" style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <div><p className="stat-card-label">Total Records</p><p className="stat-card-value">{stats.totalServiceRecords}</p></div>
+                  <div>
+                    <p className="stat-card-label">Total Records</p>
+                    <p className="stat-card-value">{stats.totalServiceRecords}</p>
+                  </div>
                   <div className="stat-card-icon icon-blue">📋</div>
                 </div>
               </div>
               <div className="stat-card" style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <div><p className="stat-card-label">Total Cost (LKR)</p><p className="stat-card-value">{(stats.totalServiceCost || 0).toLocaleString()}</p></div>
+                  <div>
+                    <p className="stat-card-label">Total Cost (LKR)</p>
+                    <p className="stat-card-value">{(stats.totalServiceCost || 0).toLocaleString()}</p>
+                  </div>
                   <div className="stat-card-icon icon-purple">💰</div>
+                </div>
+              </div>
+              <div className="stat-card" style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div>
+                    <p className="stat-card-label">Scheduled</p>
+                    <p className="stat-card-value">{services.filter(s => getStatus(s) === 'SCHEDULED').length}</p>
+                  </div>
+                  <div className="stat-card-icon icon-blue">🗓️</div>
+                </div>
+              </div>
+              <div className="stat-card" style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div>
+                    <p className="stat-card-label">Completed</p>
+                    <p className="stat-card-value">{services.filter(s => getStatus(s) === 'COMPLETED').length}</p>
+                  </div>
+                  <div className="stat-card-icon icon-green">✅</div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Filter + Add */}
+          {/* Toolbar: filters + search + add */}
           <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
             {['ALL', 'SCHEDULED', 'COMPLETED'].map(s => (
               <button
@@ -172,10 +148,26 @@ const ServicePage = () => {
                 {s.replace('_', ' ')}
               </button>
             ))}
-            
+
+            {/* Search */}
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by plate / type / workshop…"
+              style={{
+                padding: '7px 14px', borderRadius: 8, fontSize: '0.82rem',
+                border: '1.5px solid #e5e7eb', outline: 'none', minWidth: 220,
+              }}
+            />
+
+            {/* Add button — visible to ADMIN & CONTROLLER only */}
             {!isDriver && (
-              <button onClick={handleCreateNew} className="btn btn-primary btn-sm" style={{ marginLeft: 'auto', whiteSpace: 'nowrap' }}>
-                + Schedule Service
+              <button
+                onClick={() => navigate('/service/add')}
+                className="btn btn-primary btn-sm"
+                style={{ marginLeft: 'auto', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                + Add Service Record
               </button>
             )}
           </div>
@@ -185,25 +177,30 @@ const ServicePage = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
               <thead>
                 <tr style={{ background: '#f9fafb', borderBottom: '1.5px solid #f0f0f0' }}>
-                  {['License Plate', 'Service Type', 'Workshop', 'Date', 'Cost (LKR)', 'Status', 'Actions'].map((h, i) => (
-                    // Hide Actions for Driver
-                    (isDriver && h === 'Actions') ? null :
+                  {['#', 'License Plate', 'Service Type', 'Workshop', 'Date', 'Mileage (km)', 'Cost (LKR)', 'Status', ...(isDriver ? [] : ['Actions'])].map(h => (
                     <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: '#374151', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={isDriver ? 6 : 7} style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>No records found.</td></tr>
+                  <tr>
+                    <td colSpan={isDriver ? 8 : 9} style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>
+                      <div style={{ fontSize: '2rem', marginBottom: 8 }}>🔍</div>
+                      No records found.
+                    </td>
+                  </tr>
                 ) : filtered.map((s, i) => {
                   const status = getStatus(s)
                   const sc = statusColors[status] || statusColors.COMPLETED
                   return (
-                    <tr key={s.id} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                      <td style={{ padding: '12px 16px', fontWeight: 600, color: '#6366f1' }}>{s.vehicleRegNumber || '-'}</td>
-                      <td style={{ padding: '12px 16px', color: '#374151' }}>{s.serviceType}</td>
-                      <td style={{ padding: '12px 16px', color: '#6b7280' }}>{s.technicianWorkshop}</td>
+                    <tr key={s.id} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa', transition: 'background 0.12s' }}>
+                      <td style={{ padding: '12px 16px', color: '#9ca3af', fontSize: '0.78rem' }}>{i + 1}</td>
+                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#6366f1' }}>{s.vehicleRegNumber || '-'}</td>
+                      <td style={{ padding: '12px 16px', color: '#374151' }}>{s.serviceType?.replace(/_/g, ' ')}</td>
+                      <td style={{ padding: '12px 16px', color: '#6b7280' }}>{s.technicianWorkshop || '-'}</td>
                       <td style={{ padding: '12px 16px', color: '#374151' }}>{s.serviceDate ? s.serviceDate.substring(0, 10) : '-'}</td>
+                      <td style={{ padding: '12px 16px', color: '#6b7280' }}>{s.currentMileageKm?.toLocaleString() || '-'}</td>
                       <td style={{ padding: '12px 16px', color: '#374151', fontWeight: 600 }}>{(s.serviceCost || 0).toLocaleString()}</td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{ background: sc.bg, color: sc.color, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -213,8 +210,18 @@ const ServicePage = () => {
                       {!isDriver && (
                         <td style={{ padding: '12px 16px' }}>
                           <div style={{ display: 'flex', gap: 6 }}>
-                            <button onClick={() => handleEdit(s)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Edit</button>
-                            <button onClick={() => handleDelete(s.id)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #fee2e2', background: '#fff5f5', color: '#dc2626', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Delete</button>
+                            <button
+                              onClick={() => navigate(`/service/edit/${s.id}`)}
+                              style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
+                            >
+                              ✏ Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(s.id)}
+                              style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #fee2e2', background: '#fff5f5', color: '#dc2626', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
+                            >
+                              🗑 Delete
+                            </button>
                           </div>
                         </td>
                       )}
@@ -225,68 +232,10 @@ const ServicePage = () => {
             </table>
           </div>
 
-          {/* Add/Edit Modal */}
-          {showModal && (
-            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-              <div style={{ background: '#fff', padding: 24, borderRadius: 12, width: '450px', maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
-                <h2 style={{ marginTop: 0, marginBottom: 16 }}>{isEditing ? 'Edit Service' : 'Schedule Service'}</h2>
-                <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Vehicle (License Plate)*</label>
-                    <input required type="text" name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={handleFormChange} placeholder="e.g. KA01AB1234" style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Service Type*</label>
-                    <select required name="serviceType" value={formData.serviceType} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }}>
-                      <option value="OIL_CHANGE">Oil Change</option>
-                      <option value="ENGINE_TUNE_UP">Engine Tune Up</option>
-                      <option value="BRAKE_SERVICE">Brake Service</option>
-                      <option value="TIRE_ROTATION">Tire Rotation</option>
-                      <option value="TRANSMISSION_SERVICE">Transmission Service</option>
-                      <option value="AC_SERVICE">AC Service</option>
-                      <option value="BATTERY_REPLACEMENT">Battery Replacement</option>
-                      <option value="GENERAL_INSPECTION">General Inspection</option>
-                      <option value="OTHER">Other</option>
-                    </select>
-                  </div>
-                  {formData.serviceType === 'OTHER' && (
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Service Type Detail*</label>
-                      <input required type="text" name="serviceTypeDetail" value={formData.serviceTypeDetail} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
-                    </div>
-                  )}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Service Date*</label>
-                    <input required type="date" name="serviceDate" value={formData.serviceDate} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Current Mileage (km)*</label>
-                    <input required type="number" name="currentMileageKm" value={formData.currentMileageKm} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Cost (LKR)*</label>
-                    <input required type="number" step="0.01" name="serviceCost" value={formData.serviceCost} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Workshop*</label>
-                    <input required type="text" name="technicianWorkshop" value={formData.technicianWorkshop} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Next Service Due (Optional)</label>
-                    <input type="date" name="nextServiceDue" value={formData.nextServiceDue} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Description / Notes (Optional)</label>
-                    <textarea name="description" value={formData.description} onChange={handleFormChange} rows={2} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6, fontFamily: 'inherit' }}></textarea>
-                  </div>
-                  <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-                    <button type="button" onClick={() => setShowModal(false)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-                    <button type="submit" style={{ flex: 1, padding: '10px', borderRadius: 8, border: 'none', background: '#6366f1', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>{isEditing ? 'Save' : 'Add'}</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
+          {/* Footer count */}
+          <div style={{ marginTop: 12, fontSize: '0.78rem', color: '#9ca3af', textAlign: 'right' }}>
+            Showing {filtered.length} of {services.length} records
+          </div>
 
         </div>
       </div>

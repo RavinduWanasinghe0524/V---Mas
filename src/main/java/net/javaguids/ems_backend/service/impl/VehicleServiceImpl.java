@@ -29,7 +29,7 @@ public class VehicleServiceImpl implements VehicleService {
             throw new RuntimeException("Vehicle with registration number '" + vehicleDto.getRegistrationNo() + "' already exists.");
         }
         Vehicle vehicle = VehicleMapper.mapToVehicle(vehicleDto);
-        Vehicle saved = vehicleRepository.save(vehicle);
+        Vehicle saved = vehicleRepository.save(java.util.Objects.requireNonNull(vehicle));
         return VehicleMapper.mapToVehicleDto(saved);
     }
 

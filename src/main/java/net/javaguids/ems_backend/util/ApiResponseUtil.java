@@ -11,11 +11,11 @@ public final class ApiResponseUtil {
 
     public static <T> ResponseEntity<ApiResponse<T>> success(String message, T data, HttpStatus status) {
         ApiResponse<T> body = new ApiResponse<>(true, message, data);
-        return new ResponseEntity<>(body, status);
+        return new ResponseEntity<>(body, java.util.Objects.requireNonNull(status));
     }
 
     public static ResponseEntity<ApiResponse<Object>> error(String message, HttpStatus status) {
         ApiResponse<Object> body = new ApiResponse<>(false, message, null);
-        return new ResponseEntity<>(body, status);
+        return new ResponseEntity<>(body, java.util.Objects.requireNonNull(status));
     }
 }
