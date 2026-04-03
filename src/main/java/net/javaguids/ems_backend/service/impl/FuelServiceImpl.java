@@ -202,7 +202,7 @@ public class FuelServiceImpl implements FuelService {
     @Override
     public FuelLogDto getFuelLogById(Long id) {
         log.info("Fetching fuel log by ID: {}", id);
-        FuelLog fuelLog = fuelLogRepository.findById(id)
+        FuelLog fuelLog = fuelLogRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("FuelLog not found with id: " + id));
         return mapToDto(fuelLog);
     }
@@ -262,7 +262,7 @@ public class FuelServiceImpl implements FuelService {
     public FuelLogDto updateFuelLogByController(Long id, FuelLogDto fuelLogDto) {
         log.info("Controller updating fuel log id: {}", id);
 
-        FuelLog fuelLog = fuelLogRepository.findById(id)
+        FuelLog fuelLog = fuelLogRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("FuelLog not found with id: " + id));
 
         fuelLog.setVehicleRegNumber(fuelLogDto.getVehicleRegNumber());
@@ -296,7 +296,7 @@ public class FuelServiceImpl implements FuelService {
     @Transactional
     public void deleteFuelLog(Long id) {
         log.info("Controller soft-deleting fuel log id: {}", id);
-        FuelLog fuelLog = fuelLogRepository.findById(id)
+        FuelLog fuelLog = fuelLogRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("FuelLog not found with id: " + id));
         // Soft-delete: mark as deleted instead of removing the row
         fuelLog.setIsDeleted(true);

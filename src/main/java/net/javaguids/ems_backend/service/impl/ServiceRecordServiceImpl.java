@@ -28,13 +28,13 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
         validateServiceTypeDetail(dto.getServiceType(), dto.getServiceTypeDetail());
 
         ServiceRecord record = ServiceRecordMapper.mapToServiceRecord(dto);
-        ServiceRecord saved = serviceRecordRepository.save(record);
+        ServiceRecord saved = serviceRecordRepository.save(java.util.Objects.requireNonNull(record));
         return ServiceRecordMapper.mapToServiceRecordDto(saved);
     }
 
     @Override
     public ServiceRecordDto getServiceRecordById(Long id) {
-        ServiceRecord record = serviceRecordRepository.findById(id)
+        ServiceRecord record = serviceRecordRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Service record not found with id: " + id));
         return ServiceRecordMapper.mapToServiceRecordDto(record);
@@ -50,7 +50,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     @Override
     public ServiceRecordDto updateServiceRecord(Long id, ServiceRecordDto dto) {
-        ServiceRecord record = serviceRecordRepository.findById(id)
+        ServiceRecord record = serviceRecordRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Service record not found with id: " + id));
 
@@ -72,10 +72,10 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     @Override
     public void deleteServiceRecord(Long id) {
-        ServiceRecord record = serviceRecordRepository.findById(id)
+        ServiceRecord record = serviceRecordRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Service record not found with id: " + id));
-        serviceRecordRepository.delete(record);
+        serviceRecordRepository.delete(java.util.Objects.requireNonNull(record));
     }
 
     @Override
