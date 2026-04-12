@@ -2,27 +2,32 @@ package net.javaguids.ems_backend.service.impl;
 
 import lombok.AllArgsConstructor;
 import net.javaguids.ems_backend.dto.VehicleDto;
+import net.javaguids.ems_backend.entity.User;
 import net.javaguids.ems_backend.entity.Vehicle;
+import net.javaguids.ems_backend.enums.Role;
 import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.mapper.VehicleMapper;
+import net.javaguids.ems_backend.repository.UserRepository;
 import net.javaguids.ems_backend.repository.VehicleRepository;
 import net.javaguids.ems_backend.service.VehicleService;
+import org.apache.coyote.BadRequestException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @AllArgsConstructor
 public class VehicleServiceImpl implements VehicleService {
 
     private final VehicleRepository vehicleRepository;
+    private final UserRepository userRepository;
 
     @Override
     public VehicleDto createVehicle(VehicleDto vehicleDto) {
         if (vehicleRepository.existsByRegistrationNo(vehicleDto.getRegistrationNo())) {
-            throw new RuntimeException("Vehicle with registration number '"
-                    + vehicleDto.getRegistrationNo() + "' already exists.");
+            throw new RuntimeException("Vehicle with registration number '" + vehicleDto.getRegistrationNo() + "' already exists.");
         }
         Vehicle vehicle = VehicleMapper.mapToVehicle(vehicleDto);
         Vehicle saved = vehicleRepository.save(java.util.Objects.requireNonNull(vehicle));
@@ -31,46 +36,74 @@ public class VehicleServiceImpl implements VehicleService {
 
     @Override
     public VehicleDto getVehicleById(Long id) {
-        Vehicle vehicle = vehicleRepository.findById(java.util.Objects.requireNonNull(id))
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
+        Vehicle vehicle = vehicleRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
         return VehicleMapper.mapToVehicleDto(vehicle);
     }
 
     @Override
     public List<VehicleDto> getAllVehicles() {
-        return vehicleRepository.findAll()
-                .stream()
+        List<Vehicle> vehicles = vehicleRepository.findAll();
+        Stream<VehicleDto> vehicleDtoStream = vehicles.stream().map(VehicleMapper::mapToVehicleDto);
+        return vehicleRepository.findAll().stream()
                 .map(VehicleMapper::mapToVehicleDto)
                 .collect(Collectors.toList());
     }
 
     @Override
     public VehicleDto updateVehicle(Long id, VehicleDto vehicleDto) {
-        Vehicle vehicle = vehicleRepository.findById(java.util.Objects.requireNonNull(id))
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
+        Vehicle vehicle = vehicleRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
 
         // Check if registration number is being changed to one that already exists
-        if (!vehicle.getRegistrationNo().equals(vehicleDto.getRegistrationNo())
-                && vehicleRepository.existsByRegistrationNo(vehicleDto.getRegistrationNo())) {
-            throw new RuntimeException("Vehicle with registration number '"
-                    + vehicleDto.getRegistrationNo() + "' already exists.");
+        if (!vehicle.getRegistrationNo().equals(vehicleDto.getRegistrationNo()) && vehicleRepository.existsByRegistrationNo(vehicleDto.getRegistrationNo())) {
+            throw new RuntimeException("Vehicle with registration number '" + vehicleDto.getRegistrationNo() + "' already exists.");
         }
 
-        vehicle.setVehicleName(vehicleDto.getVehicleName());
-        vehicle.setRegistrationNo(vehicleDto.getRegistrationNo());
-        vehicle.setManufacturer(vehicleDto.getManufacturer());
-        vehicle.setModel(vehicleDto.getModel());
-        vehicle.setYear(vehicleDto.getYear());
-        vehicle.setCurrentMileageKm(vehicleDto.getCurrentMileageKm());
+        Vehicle newVehicle= new Vehicle();
+        newVehicle.setId(vehicle.getId());
+        newVehicle.setStatus(vehicle.getStatus());
 
-        Vehicle updated = vehicleRepository.save(vehicle);
+//        vehicle.setVehicleName(vehicleDto.getVehicleName());
+        newVehicle.setRegistrationNo(vehicleDto.getRegistrationNo());
+        newVehicle.setManufacturer(vehicleDto.getManufacturer());
+        newVehicle.setModel(vehicleDto.getModel());
+        newVehicle.setYear(vehicleDto.getYear());
+        newVehicle.setFuelType(vehicle.getFuelType());
+        newVehicle.setCurrentMileageKm(vehicleDto.getCurrentMileageKm());
+
+        Vehicle updated = vehicleRepository.save(newVehicle);
         return VehicleMapper.mapToVehicleDto(updated);
     }
 
     @Override
     public void deleteVehicle(Long id) {
-        Vehicle vehicle = vehicleRepository.findById(java.util.Objects.requireNonNull(id))
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
-        vehicleRepository.delete(java.util.Objects.requireNonNull(vehicle));
+        Vehicle vehicle = vehicleRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
+        vehicleRepository.delete(vehicle);
+    }
+
+    @Override
+    public VehicleDto getAssignedVehicle(String username) {
+        Vehicle vehicle = vehicleRepository.findByAssigneeUsername(username).orElseThrow(() -> new ResourceNotFoundException("No vehicles assigned."));
+        return VehicleMapper.mapToVehicleDto(vehicle);
+    }
+
+    @Override
+    public VehicleDto assignDriver(Long vehicleId, Long driverId) throws BadRequestException {
+        // fetch driver
+        User driver = userRepository.findById(driverId).orElseThrow(() -> new ResourceNotFoundException("No such driver found."));
+        if (!driver.getRole().equals(Role.DRIVER)) throw new BadRequestException("Please select valid Driver");
+
+        //fetch vehicle
+        Vehicle vehicle = vehicleRepository.findById(vehicleId).orElseThrow(() -> new ResourceNotFoundException("No such vehicle found"));
+
+        // check availability if not unassign
+        vehicleRepository.findByAssignee(driverId).ifPresent((foundVehicle) -> {
+            foundVehicle.setDriver(null);
+            vehicleRepository.save(foundVehicle);
+        });
+
+        // assign driver to vehicle
+        vehicle.setDriver(driver);
+        Vehicle updatedVehicle = vehicleRepository.save(vehicle);
+        return VehicleMapper.mapToVehicleDto(updatedVehicle);
     }
 }
