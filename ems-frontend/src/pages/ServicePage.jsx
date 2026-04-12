@@ -1,295 +1,667 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { serviceAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
-const statusColors = {
-  SCHEDULED:   { bg: '#dbeafe', color: '#1e40af' },
-  IN_PROGRESS: { bg: '#fef3c7', color: '#92400e' },
-  COMPLETED:   { bg: '#d1fae5', color: '#065f46' },
-  CANCELLED:   { bg: '#fee2e2', color: '#991b1b' },
+/* ── Service type icon map ──────────────────────────────────────── */
+const SERVICE_TYPE_ICONS = {
+  OIL_CHANGE:           '🛢️',
+  ENGINE_TUNE_UP:       '⚙️',
+  BRAKE_SERVICE:        '🔴',
+  TIRE_ROTATION:        '🔄',
+  TRANSMISSION_SERVICE: '⚙️',
+  AC_SERVICE:           '❄️',
+  BATTERY_REPLACEMENT:  '🔋',
+  GENERAL_INSPECTION:   '🔍',
+  OTHER:                '🔧',
 }
 
-const initialForm = {
-  vehicleRegNumber: '',
-  serviceType: 'OIL_CHANGE',
-  serviceTypeDetail: '',
-  serviceDate: '',
-  currentMileageKm: '',
-  serviceCost: '',
-  technicianWorkshop: '',
-  nextServiceDue: '',
-  description: ''
+/* ── Status helpers ─────────────────────────────────────────────── */
+const getStatus = (s) => {
+  if (!s.serviceDate) return 'SCHEDULED'
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const scheduled = new Date(s.serviceDate)
+  scheduled.setHours(0, 0, 0, 0)
+  return scheduled > today ? 'SCHEDULED' : 'COMPLETED'
 }
 
-const ServicePage = () => {
-  const { user } = useAuth()
-  const isDriver = user?.role === 'DRIVER'
+const STATUS_CONFIG = {
+  ALL:       { label: 'All',       color: '#6366f1', bg: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.3)'  },
+  SCHEDULED: { label: 'Scheduled', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)'  },
+  COMPLETED: { label: 'Completed', color: '#10b981', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)'  },
+}
 
-  const [services, setServices] = useState([])
-  const [stats, setStats] = useState(null)
-  const [filter, setFilter] = useState('ALL')
+/* ── Progress bar widths for stat cards ─────────────────────────── */
+const ProgressBar = ({ value, max, color }) => {
+  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0
+  return (
+    <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 999, marginTop: 12, overflow: 'hidden' }}>
+      <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 999, transition: 'width 0.6s ease' }} />
+    </div>
+  )
+}
 
-  // Modal State
-  const [showModal, setShowModal] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
-  const [formData, setFormData] = useState(initialForm)
-  const [editId, setEditId] = useState(null)
-
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
-    try {
-      const [servicesRes, statsRes] = await Promise.all([
-        serviceAPI.getAllServices(),
-        serviceAPI.getServiceStats()
-      ])
-      setServices(servicesRes.data.data || [])
-      setStats(statsRes.data.data)
-    } catch (error) {
-      console.error("Error loading service data", error)
-    }
-  }
-
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this service record?')) {
-      try {
-        await serviceAPI.deleteService(id)
-        loadData()
-      } catch (error) {
-        console.error("Error deleting service", error)
-        alert('Failed to delete service record.')
-      }
-    }
-  }
-
-  const handleEdit = (service) => {
-    setFormData({
-      vehicleRegNumber: service.vehicleRegNumber || '',
-      serviceType: service.serviceType || 'OIL_CHANGE',
-      serviceTypeDetail: service.serviceTypeDetail || '',
-      serviceDate: service.serviceDate ? service.serviceDate.substring(0, 10) : '',
-      currentMileageKm: service.currentMileageKm || '',
-      serviceCost: service.serviceCost || '',
-      technicianWorkshop: service.technicianWorkshop || '',
-      nextServiceDue: service.nextServiceDue ? service.nextServiceDue.substring(0, 10) : '',
-      description: service.description || ''
-    })
-    setEditId(service.id)
-    setIsEditing(true)
-    setShowModal(true)
-  }
-
-  const handleCreateNew = () => {
-    setFormData(initialForm)
-    setIsEditing(false)
-    setEditId(null)
-    setShowModal(true)
-  }
-
-  const handleFormChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
-
-  const handleFormSubmit = async (e) => {
-    e.preventDefault()
-    try {
-      if (isEditing) {
-        await serviceAPI.updateService(editId, formData)
-      } else {
-        await serviceAPI.createService(formData)
-      }
-      setShowModal(false)
-      loadData()
-    } catch (error) {
-      console.error("Error saving service", error)
-      alert(error.response?.data?.message || 'Error saving service record.')
-    }
-  }
-
-  // Frontend matching for status since backend does not currently have a "status" field defined in the entity snippet shown
-  // We'll calculate a pseudo status based on schedule date or just default to COMPLETED if not implemented
-  const getStatus = (s) => {
-    const today = new Date()
-    const scheduled = new Date(s.serviceDate)
-    if (scheduled > today) return 'SCHEDULED'
-    return 'COMPLETED'
-  }
-
-  const filtered = services.filter(s => filter === 'ALL' || getStatus(s) === filter)
+/* ── Service Record Card ────────────────────────────────────────── */
+const ServiceCard = ({ record, index, isDriver, onEdit, onDelete }) => {
+  const [hovered, setHovered] = useState(false)
+  const status = getStatus(record)
+  const sc = STATUS_CONFIG[status]
+  const icon = SERVICE_TYPE_ICONS[record.serviceType] || '🔧'
 
   return (
-    <div className="app-shell">
-      <Sidebar />
-      <div className="main-content">
-        <Topbar title={isDriver ? 'Service History' : 'Service'} subtitle={`Home / ${isDriver ? 'Service History' : 'Service'}`} />
-        <div className="page-body">
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: hovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
+        border: `1px solid ${hovered ? 'rgba(99,102,241,0.35)' : 'rgba(255,255,255,0.08)'}`,
+        borderRadius: 14,
+        padding: '18px 22px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 18,
+        transition: 'all 0.2s ease',
+        cursor: 'default',
+        transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
+        boxShadow: hovered ? '0 8px 32px rgba(0,0,0,0.25)' : 'none',
+        animation: `fadeUp 0.3s ease ${index * 0.05}s both`,
+      }}
+    >
+      {/* Icon */}
+      <div style={{
+        width: 46, height: 46, borderRadius: 12, flexShrink: 0,
+        background: 'rgba(99,102,241,0.18)',
+        border: '1px solid rgba(99,102,241,0.25)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '1.25rem',
+      }}>
+        {icon}
+      </div>
 
-          <div className="welcome-banner">
-            <div className="welcome-text">
-              <h1>{isDriver ? 'Service History 🔧' : 'Service & Maintenance 🔧'}</h1>
-              <p>{isDriver ? 'View past service and maintenance history.' : 'Track and manage all vehicle service appointments and maintenance records.'}</p>
+      {/* Main info */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
+          <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#f1f5f9' }}>
+            {record.serviceType?.replace(/_/g, ' ') || 'Service'}
+          </span>
+          {/* Status badge */}
+          <span style={{
+            padding: '2px 10px', borderRadius: 999,
+            fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            background: sc.bg, color: sc.color,
+            border: `1px solid ${sc.border}`,
+          }}>
+            {sc.label}
+          </span>
+          {record.serviceTypeDetail && (
+            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>({record.serviceTypeDetail})</span>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          {/* Vehicle */}
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#93c5fd', fontWeight: 600 }}>
+            🚗 {record.vehicleRegNumber || '—'}
+          </span>
+          {/* Date */}
+          {record.serviceDate && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: '#94a3b8' }}>
+              📅 {record.serviceDate.substring(0, 10)}
+            </span>
+          )}
+          {/* Mileage */}
+          {record.currentMileageKm && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: '#94a3b8' }}>
+              📍 {Number(record.currentMileageKm).toLocaleString()} km
+            </span>
+          )}
+          {/* Workshop */}
+          {record.technicianWorkshop && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: '#94a3b8' }}>
+              🔩 {record.technicianWorkshop}
+            </span>
+          )}
+        </div>
+
+        {/* Description / notes */}
+        {record.description && (
+          <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>
+            {record.description}
+          </p>
+        )}
+      </div>
+
+      {/* Cost */}
+      <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 90 }}>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          Rs. {Number(record.serviceCost || 0).toLocaleString()}
+        </div>
+        {record.nextServiceDue && (
+          <div style={{ fontSize: '0.67rem', color: '#64748b', marginTop: 3 }}>
+            Next: {record.nextServiceDue.substring(0, 10)}
+          </div>
+        )}
+      </div>
+
+      {/* Actions — Admin / Controller only */}
+      {!isDriver && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+          <button
+            id={`edit-service-${record.id}`}
+            onClick={() => onEdit(record.id)}
+            style={{
+              padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 600,
+              background: 'rgba(99,102,241,0.15)', color: '#a5b4fc',
+              border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.3)'; e.currentTarget.style.color = '#fff' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; e.currentTarget.style.color = '#a5b4fc' }}
+          >
+            ✏ Edit
+          </button>
+          <button
+            id={`delete-service-${record.id}`}
+            onClick={() => onDelete(record.id)}
+            style={{
+              padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 600,
+              background: 'rgba(239,68,68,0.12)', color: '#fca5a5',
+              border: '1px solid rgba(239,68,68,0.25)', cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.3)'; e.currentTarget.style.color = '#fff' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; e.currentTarget.style.color = '#fca5a5' }}
+          >
+            🗑 Delete
+          </button>
+        </div>
+      )}
+
+    </div>
+  )
+}
+
+/* ── Calendar View ────────────────────────────────────────────── */
+const ServiceCalendar = ({ services, onEdit, isDriver, getStatus, STATUS_CONFIG }) => {
+  const [currentDate, setCurrentDate] = useState(new Date())
+
+  const year = currentDate.getFullYear()
+  const month = currentDate.getMonth()
+
+  const firstDay = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1))
+  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1))
+
+  const monthName = currentDate.toLocaleString('default', { month: 'long' })
+
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
+
+  const servicesByDate = services.reduce((acc, s) => {
+    if (s.serviceDate) {
+      const d = new Date(s.serviceDate)
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        const dateKey = d.getDate()
+        if (!acc[dateKey]) acc[dateKey] = []
+        acc[dateKey].push(s)
+      }
+    }
+    return acc
+  }, {})
+
+  return (
+    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <h2 style={{ fontSize: '1.25rem', color: '#f1f5f9', margin: 0 }}>{monthName} {year}</h2>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={prevMonth} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1', padding: '6px 14px', borderRadius: 8, cursor: 'pointer', fontSize: '0.9rem' }}>Prev</button>
+          <button onClick={nextMonth} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1', padding: '6px 14px', borderRadius: 8, cursor: 'pointer', fontSize: '0.9rem' }}>Next</button>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', background: 'rgba(255,255,255,0.05)' }}>
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+          <div key={day} style={{ padding: '12px 10px', background: 'rgba(15,23,42,0.6)', color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {day}
+          </div>
+        ))}
+
+        {Array.from({ length: firstDay }).map((_, i) => (
+          <div key={`blank-${i}`} style={{ background: '#0f172a', minHeight: 110 }}></div>
+        ))}
+
+        {days.map(day => {
+          const dayServices = servicesByDate[day] || []
+          return (
+            <div key={day} style={{ background: '#0f1e35', minHeight: 110, padding: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 600, marginBottom: 8 }}>{day}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {dayServices.map(s => {
+                    const status = getStatus(s)
+                    const sc = STATUS_CONFIG[status] || STATUS_CONFIG.COMPLETED
+                    return (
+                      <div key={s.id} onClick={() => !isDriver && onEdit(s.id)} style={{ cursor: isDriver ? 'default' : 'pointer', fontSize: '0.7rem', fontWeight: 600, background: sc.bg, color: sc.color, padding: '4px 6px', borderRadius: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', border: `1px solid ${sc.border}` }}>
+                        {s.vehicleRegNumber}
+                      </div>
+                    )
+                })}
+              </div>
             </div>
-            <div className="welcome-icon">🔧</div>
+          )
+        })}
+        
+        {Array.from({ length: (7 - ((firstDay + daysInMonth) % 7)) % 7 }).map((_, i) => (
+          <div key={`end-blank-${i}`} style={{ background: '#0f172a', minHeight: 110, borderTop: '1px solid rgba(255,255,255,0.05)' }}></div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   MAIN PAGE
+══════════════════════════════════════════════════════════════════ */
+const ServicePage = () => {
+  const { user } = useAuth()
+  const navigate  = useNavigate()
+  const isDriver  = user?.role === 'DRIVER'
+
+  const [services, setServices] = useState([])
+  const [stats,    setStats]    = useState(null)
+  const [filter,   setFilter]   = useState('ALL')
+  const [search,   setSearch]   = useState('')
+  const [loading,  setLoading]  = useState(true)
+  const [viewMode, setViewMode] = useState('list')
+
+  const loadData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [servRes, statsRes] = await Promise.all([
+        serviceAPI.getAllServices(),
+        serviceAPI.getServiceStats(),
+      ])
+      setServices(servRes.data.data  || [])
+      setStats(statsRes.data.data)
+    } catch (err) {
+      console.error('Error loading service data', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { loadData() }, [loadData])
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this service record?')) return
+    try {
+      await serviceAPI.deleteService(id)
+      loadData()
+    } catch (err) {
+      console.error('Error deleting', err)
+      alert('Failed to delete record.')
+    }
+  }
+
+  /* Derived counts */
+  const scheduled = services.filter(s => getStatus(s) === 'SCHEDULED').length
+  const completed = services.filter(s => getStatus(s) === 'COMPLETED').length
+  const total     = services.length
+
+  /* Filtered list */
+  const filtered = services.filter(s => {
+    if (filter !== 'ALL' && getStatus(s) !== filter) return false
+    if (search) {
+      const q = search.toLowerCase()
+      return (
+        s.vehicleRegNumber?.toLowerCase().includes(q) ||
+        s.serviceType?.toLowerCase().includes(q) ||
+        s.technicianWorkshop?.toLowerCase().includes(q) ||
+        s.description?.toLowerCase().includes(q)
+      )
+    }
+    return true
+  })
+
+  /* ── Shared dark-card style ───────────────────────────────────── */
+  const darkCard = {
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    padding: '22px 24px',
+    flex: 1,
+    transition: 'all 0.2s ease',
+  }
+
+  return (
+    <div className="app-shell service-page-dark">
+      <Sidebar />
+      <div className="main-content" style={{ background: '#0f172a', minHeight: '100vh' }}>
+        <Topbar
+          title={isDriver ? 'Service History' : 'Service'}
+          subtitle={`Home / ${isDriver ? 'Service History' : 'Service'}`}
+        />
+
+        <div className="page-body" style={{ padding: '28px 32px' }}>
+
+          {/* ── Page Header ─────────────────────────────────────── */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 16 }}>
+            <div>
+              <h1 style={{
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: '1.75rem', fontWeight: 800,
+                color: '#f1f5f9', margin: 0, letterSpacing: '-0.02em',
+              }}>
+                {isDriver ? 'Service History' : 'Service'}
+              </h1>
+              <p style={{ margin: '4px 0 0', fontSize: '0.875rem', color: '#64748b' }}>
+                {isDriver ? 'View your vehicle service and maintenance history.' : 'Schedule and track vehicle maintenance records.'}
+              </p>
+            </div>
+
+            {/* Top-right Actions: Toggle & Add */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              {/* List / Calendar Toggle */}
+              <div style={{
+                display: 'flex', alignItems: 'center',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 14,
+                padding: 4,
+              }}>
+                <button 
+                  onClick={() => setViewMode('list')}
+                  style={{
+                  background: viewMode === 'list' ? '#2563eb' : 'transparent', color: viewMode === 'list' ? '#fff' : '#64748b', border: 'none', borderRadius: 10,
+                  padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
+                  cursor: 'pointer', transition: 'all 0.15s ease'
+                }}>List</button>
+                <button 
+                  onClick={() => setViewMode('calendar')}
+                  style={{
+                  background: viewMode === 'calendar' ? '#2563eb' : 'transparent', color: viewMode === 'calendar' ? '#fff' : '#64748b', border: 'none', borderRadius: 10,
+                  padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
+                  cursor: 'pointer', transition: 'all 0.15s ease'
+                }}>Calendar</button>
+              </div>
+
+              {/* Add button — Admin & Controller */}
+              {!isDriver && (
+                <button
+                  id="add-service-btn"
+                  onClick={() => navigate('/service/add')}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
+                    background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(59,130,246,0.35)', transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#2563eb'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#3b82f6'; e.currentTarget.style.transform = 'translateY(0)' }}
+                >
+                  + Schedule
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Stats */}
-          {stats && (
-            <div className="stats-grid" style={{ marginBottom: 24 }}>
-              <div className="stat-card" style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <div><p className="stat-card-label">Total Records</p><p className="stat-card-value">{stats.totalServiceRecords}</p></div>
-                  <div className="stat-card-icon icon-blue">📋</div>
+          {/* ── Stat Cards ────────────────────────────────────────── */}
+          {!loading && (
+            <div style={{ display: 'flex', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
+              {/* Total */}
+              <div style={darkCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <p style={{ fontSize: '2rem', fontWeight: 800, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{total}</p>
+                  <span style={{ fontSize: '1.25rem' }}>📋</span>
                 </div>
+                <p style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Total Records</p>
+                <ProgressBar value={total} max={total || 1} color="#6366f1" />
               </div>
-              <div className="stat-card" style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <div><p className="stat-card-label">Total Cost (LKR)</p><p className="stat-card-value">{(stats.totalServiceCost || 0).toLocaleString()}</p></div>
-                  <div className="stat-card-icon icon-purple">💰</div>
+
+              {/* Scheduled */}
+              <div style={darkCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <p style={{ fontSize: '2rem', fontWeight: 800, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{scheduled}</p>
+                  <span style={{ fontSize: '1.25rem' }}>📅</span>
                 </div>
+                <p style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Scheduled</p>
+                <ProgressBar value={scheduled} max={total || 1} color="#f59e0b" />
               </div>
+
+              {/* Completed */}
+              <div style={darkCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <p style={{ fontSize: '2rem', fontWeight: 800, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{completed}</p>
+                  <span style={{ fontSize: '1.25rem' }}>✅</span>
+                </div>
+                <p style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Completed</p>
+                <ProgressBar value={completed} max={total || 1} color="#10b981" />
+              </div>
+
+              {/* Total Cost */}
+              {stats && (
+                <div style={darkCard}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <p style={{ fontSize: '1.55rem', fontWeight: 800, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
+                      Rs.{(stats.totalServiceCost || 0).toLocaleString()}
+                    </p>
+                    <span style={{ fontSize: '1.25rem' }}>💰</span>
+                  </div>
+                  <p style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Total Cost</p>
+                  <ProgressBar value={100} max={100} color="#3b82f6" />
+                </div>
+              )}
             </div>
           )}
 
-          {/* Filter + Add */}
-          <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-            {['ALL', 'SCHEDULED', 'COMPLETED'].map(s => (
-              <button
-                key={s}
-                onClick={() => setFilter(s)}
+          {/* ── Filter Tabs + Search ───────────────────────────────── */}
+          <div style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 14, padding: '14px 18px',
+            display: 'flex', alignItems: 'center',
+            gap: 10, flexWrap: 'wrap', marginBottom: 20,
+          }}>
+            {/* Filter pills */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
+                const count = key === 'ALL' ? total : key === 'SCHEDULED' ? scheduled : completed
+                const active = filter === key
+                return (
+                  <button
+                    key={key}
+                    id={`filter-${key.toLowerCase()}`}
+                    onClick={() => setFilter(key)}
+                    style={{
+                      padding: '6px 14px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 700,
+                      border: active ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                      background: active ? `linear-gradient(135deg, #3b82f6, #6366f1)` : 'transparent',
+                      color: active ? '#fff' : '#94a3b8',
+                      cursor: 'pointer', transition: 'all 0.15s ease',
+                      boxShadow: active ? '0 2px 12px rgba(99,102,241,0.4)' : 'none',
+                    }}
+                  >
+                    {cfg.label} <span style={{ opacity: 0.8, marginLeft: 2 }}>{count}</span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Spacer */}
+            <div style={{ flex: 1 }} />
+
+            {/* Search */}
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#475569', fontSize: '0.85rem' }}>🔍</span>
+              <input
+                id="service-search"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search vehicles, drivers..."
                 style={{
-                  padding: '7px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600,
-                  border: filter === s ? 'none' : '1.5px solid #e5e7eb',
-                  background: filter === s ? '#6366f1' : '#fff',
-                  color: filter === s ? '#fff' : '#6b7280',
-                  cursor: 'pointer', transition: 'all 0.15s ease',
+                  padding: '8px 14px 8px 32px',
+                  borderRadius: 10, fontSize: '0.82rem',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  color: '#e2e8f0', outline: 'none', minWidth: 240,
+                  transition: 'border-color 0.15s',
                 }}
-              >
-                {s.replace('_', ' ')}
-              </button>
-            ))}
-            
-            {!isDriver && (
-              <button onClick={handleCreateNew} className="btn btn-primary btn-sm" style={{ marginLeft: 'auto', whiteSpace: 'nowrap' }}>
-                + Schedule Service
-              </button>
+                onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)' }}
+                onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
+              />
+            </div>
+          </div>
+
+          {/* ── Main View Area ──────────────────────────────────────── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+            {loading ? (
+              /* Skeleton loader */
+              [1, 2, 3].map(i => (
+                <div key={i} style={{
+                  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: 14, padding: '22px', height: 84,
+                  animation: 'pulse 1.5s ease infinite',
+                }} />
+              ))
+            ) : filtered.length === 0 ? (
+              <div style={{
+                textAlign: 'center', padding: '64px 32px',
+                background: 'rgba(255,255,255,0.02)', borderRadius: 16,
+                border: '1px dashed rgba(255,255,255,0.1)',
+              }}>
+                <div style={{ fontSize: '3rem', marginBottom: 16 }}>🔍</div>
+                <p style={{ color: '#64748b', fontSize: '0.95rem', fontWeight: 500 }}>No service records found.</p>
+                {!isDriver && (
+                  <button
+                    onClick={() => navigate('/service/add')}
+                    style={{
+                      marginTop: 16, padding: '9px 22px', borderRadius: 10,
+                      background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                      color: '#fff', border: 'none', cursor: 'pointer',
+                      fontSize: '0.85rem', fontWeight: 700,
+                    }}
+                  >
+                    + Add First Record
+                  </button>
+                )}
+              </div>
+            ) : viewMode === 'calendar' ? (
+              <ServiceCalendar 
+                services={filtered} 
+                isDriver={isDriver} 
+                onEdit={id => navigate(`/service/edit/${id}`)} 
+                getStatus={getStatus} 
+                STATUS_CONFIG={STATUS_CONFIG} 
+              />
+            ) : (
+              filtered.map((record, i) => (
+                <ServiceCard
+                  key={record.id}
+                  record={record}
+                  index={i}
+                  isDriver={isDriver}
+                  onEdit={id => navigate(`/service/edit/${id}`)}
+                  onDelete={handleDelete}
+                />
+              ))
             )}
           </div>
 
-          {/* Table */}
-          <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #f0f0f0', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-              <thead>
-                <tr style={{ background: '#f9fafb', borderBottom: '1.5px solid #f0f0f0' }}>
-                  {['License Plate', 'Service Type', 'Workshop', 'Date', 'Cost (LKR)', 'Status', 'Actions'].map((h, i) => (
-                    // Hide Actions for Driver
-                    (isDriver && h === 'Actions') ? null :
-                    <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: '#374151', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={isDriver ? 6 : 7} style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>No records found.</td></tr>
-                ) : filtered.map((s, i) => {
-                  const status = getStatus(s)
-                  const sc = statusColors[status] || statusColors.COMPLETED
-                  return (
-                    <tr key={s.id} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                      <td style={{ padding: '12px 16px', fontWeight: 600, color: '#6366f1' }}>{s.vehicleRegNumber || '-'}</td>
-                      <td style={{ padding: '12px 16px', color: '#374151' }}>{s.serviceType}</td>
-                      <td style={{ padding: '12px 16px', color: '#6b7280' }}>{s.technicianWorkshop}</td>
-                      <td style={{ padding: '12px 16px', color: '#374151' }}>{s.serviceDate ? s.serviceDate.substring(0, 10) : '-'}</td>
-                      <td style={{ padding: '12px 16px', color: '#374151', fontWeight: 600 }}>{(s.serviceCost || 0).toLocaleString()}</td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{ background: sc.bg, color: sc.color, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                          {status}
-                        </span>
-                      </td>
-                      {!isDriver && (
-                        <td style={{ padding: '12px 16px' }}>
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            <button onClick={() => handleEdit(s)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Edit</button>
-                            <button onClick={() => handleDelete(s.id)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #fee2e2', background: '#fff5f5', color: '#dc2626', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Delete</button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Add/Edit Modal */}
-          {showModal && (
-            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-              <div style={{ background: '#fff', padding: 24, borderRadius: 12, width: '450px', maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
-                <h2 style={{ marginTop: 0, marginBottom: 16 }}>{isEditing ? 'Edit Service' : 'Schedule Service'}</h2>
-                <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Vehicle (License Plate)*</label>
-                    <input required type="text" name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={handleFormChange} placeholder="e.g. KA01AB1234" style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Service Type*</label>
-                    <select required name="serviceType" value={formData.serviceType} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }}>
-                      <option value="OIL_CHANGE">Oil Change</option>
-                      <option value="ENGINE_TUNE_UP">Engine Tune Up</option>
-                      <option value="BRAKE_SERVICE">Brake Service</option>
-                      <option value="TIRE_ROTATION">Tire Rotation</option>
-                      <option value="TRANSMISSION_SERVICE">Transmission Service</option>
-                      <option value="AC_SERVICE">AC Service</option>
-                      <option value="BATTERY_REPLACEMENT">Battery Replacement</option>
-                      <option value="GENERAL_INSPECTION">General Inspection</option>
-                      <option value="OTHER">Other</option>
-                    </select>
-                  </div>
-                  {formData.serviceType === 'OTHER' && (
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Service Type Detail*</label>
-                      <input required type="text" name="serviceTypeDetail" value={formData.serviceTypeDetail} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
-                    </div>
-                  )}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Service Date*</label>
-                    <input required type="date" name="serviceDate" value={formData.serviceDate} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Current Mileage (km)*</label>
-                    <input required type="number" name="currentMileageKm" value={formData.currentMileageKm} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Cost (LKR)*</label>
-                    <input required type="number" step="0.01" name="serviceCost" value={formData.serviceCost} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Workshop*</label>
-                    <input required type="text" name="technicianWorkshop" value={formData.technicianWorkshop} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Next Service Due (Optional)</label>
-                    <input type="date" name="nextServiceDue" value={formData.nextServiceDue} onChange={handleFormChange} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6 }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Description / Notes (Optional)</label>
-                    <textarea name="description" value={formData.description} onChange={handleFormChange} rows={2} style={{ width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6, fontFamily: 'inherit' }}></textarea>
-                  </div>
-                  <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-                    <button type="button" onClick={() => setShowModal(false)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-                    <button type="submit" style={{ flex: 1, padding: '10px', borderRadius: 8, border: 'none', background: '#6366f1', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>{isEditing ? 'Save' : 'Add'}</button>
-                  </div>
-                </form>
-              </div>
+          {/* ── Footer count ──────────────────────────────────────── */}
+          {!loading && filtered.length > 0 && (
+            <div style={{ marginTop: 18, fontSize: '0.78rem', color: '#475569', textAlign: 'right' }}>
+              Showing <strong style={{ color: '#94a3b8' }}>{filtered.length}</strong> of <strong style={{ color: '#94a3b8' }}>{services.length}</strong> records
             </div>
           )}
 
         </div>
       </div>
+
+      {/* ── Dark-theme overrides for this page ── */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+        input[id="service-search"]::placeholder { color: #475569; }
+
+        /* Topbar dark */
+        .service-page-dark .topbar {
+          background: #0f172a !important;
+          border-bottom-color: rgba(255,255,255,0.08) !important;
+        }
+        .service-page-dark .topbar-title {
+          color: #f1f5f9 !important;
+        }
+        .service-page-dark .topbar-breadcrumb {
+          color: #475569 !important;
+        }
+        .service-page-dark .topbar-user {
+          background: rgba(255,255,255,0.05) !important;
+          border-color: rgba(255,255,255,0.1) !important;
+          color: #e2e8f0 !important;
+        }
+        .service-page-dark .topbar-user:hover {
+          background: rgba(99,102,241,0.15) !important;
+          border-color: rgba(99,102,241,0.4) !important;
+        }
+        .service-page-dark .topbar-name {
+          color: #e2e8f0 !important;
+        }
+
+        /* Sidebar dark */
+        .service-page-dark .sidebar {
+          background: #0f1e35 !important;
+          border-right-color: rgba(255,255,255,0.07) !important;
+        }
+        .service-page-dark .sidebar-header {
+          border-bottom-color: rgba(255,255,255,0.07) !important;
+        }
+        .service-page-dark .sidebar-title {
+          color: #f1f5f9 !important;
+        }
+        .service-page-dark .sidebar-subtitle {
+          color: #475569 !important;
+        }
+        .service-page-dark .nav-section-label {
+          color: #334155 !important;
+        }
+        .service-page-dark .nav-item {
+          color: #64748b !important;
+        }
+        .service-page-dark .nav-item:hover {
+          background: rgba(255,255,255,0.05) !important;
+          color: #cbd5e1 !important;
+        }
+        .service-page-dark .nav-item.active {
+          background: rgba(99,102,241,0.18) !important;
+          color: #a5b4fc !important;
+        }
+        .service-page-dark .sidebar-footer {
+          border-top-color: rgba(255,255,255,0.07) !important;
+        }
+        .service-page-dark .sidebar-divider {
+          background: rgba(255,255,255,0.07) !important;
+        }
+        .service-page-dark .sidebar-logout-btn {
+          color: rgba(255,255,255,0.5) !important;
+        }
+        .service-page-dark .sidebar-logout-btn:hover {
+          color: #ef4444 !important;
+        }
+        .service-page-dark .sidebar-user-card {
+          background: rgba(255,255,255,0.03) !important;
+        }
+        .service-page-dark .sidebar-user-name {
+          color: #e2e8f0 !important;
+        }
+      `}</style>
     </div>
   )
 }

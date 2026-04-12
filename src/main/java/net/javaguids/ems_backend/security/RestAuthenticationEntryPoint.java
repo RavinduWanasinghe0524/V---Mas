@@ -21,7 +21,7 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
     public void commence(HttpServletRequest request, HttpServletResponse response,
             AuthenticationException authException)
             throws IOException, ServletException {
-        ApiResponse<Object> body = new ApiResponse<>(false, "Unauthorized", null);
+        ApiResponse<Object> body = new ApiResponse<>(false, "Missing or invalid Authorization token. Please log in again.", null);
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(), body);
