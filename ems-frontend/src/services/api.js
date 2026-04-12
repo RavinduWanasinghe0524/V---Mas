@@ -68,6 +68,11 @@ export const employeeAPI = {
 
 export const vehicleAPI = {
   getAllVehicles: () => api.get('/vehicles'),
+  getVehicleById: (id) => api.get(`/vehicles/${id}`),
+  updateVehicle: (id, data) => api.put(`/vehicles/${id}`, data),
+  deleteVehicle: (id) => api.delete(`/vehicles/${id}`),
+  registerVehicle: (data) => api.post('/vehicles', data),
+  assignVehicle: (id, employeeId) => api.post(`/vehicles/${id}/assign`, { employeeId })
 }
 
 export const fuelAPI = {
