@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @AllArgsConstructor
@@ -42,8 +41,6 @@ public class VehicleServiceImpl implements VehicleService {
 
     @Override
     public List<VehicleDto> getAllVehicles() {
-        List<Vehicle> vehicles = vehicleRepository.findAll();
-        Stream<VehicleDto> vehicleDtoStream = vehicles.stream().map(VehicleMapper::mapToVehicleDto);
         return vehicleRepository.findAll().stream()
                 .map(VehicleMapper::mapToVehicleDto)
                 .collect(Collectors.toList());
@@ -58,7 +55,7 @@ public class VehicleServiceImpl implements VehicleService {
             throw new RuntimeException("Vehicle with registration number '" + vehicleDto.getRegistrationNo() + "' already exists.");
         }
 
-        Vehicle newVehicle= new Vehicle();
+        Vehicle newVehicle = new Vehicle();
         newVehicle.setId(vehicle.getId());
         newVehicle.setStatus(vehicle.getStatus());
 

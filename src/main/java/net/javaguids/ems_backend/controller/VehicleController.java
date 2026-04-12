@@ -4,15 +4,12 @@ import lombok.AllArgsConstructor;
 import net.javaguids.ems_backend.dto.ApiResponse;
 import net.javaguids.ems_backend.dto.VehicleDto;
 import net.javaguids.ems_backend.enums.VehicleSatus;
-import net.javaguids.ems_backend.security.CustomUserDetailsService;
 import net.javaguids.ems_backend.service.VehicleService;
 import net.javaguids.ems_backend.util.ApiResponseUtil;
 
 import org.apache.coyote.BadRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -80,8 +77,8 @@ public class VehicleController {
     // GET /api/vehicles/{vehicleId}/assign/{driverId} - Assign driver to a vehicle
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     @PatchMapping("/{vehicleId}/driver/{driverId}")
-    public ResponseEntity<ApiResponse<VehicleDto>> assignDriver(@PathVariable Long vehicleId,@PathVariable Long driverId) throws BadRequestException {
-        VehicleDto assignedVehicle =  vehicleService.assignDriver(vehicleId,driverId);
+    public ResponseEntity<ApiResponse<VehicleDto>> assignDriver(@PathVariable Long vehicleId, @PathVariable Long driverId) throws BadRequestException {
+        VehicleDto assignedVehicle = vehicleService.assignDriver(vehicleId, driverId);
         return ApiResponseUtil.success("Driver assigned successfully", assignedVehicle, HttpStatus.OK);
     }
 }
