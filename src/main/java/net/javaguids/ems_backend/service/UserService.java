@@ -16,6 +16,8 @@ public interface UserService {
 
     List<UserDto> getAllUsers();
 
+    List<UserDto> getPendingUsers();
+
     UserDto getUserById(Long id);
 
     UserDto createUser(RegisterRequest request);
@@ -29,4 +31,8 @@ public interface UserService {
     UserDto updateMyProfile(String username, UpdateProfileRequest request);
 
     void changePassword(String username, ChangePasswordRequest request);
+
+    UserDto approveUser(Long id);
+
+    UserDto rejectUser(Long id);
 }

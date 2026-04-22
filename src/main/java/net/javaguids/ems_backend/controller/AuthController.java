@@ -22,12 +22,21 @@ public class AuthController {
     @Autowired
     private UserService userService;
 
+    /**
+     * Self-registration endpoint.
+     * New accounts are created with PENDING status — no JWT is issued.
+     * The response contains { success: true, message: "...", data: null }
+     * so the frontend knows to show the "Pending Approval" screen.
+     */
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<AuthResponse>> register(@RequestBody RegisterRequest request) {
         log.info("Register request received for username: {}", request.getUserName());
-        AuthResponse response = userService.register(request);
-        log.info("User registered successfully: {}", request.getUserName());
-        return ApiResponseUtil.success("Registration successful", response, HttpStatus.CREATED);
+        userService.register(request);
+        log.info("User registered (PENDING approval): {}", request.getUserName());
+        return ApiResponseUtil.success(
+                "Registration successful. Your account is pending admin approval.",
+                null,
+                HttpStatus.CREATED);
     }
 
     @PostMapping("/login")
@@ -46,8 +55,7 @@ public class AuthController {
             log.info("Logout request received for username: {}", username);
             SecurityContextHolder.clearContext();
             log.info("User logged out successfully: {}", username);
-            return ApiResponseUtil.success("Logout successful. Please remove the token from client.", null,
-                    HttpStatus.OK);
+            return ApiResponseUtil.success("Logout successful. Please remove the token from client.", null, HttpStatus.OK);
         }
         log.warn("Logout attempt with no authenticated user");
         return ApiResponseUtil.success("Already logged out", null, HttpStatus.OK);
