@@ -155,8 +155,12 @@ public class FuelServiceImpl implements FuelService {
         // Populate data from query results
         for (Object[] result : results) {
             Integer monthNum = (Integer) result[0];
-            String fuelType = (String) result[1];
+            String rawFuelType = (String) result[1];
             Double totalLiters = ((Number) result[2]).doubleValue();
+
+            String fuelType = rawFuelType != null ? rawFuelType.trim() : "";
+            if (fuelType.equalsIgnoreCase("Petrol")) fuelType = "Petrol";
+            else if (fuelType.equalsIgnoreCase("Diesel")) fuelType = "Diesel";
 
             if (data.containsKey(fuelType)) {
                 data.get(fuelType).set(monthNum - 1, totalLiters);

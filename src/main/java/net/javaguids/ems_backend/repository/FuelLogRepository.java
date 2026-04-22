@@ -13,10 +13,10 @@ public interface FuelLogRepository extends JpaRepository<FuelLog, Long> {
 
     List<FuelLog> findByVehicleRegNumberOrderByDateDesc(String vehicleRegNumber);
 
-    @Query("SELECT COALESCE(SUM(f.liters), 0.0) FROM FuelLog f WHERE f.fuelType = :fuelType AND MONTH(f.date) = :month AND YEAR(f.date) = :year")
+    @Query("SELECT COALESCE(SUM(f.liters), 0.0) FROM FuelLog f WHERE LOWER(TRIM(f.fuelType)) = LOWER(:fuelType) AND MONTH(f.date) = :month AND YEAR(f.date) = :year AND f.isDeleted = false")
     Double getTotalLitersByFuelType(@Param("fuelType") String fuelType, @Param("month") int month, @Param("year") int year);
 
-    @Query("SELECT COALESCE(SUM(f.totalCost), 0.0) FROM FuelLog f WHERE MONTH(f.date) = :month AND YEAR(f.date) = :year")
+    @Query("SELECT COALESCE(SUM(f.totalCost), 0.0) FROM FuelLog f WHERE MONTH(f.date) = :month AND YEAR(f.date) = :year AND f.isDeleted = false")
     Double getTotalCostForMonth(@Param("month") int month, @Param("year") int year);
 
     @Query("SELECT f FROM FuelLog f WHERE f.vehicleRegNumber = :vehicleRegNumber AND f.date < :currentDate ORDER BY f.date DESC, f.id DESC")
@@ -26,12 +26,12 @@ public interface FuelLogRepository extends JpaRepository<FuelLog, Long> {
     List<String> findAllDistinctVehicleRegNumbers();
 
     @Query("SELECT MONTH(f.date) as month, f.fuelType, SUM(f.liters) as totalLiters " +
-           "FROM FuelLog f WHERE YEAR(f.date) = :year " +
+           "FROM FuelLog f WHERE YEAR(f.date) = :year AND f.isDeleted = false " +
            "GROUP BY MONTH(f.date), f.fuelType " +
            "ORDER BY MONTH(f.date)")
     List<Object[]> getMonthlyConsumptionByFuelType(@Param("year") int year);
 
-    @Query("SELECT COALESCE(SUM(f.totalCost), 0.0) FROM FuelLog f WHERE f.vehicleRegNumber = :vehicleRegNumber")
+    @Query("SELECT COALESCE(SUM(f.totalCost), 0.0) FROM FuelLog f WHERE f.vehicleRegNumber = :vehicleRegNumber AND f.isDeleted = false")
     Double getTotalSpendingByVehicle(@Param("vehicleRegNumber") String vehicleRegNumber);
 
     // ---- Driver-scoped queries (with legacy support) ----
