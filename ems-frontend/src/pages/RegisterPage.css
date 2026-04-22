@@ -446,3 +446,203 @@
 .split-register-footer a:hover {
   color: #bfdbfe;
 }
+
+/* ── Info banner on the form ─────────────────────────────────────── */
+.split-register-info-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.split-register-info-banner svg {
+  color: #818cf8;
+  flex-shrink: 0;
+}
+
+.split-register-info-banner strong {
+  color: #a5b4fc;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   PENDING APPROVAL CONFIRMATION CARD
+══════════════════════════════════════════════════════════════════ */
+.split-pending-card {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 480px;
+  margin: 2rem 1rem;
+  padding: 3rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5);
+  animation: pendingFadeIn 0.5s ease both;
+}
+
+@keyframes pendingFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Pulsing icon ring */
+.split-pending-icon-ring {
+  position: relative;
+  width: 5rem;
+  height: 5rem;
+  margin-bottom: 1.75rem;
+}
+
+.split-pending-icon-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.25);
+  animation: pendingPulse 2s ease-in-out infinite;
+}
+
+@keyframes pendingPulse {
+  0%, 100% { transform: scale(1);    opacity: 0.8; }
+  50%       { transform: scale(1.25); opacity: 0.3; }
+}
+
+.split-pending-icon-inner {
+  position: absolute;
+  inset: 0.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #3b82f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.45);
+}
+
+/* Headings */
+.split-pending-title {
+  color: white;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.split-pending-sub {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.split-pending-highlight {
+  color: #a5b4fc;
+  font-weight: 600;
+}
+
+.split-pending-desc {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.85rem;
+  line-height: 1.7;
+  margin-bottom: 2rem;
+  max-width: 340px;
+}
+
+/* Step tracker */
+.split-pending-steps {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 2.25rem;
+  width: 100%;
+  justify-content: center;
+}
+
+.split-pending-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.split-pending-step-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+}
+
+.split-pending-step.done .split-pending-step-icon {
+  color: #22c55e;
+}
+.split-pending-step.done span {
+  color: rgba(255,255,255,0.7);
+}
+
+.split-pending-step.waiting .split-pending-step-icon {
+  color: #f59e0b;
+  animation: pendingPulse 1.5s ease-in-out infinite;
+}
+.split-pending-step.waiting span {
+  color: #fbbf24;
+  font-weight: 500;
+}
+
+.split-pending-step.inactive .split-pending-step-icon {
+  color: rgba(255,255,255,0.2);
+}
+.split-pending-step.inactive span {
+  color: rgba(255,255,255,0.25);
+}
+
+.split-pending-step-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  margin-bottom: 1rem;
+  min-width: 2rem;
+  max-width: 4rem;
+}
+
+/* Back button */
+.split-pending-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 2rem;
+  border-radius: 1rem;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: linear-gradient(135deg, #6366f1, #3b82f6);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35);
+  text-decoration: none;
+  transition: all 0.2s;
+  margin-bottom: 1.75rem;
+}
+
+.split-pending-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Footer */
+.split-pending-footer {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 0.7rem;
+}
+
