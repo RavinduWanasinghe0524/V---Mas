@@ -8,6 +8,7 @@ import UsersPage from './pages/UsersPage'
 import ProfilePage from './pages/ProfilePage'
 import VehiclesPage from './pages/VehiclesPage'
 import ServicePage from './pages/ServicePage'
+import AddServicePage from './pages/AddServicePage'
 import FuelAnalysisPage from './pages/FuelAnalysisPage'
 import FuelLogPage from './pages/FuelLogPage'
 import FuelManagementPage from './pages/FuelManagementPage'
@@ -25,7 +26,9 @@ function App() {
           <Route path="/users"        element={<PrivateRoute><UsersPage /></PrivateRoute>} />
           <Route path="/profile"      element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
           <Route path="/vehicles"     element={<PrivateRoute><VehiclesPage /></PrivateRoute>} />
-          <Route path="/service"      element={<PrivateRoute><ServicePage /></PrivateRoute>} />
+          <Route path="/service"         element={<PrivateRoute><ServicePage /></PrivateRoute>} />
+          <Route path="/service/add"      element={<PrivateRoute><AddServicePage /></PrivateRoute>} />
+          <Route path="/service/edit/:id" element={<PrivateRoute><AddServicePage /></PrivateRoute>} />
           <Route path="/fuel-analysis" element={<PrivateRoute><FuelAnalysisPage /></PrivateRoute>} />
           <Route path="/fuel-log"     element={<PrivateRoute><FuelLogPage /></PrivateRoute>} />
           <Route path="/fuel-management" element={<PrivateRoute><FuelManagementPage /></PrivateRoute>} />

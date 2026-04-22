@@ -5,6 +5,8 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import EmployeeList from './pages/EmployeeList';
 import UserList from './pages/UserList';
+// @ts-ignore – ProfilePage is a .jsx file in a mixed JS/TS project
+import ProfilePage from './pages/ProfilePage';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
@@ -38,6 +40,14 @@ function App() {
             element={
               <ProtectedRoute adminOnly>
                 <UserList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
               </ProtectedRoute>
             }
           />

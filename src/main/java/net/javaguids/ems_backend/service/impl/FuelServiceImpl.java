@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -49,6 +50,7 @@ public class FuelServiceImpl implements FuelService {
         fuelLog.setMileage(fuelLogDto.getMileage());
         fuelLog.setDate(fuelLogDto.getDate() != null ? fuelLogDto.getDate() : LocalDate.now());
         fuelLog.setDriverUsername(driverUsername); // ← tie this log to the driver
+        fuelLog.setUploadedBy(driverUsername); // ← track who uploaded it
 
         // Save the fuel log
         FuelLog savedLog = fuelLogRepository.save(fuelLog);
@@ -101,6 +103,11 @@ public class FuelServiceImpl implements FuelService {
             fuelLog.setDate(fuelLogDto.getDate());
         }
 
+        // Mark as updated
+        fuelLog.setIsUpdated(true);
+        fuelLog.setUpdatedAt(LocalDateTime.now());
+        fuelLog.setUpdatedBy(driverUsername);
+
         FuelLog updated = fuelLogRepository.save(fuelLog);
         log.info("Fuel log {} updated by driver '{}'", id, driverUsername);
         return mapToDto(updated);
@@ -148,8 +155,12 @@ public class FuelServiceImpl implements FuelService {
         // Populate data from query results
         for (Object[] result : results) {
             Integer monthNum = (Integer) result[0];
-            String fuelType = (String) result[1];
+            String rawFuelType = (String) result[1];
             Double totalLiters = ((Number) result[2]).doubleValue();
+
+            String fuelType = rawFuelType != null ? rawFuelType.trim() : "";
+            if (fuelType.equalsIgnoreCase("Petrol")) fuelType = "Petrol";
+            else if (fuelType.equalsIgnoreCase("Diesel")) fuelType = "Diesel";
 
             if (data.containsKey(fuelType)) {
                 data.get(fuelType).set(monthNum - 1, totalLiters);
@@ -195,7 +206,7 @@ public class FuelServiceImpl implements FuelService {
     @Override
     public FuelLogDto getFuelLogById(Long id) {
         log.info("Fetching fuel log by ID: {}", id);
-        FuelLog fuelLog = fuelLogRepository.findById(id)
+        FuelLog fuelLog = fuelLogRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("FuelLog not found with id: " + id));
         return mapToDto(fuelLog);
     }
@@ -213,7 +224,7 @@ public class FuelServiceImpl implements FuelService {
 
     @Override
     public List<FuelLogDto> getAllFuelLogs() {
-        log.info("Controller fetching all fuel logs");
+        log.info("Controller fetching all fuel logs (including soft-deleted)");
         return fuelLogRepository.findAll()
                 .stream()
                 .sorted(Comparator.comparing(FuelLog::getDate).reversed())
@@ -243,6 +254,7 @@ public class FuelServiceImpl implements FuelService {
         fuelLog.setDate(fuelLogDto.getDate() != null ? fuelLogDto.getDate() : LocalDate.now());
         // driverUsername may be supplied in the DTO (optional for controller)
         fuelLog.setDriverUsername(fuelLogDto.getDriverUsername());
+        fuelLog.setUploadedBy(fuelLogDto.getUploadedBy()); // ← track who uploaded it
 
         FuelLog savedLog = fuelLogRepository.save(fuelLog);
         log.info("Controller saved fuel log with ID: {}", savedLog.getId());
@@ -254,7 +266,7 @@ public class FuelServiceImpl implements FuelService {
     public FuelLogDto updateFuelLogByController(Long id, FuelLogDto fuelLogDto) {
         log.info("Controller updating fuel log id: {}", id);
 
-        FuelLog fuelLog = fuelLogRepository.findById(id)
+        FuelLog fuelLog = fuelLogRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("FuelLog not found with id: " + id));
 
         fuelLog.setVehicleRegNumber(fuelLogDto.getVehicleRegNumber());
@@ -274,6 +286,11 @@ public class FuelServiceImpl implements FuelService {
             fuelLog.setDriverUsername(fuelLogDto.getDriverUsername());
         }
 
+        // Mark as updated and track who updated it
+        fuelLog.setIsUpdated(true);
+        fuelLog.setUpdatedAt(LocalDateTime.now());
+        fuelLog.setUpdatedBy(fuelLogDto.getUpdatedBy());
+
         FuelLog updated = fuelLogRepository.save(fuelLog);
         log.info("Fuel log {} updated by controller", id);
         return mapToDto(updated);
@@ -282,11 +299,14 @@ public class FuelServiceImpl implements FuelService {
     @Override
     @Transactional
     public void deleteFuelLog(Long id) {
-        log.info("Controller deleting fuel log id: {}", id);
-        FuelLog fuelLog = fuelLogRepository.findById(id)
+        log.info("Controller soft-deleting fuel log id: {}", id);
+        FuelLog fuelLog = fuelLogRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("FuelLog not found with id: " + id));
-        fuelLogRepository.delete(fuelLog);
-        log.info("Fuel log {} deleted by controller", id);
+        // Soft-delete: mark as deleted instead of removing the row
+        fuelLog.setIsDeleted(true);
+        fuelLog.setDeletedAt(LocalDateTime.now());
+        fuelLogRepository.save(fuelLog);
+        log.info("Fuel log {} soft-deleted by controller", id);
     }
 
     // ==================== PRIVATE HELPER METHODS ====================
@@ -386,16 +406,23 @@ public class FuelServiceImpl implements FuelService {
      * Convert FuelLog entity to DTO
      */
     private FuelLogDto mapToDto(FuelLog fuelLog) {
-        return new FuelLogDto(
-            fuelLog.getId(),
-            fuelLog.getVehicleRegNumber(),
-            fuelLog.getFuelType(),
-            fuelLog.getLiters(),
-            fuelLog.getCostPerLiter(),
-            fuelLog.getTotalCost(),
-            fuelLog.getMileage(),
-            fuelLog.getDate(),
-            fuelLog.getDriverUsername()
-        );
+        FuelLogDto dto = new FuelLogDto();
+        dto.setId(fuelLog.getId());
+        dto.setVehicleRegNumber(fuelLog.getVehicleRegNumber());
+        dto.setFuelType(fuelLog.getFuelType());
+        dto.setLiters(fuelLog.getLiters());
+        dto.setCostPerLiter(fuelLog.getCostPerLiter());
+        dto.setTotalCost(fuelLog.getTotalCost());
+        dto.setMileage(fuelLog.getMileage());
+        dto.setDate(fuelLog.getDate());
+        dto.setDriverUsername(fuelLog.getDriverUsername());
+        // Audit fields
+        dto.setUploadedBy(fuelLog.getUploadedBy());
+        dto.setIsUpdated(fuelLog.getIsUpdated() != null && fuelLog.getIsUpdated());
+        dto.setUpdatedAt(fuelLog.getUpdatedAt());
+        dto.setUpdatedBy(fuelLog.getUpdatedBy());
+        dto.setIsDeleted(fuelLog.getIsDeleted() != null && fuelLog.getIsDeleted());
+        dto.setDeletedAt(fuelLog.getDeletedAt());
+        return dto;
     }
 }

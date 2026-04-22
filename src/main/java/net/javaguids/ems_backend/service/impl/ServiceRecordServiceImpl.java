@@ -5,12 +5,10 @@ import lombok.AllArgsConstructor;
 import net.javaguids.ems_backend.dto.ServiceFilterRequest;
 import net.javaguids.ems_backend.dto.ServiceRecordDto;
 import net.javaguids.ems_backend.entity.ServiceRecord;
-import net.javaguids.ems_backend.entity.Vehicle;
 import net.javaguids.ems_backend.enums.ServiceType;
 import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.mapper.ServiceRecordMapper;
 import net.javaguids.ems_backend.repository.ServiceRecordRepository;
-import net.javaguids.ems_backend.repository.VehicleRepository;
 import net.javaguids.ems_backend.service.ServiceRecordService;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -30,13 +28,13 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
         validateServiceTypeDetail(dto.getServiceType(), dto.getServiceTypeDetail());
 
         ServiceRecord record = ServiceRecordMapper.mapToServiceRecord(dto);
-        ServiceRecord saved = serviceRecordRepository.save(record);
+        ServiceRecord saved = serviceRecordRepository.save(java.util.Objects.requireNonNull(record));
         return ServiceRecordMapper.mapToServiceRecordDto(saved);
     }
 
     @Override
     public ServiceRecordDto getServiceRecordById(Long id) {
-        ServiceRecord record = serviceRecordRepository.findById(id)
+        ServiceRecord record = serviceRecordRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Service record not found with id: " + id));
         return ServiceRecordMapper.mapToServiceRecordDto(record);
@@ -52,7 +50,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     @Override
     public ServiceRecordDto updateServiceRecord(Long id, ServiceRecordDto dto) {
-        ServiceRecord record = serviceRecordRepository.findById(id)
+        ServiceRecord record = serviceRecordRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Service record not found with id: " + id));
 
@@ -74,10 +72,10 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     @Override
     public void deleteServiceRecord(Long id) {
-        ServiceRecord record = serviceRecordRepository.findById(id)
+        ServiceRecord record = serviceRecordRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Service record not found with id: " + id));
-        serviceRecordRepository.delete(record);
+        serviceRecordRepository.delete(java.util.Objects.requireNonNull(record));
     }
 
     @Override
