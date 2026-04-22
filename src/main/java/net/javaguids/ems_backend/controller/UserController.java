@@ -31,6 +31,8 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
+    // ── Own profile ──────────────────────────────────────────────────
+
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserDto>> getMyProfile() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -55,6 +57,37 @@ public class UserController {
         return ApiResponseUtil.success("Password changed successfully", null, HttpStatus.OK);
     }
 
+    // ── Admin: Pending approval queue ────────────────────────────────
+
+    @GetMapping("/pending")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<UserDto>>> getPendingUsers() {
+        log.info("Get pending users request received");
+        List<UserDto> pending = userService.getPendingUsers();
+        log.info("Returning {} pending users", pending.size());
+        return ApiResponseUtil.success("Pending users fetched successfully", pending, HttpStatus.OK);
+    }
+
+    @PatchMapping("/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<UserDto>> approveUser(@PathVariable Long id) {
+        log.info("Approve user request received for ID: {}", id);
+        UserDto updated = userService.approveUser(id);
+        log.info("User approved successfully with ID: {}", id);
+        return ApiResponseUtil.success("User approved successfully", updated, HttpStatus.OK);
+    }
+
+    @PatchMapping("/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<UserDto>> rejectUser(@PathVariable Long id) {
+        log.info("Reject user request received for ID: {}", id);
+        UserDto updated = userService.rejectUser(id);
+        log.info("User rejected successfully with ID: {}", id);
+        return ApiResponseUtil.success("User rejected successfully", updated, HttpStatus.OK);
+    }
+
+    // ── Admin: Full user list ────────────────────────────────────────
+
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<UserDto>>> getAllUsers() {
@@ -72,7 +105,6 @@ public class UserController {
             log.warn("Access denied: User {} attempted to access user {}", currentUser.getId(), id);
             return ApiResponseUtil.error("You don't have permission to access this resource", HttpStatus.FORBIDDEN);
         }
-
         UserDto user = userService.getUserById(id);
         return ApiResponseUtil.<Object>success("User fetched successfully", user, HttpStatus.OK);
     }
@@ -94,7 +126,6 @@ public class UserController {
             log.warn("Access denied: User {} attempted to update user {}", currentUser.getId(), id);
             return ApiResponseUtil.error("You don't have permission to access this resource", HttpStatus.FORBIDDEN);
         }
-
         UserDto updatedUser = userService.updateUser(id, userDto);
         log.info("User updated successfully with ID: {}", id);
         return ApiResponseUtil.<Object>success("User updated successfully", updatedUser, HttpStatus.OK);
@@ -109,10 +140,11 @@ public class UserController {
         return ApiResponseUtil.success("User deleted successfully", null, HttpStatus.OK);
     }
 
+    // ── Helpers ──────────────────────────────────────────────────────
+
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String currentUsername = auth.getName();
-        return userRepository.findByUserName(currentUsername)
+        return userRepository.findByUserName(auth.getName())
                 .orElseThrow(() -> new RuntimeException("Current user not found"));
     }
 
