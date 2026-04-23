@@ -19,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -64,6 +65,11 @@ public class UserController {
     public ResponseEntity<ApiResponse<List<UserDto>>> getPendingUsers() {
         log.info("Get pending users request received");
         List<UserDto> pending = userService.getPendingUsers();
+        if (!isAdmin() && isController()) {
+            pending = pending.stream()
+                    .filter(u -> net.javaguids.ems_backend.enums.Role.DRIVER.equals(u.getRole()))
+                    .collect(Collectors.toList());
+        }
         log.info("Returning {} pending users", pending.size());
         return ApiResponseUtil.success("Pending users fetched successfully", pending, HttpStatus.OK);
     }
@@ -72,6 +78,12 @@ public class UserController {
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     public ResponseEntity<ApiResponse<UserDto>> approveUser(@PathVariable Long id) {
         log.info("Approve user request received for ID: {}", id);
+        if (!isAdmin() && isController()) {
+            UserDto existingUser = userService.getUserById(id);
+            if (!net.javaguids.ems_backend.enums.Role.DRIVER.equals(existingUser.getRole())) {
+                throw new RuntimeException("Controllers can only approve driver accounts");
+            }
+        }
         UserDto updated = userService.approveUser(id);
         log.info("User approved successfully with ID: {}", id);
         return ApiResponseUtil.success("User approved successfully", updated, HttpStatus.OK);
@@ -81,6 +93,12 @@ public class UserController {
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     public ResponseEntity<ApiResponse<UserDto>> rejectUser(@PathVariable Long id) {
         log.info("Reject user request received for ID: {}", id);
+        if (!isAdmin() && isController()) {
+            UserDto existingUser = userService.getUserById(id);
+            if (!net.javaguids.ems_backend.enums.Role.DRIVER.equals(existingUser.getRole())) {
+                throw new RuntimeException("Controllers can only reject driver accounts");
+            }
+        }
         UserDto updated = userService.rejectUser(id);
         log.info("User rejected successfully with ID: {}", id);
         return ApiResponseUtil.success("User rejected successfully", updated, HttpStatus.OK);
@@ -152,5 +170,11 @@ public class UserController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    }
+
+    private boolean isController() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_CONTROLLER"));
     }
 }

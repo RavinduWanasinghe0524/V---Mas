@@ -381,10 +381,10 @@ const UsersPage = () => {
                 </div>
                 <div className="users-form-group">
                   <label>Role</label>
-                  <select name="role" value={formData.role} onChange={handleChange}>
+                  <select name="role" value={formData.role} onChange={handleChange} disabled={isController}>
                     <option value="DRIVER">Driver</option>
-                    <option value="CONTROLLER">Controller</option>
-                    <option value="ADMIN">Admin</option>
+                    {isAdmin && <option value="CONTROLLER">Controller</option>}
+                    {isAdmin && <option value="ADMIN">Admin</option>}
                   </select>
                 </div>
               </div>
