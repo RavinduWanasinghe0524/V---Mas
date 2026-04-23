@@ -37,6 +37,10 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private AuthenticationManager authenticationManager;
 
+    // ── REGISTER ────────────────────────────────────────────────────
+    // Self-registered accounts start as PENDING — no JWT issued.
+    // The AuthController returns a message-only response; the frontend
+    // shows the "Pending Approval" screen instead of navigating to dashboard.
     @Override
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByUserName(request.getUserName())) {
@@ -51,35 +55,56 @@ public class UserServiceImpl implements UserService {
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(request.getRole());
-        user.setAccountStatus(AccountStatus.ACTIVE);
+        user.setAccountStatus(AccountStatus.PENDING); // ← awaiting admin approval
         user.setProfilePicture(request.getProfilePicture());
 
-        User savedUser = userRepository.save(user);
+        userRepository.save(user);
 
-        String token = jwtUtil.generateToken(savedUser.getUserName(), savedUser.getRole().name());
-
-        return new AuthResponse(token, mapToDto(savedUser));
+        // Return null token — the frontend checks for this and shows the pending screen
+        return new AuthResponse(null, null);
     }
 
+    // ── LOGIN ────────────────────────────────────────────────────────
+    // Block login for accounts that are not ACTIVE.
     @Override
     public AuthResponse login(LoginRequest request) {
+        // Spring Security authenticates credentials (throws if wrong password)
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUserName(), request.getPassword()));
 
         User user = userRepository.findByUserName(request.getUserName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        String token = jwtUtil.generateToken(user.getUserName(), user.getRole().name());
+        // Status gate — checked AFTER credential validation so we don't leak info
+        switch (user.getAccountStatus()) {
+            case PENDING ->
+                throw new RuntimeException("Your account is awaiting admin approval. Please wait for an administrator to activate your account.");
+            case INACTIVE ->
+                throw new RuntimeException("Your account has been deactivated. Please contact an administrator.");
+            case SUSPENDED ->
+                throw new RuntimeException("Your account has been suspended. Please contact an administrator.");
+            default -> { /* ACTIVE — proceed */ }
+        }
 
+        String token = jwtUtil.generateToken(user.getUserName(), user.getRole().name());
         return new AuthResponse(token, mapToDto(user));
     }
 
+    // ── GET ALL USERS ────────────────────────────────────────────────
     @Override
     public List<UserDto> getAllUsers() {
-        List<User> users = userRepository.findAll();
-        return users.stream().map(this::mapToDto).collect(Collectors.toList());
+        return userRepository.findAll()
+                .stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
+    // ── GET PENDING USERS ────────────────────────────────────────────
+    @Override
+    public List<UserDto> getPendingUsers() {
+        return userRepository.findByAccountStatus(AccountStatus.PENDING)
+                .stream().map(this::mapToDto).collect(Collectors.toList());
+    }
+
+    // ── GET USER BY ID ───────────────────────────────────────────────
     @Override
     public UserDto getUserById(Long id) {
         Long requiredId = Objects.requireNonNull(id);
@@ -88,6 +113,7 @@ public class UserServiceImpl implements UserService {
         return mapToDto(user);
     }
 
+    // ── CREATE USER (admin-initiated — immediately ACTIVE) ───────────
     @Override
     public UserDto createUser(RegisterRequest request) {
         if (userRepository.existsByUserName(request.getUserName())) {
@@ -102,13 +128,14 @@ public class UserServiceImpl implements UserService {
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(request.getRole());
-        user.setAccountStatus(AccountStatus.ACTIVE);
+        user.setAccountStatus(AccountStatus.ACTIVE); // admin creates → directly active
         user.setProfilePicture(request.getProfilePicture());
 
         User savedUser = userRepository.save(Objects.requireNonNull(user));
         return mapToDto(savedUser);
     }
 
+    // ── UPDATE USER ──────────────────────────────────────────────────
     @Override
     public UserDto updateUser(Long id, UserDto userDto) {
         Long requiredId = Objects.requireNonNull(id);
@@ -125,6 +152,7 @@ public class UserServiceImpl implements UserService {
         return mapToDto(updatedUser);
     }
 
+    // ── DELETE USER ──────────────────────────────────────────────────
     @Override
     public void deleteUser(Long id) {
         Long requiredId = Objects.requireNonNull(id);
@@ -133,6 +161,7 @@ public class UserServiceImpl implements UserService {
         userRepository.delete(Objects.requireNonNull(user));
     }
 
+    // ── MY PROFILE ───────────────────────────────────────────────────
     @Override
     public UserDto getMyProfile(String username) {
         User user = userRepository.findByUserName(username)
@@ -140,6 +169,7 @@ public class UserServiceImpl implements UserService {
         return mapToDto(user);
     }
 
+    // ── UPDATE MY PROFILE ────────────────────────────────────────────
     @Override
     public UserDto updateMyProfile(String username, UpdateProfileRequest request) {
         User user = userRepository.findByUserName(username)
@@ -160,6 +190,7 @@ public class UserServiceImpl implements UserService {
         return mapToDto(updatedUser);
     }
 
+    // ── CHANGE PASSWORD ──────────────────────────────────────────────
     @Override
     public void changePassword(String username, ChangePasswordRequest request) {
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
@@ -177,6 +208,25 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
+    // ── APPROVE USER ─────────────────────────────────────────────────
+    @Override
+    public UserDto approveUser(Long id) {
+        User user = userRepository.findById(Objects.requireNonNull(id))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        user.setAccountStatus(AccountStatus.ACTIVE);
+        return mapToDto(userRepository.save(user));
+    }
+
+    // ── REJECT USER (soft — sets to INACTIVE) ────────────────────────
+    @Override
+    public UserDto rejectUser(Long id) {
+        User user = userRepository.findById(Objects.requireNonNull(id))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        user.setAccountStatus(AccountStatus.INACTIVE);
+        return mapToDto(userRepository.save(user));
+    }
+
+    // ── MAPPER ───────────────────────────────────────────────────────
     private UserDto mapToDto(User user) {
         return new UserDto(
                 user.getId(),

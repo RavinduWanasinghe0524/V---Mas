@@ -19,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -30,6 +31,8 @@ public class UserController {
 
     @Autowired
     private UserRepository userRepository;
+
+    // ── Own profile ──────────────────────────────────────────────────
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserDto>> getMyProfile() {
@@ -55,6 +58,54 @@ public class UserController {
         return ApiResponseUtil.success("Password changed successfully", null, HttpStatus.OK);
     }
 
+    // ── Admin: Pending approval queue ────────────────────────────────
+
+    @GetMapping("/pending")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    public ResponseEntity<ApiResponse<List<UserDto>>> getPendingUsers() {
+        log.info("Get pending users request received");
+        List<UserDto> pending = userService.getPendingUsers();
+        if (!isAdmin() && isController()) {
+            pending = pending.stream()
+                    .filter(u -> net.javaguids.ems_backend.enums.Role.DRIVER.equals(u.getRole()))
+                    .collect(Collectors.toList());
+        }
+        log.info("Returning {} pending users", pending.size());
+        return ApiResponseUtil.success("Pending users fetched successfully", pending, HttpStatus.OK);
+    }
+
+    @PatchMapping("/{id}/approve")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    public ResponseEntity<ApiResponse<UserDto>> approveUser(@PathVariable Long id) {
+        log.info("Approve user request received for ID: {}", id);
+        if (!isAdmin() && isController()) {
+            UserDto existingUser = userService.getUserById(id);
+            if (!net.javaguids.ems_backend.enums.Role.DRIVER.equals(existingUser.getRole())) {
+                throw new RuntimeException("Controllers can only approve driver accounts");
+            }
+        }
+        UserDto updated = userService.approveUser(id);
+        log.info("User approved successfully with ID: {}", id);
+        return ApiResponseUtil.success("User approved successfully", updated, HttpStatus.OK);
+    }
+
+    @PatchMapping("/{id}/reject")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    public ResponseEntity<ApiResponse<UserDto>> rejectUser(@PathVariable Long id) {
+        log.info("Reject user request received for ID: {}", id);
+        if (!isAdmin() && isController()) {
+            UserDto existingUser = userService.getUserById(id);
+            if (!net.javaguids.ems_backend.enums.Role.DRIVER.equals(existingUser.getRole())) {
+                throw new RuntimeException("Controllers can only reject driver accounts");
+            }
+        }
+        UserDto updated = userService.rejectUser(id);
+        log.info("User rejected successfully with ID: {}", id);
+        return ApiResponseUtil.success("User rejected successfully", updated, HttpStatus.OK);
+    }
+
+    // ── Admin: Full user list ────────────────────────────────────────
+
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<UserDto>>> getAllUsers() {
@@ -72,7 +123,6 @@ public class UserController {
             log.warn("Access denied: User {} attempted to access user {}", currentUser.getId(), id);
             return ApiResponseUtil.error("You don't have permission to access this resource", HttpStatus.FORBIDDEN);
         }
-
         UserDto user = userService.getUserById(id);
         return ApiResponseUtil.<Object>success("User fetched successfully", user, HttpStatus.OK);
     }
@@ -94,7 +144,6 @@ public class UserController {
             log.warn("Access denied: User {} attempted to update user {}", currentUser.getId(), id);
             return ApiResponseUtil.error("You don't have permission to access this resource", HttpStatus.FORBIDDEN);
         }
-
         UserDto updatedUser = userService.updateUser(id, userDto);
         log.info("User updated successfully with ID: {}", id);
         return ApiResponseUtil.<Object>success("User updated successfully", updatedUser, HttpStatus.OK);
@@ -109,10 +158,11 @@ public class UserController {
         return ApiResponseUtil.success("User deleted successfully", null, HttpStatus.OK);
     }
 
+    // ── Helpers ──────────────────────────────────────────────────────
+
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String currentUsername = auth.getName();
-        return userRepository.findByUserName(currentUsername)
+        return userRepository.findByUserName(auth.getName())
                 .orElseThrow(() -> new RuntimeException("Current user not found"));
     }
 
@@ -120,5 +170,11 @@ public class UserController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    }
+
+    private boolean isController() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_CONTROLLER"));
     }
 }

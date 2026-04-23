@@ -27,6 +27,7 @@ const navItems = {
     { label: 'Live Tracking', icon: '📍', to: '/tracking', disabled: true },
     { label: 'Fuel Management', icon: '⛽', to: '/fuel-management' },
     { label: 'Service', icon: '🔧', to: '/service' },
+    { label: 'Users', icon: '👥', to: '/users' },
     { label: 'My Profile', icon: '👤', to: '/profile' },
   ],
   DRIVER: [
