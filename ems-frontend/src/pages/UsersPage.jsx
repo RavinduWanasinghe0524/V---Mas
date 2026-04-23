@@ -32,7 +32,7 @@ const StatusBadge = ({ status }) => {
 
 
 const UsersPage = () => {
-  const { isAdmin } = useAuth()
+  const { isAdmin, isController } = useAuth()
 
   const [users,        setUsers]        = useState([])
   const [pendingUsers, setPendingUsers] = useState([])
@@ -47,11 +47,11 @@ const UsersPage = () => {
   })
 
   useEffect(() => {
-    if (isAdmin) {
-      loadUsers()
+    if (isAdmin || isController) {
+      if (isAdmin) loadUsers()
       loadPending()
     }
-  }, [isAdmin])
+  }, [isAdmin, isController])
 
   const loadUsers = async () => {
     try {
@@ -150,12 +150,12 @@ const UsersPage = () => {
     }
   }
 
-  if (!isAdmin) {
+  if (!isAdmin && !isController) {
     return (
       <>
         <Navbar />
         <div className="container">
-          <div className="error-message">Access Denied: Admin privileges required</div>
+          <div className="error-message">Access Denied: Admin or Controller privileges required</div>
         </div>
       </>
     )
@@ -170,11 +170,17 @@ const UsersPage = () => {
         <div className="users-header-row">
           <div>
             <h1 className="users-page-title">User Management</h1>
-            <p className="users-page-sub">Manage system users, roles, and access approvals</p>
+            <p className="users-page-sub">
+              {isAdmin
+                ? 'Manage system users, roles, and access approvals'
+                : 'Review and process pending driver account requests'}
+            </p>
           </div>
-          <button className="users-add-btn" onClick={handleCreate}>
-            <Users size={16} /> Add User
-          </button>
+          {isAdmin && (
+            <button className="users-add-btn" onClick={handleCreate}>
+              <Users size={16} /> Add User
+            </button>
+          )}
         </div>
 
         {/* ── ACTION MESSAGE (approve/reject feedback) ─────────────────── */}
@@ -258,8 +264,9 @@ const UsersPage = () => {
         </div>
 
         {/* ══════════════════════════════════════════════════════════════
-            ALL USERS TABLE
+            ALL USERS TABLE — Admin only
         ══════════════════════════════════════════════════════════════ */}
+        {isAdmin && (
         <div className="users-section">
           <div className="users-section-header">
             <div className="users-section-title-row">
@@ -338,6 +345,7 @@ const UsersPage = () => {
             </div>
           )}
         </div>
+        )}
 
       </div>
 
