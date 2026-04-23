@@ -60,7 +60,7 @@ public class UserController {
     // ── Admin: Pending approval queue ────────────────────────────────
 
     @GetMapping("/pending")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     public ResponseEntity<ApiResponse<List<UserDto>>> getPendingUsers() {
         log.info("Get pending users request received");
         List<UserDto> pending = userService.getPendingUsers();
@@ -69,7 +69,7 @@ public class UserController {
     }
 
     @PatchMapping("/{id}/approve")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     public ResponseEntity<ApiResponse<UserDto>> approveUser(@PathVariable Long id) {
         log.info("Approve user request received for ID: {}", id);
         UserDto updated = userService.approveUser(id);
@@ -78,7 +78,7 @@ public class UserController {
     }
 
     @PatchMapping("/{id}/reject")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     public ResponseEntity<ApiResponse<UserDto>> rejectUser(@PathVariable Long id) {
         log.info("Reject user request received for ID: {}", id);
         UserDto updated = userService.rejectUser(id);
