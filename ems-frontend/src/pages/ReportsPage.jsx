@@ -3,7 +3,7 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { 
   Car, Fuel, Wrench, Users, MapPin, DollarSign, 
-  FileText, Calendar, Download, ClipboardList, BarChart2 
+  FileText, Calendar, Download, ClipboardList, BarChart2, Loader2
 } from 'lucide-react'
 
 /* ── Dark palette ───────────────────────────────────────────── */
@@ -210,7 +210,7 @@ const ReportsPage = () => {
                       transition: 'all 0.2s ease', boxShadow: generating === r.id ? 'none' : `0 4px 14px ${r.bg}`
                     }}
                   >
-                    {generating === r.id ? '⏳ Generating…' : <><Download size={14} style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}/> Generate PDF</>}
+                    {generating === r.id ? <><Loader2 size={14} className="animate-spin" style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}/> Generating…</> : <><Download size={14} style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}/> Generate PDF</>}
                   </button>
                   <button style={{ padding: '9px 12px', borderRadius: 10, border: `1px solid ${r.color}40`, background: r.bg, color: r.color, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}
                     onMouseEnter={e => { e.currentTarget.style.background = r.color; e.currentTarget.style.color = '#fff' }}

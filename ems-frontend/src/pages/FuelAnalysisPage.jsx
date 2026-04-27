@@ -3,6 +3,7 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { fuelAPI } from '../services/api'
+import { Fuel, CircleDollarSign, BarChart2, Check, X, TrendingUp, Edit2, Loader2, Plus, LayoutDashboard } from 'lucide-react'
 
 /* ── Dark palette ───────────────────────────────────────────── */
 const D = {
@@ -274,15 +275,15 @@ const FuelAnalysisPage = () => {
               fontWeight: 600, fontSize: '0.875rem', boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
               animation: 'fadeUp 0.25s ease both', display: 'flex', alignItems: 'center', gap: 10,
             }}>
-              {toast.type === 'error' ? '✕' : '✓'} {toast.msg}
+              {toast.type === 'error' ? <X size={14}/> : <Check size={14}/>} {toast.msg}
             </div>
           )}
 
           {/* ── Page title + driver tabs ─────────────────────── */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 14 }}>
             <div>
-              <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: '-0.02em' }}>
-                ⛽ Fuel Analysis
+              <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Fuel size={24} color={D.indigo}/> Fuel Analysis
               </h1>
               <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: D.textSub }}>
                 {isDriver ? 'Track your vehicle fuel consumption.' : 'Fleet-wide consumption trends, cost breakdowns & efficiency tracking.'}
@@ -290,7 +291,7 @@ const FuelAnalysisPage = () => {
             </div>
             {isDriver && (
               <div style={{ display: 'flex', gap: 5, background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 4, border: `1px solid ${D.border}` }}>
-                {[{ id: 'dashboard', icon: '📊', label: 'Dashboard' }, { id: 'add-log', icon: '⛽', label: 'Add Log' }].map(t => (
+                {[{ id: 'dashboard', icon: <LayoutDashboard size={16}/>, label: 'Dashboard' }, { id: 'add-log', icon: <Fuel size={16}/>, label: 'Add Log' }].map(t => (
                   <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
                     padding: '7px 18px', borderRadius: 7, border: 'none', cursor: 'pointer',
                     fontWeight: 600, fontSize: '0.82rem', transition: 'all 0.15s ease',
@@ -314,10 +315,10 @@ const FuelAnalysisPage = () => {
               {/* ── 4 KPI cards ──────────────────────────────── */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 14, marginBottom: 20 }}>
                 {[
-                  { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: '🛢️', iconBg: D.indigoDim, iconColor: D.indigo, trend: null },
-                  { label: 'Total Petrol', value: `${Math.round(summary.totalPetrol).toLocaleString()} L`, icon: '⛽', iconBg: D.goldDim, iconColor: D.gold, trend: null },
-                  { label: 'Total Volume', value: `${Math.round(summary.totalVolume).toLocaleString()} L`, icon: '📊', iconBg: D.tealDim, iconColor: D.teal, trend: null },
-                  { label: 'Total Cost (LKR)', value: `Rs. ${Math.round(summary.totalCost).toLocaleString()}`, icon: '💰', iconBg: D.greenDim, iconColor: D.green, trend: null },
+                  { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: <Fuel size={20}/>, iconBg: D.indigoDim, iconColor: D.indigo, trend: null },
+                  { label: 'Total Petrol', value: `${Math.round(summary.totalPetrol).toLocaleString()} L`, icon: <Fuel size={20}/>, iconBg: D.goldDim, iconColor: D.gold, trend: null },
+                  { label: 'Total Volume', value: `${Math.round(summary.totalVolume).toLocaleString()} L`, icon: <BarChart2 size={20}/>, iconBg: D.tealDim, iconColor: D.teal, trend: null },
+                  { label: 'Total Cost (LKR)', value: `Rs. ${Math.round(summary.totalCost).toLocaleString()}`, icon: <CircleDollarSign size={20}/>, iconBg: D.greenDim, iconColor: D.green, trend: null },
                 ].map(s => (
                   <div key={s.label} style={{
                     ...card, padding: '20px 22px', transition: 'all 0.25s ease', cursor: 'default',
@@ -375,7 +376,7 @@ const FuelAnalysisPage = () => {
                   {effTrend.length === 0 ? (
                     <div style={{ height: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.textSub }}>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '2rem', marginBottom: 8, opacity: 0.3 }}>📈</div>
+                        <div style={{ marginBottom: 8, opacity: 0.3, display: 'flex', justifyContent: 'center' }}><TrendingUp size={40} /></div>
                         <p style={{ fontSize: '0.8rem' }}>No efficiency data yet</p>
                       </div>
                     </div>
@@ -445,7 +446,7 @@ const FuelAnalysisPage = () => {
                   <div style={{ maxHeight: 380, overflowY: 'auto' }}>
                     {myVehicleLogs.length === 0 ? (
                       <div style={{ padding: 50, textAlign: 'center', color: D.textSub }}>
-                        <div style={{ fontSize: '2.5rem', marginBottom: 10, opacity: 0.3 }}>⛽</div>
+                        <div style={{ marginBottom: 10, opacity: 0.3, display: 'flex', justifyContent: 'center' }}><Fuel size={48} /></div>
                         <p style={{ fontWeight: 600, marginBottom: 4 }}>No fuel logs yet</p>
                         <p style={{ fontSize: '0.82rem' }}>Switch to "Add Log" tab to add your first entry.</p>
                       </div>
@@ -506,7 +507,7 @@ const FuelAnalysisPage = () => {
                   <div style={{ maxHeight: 460, overflowY: 'auto' }}>
                     {allFuelLogs.length === 0 ? (
                       <div style={{ padding: 50, textAlign: 'center', color: D.textSub }}>
-                        <div style={{ fontSize: '2.5rem', marginBottom: 10, opacity: 0.3 }}>⛽</div>
+                        <div style={{ marginBottom: 10, opacity: 0.3, display: 'flex', justifyContent: 'center' }}><Fuel size={48} /></div>
                         <p style={{ fontWeight: 600 }}>No fuel logs yet</p>
                       </div>
                     ) : (
@@ -553,9 +554,9 @@ const FuelAnalysisPage = () => {
                               </td>
                               <td style={{ padding: '10px 14px' }}>
                                 {log.isUpdated ? (
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700, background: D.purpleDim, color: D.purple, border: '1px solid rgba(167,139,250,0.3)' }}>✏️ Edited</span>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700, background: D.purpleDim, color: D.purple, border: '1px solid rgba(167,139,250,0.3)' }}><Edit2 size={10}/> Edited</span>
                                 ) : (
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700, background: D.greenDim, color: D.green, border: '1px solid rgba(74,222,128,0.3)' }}>✓ Original</span>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700, background: D.greenDim, color: D.green, border: '1px solid rgba(74,222,128,0.3)' }}><Check size={10}/> Original</span>
                                 )}
                               </td>
                             </tr>
@@ -575,7 +576,7 @@ const FuelAnalysisPage = () => {
           {isDriver && activeTab === 'add-log' && (
             <div style={{ ...card, padding: 0, maxWidth: 520 }}>
               <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 38, height: 38, borderRadius: 10, background: D.purpleDim, border: '1px solid rgba(167,139,250,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>⛽</div>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: D.purpleDim, border: '1px solid rgba(167,139,250,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.purple }}><Fuel size={18} /></div>
                 <div>
                   <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.92rem' }}>Add Fuel Log</h3>
                   <p style={{ margin: 0, fontSize: '0.75rem', color: D.textSub }}>Record a new fuel fill-up for your vehicle</p>
@@ -602,8 +603,8 @@ const FuelAnalysisPage = () => {
                   <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: D.textSub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fuel Type</label>
                   <select name="fuelType" value={formData.fuelType} onChange={handleInputChange}
                     style={{ ...darkInput, cursor: 'pointer' }}>
-                    <option value="Diesel" style={{ background: '#1e2535' }}>⛽ Diesel</option>
-                    <option value="Petrol" style={{ background: '#1e2535' }}>⛽ Petrol</option>
+                    <option value="Diesel" style={{ background: '#1e2535' }}>Diesel</option>
+                    <option value="Petrol" style={{ background: '#1e2535' }}>Petrol</option>
                   </select>
                 </div>
                 <button type="submit" disabled={submitting} style={{
@@ -616,7 +617,7 @@ const FuelAnalysisPage = () => {
                 }}
                 onMouseEnter={e => { if (!submitting) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(99,102,241,0.5)' } }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 4px 16px rgba(99,102,241,0.4)' }}>
-                  {submitting ? '⏳ Adding…' : '+ Add Fuel Log'}
+                  {submitting ? <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Loader2 size={16} className="animate-spin" /> Adding…</span> : <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Plus size={16} /> Add Fuel Log</span>}
                 </button>
               </form>
             </div>

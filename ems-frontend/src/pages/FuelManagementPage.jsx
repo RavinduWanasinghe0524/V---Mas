@@ -3,7 +3,7 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { fuelAPI } from '../services/api'
-import { Fuel, CircleDollarSign, BarChart2, Car, Trash2, ClipboardList, Plus, Search, Edit2, AlertTriangle, Check, X } from 'lucide-react'
+import { Fuel, CircleDollarSign, BarChart2, Car, Trash2, ClipboardList, Plus, Search, Edit2, AlertTriangle, Check, X, Loader2 } from 'lucide-react'
 
 /* ── Dark palette ───────────────────────────────────────────── */
 const D = {
@@ -622,8 +622,8 @@ const FuelManagementPage = () => {
                 </div>
 
                 <div style={{ display:'flex', gap:12 }}>
-                  <button type="submit" disabled={submitting} style={{ flex:1, padding: '11px 24px', borderRadius: 10, border: 'none', background: submitting ? 'rgba(99,102,241,0.4)' : 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: submitting ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, boxShadow: submitting ? 'none' : '0 4px 16px rgba(99,102,241,0.4)', transition: 'all 0.2s ease' }} onMouseEnter={e => { if (!submitting) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(99,102,241,0.5)' } }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 4px 16px rgba(99,102,241,0.4)' }}>
-                    {submitting ? '⏳ Adding…' : '✓ Add Fuel Log'}
+                  <button type="submit" disabled={submitting} style={{ flex:1, padding: '11px 24px', borderRadius: 10, border: 'none', background: submitting ? 'rgba(99,102,241,0.4)' : 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: submitting ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, boxShadow: submitting ? 'none' : '0 4px 16px rgba(99,102,241,0.4)', transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }} onMouseEnter={e => { if (!submitting) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(99,102,241,0.5)' } }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 4px 16px rgba(99,102,241,0.4)' }}>
+                    {submitting ? <><Loader2 size={16} className="animate-spin"/> Adding…</> : <><Check size={16}/> Add Fuel Log</>}
                   </button>
                   <button type="button" onClick={() => setActiveTab('all')} style={{ flex:0.35, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}>
                     Cancel
@@ -650,7 +650,7 @@ const FuelManagementPage = () => {
                       <p style={{ margin:0, fontSize:'0.75rem', color:D.textSub }}>{editingLog.vehicleRegNumber}</p>
                     </div>
                   </div>
-                  <button onClick={handleCancelEdit} style={{ background:'none', border:'none', fontSize:'1.2rem', cursor:'pointer', color:D.textSub, lineHeight:1, padding:4 }}>✕</button>
+                  <button onClick={handleCancelEdit} style={{ background:'none', border:'none', cursor:'pointer', color:D.textSub, padding:4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20}/></button>
                 </div>
 
                 <div style={{ padding:'24px 28px' }}>
@@ -690,8 +690,8 @@ const FuelManagementPage = () => {
                     </div>
                   </div>
                   <div style={{ display:'flex', gap:12 }}>
-                    <button onClick={handleSaveEdit} disabled={submitting} style={{ flex:1, padding: '11px 24px', borderRadius: 10, border: 'none', background: submitting ? 'rgba(99,102,241,0.4)' : 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: submitting ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
-                      {submitting ? '⏳ Saving…' : '✓ Save Changes'}
+                    <button onClick={handleSaveEdit} disabled={submitting} style={{ flex:1, padding: '11px 24px', borderRadius: 10, border: 'none', background: submitting ? 'rgba(99,102,241,0.4)' : 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: submitting ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                      {submitting ? <><Loader2 size={16} className="animate-spin"/> Saving…</> : <><Check size={16}/> Save Changes</>}
                     </button>
                     <button onClick={handleCancelEdit} style={{ flex:0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>Cancel</button>
                   </div>

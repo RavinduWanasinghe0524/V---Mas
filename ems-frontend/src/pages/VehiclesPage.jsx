@@ -4,7 +4,7 @@ import Topbar from '../components/Topbar'
 
 import { useAuth } from '../context/AuthContext'
 import { vehicleAPI, employeeAPI } from '../services/api'
-import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle } from 'lucide-react'
+import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, X, Check } from 'lucide-react'
 
 /* ── Dark palette ───────────────────────────────────────────── */
 const D = {
@@ -426,7 +426,7 @@ const VehiclesPage = () => {
                   </div>
                   <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Add New Vehicle</h3>
                 </div>
-                <button onClick={closeModal} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: D.textSub, padding: 4 }}>✕</button>
+                <button onClick={closeModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
               </div>
 
               <form onSubmit={handleSubmit} style={{ padding: '24px 28px' }}>
@@ -470,8 +470,8 @@ const VehiclesPage = () => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(99,102,241,0.4)' }}>
-                    ✓ Add Vehicle
+                  <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Check size={16}/> Add Vehicle
                   </button>
                   <button type="button" onClick={closeModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
                     Cancel
@@ -496,7 +496,7 @@ const VehiclesPage = () => {
                     <p style={{ margin: 0, fontSize: '0.75rem', color: D.textSub }}>{editingVehicle?.registrationNo}</p>
                   </div>
                 </div>
-                <button onClick={closeEditModal} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: D.textSub, padding: 4 }}>✕</button>
+                <button onClick={closeEditModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
               </div>
 
               <form onSubmit={handleEditSubmit} style={{ padding: '24px 28px' }}>
@@ -540,8 +540,8 @@ const VehiclesPage = () => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(99,102,241,0.4)' }}>
-                    ✓ Save Changes
+                  <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Check size={16}/> Save Changes
                   </button>
                   <button type="button" onClick={closeEditModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
                     Cancel
