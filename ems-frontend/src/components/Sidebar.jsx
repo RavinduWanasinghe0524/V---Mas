@@ -141,6 +141,36 @@ const Sidebar = () => {
           </div>
         </div>
       </div>
+      <style>{`
+        .sidebar-nav {
+          padding: 0 16px 0 0 !important; /* remove left padding to touch edge, keep right padding */
+        }
+        .nav-section-label {
+          padding-left: 20px !important;
+        }
+        .nav-item {
+          border-radius: 0 24px 24px 0 !important;
+          margin: 4px 0 !important;
+          padding-left: 20px !important;
+          color: #64748b !important;
+        }
+        .nav-item:hover {
+          background: rgba(255,255,255,0.05) !important;
+          color: #e2e8f0 !important;
+        }
+        .nav-item.active {
+          background: #2563eb !important;
+          color: #ffffff !important;
+        }
+        .nav-item.active .nav-icon {
+          color: #ffffff !important;
+        }
+        /* Override any local dark-theme wrappers that might conflict */
+        .dark-theme-wrapper .nav-item.active {
+          background: #2563eb !important;
+          color: #ffffff !important;
+        }
+      `}</style>
     </aside>
   )
 }
