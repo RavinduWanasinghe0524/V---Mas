@@ -1,33 +1,87 @@
 import { useEffect, useState } from 'react'
-import Navbar from '../components/Navbar'
+import Sidebar from '../components/Sidebar'
+import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { userAPI } from '../services/api'
-import './UsersPage.css'
-import {
-  Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck
-} from 'lucide-react'
+import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck } from 'lucide-react'
+
+/* ── Dark palette ───────────────────────────────────────────── */
+const D = {
+  bg:        '#0d1117',
+  surface:   '#161b27',
+  surfaceHi: '#1e2535',
+  border:    'rgba(255,255,255,0.07)',
+  borderHi:  'rgba(255,255,255,0.13)',
+  text:      '#e2e8f0',
+  textSub:   '#64748b',
+  textFaint: '#374151',
+  green:     '#4ade80',
+  greenDim:  'rgba(74,222,128,0.15)',
+  blue:      '#60a5fa',
+  blueDim:   'rgba(96,165,250,0.15)',
+  orange:    '#f97316',
+  orangeDim: 'rgba(249,115,22,0.15)',
+  red:       '#f87171',
+  redDim:    'rgba(248,113,113,0.15)',
+  purple:    '#a78bfa',
+  purpleDim: 'rgba(167,139,250,0.15)',
+  gold:      '#fbbf24',
+  goldDim:   'rgba(251,191,36,0.15)',
+}
+
+const inputStyle = {
+  width: '100%',
+  padding: '10px 14px',
+  borderRadius: 8,
+  border: `1px solid rgba(255,255,255,0.1)`,
+  fontSize: '0.85rem',
+  color: D.text,
+  background: 'rgba(255,255,255,0.05)',
+  outline: 'none',
+  transition: 'border-color 0.15s, box-shadow 0.15s',
+  fontFamily: 'inherit',
+}
+
+const labelStyle = {
+  display: 'block',
+  marginBottom: 6,
+  fontSize: '0.78rem',
+  fontWeight: 700,
+  color: D.textSub,
+  textTransform: 'uppercase',
+  letterSpacing: '0.02em',
+}
+
+const onFocus = e => {
+  e.target.style.borderColor = 'rgba(99,102,241,0.5)'
+  e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'
+}
+const onBlur = e => {
+  e.target.style.borderColor = 'rgba(255,255,255,0.1)'
+  e.target.style.boxShadow = 'none'
+}
 
 // ── Role badge helper ──────────────────────────────────────────────
 const RoleBadge = ({ role }) => {
   const cfg = {
-    ADMIN:      { label: 'Admin',      cls: 'badge badge-admin' },
-    CONTROLLER: { label: 'Controller', cls: 'badge badge-controller' },
-    DRIVER:     { label: 'Driver',     cls: 'badge badge-driver' },
+    ADMIN:      { label: 'Admin',      bg: D.purpleDim, color: D.purple, border: `1px solid ${D.purple}30` },
+    CONTROLLER: { label: 'Controller', bg: D.blueDim,   color: D.blue,   border: `1px solid ${D.blue}30` },
+    DRIVER:     { label: 'Driver',     bg: D.greenDim,  color: D.green,  border: `1px solid ${D.green}30` },
   }
-  const { label, cls } = cfg[role] || cfg.DRIVER
-  return <span className={cls}>{label}</span>
+  const { label, bg, color, border } = cfg[role] || cfg.DRIVER
+  return <span style={{ background: bg, color, border, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
 }
 
 // ── Status badge helper ────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
   const cfg = {
-    ACTIVE:    { label: 'Active',    cls: 'badge badge-active' },
-    PENDING:   { label: 'Pending',   cls: 'badge badge-warning' },
-    INACTIVE:  { label: 'Inactive',  cls: 'badge badge-inactive' },
-    SUSPENDED: { label: 'Suspended', cls: 'badge badge-danger' },
+    ACTIVE:    { label: 'Active',    bg: D.greenDim,  color: D.green,  border: `1px solid ${D.green}30` },
+    PENDING:   { label: 'Pending',   bg: D.goldDim,   color: D.gold,   border: `1px solid ${D.gold}30` },
+    INACTIVE:  { label: 'Inactive',  bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: `1px solid rgba(255,255,255,0.1)` },
+    SUSPENDED: { label: 'Suspended', bg: D.redDim,    color: D.red,    border: `1px solid ${D.red}30` },
   }
-  const { label, cls } = cfg[status] || cfg.ACTIVE
-  return <span className={cls}>{label}</span>
+  const { label, bg, color, border } = cfg[status] || cfg.ACTIVE
+  return <span style={{ background: bg, color, border, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
 }
 
 
@@ -71,7 +125,6 @@ const UsersPage = () => {
       const res = await userAPI.getPendingUsers()
       setPendingUsers(res.data.data || [])
     } catch {
-      // endpoint may not exist yet — silently fail until backend is ready
       setPendingUsers([])
     } finally {
       setPendingLoad(false)
@@ -81,7 +134,7 @@ const UsersPage = () => {
   const handleApprove = async (id, username) => {
     try {
       await userAPI.approveUser(id)
-      setActionMsg(`✅  ${username} has been approved and can now sign in.`)
+      setActionMsg(`✅ ${username} has been approved.`)
       setTimeout(() => setActionMsg(''), 4000)
       loadPending()
       loadUsers()
@@ -94,7 +147,7 @@ const UsersPage = () => {
     if (!window.confirm(`Reject "${username}"? Their account will be set to Inactive.`)) return
     try {
       await userAPI.rejectUser(id)
-      setActionMsg(`❌  ${username}'s account has been rejected.`)
+      setActionMsg(`❌ ${username}'s account has been rejected.`)
       setTimeout(() => setActionMsg(''), 4000)
       loadPending()
       loadUsers()
@@ -136,7 +189,7 @@ const UsersPage = () => {
     try {
       const submitData = { ...formData }
       if (!submitData.profilePicture)
-        submitData.profilePicture = `https://ui-avatars.com/api/?name=${encodeURIComponent(submitData.userName)}`
+        submitData.profilePicture = `https://ui-avatars.com/api/?name=${encodeURIComponent(submitData.userName)}&background=6366f1&color=fff&bold=true`
       if (editingUser) {
         if (!submitData.password) delete submitData.password
         await userAPI.updateUser(editingUser.id, submitData)
@@ -152,269 +205,309 @@ const UsersPage = () => {
 
   if (!isAdmin && !isController) {
     return (
-      <>
-        <Navbar />
-        <div className="container">
-          <div className="error-message">Access Denied: Admin or Controller privileges required</div>
+      <div className="app-shell dark-theme-wrapper" style={{ background: D.bg }}>
+        <Sidebar />
+        <div className="main-content" style={{ background: D.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ color: D.red, background: D.redDim, padding: '16px 24px', borderRadius: 12, border: `1px solid ${D.red}30` }}>
+            Access Denied: Admin or Controller privileges required
+          </div>
         </div>
-      </>
+      </div>
     )
   }
 
   return (
     <>
-      <Navbar />
-      <div className="users-outer">
+      <div className="app-shell dark-theme-wrapper" style={{ background: D.bg }}>
+        <Sidebar />
+        <div className="main-content" style={{ background: D.bg }}>
+          <Topbar title="User Management" subtitle="Home / Users" />
+          <div className="page-body">
 
-        {/* ── PAGE HEADER ─────────────────────────────────────────────── */}
-        <div className="users-header-row">
-          <div>
-            <h1 className="users-page-title">User Management</h1>
-            <p className="users-page-sub">
-              {isAdmin
-                ? 'Manage system users, roles, and access approvals'
-                : 'Review and process pending driver account requests'}
-            </p>
-          </div>
-          {isAdmin && (
-            <button className="users-add-btn" onClick={handleCreate}>
-              <Users size={16} /> Add User
-            </button>
-          )}
-        </div>
-
-        {/* ── ACTION MESSAGE (approve/reject feedback) ─────────────────── */}
-        {actionMsg && (
-          <div className="users-action-msg">{actionMsg}</div>
-        )}
-
-        {/* ── ERROR ────────────────────────────────────────────────────── */}
-        {error && (
-          <div className="users-error">
-            <AlertCircle size={15} />{error}
-          </div>
-        )}
-
-        {/* ══════════════════════════════════════════════════════════════
-            PENDING APPROVALS SECTION
-        ══════════════════════════════════════════════════════════════ */}
-        <div className="users-section">
-          <div className="users-section-header">
-            <div className="users-section-title-row">
-              <div className="users-section-icon pending-icon">
-                <Clock size={16} />
-              </div>
-              <h2 className="users-section-title">Pending Approvals</h2>
-              {!pendingLoad && (
-                <span className={`users-pending-count ${pendingUsers.length > 0 ? 'has-pending' : ''}`}>
-                  {pendingUsers.length}
-                </span>
-              )}
-            </div>
-            <button className="users-refresh-btn" onClick={loadPending} title="Refresh pending list">
-              <RefreshCw size={14} />
-            </button>
-          </div>
-
-          {pendingLoad ? (
-            <div className="users-loading-row">
-              <div className="users-spinner" />
-              Loading pending accounts…
-            </div>
-          ) : pendingUsers.length === 0 ? (
-            <div className="users-empty-pending">
-              <UserCheck size={32} />
-              <p>No accounts awaiting approval</p>
-              <span>New self-registered accounts will appear here</span>
-            </div>
-          ) : (
-            <div className="users-pending-list">
-              {pendingUsers.map((u) => (
-                <div key={u.id} className="users-pending-card">
-                  <img
-                    src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=fff&size=64&bold=true`}
-                    alt={u.userName}
-                    className="users-pending-avatar"
-                  />
-                  <div className="users-pending-info">
-                    <p className="users-pending-name">{u.userName}</p>
-                    <p className="users-pending-email">{u.email}</p>
-                    <RoleBadge role={u.role} />
-                  </div>
-                  <div className="users-pending-actions">
-                    <button
-                      className="users-approve-btn"
-                      onClick={() => handleApprove(u.id, u.userName)}
-                      title="Approve account"
-                    >
-                      <Check size={15} /> Approve
-                    </button>
-                    <button
-                      className="users-reject-btn"
-                      onClick={() => handleReject(u.id, u.userName)}
-                      title="Reject account"
-                    >
-                      <X size={15} /> Reject
-                    </button>
-                  </div>
-                </div>
+            {/* Hero Banner */}
+            <div style={{
+              background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
+              borderRadius: 20,
+              padding: '32px 36px',
+              marginBottom: 28,
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+              border: `1px solid ${D.border}`,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16
+            }}>
+              {/* decorative circles */}
+              {[['80%','−20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
+                <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
               ))}
-            </div>
-          )}
-        </div>
-
-        {/* ══════════════════════════════════════════════════════════════
-            ALL USERS TABLE — Admin only
-        ══════════════════════════════════════════════════════════════ */}
-        {isAdmin && (
-        <div className="users-section">
-          <div className="users-section-header">
-            <div className="users-section-title-row">
-              <div className="users-section-icon all-icon">
-                <Users size={16} />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
+                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', fontSize: '2rem', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  👥
+                </div>
+                <div>
+                  <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                    User Management
+                  </h1>
+                  <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
+                    {isAdmin ? 'Manage system users, roles, and access approvals' : 'Review and process pending driver account requests'}
+                  </p>
+                </div>
               </div>
-              <h2 className="users-section-title">All Users</h2>
-              {!loading && (
-                <span className="users-count-badge">{users.length}</span>
+              {isAdmin && (
+                <button onClick={handleCreate} style={{
+                  position: 'relative', padding: '10px 22px', borderRadius: 10, border: 'none', background: '#fff', color: '#4338ca', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s', boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 6px 20px rgba(0,0,0,0.3)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 4px 14px rgba(0,0,0,0.2)' }}>
+                  <Users size={16} /> Add User
+                </button>
               )}
             </div>
-            <button className="users-refresh-btn" onClick={loadUsers} title="Refresh user list">
-              <RefreshCw size={14} />
-            </button>
-          </div>
 
-          {loading ? (
-            <div className="users-loading-row">
-              <div className="users-spinner" />Loading users…
-            </div>
-          ) : users.length === 0 ? (
-            <div className="users-loading-row">No users found</div>
-          ) : (
-            <div className="users-table-wrap">
-              <table className="users-table">
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((u) => (
-                    <tr key={u.id} className={u.accountStatus === 'PENDING' ? 'users-row-pending' : ''}>
-                      <td>
-                        <div className="users-user-cell">
-                          <img
-                            src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=fff&size=64&bold=true`}
-                            alt={u.userName}
-                            className="users-table-avatar"
-                          />
-                          <div>
-                            <p className="users-table-name">{u.userName}</p>
-                            <p className="users-table-id">ID #{u.id}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="users-table-email">{u.email}</td>
-                      <td><RoleBadge role={u.role} /></td>
-                      <td><StatusBadge status={u.accountStatus} /></td>
-                      <td>
-                        <div className="users-table-actions">
-                          {u.accountStatus === 'PENDING' && (
-                            <>
-                              <button className="users-approve-btn users-approve-sm"
-                                onClick={() => handleApprove(u.id, u.userName)}>
-                                <Check size={13} />
-                              </button>
-                              <button className="users-reject-btn users-reject-sm"
-                                onClick={() => handleReject(u.id, u.userName)}>
-                                <X size={13} />
-                              </button>
-                            </>
-                          )}
-                          <button className="users-edit-btn" onClick={() => handleEdit(u)}>Edit</button>
-                          <button className="users-delete-btn" onClick={() => handleDelete(u.id)}>Delete</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-        )}
-
-      </div>
-
-      {/* ── MODAL ──────────────────────────────────────────────────────── */}
-      {showModal && (
-        <div className="users-modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="users-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="users-modal-header">
-              <h2>{editingUser ? 'Edit User' : 'Create New User'}</h2>
-              <button className="users-modal-close" onClick={() => setShowModal(false)}>
-                <X size={18} />
-              </button>
-            </div>
-
-            {error && <div className="users-error" style={{ marginBottom: '1rem' }}><AlertCircle size={14} />{error}</div>}
-
-            <form onSubmit={handleSubmit} className="users-modal-form">
-              <div className="users-form-row">
-                <div className="users-form-group">
-                  <label>Username</label>
-                  <input type="text" name="userName" value={formData.userName} onChange={handleChange} required />
-                </div>
-                <div className="users-form-group">
-                  <label>Email</label>
-                  <input type="email" name="email" value={formData.email} onChange={handleChange} required />
-                </div>
+            {/* Messages */}
+            {actionMsg && (
+              <div style={{ padding: '14px 20px', borderRadius: 12, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 24, fontSize: '0.85rem', fontWeight: 600, animation: 'fadeIn 0.3s ease' }}>
+                {actionMsg}
               </div>
-
-              <div className="users-form-row">
-                <div className="users-form-group">
-                  <label>Password {editingUser && <span className="users-optional">(leave empty to keep)</span>}</label>
-                  <input type="password" name="password" value={formData.password} onChange={handleChange} required={!editingUser} />
-                </div>
-                <div className="users-form-group">
-                  <label>Role</label>
-                  <select name="role" value={formData.role} onChange={handleChange} disabled={isController}>
-                    <option value="DRIVER">Driver</option>
-                    {isAdmin && <option value="CONTROLLER">Controller</option>}
-                    {isAdmin && <option value="ADMIN">Admin</option>}
-                  </select>
-                </div>
+            )}
+            {error && (
+              <div style={{ padding: '14px 20px', borderRadius: 12, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 24, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, animation: 'fadeIn 0.3s ease' }}>
+                <AlertCircle size={16} /> {error}
               </div>
+            )}
 
-              <div className="users-form-row">
-                <div className="users-form-group">
-                  <label>Account Status</label>
-                  <select name="accountStatus" value={formData.accountStatus} onChange={handleChange}>
-                    <option value="ACTIVE">Active</option>
-                    <option value="INACTIVE">Inactive</option>
-                    <option value="PENDING">Pending</option>
-                    <option value="SUSPENDED">Suspended</option>
-                  </select>
+            {/* Pending Approvals Section */}
+            <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, marginBottom: 32, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
+              <div style={{ padding: '18px 24px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: D.goldDim, border: `1px solid ${D.gold}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.gold }}>
+                    <Clock size={18} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem' }}>Pending Approvals</h3>
+                  </div>
+                  {!pendingLoad && pendingUsers.length > 0 && (
+                    <span style={{ background: D.gold, color: '#000', padding: '2px 8px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 800 }}>{pendingUsers.length}</span>
+                  )}
                 </div>
-                <div className="users-form-group">
-                  <label>Profile Picture URL <span className="users-optional">(optional)</span></label>
-                  <input type="url" name="profilePicture" value={formData.profilePicture} onChange={handleChange} placeholder="https://..." />
-                </div>
-              </div>
-
-              <div className="users-modal-footer">
-                <button type="button" className="users-modal-cancel" onClick={() => setShowModal(false)}>Cancel</button>
-                <button type="submit" className="users-modal-submit">
-                  {editingUser ? 'Save Changes' : 'Create User'}
+                <button onClick={loadPending} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 4 }} title="Refresh pending list">
+                  <RefreshCw size={16} />
                 </button>
               </div>
-            </form>
+
+              <div style={{ padding: '24px' }}>
+                {pendingLoad ? (
+                  <div style={{ textAlign: 'center', color: D.textSub, padding: 20 }}>Loading pending accounts...</div>
+                ) : pendingUsers.length === 0 ? (
+                  <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>
+                    <UserCheck size={36} style={{ marginBottom: 12, opacity: 0.3 }} />
+                    <p style={{ margin: 0, fontWeight: 700, color: D.text }}>No accounts awaiting approval</p>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>New self-registered accounts will appear here.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+                    {pendingUsers.map(u => (
+                      <div key={u.id} style={{ background: D.bg, border: `1px solid ${D.borderHi}`, borderRadius: 14, padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                          <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=fff&bold=true`} alt={u.userName} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
+                          <div>
+                            <p style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem' }}>{u.userName}</p>
+                            <p style={{ margin: '2px 0 6px', fontSize: '0.75rem', color: D.textSub }}>{u.email}</p>
+                            <RoleBadge role={u.role} />
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button onClick={() => handleApprove(u.id, u.userName)} style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', background: D.greenDim, color: D.green, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.15s' }}
+                            onMouseEnter={e => e.currentTarget.style.background='rgba(74,222,128,0.25)'}
+                            onMouseLeave={e => e.currentTarget.style.background=D.greenDim}>
+                            <Check size={14} /> Approve
+                          </button>
+                          <button onClick={() => handleReject(u.id, u.userName)} style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', background: D.redDim, color: D.red, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.15s' }}
+                            onMouseEnter={e => e.currentTarget.style.background='rgba(248,113,113,0.25)'}
+                            onMouseLeave={e => e.currentTarget.style.background=D.redDim}>
+                            <X size={14} /> Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* All Users Section (Admin Only) */}
+            {isAdmin && (
+              <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
+                <div style={{ padding: '18px 24px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: D.blueDim, border: `1px solid ${D.blue}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.blue }}>
+                      <Users size={18} />
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem' }}>All Users</h3>
+                    </div>
+                    {!loading && (
+                      <span style={{ background: 'rgba(255,255,255,0.1)', color: D.text, padding: '2px 8px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 800 }}>{users.length}</span>
+                    )}
+                  </div>
+                  <button onClick={loadUsers} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 4 }} title="Refresh users list">
+                    <RefreshCw size={16} />
+                  </button>
+                </div>
+
+                <div style={{ overflowX: 'auto' }}>
+                  {loading ? (
+                    <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>Loading users...</div>
+                  ) : users.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>No users found.</div>
+                  ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                      <thead style={{ background: D.surfaceHi }}>
+                        <tr>
+                          {['User', 'Email', 'Role', 'Status', 'Actions'].map(h => (
+                            <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: D.textSub, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${D.border}`, whiteSpace: 'nowrap' }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {users.map((u, i) => (
+                          <tr key={u.id} style={{ borderBottom: `1px solid ${D.border}`, background: u.accountStatus === 'PENDING' ? D.goldDim : (i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'), transition: 'background 0.15s' }}
+                              onMouseEnter={e => { if(u.accountStatus !== 'PENDING') e.currentTarget.style.background='rgba(99,102,241,0.08)' }}
+                              onMouseLeave={e => { if(u.accountStatus !== 'PENDING') e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>
+                            <td style={{ padding: '12px 16px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=fff&bold=true`} alt={u.userName} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                                <div>
+                                  <p style={{ margin: 0, fontWeight: 700, color: D.text }}>{u.userName}</p>
+                                  <p style={{ margin: '2px 0 0', fontSize: '0.7rem', color: D.textSub }}>ID #{u.id}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td style={{ padding: '12px 16px', color: D.text }}>{u.email}</td>
+                            <td style={{ padding: '12px 16px' }}><RoleBadge role={u.role} /></td>
+                            <td style={{ padding: '12px 16px' }}><StatusBadge status={u.accountStatus} /></td>
+                            <td style={{ padding: '12px 16px' }}>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                {u.accountStatus === 'PENDING' && (
+                                  <>
+                                    <button onClick={() => handleApprove(u.id, u.userName)} style={{ padding: '5px 8px', borderRadius: 8, border: 'none', background: D.green, color: '#fff', cursor: 'pointer' }}><Check size={14} /></button>
+                                    <button onClick={() => handleReject(u.id, u.userName)} style={{ padding: '5px 8px', borderRadius: 8, border: 'none', background: D.red, color: '#fff', cursor: 'pointer' }}><X size={14} /></button>
+                                  </>
+                                )}
+                                <button onClick={() => handleEdit(u)} style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor='rgba(99,102,241,0.4)'; e.currentTarget.style.color='#a5b4fc' }}
+                                  onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor=D.border; e.currentTarget.style.color=D.text }}>
+                                  Edit
+                                </button>
+                                <button onClick={() => handleDelete(u.id)} style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background='rgba(248,113,113,0.2)' }}
+                                  onMouseLeave={e => { e.currentTarget.style.background='rgba(248,113,113,0.1)' }}>
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      )}
+
+        {/* ── Modal ─────────────────────────────────────────────────── */}
+        {showModal && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease' }}>
+            <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 540, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden' }}>
+              <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 10, background: D.purpleDim, border: `1px solid ${D.purple}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.purple }}>
+                    <Users size={18} />
+                  </div>
+                  <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.05rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                    {editingUser ? 'Edit User' : 'Create New User'}
+                  </h3>
+                </div>
+                <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 4 }}>
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit} style={{ padding: '24px 28px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+                  <div>
+                    <label style={labelStyle}>Username</label>
+                    <input type="text" name="userName" value={formData.userName} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Email</label>
+                    <input type="email" name="email" value={formData.email} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Password {editingUser && <span style={{ color: D.textFaint, fontWeight: 400, textTransform: 'none' }}>(leave empty to keep)</span>}</label>
+                    <input type="password" name="password" value={formData.password} onChange={handleChange} required={!editingUser} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Role</label>
+                    <select name="role" value={formData.role} onChange={handleChange} disabled={isController} style={{ ...inputStyle, cursor: isController ? 'not-allowed' : 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
+                      <option value="DRIVER" style={{ background: D.surfaceHi }}>Driver</option>
+                      {isAdmin && <option value="CONTROLLER" style={{ background: D.surfaceHi }}>Controller</option>}
+                      {isAdmin && <option value="ADMIN" style={{ background: D.surfaceHi }}>Admin</option>}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Account Status</label>
+                    <select name="accountStatus" value={formData.accountStatus} onChange={handleChange} style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
+                      <option value="ACTIVE" style={{ background: D.surfaceHi }}>Active</option>
+                      <option value="INACTIVE" style={{ background: D.surfaceHi }}>Inactive</option>
+                      <option value="PENDING" style={{ background: D.surfaceHi }}>Pending</option>
+                      <option value="SUSPENDED" style={{ background: D.surfaceHi }}>Suspended</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Profile Picture URL <span style={{ color: D.textFaint, fontWeight: 400, textTransform: 'none' }}>(optional)</span></label>
+                    <input type="url" name="profilePicture" value={formData.profilePicture} onChange={handleChange} placeholder="https://..." style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(99,102,241,0.4)' }}>
+                    {editingUser ? '✓ Save Changes' : '✓ Create User'}
+                  </button>
+                  <button type="button" onClick={() => setShowModal(false)} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Dark theme overrides for sidebar/topbar ─────────── */}
+      <style>{`
+        .dark-theme-wrapper .topbar { background: #161b27 !important; border-bottom-color: rgba(255,255,255,0.07) !important; }
+        .dark-theme-wrapper .topbar-title { color: #e2e8f0 !important; }
+        .dark-theme-wrapper .topbar-breadcrumb { color: #475569 !important; }
+        .dark-theme-wrapper .topbar-user { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.1) !important; }
+        .dark-theme-wrapper .topbar-user:hover { background: rgba(99,102,241,0.15) !important; border-color: rgba(99,102,241,0.4) !important; }
+        .dark-theme-wrapper .topbar-name { color: #e2e8f0 !important; }
+        .dark-theme-wrapper .sidebar { background: #111827 !important; border-right-color: rgba(255,255,255,0.07) !important; }
+        .dark-theme-wrapper .sidebar-header { border-bottom-color: rgba(255,255,255,0.07) !important; }
+        .dark-theme-wrapper .sidebar-title { color: #f1f5f9 !important; }
+        .dark-theme-wrapper .sidebar-subtitle { color: #475569 !important; }
+        .dark-theme-wrapper .nav-section-label { color: #334155 !important; }
+        .dark-theme-wrapper .nav-item { color: #64748b !important; }
+        .dark-theme-wrapper .nav-item:hover { background: rgba(255,255,255,0.05) !important; color: #cbd5e1 !important; }
+        
+        .dark-theme-wrapper .sidebar-divider { background: rgba(255,255,255,0.07) !important; }
+        .dark-theme-wrapper .sidebar-logout-btn { color: rgba(255,255,255,0.4) !important; }
+        .dark-theme-wrapper .sidebar-logout-btn:hover { color: #f87171 !important; }
+        .dark-theme-wrapper .sidebar-user-card { background: rgba(255,255,255,0.03) !important; }
+        .dark-theme-wrapper .sidebar-footer { border-top-color: rgba(255,255,255,0.07) !important; }
+      `}</style>
     </>
   )
 }
