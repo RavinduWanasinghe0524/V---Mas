@@ -7,25 +7,25 @@ import { userAPI } from '../services/api'
 
 /* ── Dark palette ───────────────────────────────────────────── */
 const D = {
-  bg:        '#0d1117',
-  surface:   '#161b27',
+  bg: '#0d1117',
+  surface: '#161b27',
   surfaceHi: '#1e2535',
-  border:    'rgba(255,255,255,0.07)',
-  borderHi:  'rgba(255,255,255,0.13)',
-  text:      '#e2e8f0',
-  textSub:   '#64748b',
-  purple:    '#a78bfa',
+  border: 'rgba(255,255,255,0.07)',
+  borderHi: 'rgba(255,255,255,0.13)',
+  text: '#e2e8f0',
+  textSub: '#64748b',
+  purple: '#a78bfa',
   purpleDim: 'rgba(167,139,250,0.15)',
-  indigo:    '#818cf8',
+  indigo: '#818cf8',
   indigoDim: 'rgba(129,140,248,0.15)',
-  blue:      '#60a5fa',
-  blueDim:   'rgba(96,165,250,0.15)',
-  green:     '#4ade80',
-  greenDim:  'rgba(74,222,128,0.15)',
-  red:       '#f87171',
-  redDim:    'rgba(248,113,113,0.15)',
-  gold:      '#fbbf24',
-  goldDim:   'rgba(251,191,36,0.15)',
+  blue: '#60a5fa',
+  blueDim: 'rgba(96,165,250,0.15)',
+  green: '#4ade80',
+  greenDim: 'rgba(74,222,128,0.15)',
+  red: '#f87171',
+  redDim: 'rgba(248,113,113,0.15)',
+  gold: '#fbbf24',
+  goldDim: 'rgba(251,191,36,0.15)',
 }
 
 const StatCard = ({ icon, label, value, colorDim, colorHex, change }) => (
@@ -34,8 +34,8 @@ const StatCard = ({ icon, label, value, colorDim, colorHex, change }) => (
     padding: '20px 22px', transition: 'all 0.25s ease', boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
     cursor: 'default',
   }}
-  onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.borderColor=D.borderHi; e.currentTarget.style.boxShadow=`0 8px 24px ${colorDim}` }}
-  onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.borderColor=D.border; e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,0.2)' }}>
+    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = D.borderHi; e.currentTarget.style.boxShadow = `0 8px 24px ${colorDim}` }}
+    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.2)' }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
       <div>
         <p style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>{label}</p>
@@ -62,14 +62,14 @@ const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "
     padding: '24px', cursor: disabled ? 'default' : 'pointer', transition: 'all 0.2s',
     opacity: disabled ? 0.6 : 1, display: 'flex', flexDirection: 'column', height: '100%'
   }}
-  onMouseEnter={e => { if(!disabled){ e.currentTarget.style.borderColor = D.borderHi; e.currentTarget.style.background = D.surfaceHi; } }}
-  onMouseLeave={e => { if(!disabled){ e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; } }}>
+    onMouseEnter={e => { if (!disabled) { e.currentTarget.style.borderColor = D.borderHi; e.currentTarget.style.background = D.surfaceHi; } }}
+    onMouseLeave={e => { if (!disabled) { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; } }}>
     <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', marginBottom: 16, border: `1px solid ${D.border}` }}>
       {icon}
     </div>
     <h3 style={{ margin: '0 0 8px', fontSize: '1.05rem', color: D.text, fontWeight: 700 }}>{title}</h3>
     <p style={{ margin: 0, fontSize: '0.85rem', color: D.textSub, lineHeight: 1.5, flex: 1 }}>{desc}</p>
-    
+
     <div style={{ marginTop: 20 }}>
       {disabled ? (
         <span style={{ padding: '4px 10px', borderRadius: 8, background: D.goldDim, color: D.gold, fontSize: '0.75rem', fontWeight: 700, border: `1px solid rgba(251,191,36,0.3)` }}>Coming Soon</span>
@@ -173,11 +173,11 @@ const DashboardPage = () => {
           const response = await userAPI.getAllUsers()
           const users = response.data.data || []
           setStats({
-            totalUsers:    users.length,
-            admins:        users.filter(u => u.role === 'ADMIN').length,
-            controllers:   users.filter(u => u.role === 'CONTROLLER').length,
-            drivers:       users.filter(u => u.role === 'DRIVER').length,
-            activeUsers:   users.filter(u => u.accountStatus === 'ACTIVE').length,
+            totalUsers: users.length,
+            admins: users.filter(u => u.role === 'ADMIN').length,
+            controllers: users.filter(u => u.role === 'CONTROLLER').length,
+            drivers: users.filter(u => u.role === 'DRIVER').length,
+            activeUsers: users.filter(u => u.accountStatus === 'ACTIVE').length,
             inactiveUsers: users.filter(u => u.accountStatus === 'INACTIVE').length,
           })
         }
@@ -212,11 +212,11 @@ const DashboardPage = () => {
             border: `1px solid ${D.border}`
           }}>
             {/* decorative circles */}
-            {[['80%','−20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
-              <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
+            {[['80%', '−20px', '180px', 'rgba(255,255,255,0.03)'], ['20%', '60%', '120px', 'rgba(255,255,255,0.04)'], ['55%', '80%', '90px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
+              <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
             ))}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', fontSize: '2rem', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
                 {roleEmoji[user?.role]}
               </div>
               <div>
@@ -231,9 +231,9 @@ const DashboardPage = () => {
           </div>
 
           {/* Role-based content */}
-          {user?.role === 'ADMIN'      && <AdminDashboard stats={stats} loading={loading} navigate={navigate} />}
+          {user?.role === 'ADMIN' && <AdminDashboard stats={stats} loading={loading} navigate={navigate} />}
           {user?.role === 'CONTROLLER' && <ControllerDashboard navigate={navigate} />}
-          {user?.role === 'DRIVER'     && <DriverDashboard navigate={navigate} />}
+          {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} />}
         </div>
       </div>
 

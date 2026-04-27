@@ -3,6 +3,7 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { fuelAPI } from '../services/api'
+import { Fuel, CircleDollarSign, BarChart2, Car, Trash2, ClipboardList, Plus, Search, Edit2, AlertTriangle, Check, X } from 'lucide-react'
 
 /* ── Dark palette ───────────────────────────────────────────── */
 const D = {
@@ -271,7 +272,7 @@ const FuelManagementPage = () => {
               animation: 'fadeUp 0.25s ease both',
               display: 'flex', alignItems: 'center', gap: 10,
             }}>
-              <span style={{ fontSize: '1.1rem' }}>{toast.type === 'error' ? '❌' : '✅'}</span>
+              <span style={{ display: 'flex', alignItems: 'center' }}>{toast.type === 'error' ? <X size={20} /> : <Check size={20} />}</span>
               {toast.msg}
             </div>
           )}
@@ -294,7 +295,9 @@ const FuelManagementPage = () => {
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                  <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 12, width: 48, height: 48, display:'flex', alignItems:'center', justifyContent:'center', fontSize: '1.5rem', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>⛽</div>
+                  <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 12, width: 48, height: 48, display:'flex', alignItems:'center', justifyContent:'center', color: '#fff', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <Fuel size={24} strokeWidth={1.5} />
+                  </div>
                   <div>
                     <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Fuel Management</h1>
                     <p style={{ margin: 0, color: '#a5b4fc', fontSize: '0.875rem' }}>Monitor, manage & analyse fleet fuel consumption</p>
@@ -317,11 +320,11 @@ const FuelManagementPage = () => {
           {/* ── Stat Cards ─────────────────────────────────────── */}
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:16, marginBottom:28 }}>
             {[
-              { label:'Total Fuel', value:`${stats.totalFuel.toFixed(1)} L`, icon:'⛽', iconBg: D.goldDim, iconColor: D.gold, glow:'rgba(251,191,36,0.15)' },
-              { label:'Total Cost', value:`Rs. ${Math.round(stats.totalCost).toLocaleString()}`, icon:'💰', iconBg: D.greenDim, iconColor: D.green, glow:'rgba(74,222,128,0.15)' },
-              { label:'Avg Efficiency', value: stats.avgEfficiency > 0 ? `${stats.avgEfficiency.toFixed(2)} km/L` : 'N/A', icon:'📊', iconBg: D.indigoDim, iconColor: D.indigo, glow:'rgba(129,140,248,0.15)' },
-              { label:'Active Vehicles', value: stats.vehicleCount, icon:'🚗', iconBg: D.blueDim, iconColor: D.blue, glow:'rgba(96,165,250,0.15)' },
-              { label:'Deleted Logs', value: deletedCount, icon:'🗑️', iconBg: D.redDim, iconColor: D.red, glow:'rgba(248,113,113,0.15)' },
+              { label:'Total Fuel', value:`${stats.totalFuel.toFixed(1)} L`, icon:<Fuel size={20}/>, iconBg: D.goldDim, iconColor: D.gold, glow:'rgba(251,191,36,0.15)' },
+              { label:'Total Cost', value:`Rs. ${Math.round(stats.totalCost).toLocaleString()}`, icon:<CircleDollarSign size={20}/>, iconBg: D.greenDim, iconColor: D.green, glow:'rgba(74,222,128,0.15)' },
+              { label:'Avg Efficiency', value: stats.avgEfficiency > 0 ? `${stats.avgEfficiency.toFixed(2)} km/L` : 'N/A', icon:<BarChart2 size={20}/>, iconBg: D.indigoDim, iconColor: D.indigo, glow:'rgba(129,140,248,0.15)' },
+              { label:'Active Vehicles', value: stats.vehicleCount, icon:<Car size={20}/>, iconBg: D.blueDim, iconColor: D.blue, glow:'rgba(96,165,250,0.15)' },
+              { label:'Deleted Logs', value: deletedCount, icon:<Trash2 size={20}/>, iconBg: D.redDim, iconColor: D.red, glow:'rgba(248,113,113,0.15)' },
             ].map(s => (
               <div key={s.label} style={{
                 background: D.surface, borderRadius: 16, border:`1px solid ${D.border}`,
@@ -335,7 +338,7 @@ const FuelManagementPage = () => {
                     <p style={{ fontSize:'0.7rem', fontWeight:700, color:D.textSub, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:8 }}>{s.label}</p>
                     <p style={{ fontSize:'1.55rem', fontWeight:800, color:D.text, fontFamily:"'Plus Jakarta Sans',sans-serif", lineHeight:1 }}>{s.value}</p>
                   </div>
-                  <div style={{ width:44, height:44, borderRadius:12, background:s.iconBg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.25rem', boxShadow:`0 4px 12px ${s.glow}`, flexShrink:0, border:`1px solid ${s.iconColor}30` }}>
+                  <div style={{ width:44, height:44, borderRadius:12, background:s.iconBg, color: s.iconColor, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:`0 4px 12px ${s.glow}`, flexShrink:0, border:`1px solid ${s.iconColor}30` }}>
                     {s.icon}
                   </div>
                 </div>
@@ -346,9 +349,9 @@ const FuelManagementPage = () => {
           {/* ── Tabs ───────────────────────────────────────────── */}
           <div style={{ display:'flex', gap:6, marginBottom:24, background:D.surfaceHi, borderRadius:12, padding:5, width:'fit-content', border:`1px solid ${D.border}` }}>
             {[
-              { id:'all', label:'All Logs', icon:'📋' },
-              { id:'add', label:'Add Log', icon:'➕' },
-              { id:'deleted', label:`Deleted (${deletedCount})`, icon:'🗑️', danger:true },
+              { id:'all', label:'All Logs', icon:<ClipboardList size={16}/> },
+              { id:'add', label:'Add Log', icon:<Plus size={16}/> },
+              { id:'deleted', label:`Deleted (${deletedCount})`, icon:<Trash2 size={16}/>, danger:true },
             ].map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
                 padding:'9px 20px', borderRadius:9, border:'none', cursor:'pointer',
@@ -358,7 +361,7 @@ const FuelManagementPage = () => {
                 color: activeTab === t.id ? (t.danger ? D.red : '#a5b4fc') : D.textSub,
                 boxShadow: activeTab === t.id ? (t.danger ? `0 4px 12px rgba(248,113,113,0.15)` : `0 4px 12px rgba(99,102,241,0.15)`) : 'none',
               }}>
-                <span style={{ fontSize:'0.9rem' }}>{t.icon}</span>{t.label}
+                <span style={{ display: 'flex', alignItems: 'center' }}>{t.icon}</span>{t.label}
               </button>
             ))}
           </div>
@@ -371,7 +374,7 @@ const FuelManagementPage = () => {
               {/* Filters */}
               <div style={{ ...card, padding:'18px 22px', marginBottom:20, display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}>
                 <div style={{ flex:1, minWidth:240, position:'relative' }}>
-                  <span style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', fontSize:'0.9rem', pointerEvents:'none' }}>🔍</span>
+                  <span style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', color: D.textSub, pointerEvents:'none', display: 'flex', alignItems: 'center' }}><Search size={16} /></span>
                   <input
                     type="text" placeholder="Search by vehicle reg…"
                     value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
@@ -417,7 +420,7 @@ const FuelManagementPage = () => {
                 <div style={{ overflowX:'auto' }}>
                   {filteredLogs.length === 0 ? (
                     <div style={{ padding:60, textAlign:'center', color:D.textSub }}>
-                      <div style={{ fontSize:'3.5rem', marginBottom:12, opacity:0.3 }}>⛽</div>
+                      <div style={{ marginBottom:12, opacity:0.3, display: 'flex', justifyContent: 'center' }}><Fuel size={48} /></div>
                       <p style={{ fontWeight:700, fontSize:'1rem', color:D.text, marginBottom:6 }}>No fuel logs found</p>
                       <p style={{ fontSize:'0.85rem' }}>Try clearing your filters or add a new entry.</p>
                     </div>
@@ -471,11 +474,11 @@ const FuelManagementPage = () => {
                                 {log.isUpdated ? (
                                   <span title={log.updatedBy ? `Updated by ${log.updatedBy}` : 'Updated'}
                                     style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'3px 9px', borderRadius:20, fontSize:'0.68rem', fontWeight:700, background:D.purpleDim, color:D.purple, border:'1px solid rgba(167,139,250,0.3)', cursor:'help', whiteSpace:'nowrap' }}>
-                                    ✏️ {log.updatedBy ? `by ${log.updatedBy}` : 'Edited'}
+                                    <Edit2 size={12}/> {log.updatedBy ? `by ${log.updatedBy}` : 'Edited'}
                                   </span>
                                 ) : (
                                   <span style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'3px 9px', borderRadius:20, fontSize:'0.68rem', fontWeight:700, background:D.greenDim, color:D.green, border:'1px solid rgba(74,222,128,0.3)', whiteSpace:'nowrap' }}>
-                                    ✓ Original
+                                    <Check size={12}/> Original
                                   </span>
                                 )}
                               </td>
@@ -485,13 +488,13 @@ const FuelManagementPage = () => {
                                     style={{ padding:'5px 12px', borderRadius:8, border:`1px solid ${D.border}`, background:'rgba(255,255,255,0.05)', color:D.text, fontSize:'0.75rem', fontWeight:700, cursor:'pointer', transition:'all 0.15s', whiteSpace:'nowrap' }}
                                     onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor='rgba(99,102,241,0.4)'; e.currentTarget.style.color='#a5b4fc' }}
                                     onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor=D.border; e.currentTarget.style.color=D.text }}>
-                                    ✏️ Edit
+                                    <Edit2 size={14} style={{ marginRight: 6 }} /> Edit
                                   </button>
                                   <button onClick={() => handleDeleteClick(log)}
                                     style={{ padding:'5px 12px', borderRadius:8, border:'1px solid rgba(248,113,113,0.3)', background:'rgba(248,113,113,0.1)', color:D.red, fontSize:'0.75rem', fontWeight:700, cursor:'pointer', transition:'all 0.15s', whiteSpace:'nowrap' }}
                                     onMouseEnter={e => { e.currentTarget.style.background='rgba(248,113,113,0.2)' }}
                                     onMouseLeave={e => { e.currentTarget.style.background='rgba(248,113,113,0.1)' }}>
-                                    🗑️ Delete
+                                    <Trash2 size={14} style={{ marginRight: 6 }} /> Delete
                                   </button>
                                 </div>
                               </td>
@@ -512,13 +515,13 @@ const FuelManagementPage = () => {
           {activeTab === 'deleted' && (
             <div style={card}>
               <div style={{ padding:'18px 24px 14px', borderBottom:`1px solid rgba(248,113,113,0.3)`, background:'rgba(248,113,113,0.05)' }}>
-                <h3 style={{ margin:0, fontWeight:700, color:D.red, fontSize:'0.95rem' }}>🗑️ Soft-Deleted Fuel Logs</h3>
+                <h3 style={{ margin:0, fontWeight:700, color:D.red, fontSize:'0.95rem', display: 'flex', alignItems: 'center', gap: 8 }}><Trash2 size={16} /> Soft-Deleted Fuel Logs</h3>
                 <p style={{ margin:'3px 0 0', fontSize:'0.78rem', color:D.textSub }}>Retained for audit — {filteredLogs.length} record{filteredLogs.length!==1?'s':''}</p>
               </div>
               <div style={{ overflowX:'auto' }}>
                 {filteredLogs.length === 0 ? (
                   <div style={{ padding:60, textAlign:'center', color:D.textSub }}>
-                    <div style={{ fontSize:'3rem', marginBottom:12, opacity:0.35 }}>🗑️</div>
+                    <div style={{ marginBottom:12, opacity:0.35, display: 'flex', justifyContent: 'center' }}><Trash2 size={48} /></div>
                     <p style={{ fontWeight:700, color:D.text }}>No deleted logs</p>
                     <p style={{ fontSize:'0.85rem' }}>Nothing has been deleted yet.</p>
                   </div>
@@ -566,7 +569,9 @@ const FuelManagementPage = () => {
               {/* Form header */}
               <div style={{ padding:'22px 28px 18px', borderBottom:`1px solid ${D.border}`, background:D.surfaceHi }}>
                 <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                  <div style={{ width:40, height:40, borderRadius:10, background:D.purpleDim, border: '1px solid rgba(167,139,250,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.1rem' }}>⛽</div>
+                  <div style={{ width:40, height:40, borderRadius:10, background:D.purpleDim, color: D.purple, border: '1px solid rgba(167,139,250,0.3)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <Fuel size={20} />
+                  </div>
                   <div>
                     <h3 style={{ margin:0, fontWeight:800, color:D.text, fontSize:'1rem', fontFamily:"'Plus Jakarta Sans',sans-serif" }}>Add New Fuel Log</h3>
                     <p style={{ margin:0, fontSize:'0.78rem', color:D.textSub }}>Fill in all required fields to record a new fuel entry</p>
@@ -585,8 +590,8 @@ const FuelManagementPage = () => {
                   <div>
                     <label style={labelStyle}>Fuel Type <span style={{ color:D.red }}>*</span></label>
                     <select name="fuelType" value={formData.fuelType} onChange={handleInputChange} required style={{ ...inputStyle, cursor:'pointer' }} onFocus={onFocus} onBlur={onBlur}>
-                      <option value="Diesel" style={{ background: D.surfaceHi }}>⛽ Diesel</option>
-                      <option value="Petrol" style={{ background: D.surfaceHi }}>⛽ Petrol</option>
+                      <option value="Diesel" style={{ background: D.surfaceHi }}>Diesel</option>
+                      <option value="Petrol" style={{ background: D.surfaceHi }}>Petrol</option>
                     </select>
                   </div>
                   {/* Liters */}
@@ -637,7 +642,9 @@ const FuelManagementPage = () => {
                 {/* Modal header */}
                 <div style={{ padding:'22px 28px 16px', borderBottom:`1px solid ${D.border}`, background:D.surfaceHi, borderRadius:'20px 20px 0 0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                    <div style={{ width:38, height:38, borderRadius:10, background:D.indigoDim, border: '1px solid rgba(129,140,248,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1rem' }}>✏️</div>
+                    <div style={{ width:38, height:38, borderRadius:10, background:D.indigoDim, color: D.indigo, border: '1px solid rgba(129,140,248,0.3)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      <Edit2 size={18} />
+                    </div>
                     <div>
                       <h3 style={{ margin:0, fontWeight:800, color:D.text, fontSize:'0.95rem', fontFamily:"'Plus Jakarta Sans',sans-serif" }}>Edit Fuel Log</h3>
                       <p style={{ margin:0, fontSize:'0.75rem', color:D.textSub }}>{editingLog.vehicleRegNumber}</p>
@@ -664,8 +671,8 @@ const FuelManagementPage = () => {
                       <div>
                         <label style={labelStyle}>Fuel Type</label>
                         <select name="fuelType" value={editingLog.fuelType} onChange={handleInputChange} style={{ ...inputStyle, cursor:'pointer' }} onFocus={onFocus} onBlur={onBlur}>
-                          <option value="Diesel" style={{ background: D.surfaceHi }}>⛽ Diesel</option>
-                          <option value="Petrol" style={{ background: D.surfaceHi }}>⛽ Petrol</option>
+                          <option value="Diesel" style={{ background: D.surfaceHi }}>Diesel</option>
+                          <option value="Petrol" style={{ background: D.surfaceHi }}>Petrol</option>
                         </select>
                       </div>
                       <div>
@@ -699,7 +706,9 @@ const FuelManagementPage = () => {
           {showDeleteModal && (
             <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.65)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, animation:'fadeIn 0.15s ease' }}>
               <div style={{ background:D.surface, borderRadius:20, padding:36, maxWidth:420, width:'92%', boxShadow:'0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation:'scaleIn 0.2s ease', textAlign:'center' }}>
-                <div style={{ width:64, height:64, borderRadius:20, background:D.redDim, border: '1px solid rgba(248,113,113,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'2rem', margin:'0 auto 20px' }}>⚠️</div>
+                <div style={{ width:64, height:64, borderRadius:20, background:D.redDim, color: D.red, border: '1px solid rgba(248,113,113,0.3)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px' }}>
+                  <AlertTriangle size={32} />
+                </div>
                 <h3 style={{ margin:'0 0 10px', fontWeight:800, color:D.text, fontSize:'1.1rem', fontFamily:"'Plus Jakarta Sans',sans-serif" }}>Delete Fuel Log?</h3>
                 <p style={{ margin:'0 0 24px', color:D.textSub, fontSize:'0.9rem', lineHeight:1.6 }}>
                   This will soft-delete the log for <strong style={{ color:D.text }}>{deletingLog?.vehicleRegNumber}</strong>. It will be retained in the Deleted Logs tab for audit purposes.
@@ -710,7 +719,7 @@ const FuelManagementPage = () => {
                     style={{ flex:1, padding:'10px 20px', borderRadius:8, border:'none', background:D.red, color:'#fff', fontSize:'0.9rem', fontWeight:700, cursor:'pointer', transition:'all 0.15s', boxShadow:'0 4px 12px rgba(239,68,68,0.35)' }}
                     onMouseEnter={e => { e.currentTarget.style.background='#dc2626'; e.currentTarget.style.transform='translateY(-1px)' }}
                     onMouseLeave={e => { e.currentTarget.style.background=D.red; e.currentTarget.style.transform='translateY(0)' }}>
-                    🗑️ Delete
+                    <Trash2 size={16} style={{ marginRight: 6 }} /> Delete
                   </button>
                 </div>
               </div>

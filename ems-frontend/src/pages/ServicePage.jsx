@@ -4,18 +4,19 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { serviceAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign } from 'lucide-react'
 
 /* ── Service type icon map ──────────────────────────────────────── */
 const SERVICE_TYPE_ICONS = {
-  OIL_CHANGE:           '🛢️',
-  ENGINE_TUNE_UP:       '⚙️',
-  BRAKE_SERVICE:        '🔴',
-  TIRE_ROTATION:        '🔄',
-  TRANSMISSION_SERVICE: '⚙️',
-  AC_SERVICE:           '❄️',
-  BATTERY_REPLACEMENT:  '🔋',
-  GENERAL_INSPECTION:   '🔍',
-  OTHER:                '🔧',
+  OIL_CHANGE:           <Droplet size={22} />,
+  ENGINE_TUNE_UP:       <Settings size={22} />,
+  BRAKE_SERVICE:        <Circle size={22} />,
+  TIRE_ROTATION:        <RotateCcw size={22} />,
+  TRANSMISSION_SERVICE: <Settings size={22} />,
+  AC_SERVICE:           <Thermometer size={22} />,
+  BATTERY_REPLACEMENT:  <Battery size={22} />,
+  GENERAL_INSPECTION:   <Search size={22} />,
+  OTHER:                <Wrench size={22} />,
 }
 
 /* ── Status helpers ─────────────────────────────────────────────── */
@@ -49,7 +50,7 @@ const ServiceCard = ({ record, index, isDriver, onEdit, onDelete }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
-  const icon = SERVICE_TYPE_ICONS[record.serviceType] || '🔧'
+  const icon = SERVICE_TYPE_ICONS[record.serviceType] || <Wrench size={22} />
 
   return (
     <div
@@ -76,7 +77,7 @@ const ServiceCard = ({ record, index, isDriver, onEdit, onDelete }) => {
         background: 'rgba(99,102,241,0.18)',
         border: '1px solid rgba(99,102,241,0.25)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: '1.25rem',
+        color: '#a5b4fc',
       }}>
         {icon}
       </div>
@@ -105,24 +106,24 @@ const ServiceCard = ({ record, index, isDriver, onEdit, onDelete }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           {/* Vehicle */}
           <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#93c5fd', fontWeight: 600 }}>
-            🚗 {record.vehicleRegNumber || '—'}
+            <Car size={14} /> {record.vehicleRegNumber || '—'}
           </span>
           {/* Date */}
           {record.serviceDate && (
             <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: '#94a3b8' }}>
-              📅 {record.serviceDate.substring(0, 10)}
+              <Calendar size={14} /> {record.serviceDate.substring(0, 10)}
             </span>
           )}
           {/* Mileage */}
           {record.currentMileageKm && (
             <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: '#94a3b8' }}>
-              📍 {Number(record.currentMileageKm).toLocaleString()} km
+              <MapPin size={14} /> {Number(record.currentMileageKm).toLocaleString()} km
             </span>
           )}
           {/* Workshop */}
           {record.technicianWorkshop && (
             <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: '#94a3b8' }}>
-              🔩 {record.technicianWorkshop}
+              <Wrench size={14} /> {record.technicianWorkshop}
             </span>
           )}
         </div>
@@ -162,7 +163,7 @@ const ServiceCard = ({ record, index, isDriver, onEdit, onDelete }) => {
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.3)'; e.currentTarget.style.color = '#fff' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; e.currentTarget.style.color = '#a5b4fc' }}
           >
-            ✏ Edit
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Edit2 size={12}/> Edit</span>
           </button>
           <button
             id={`delete-service-${record.id}`}
@@ -176,7 +177,7 @@ const ServiceCard = ({ record, index, isDriver, onEdit, onDelete }) => {
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.3)'; e.currentTarget.style.color = '#fff' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; e.currentTarget.style.color = '#fca5a5' }}
           >
-            🗑 Delete
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Trash2 size={12}/> Delete</span>
           </button>
         </div>
       )}
@@ -417,7 +418,7 @@ const ServicePage = () => {
               <div style={darkCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <p style={{ fontSize: '2rem', fontWeight: 800, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{total}</p>
-                  <span style={{ fontSize: '1.25rem' }}>📋</span>
+                  <span style={{ display: 'flex', alignItems: 'center', color: '#6366f1' }}><ClipboardList size={28} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Total Records</p>
                 <ProgressBar value={total} max={total || 1} color="#6366f1" />
@@ -427,7 +428,7 @@ const ServicePage = () => {
               <div style={darkCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <p style={{ fontSize: '2rem', fontWeight: 800, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{scheduled}</p>
-                  <span style={{ fontSize: '1.25rem' }}>📅</span>
+                  <span style={{ display: 'flex', alignItems: 'center', color: '#f59e0b' }}><Calendar size={28} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Scheduled</p>
                 <ProgressBar value={scheduled} max={total || 1} color="#f59e0b" />
@@ -437,7 +438,7 @@ const ServicePage = () => {
               <div style={darkCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <p style={{ fontSize: '2rem', fontWeight: 800, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{completed}</p>
-                  <span style={{ fontSize: '1.25rem' }}>✅</span>
+                  <span style={{ display: 'flex', alignItems: 'center', color: '#10b981' }}><CheckCircle size={28} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Completed</p>
                 <ProgressBar value={completed} max={total || 1} color="#10b981" />
@@ -450,7 +451,7 @@ const ServicePage = () => {
                     <p style={{ fontSize: '1.55rem', fontWeight: 800, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
                       Rs.{(stats.totalServiceCost || 0).toLocaleString()}
                     </p>
-                    <span style={{ fontSize: '1.25rem' }}>💰</span>
+                    <span style={{ display: 'flex', alignItems: 'center', color: '#3b82f6' }}><CircleDollarSign size={28} /></span>
                   </div>
                   <p style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Total Cost</p>
                   <ProgressBar value={100} max={100} color="#3b82f6" />
@@ -497,7 +498,7 @@ const ServicePage = () => {
 
             {/* Search */}
             <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#475569', fontSize: '0.85rem' }}>🔍</span>
+              <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#475569', display: 'flex', alignItems: 'center' }}><Search size={16} /></span>
               <input
                 id="service-search"
                 value={search}
@@ -535,7 +536,7 @@ const ServicePage = () => {
                 background: 'rgba(255,255,255,0.02)', borderRadius: 16,
                 border: '1px dashed rgba(255,255,255,0.1)',
               }}>
-                <div style={{ fontSize: '3rem', marginBottom: 16 }}>🔍</div>
+                <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center', opacity: 0.5 }}><Search size={48} /></div>
                 <p style={{ color: '#64748b', fontSize: '0.95rem', fontWeight: 500 }}>No service records found.</p>
                 {!isDriver && (
                   <button

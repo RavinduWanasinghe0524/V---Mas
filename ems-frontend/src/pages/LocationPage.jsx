@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
+import { MapPin, Car, Circle, ParkingSquare, Radio, Clock, Zap } from 'lucide-react'
 
 const vehicles = [
   { id: 1, reg: 'WP-CAB-1234', driver: 'Kamal Perera',   status: 'MOVING',  speed: 58,   location: 'Colombo 07, Rosmead Pl', lat: 6.902, lng: 79.875, lastUpdate: '2 min ago' },
@@ -61,8 +62,8 @@ const LocationPage = () => {
               <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
             ))}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', fontSize: '2rem', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                📍
+              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', color: '#fff', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <MapPin size={32} strokeWidth={1.5} />
               </div>
               <div>
                 <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -78,10 +79,10 @@ const LocationPage = () => {
           {/* Stats row */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 28 }}>
             {[
-              { label: 'Moving',  value: vehicles.filter(v => v.status === 'MOVING').length,  icon: '🚗', colorDim: D.greenDim, colorHex: D.green },
-              { label: 'Idle',    value: vehicles.filter(v => v.status === 'IDLE').length,    icon: '🟡', colorDim: D.goldDim, colorHex: D.gold },
-              { label: 'Parked',  value: vehicles.filter(v => v.status === 'PARKED').length,  icon: '🅿️', colorDim: D.indigoDim, colorHex: D.indigo },
-              { label: 'Tracked', value: vehicles.length,                                      icon: '📡', colorDim: D.purpleDim, colorHex: D.purple },
+              { label: 'Moving',  value: vehicles.filter(v => v.status === 'MOVING').length,  icon: <Car size={20} />, colorDim: D.greenDim, colorHex: D.green },
+              { label: 'Idle',    value: vehicles.filter(v => v.status === 'IDLE').length,    icon: <Circle size={20} />, colorDim: D.goldDim, colorHex: D.gold },
+              { label: 'Parked',  value: vehicles.filter(v => v.status === 'PARKED').length,  icon: <ParkingSquare size={20} />, colorDim: D.indigoDim, colorHex: D.indigo },
+              { label: 'Tracked', value: vehicles.length,                                      icon: <Radio size={20} />, colorDim: D.purpleDim, colorHex: D.purple },
             ].map(s => (
               <div key={s.label} style={{
                 background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`,
@@ -95,7 +96,7 @@ const LocationPage = () => {
                     <p style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>{s.label}</p>
                     <p style={{ fontSize: '1.55rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif", lineHeight: 1 }}>{s.value}</p>
                   </div>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: s.colorDim, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', boxShadow: `0 4px 12px ${s.colorDim}`, flexShrink: 0, border: `1px solid ${s.colorHex}30` }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: s.colorDim, color: s.colorHex, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 12px ${s.colorDim}`, flexShrink: 0, border: `1px solid ${s.colorHex}30` }}>
                     {s.icon}
                   </div>
                 </div>
@@ -135,10 +136,10 @@ const LocationPage = () => {
                         {v.status}
                       </span>
                     </div>
-                    <div style={{ fontSize: '0.78rem', color: D.textSub, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                      <span style={{ color: D.text }}>📍 {v.location}</span>
-                      {v.speed > 0 && <span style={{ color: D.text }}>🚀 {v.speed} km/h</span>}
-                      <span style={{ color: D.textFaint }}>🕐 {v.lastUpdate}</span>
+                    <div style={{ fontSize: '0.78rem', color: D.textSub, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <span style={{ color: D.text, display: 'flex', alignItems: 'center', gap: 4 }}><MapPin size={12} /> {v.location}</span>
+                      {v.speed > 0 && <span style={{ color: D.text, display: 'flex', alignItems: 'center', gap: 4 }}><Zap size={12} /> {v.speed} km/h</span>}
+                      <span style={{ color: D.textFaint, display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={12} /> {v.lastUpdate}</span>
                     </div>
                   </div>
                 )
@@ -210,7 +211,7 @@ const LocationPage = () => {
                             transform: 'rotate(-45deg)',
                             border: selected?.id === v.id ? '2px solid #fff' : `1px solid ${D.border}`,
                           }}>
-                            <span style={{ transform: 'rotate(45deg)' }}>🚗</span>
+                            <Car size={16} style={{ transform: 'rotate(45deg)' }} />
                           </div>
                           <div style={{ background: 'rgba(15,23,42,0.85)', borderRadius: 6, padding: '3px 8px', fontSize: '0.65rem', fontWeight: 700, color: D.text, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', border: `1px solid ${D.borderHi}`, backdropFilter: 'blur(4px)' }}>
                             {v.reg}
@@ -221,8 +222,8 @@ const LocationPage = () => {
                   })}
                 </div>
 
-                <div style={{ position: 'absolute', bottom: 16, right: 16, fontSize: '0.72rem', color: '#a5b4fc', background: 'rgba(15,23,42,0.7)', border: `1px solid rgba(99,102,241,0.2)`, padding: '6px 12px', borderRadius: 8, backdropFilter: 'blur(4px)' }}>
-                  📍 Live positions — updates every 30s
+                <div style={{ position: 'absolute', bottom: 16, right: 16, fontSize: '0.72rem', color: '#a5b4fc', background: 'rgba(15,23,42,0.7)', border: `1px solid rgba(99,102,241,0.2)`, padding: '6px 12px', borderRadius: 8, backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <MapPin size={12} /> Live positions — updates every 30s
                 </div>
               </div>
 
