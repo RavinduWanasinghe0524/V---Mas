@@ -7,15 +7,15 @@ import { useAuth } from '../context/AuthContext'
 import { Wrench, AlertTriangle, ArrowLeft, Check, Save, Plus } from 'lucide-react'
 
 const SERVICE_TYPES = [
-  { value: 'OIL_CHANGE',           label: 'Oil Change'           },
-  { value: 'ENGINE_TUNE_UP',       label: 'Engine Tune Up'       },
-  { value: 'BRAKE_SERVICE',        label: 'Brake Service'        },
-  { value: 'TIRE_ROTATION',        label: 'Tire Rotation'        },
+  { value: 'OIL_CHANGE', label: 'Oil Change' },
+  { value: 'ENGINE_TUNE_UP', label: 'Engine Tune Up' },
+  { value: 'BRAKE_SERVICE', label: 'Brake Service' },
+  { value: 'TIRE_ROTATION', label: 'Tire Rotation' },
   { value: 'TRANSMISSION_SERVICE', label: 'Transmission Service' },
-  { value: 'AC_SERVICE',           label: 'AC Service'           },
-  { value: 'BATTERY_REPLACEMENT',  label: 'Battery Replacement'  },
-  { value: 'GENERAL_INSPECTION',   label: 'General Inspection'   },
-  { value: 'OTHER',                label: 'Other'                },
+  { value: 'AC_SERVICE', label: 'AC Service' },
+  { value: 'BATTERY_REPLACEMENT', label: 'Battery Replacement' },
+  { value: 'GENERAL_INSPECTION', label: 'General Inspection' },
+  { value: 'OTHER', label: 'Other' },
 ]
 
 const initialForm = {
@@ -32,18 +32,18 @@ const initialForm = {
 
 /* ── Dark palette ───────────────────────────────────────────── */
 const D = {
-  bg:        '#0d1117',
-  surface:   '#161b27',
+  bg: '#0d1117',
+  surface: '#161b27',
   surfaceHi: '#1e2535',
-  border:    'rgba(255,255,255,0.07)',
-  borderHi:  'rgba(255,255,255,0.13)',
-  text:      '#e2e8f0',
-  textSub:   '#64748b',
+  border: 'rgba(255,255,255,0.07)',
+  borderHi: 'rgba(255,255,255,0.13)',
+  text: '#e2e8f0',
+  textSub: '#64748b',
   textFaint: '#374151',
-  indigo:    '#818cf8',
+  indigo: '#818cf8',
   indigoDim: 'rgba(129,140,248,0.15)',
-  red:       '#f87171',
-  redDim:    'rgba(248,113,113,0.15)',
+  red: '#f87171',
+  redDim: 'rgba(248,113,113,0.15)',
 }
 
 /* ─── Shared field styles ─────────────── */
@@ -77,10 +77,10 @@ const AddServicePage = () => {
   const { id } = useParams()
   const isEditing = Boolean(id)
 
-  const [formData, setFormData]     = useState(initialForm)
-  const [loading, setLoading]       = useState(false)
+  const [formData, setFormData] = useState(initialForm)
+  const [loading, setLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(isEditing)
-  const [errors, setErrors]         = useState({})
+  const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState(null)
 
   useEffect(() => {
@@ -89,15 +89,15 @@ const AddServicePage = () => {
       .then(res => {
         const s = res.data?.data || res.data
         setFormData({
-          vehicleRegNumber:   s.vehicleRegNumber   || '',
-          serviceType:        s.serviceType        || '',
-          serviceTypeDetail:  s.serviceTypeDetail   || '',
-          serviceDate:        s.serviceDate ? s.serviceDate.substring(0, 10) : '',
-          currentMileageKm:   s.currentMileageKm   || '',
-          serviceCost:        s.serviceCost         || '',
-          technicianWorkshop: s.technicianWorkshop  || '',
-          nextServiceDue:     s.nextServiceDue ? s.nextServiceDue.substring(0, 10) : '',
-          description:        s.description         || '',
+          vehicleRegNumber: s.vehicleRegNumber || '',
+          serviceType: s.serviceType || '',
+          serviceTypeDetail: s.serviceTypeDetail || '',
+          serviceDate: s.serviceDate ? s.serviceDate.substring(0, 10) : '',
+          currentMileageKm: s.currentMileageKm || '',
+          serviceCost: s.serviceCost || '',
+          technicianWorkshop: s.technicianWorkshop || '',
+          nextServiceDue: s.nextServiceDue ? s.nextServiceDue.substring(0, 10) : '',
+          description: s.description || '',
         })
       })
       .catch(() => navigate('/service'))
@@ -107,12 +107,12 @@ const AddServicePage = () => {
   const validate = () => {
     const e = {}
     if (!formData.vehicleRegNumber.trim()) e.vehicleRegNumber = 'Required'
-    if (!formData.serviceType)             e.serviceType       = 'Required'
+    if (!formData.serviceType) e.serviceType = 'Required'
     if (formData.serviceType === 'OTHER' && !formData.serviceTypeDetail.trim())
-                                           e.serviceTypeDetail = 'Required for Other'
-    if (!formData.serviceDate)             e.serviceDate       = 'Required'
-    if (!formData.currentMileageKm)        e.currentMileageKm  = 'Required'
-    if (!formData.serviceCost)             e.serviceCost       = 'Required'
+      e.serviceTypeDetail = 'Required for Other'
+    if (!formData.serviceDate) e.serviceDate = 'Required'
+    if (!formData.currentMileageKm) e.currentMileageKm = 'Required'
+    if (!formData.serviceCost) e.serviceCost = 'Required'
     if (!formData.technicianWorkshop.trim()) e.technicianWorkshop = 'Required'
     return e
   }
@@ -140,8 +140,8 @@ const AddServicePage = () => {
     }
   }
 
-  const focusBorder  = (e) => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)' }
-  const blurBorder   = (e, hasErr) => { e.target.style.borderColor = hasErr ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none' }
+  const focusBorder = (e) => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)' }
+  const blurBorder = (e, hasErr) => { e.target.style.borderColor = hasErr ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none' }
 
   if (loadingData) {
     return (
@@ -149,8 +149,8 @@ const AddServicePage = () => {
         <Sidebar />
         <div className="main-content" style={{ background: D.bg }}>
           <Topbar title="Service" subtitle="Home / Service" />
-          <div className="page-body" style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'60vh' }}>
-            <div style={{ color:D.indigo, fontSize:'1rem', fontWeight:600 }}>Loading record…</div>
+          <div className="page-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+            <div style={{ color: D.indigo, fontSize: '1rem', fontWeight: 600 }}>Loading record…</div>
           </div>
         </div>
       </div>
@@ -180,11 +180,11 @@ const AddServicePage = () => {
             border: `1px solid rgba(255,255,255,0.07)`
           }}>
             {/* decorative circles */}
-            {[['80%','−20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
-              <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
+            {[['80%', '−20px', '180px', 'rgba(255,255,255,0.03)'], ['20%', '60%', '120px', 'rgba(255,255,255,0.04)'], ['55%', '80%', '90px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
+              <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
             ))}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', color: '#fff', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
                 <Wrench size={32} strokeWidth={1.5} />
               </div>
               <div>
@@ -229,7 +229,7 @@ const AddServicePage = () => {
                 <div style={{
                   width: 44, height: 44, borderRadius: 10,
                   background: D.indigoDim, display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', color: D.indigo, flexShrink:0,
+                  justifyContent: 'center', color: D.indigo, flexShrink: 0,
                   border: `1px solid rgba(129,140,248,0.3)`,
                 }}><Wrench size={20} /></div>
                 <div>
@@ -257,13 +257,13 @@ const AddServicePage = () => {
             <form onSubmit={handleSubmit} noValidate>
 
               {/* Section label */}
-              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:20 }}>
-                <span style={{ fontSize:'0.72rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:D.textSub }}>Vehicle & Service Details</span>
-                <div style={{ flex:1, height:1, background:D.border }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Vehicle & Service Details</span>
+                <div style={{ flex: 1, height: 1, background: D.border }} />
               </div>
 
               {/* Row 1 — Vehicle + Service Type */}
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
                 <div>
                   <label style={fieldLabel}>Vehicle (License Plate) *</label>
                   <input
@@ -281,10 +281,10 @@ const AddServicePage = () => {
                   <select
                     name="serviceType" value={formData.serviceType} onChange={handleChange}
                     style={{
-                      ...fieldInput(errors.serviceType), cursor:'pointer',
-                      appearance:'none',
-                      backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
-                      backgroundRepeat:'no-repeat', backgroundPosition:'right 12px center', backgroundSize:'18px', paddingRight:38,
+                      ...fieldInput(errors.serviceType), cursor: 'pointer',
+                      appearance: 'none',
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
+                      backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '18px', paddingRight: 38,
                     }}
                     onFocus={focusBorder}
                     onBlur={e => blurBorder(e, errors.serviceType)}
@@ -313,7 +313,7 @@ const AddServicePage = () => {
               )}
 
               {/* Row 2 — Date + Mileage */}
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
                 <div>
                   <label style={fieldLabel}>Service Date *</label>
                   <input
@@ -340,7 +340,7 @@ const AddServicePage = () => {
               </div>
 
               {/* Row 3 — Cost + Workshop */}
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
                 <div>
                   <label style={fieldLabel}>Service Cost (Rs.) *</label>
                   <input
@@ -368,15 +368,15 @@ const AddServicePage = () => {
               </div>
 
               {/* Section label */}
-              <div style={{ display:'flex', alignItems:'center', gap:10, margin:'28px 0 20px' }}>
-                <span style={{ fontSize:'0.72rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:D.textSub }}>Optional Details</span>
-                <div style={{ flex:1, height:1, background:D.border }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '28px 0 20px' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Optional Details</span>
+                <div style={{ flex: 1, height: 1, background: D.border }} />
               </div>
 
               {/* Row 4 — Next Service + Description */}
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:32 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 32 }}>
                 <div>
-                  <label style={fieldLabel}>Next Service Due <span style={{ fontWeight:400, color:D.textFaint, textTransform: 'none' }}>(Optional)</span></label>
+                  <label style={fieldLabel}>Next Service Due <span style={{ fontWeight: 400, color: D.textFaint, textTransform: 'none' }}>(Optional)</span></label>
                   <input
                     type="date" name="nextServiceDue"
                     value={formData.nextServiceDue} onChange={handleChange}
@@ -386,11 +386,11 @@ const AddServicePage = () => {
                   />
                 </div>
                 <div>
-                  <label style={fieldLabel}>Description / Notes <span style={{ fontWeight:400, color:D.textFaint, textTransform: 'none' }}>(Optional)</span></label>
+                  <label style={fieldLabel}>Description / Notes <span style={{ fontWeight: 400, color: D.textFaint, textTransform: 'none' }}>(Optional)</span></label>
                   <textarea
                     name="description" value={formData.description} onChange={handleChange}
                     rows={3} placeholder="Any additional notes…"
-                    style={{ ...fieldInput(false), resize:'none', lineHeight:1.5 }}
+                    style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }}
                     onFocus={focusBorder}
                     onBlur={e => blurBorder(e, false)}
                   />
@@ -398,34 +398,34 @@ const AddServicePage = () => {
               </div>
 
               {/* Action buttons */}
-              <div style={{ display:'flex', gap:12, justifyContent:'flex-end', borderTop:`1px solid ${D.border}`, paddingTop:24 }}>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', borderTop: `1px solid ${D.border}`, paddingTop: 24 }}>
                 <button
                   type="button" onClick={() => navigate('/service')}
                   style={{
-                    padding:'10px 24px', borderRadius:8,
-                    border:`1px solid ${D.border}`, background:'rgba(255,255,255,0.05)',
-                    color:D.text, fontSize:'0.875rem', fontWeight:600, cursor:'pointer',
-                    transition:'all 0.15s',
+                    padding: '10px 24px', borderRadius: 8,
+                    border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)',
+                    color: D.text, fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
+                    transition: 'all 0.15s',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.1)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit" disabled={loading}
                   style={{
-                    padding:'10px 28px', borderRadius:8, border:'none', display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '10px 28px', borderRadius: 8, border: 'none', display: 'flex', alignItems: 'center', gap: 8,
                     background: loading ? 'rgba(99,102,241,0.6)' : 'linear-gradient(135deg,#6366f1,#4f46e5)',
-                    color:'#fff', fontSize:'0.875rem', fontWeight:700,
+                    color: '#fff', fontSize: '0.875rem', fontWeight: 700,
                     cursor: loading ? 'not-allowed' : 'pointer',
                     boxShadow: loading ? 'none' : '0 4px 16px rgba(99,102,241,0.4)',
-                    transition:'all 0.15s',
+                    transition: 'all 0.15s',
                   }}
-                  onMouseEnter={e => { if (!loading) { e.currentTarget.style.transform='translateY(-1px)' }}}
-                  onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)' }}
+                  onMouseEnter={e => { if (!loading) { e.currentTarget.style.transform = 'translateY(-1px)' } }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
                 >
-                  {loading ? 'Saving…' : isEditing ? <><Save size={16}/> Save Changes</> : <><Plus size={16}/> Add Record</>}
+                  {loading ? 'Saving…' : isEditing ? <><Save size={16} /> Save Changes</> : <><Plus size={16} /> Add Record</>}
                 </button>
               </div>
 

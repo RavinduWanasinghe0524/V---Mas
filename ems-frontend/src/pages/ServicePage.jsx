@@ -8,15 +8,15 @@ import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wre
 
 /* ── Service type icon map ──────────────────────────────────────── */
 const SERVICE_TYPE_ICONS = {
-  OIL_CHANGE:           <Droplet size={22} />,
-  ENGINE_TUNE_UP:       <Settings size={22} />,
-  BRAKE_SERVICE:        <Circle size={22} />,
-  TIRE_ROTATION:        <RotateCcw size={22} />,
+  OIL_CHANGE: <Droplet size={22} />,
+  ENGINE_TUNE_UP: <Settings size={22} />,
+  BRAKE_SERVICE: <Circle size={22} />,
+  TIRE_ROTATION: <RotateCcw size={22} />,
   TRANSMISSION_SERVICE: <Settings size={22} />,
-  AC_SERVICE:           <Thermometer size={22} />,
-  BATTERY_REPLACEMENT:  <Battery size={22} />,
-  GENERAL_INSPECTION:   <Search size={22} />,
-  OTHER:                <Wrench size={22} />,
+  AC_SERVICE: <Thermometer size={22} />,
+  BATTERY_REPLACEMENT: <Battery size={22} />,
+  GENERAL_INSPECTION: <Search size={22} />,
+  OTHER: <Wrench size={22} />,
 }
 
 /* ── Status helpers ─────────────────────────────────────────────── */
@@ -30,9 +30,9 @@ const getStatus = (s) => {
 }
 
 const STATUS_CONFIG = {
-  ALL:       { label: 'All',       color: '#6366f1', bg: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.3)'  },
-  SCHEDULED: { label: 'Scheduled', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)'  },
-  COMPLETED: { label: 'Completed', color: '#10b981', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)'  },
+  ALL: { label: 'All', color: '#6366f1', bg: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.3)' },
+  SCHEDULED: { label: 'Scheduled', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' },
+  COMPLETED: { label: 'Completed', color: '#10b981', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)' },
 }
 
 /* ── Progress bar widths for stat cards ─────────────────────────── */
@@ -163,7 +163,7 @@ const ServiceCard = ({ record, index, isDriver, onEdit, onDelete }) => {
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.3)'; e.currentTarget.style.color = '#fff' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; e.currentTarget.style.color = '#a5b4fc' }}
           >
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Edit2 size={12}/> Edit</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Edit2 size={12} /> Edit</span>
           </button>
           <button
             id={`delete-service-${record.id}`}
@@ -177,7 +177,7 @@ const ServiceCard = ({ record, index, isDriver, onEdit, onDelete }) => {
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.3)'; e.currentTarget.style.color = '#fff' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; e.currentTarget.style.color = '#fca5a5' }}
           >
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Trash2 size={12}/> Delete</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Trash2 size={12} /> Delete</span>
           </button>
         </div>
       )}
@@ -243,19 +243,19 @@ const ServiceCalendar = ({ services, onEdit, isDriver, getStatus, STATUS_CONFIG 
               <div style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 600, marginBottom: 8 }}>{day}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {dayServices.map(s => {
-                    const status = getStatus(s)
-                    const sc = STATUS_CONFIG[status] || STATUS_CONFIG.COMPLETED
-                    return (
-                      <div key={s.id} onClick={() => !isDriver && onEdit(s.id)} style={{ cursor: isDriver ? 'default' : 'pointer', fontSize: '0.7rem', fontWeight: 600, background: sc.bg, color: sc.color, padding: '4px 6px', borderRadius: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', border: `1px solid ${sc.border}` }}>
-                        {s.vehicleRegNumber}
-                      </div>
-                    )
+                  const status = getStatus(s)
+                  const sc = STATUS_CONFIG[status] || STATUS_CONFIG.COMPLETED
+                  return (
+                    <div key={s.id} onClick={() => !isDriver && onEdit(s.id)} style={{ cursor: isDriver ? 'default' : 'pointer', fontSize: '0.7rem', fontWeight: 600, background: sc.bg, color: sc.color, padding: '4px 6px', borderRadius: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', border: `1px solid ${sc.border}` }}>
+                      {s.vehicleRegNumber}
+                    </div>
+                  )
                 })}
               </div>
             </div>
           )
         })}
-        
+
         {Array.from({ length: (7 - ((firstDay + daysInMonth) % 7)) % 7 }).map((_, i) => (
           <div key={`end-blank-${i}`} style={{ background: '#0f172a', minHeight: 110, borderTop: '1px solid rgba(255,255,255,0.05)' }}></div>
         ))}
@@ -270,14 +270,14 @@ const ServiceCalendar = ({ services, onEdit, isDriver, getStatus, STATUS_CONFIG 
 ══════════════════════════════════════════════════════════════════ */
 const ServicePage = () => {
   const { user } = useAuth()
-  const navigate  = useNavigate()
-  const isDriver  = user?.role === 'DRIVER'
+  const navigate = useNavigate()
+  const isDriver = user?.role === 'DRIVER'
 
   const [services, setServices] = useState([])
-  const [stats,    setStats]    = useState(null)
-  const [filter,   setFilter]   = useState('ALL')
-  const [search,   setSearch]   = useState('')
-  const [loading,  setLoading]  = useState(true)
+  const [stats, setStats] = useState(null)
+  const [filter, setFilter] = useState('ALL')
+  const [search, setSearch] = useState('')
+  const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState('list')
 
   const loadData = useCallback(async () => {
@@ -287,7 +287,7 @@ const ServicePage = () => {
         serviceAPI.getAllServices(),
         serviceAPI.getServiceStats(),
       ])
-      setServices(servRes.data.data  || [])
+      setServices(servRes.data.data || [])
       setStats(statsRes.data.data)
     } catch (err) {
       console.error('Error loading service data', err)
@@ -312,7 +312,7 @@ const ServicePage = () => {
   /* Derived counts */
   const scheduled = services.filter(s => getStatus(s) === 'SCHEDULED').length
   const completed = services.filter(s => getStatus(s) === 'COMPLETED').length
-  const total     = services.length
+  const total = services.length
 
   /* Filtered list */
   const filtered = services.filter(s => {
@@ -363,11 +363,11 @@ const ServicePage = () => {
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16
           }}>
             {/* decorative circles */}
-            {[['80%','−20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
-              <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
+            {[['80%', '−20px', '180px', 'rgba(255,255,255,0.03)'], ['20%', '60%', '120px', 'rgba(255,255,255,0.04)'], ['55%', '80%', '90px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
+              <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
             ))}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', color: '#fff', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
                 <Wrench size={32} strokeWidth={1.5} />
               </div>
               <div>
@@ -390,20 +390,20 @@ const ServicePage = () => {
                 borderRadius: 14,
                 padding: 4,
               }}>
-                <button 
+                <button
                   onClick={() => setViewMode('list')}
                   style={{
-                  background: viewMode === 'list' ? '#2563eb' : 'transparent', color: viewMode === 'list' ? '#fff' : '#64748b', border: 'none', borderRadius: 10,
-                  padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
-                  cursor: 'pointer', transition: 'all 0.15s ease'
-                }}>List</button>
-                <button 
+                    background: viewMode === 'list' ? '#2563eb' : 'transparent', color: viewMode === 'list' ? '#fff' : '#64748b', border: 'none', borderRadius: 10,
+                    padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
+                    cursor: 'pointer', transition: 'all 0.15s ease'
+                  }}>List</button>
+                <button
                   onClick={() => setViewMode('calendar')}
                   style={{
-                  background: viewMode === 'calendar' ? '#2563eb' : 'transparent', color: viewMode === 'calendar' ? '#fff' : '#64748b', border: 'none', borderRadius: 10,
-                  padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
-                  cursor: 'pointer', transition: 'all 0.15s ease'
-                }}>Calendar</button>
+                    background: viewMode === 'calendar' ? '#2563eb' : 'transparent', color: viewMode === 'calendar' ? '#fff' : '#64748b', border: 'none', borderRadius: 10,
+                    padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
+                    cursor: 'pointer', transition: 'all 0.15s ease'
+                  }}>Calendar</button>
               </div>
 
               {/* Add button — Admin & Controller */}
@@ -528,7 +528,7 @@ const ServicePage = () => {
                   transition: 'border-color 0.15s',
                 }}
                 onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)' }}
-                onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
+                onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
               />
             </div>
           </div>
@@ -568,12 +568,12 @@ const ServicePage = () => {
                 )}
               </div>
             ) : viewMode === 'calendar' ? (
-              <ServiceCalendar 
-                services={filtered} 
-                isDriver={isDriver} 
-                onEdit={id => navigate(`/service/edit/${id}`)} 
-                getStatus={getStatus} 
-                STATUS_CONFIG={STATUS_CONFIG} 
+              <ServiceCalendar
+                services={filtered}
+                isDriver={isDriver}
+                onEdit={id => navigate(`/service/edit/${id}`)}
+                getStatus={getStatus}
+                STATUS_CONFIG={STATUS_CONFIG}
               />
             ) : (
               filtered.map((record, i) => (

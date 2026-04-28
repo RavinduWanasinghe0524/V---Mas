@@ -8,31 +8,31 @@ import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle,
 
 /* ── Dark palette ───────────────────────────────────────────── */
 const D = {
-  bg:        '#0d1117',
-  surface:   '#161b27',
+  bg: '#0d1117',
+  surface: '#161b27',
   surfaceHi: '#1e2535',
-  border:    'rgba(255,255,255,0.07)',
-  borderHi:  'rgba(255,255,255,0.13)',
-  text:      '#e2e8f0',
-  textSub:   '#64748b',
+  border: 'rgba(255,255,255,0.07)',
+  borderHi: 'rgba(255,255,255,0.13)',
+  text: '#e2e8f0',
+  textSub: '#64748b',
   textFaint: '#374151',
-  green:     '#4ade80',
-  greenDim:  'rgba(74,222,128,0.15)',
-  blue:      '#60a5fa',
-  blueDim:   'rgba(96,165,250,0.15)',
-  orange:    '#f97316',
+  green: '#4ade80',
+  greenDim: 'rgba(74,222,128,0.15)',
+  blue: '#60a5fa',
+  blueDim: 'rgba(96,165,250,0.15)',
+  orange: '#f97316',
   orangeDim: 'rgba(249,115,22,0.15)',
-  red:       '#f87171',
-  redDim:    'rgba(248,113,113,0.15)',
-  purple:    '#a78bfa',
+  red: '#f87171',
+  redDim: 'rgba(248,113,113,0.15)',
+  purple: '#a78bfa',
   purpleDim: 'rgba(167,139,250,0.15)',
 }
 
 const statusColors = {
-  ACTIVE:    { bg: D.greenDim,  color: D.green,  border: 'rgba(74,222,128,0.3)' },
-  AVAILABLE: { bg: D.blueDim,   color: D.blue,   border: 'rgba(96,165,250,0.3)' },
-  SERVICE:   { bg: D.orangeDim, color: D.orange, border: 'rgba(249,115,22,0.3)' },
-  INACTIVE:  { bg: D.redDim,    color: D.red,    border: 'rgba(248,113,113,0.3)' },
+  ACTIVE: { bg: D.greenDim, color: D.green, border: 'rgba(74,222,128,0.3)' },
+  AVAILABLE: { bg: D.blueDim, color: D.blue, border: 'rgba(96,165,250,0.3)' },
+  SERVICE: { bg: D.orangeDim, color: D.orange, border: 'rgba(249,115,22,0.3)' },
+  INACTIVE: { bg: D.redDim, color: D.red, border: 'rgba(248,113,113,0.3)' },
 }
 
 const inputStyle = {
@@ -73,8 +73,8 @@ const StatBadge = ({ label, value, icon, colorDim, colorHex }) => (
     padding: '20px 22px', transition: 'all 0.25s ease', boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
     flex: 1, minWidth: 200, cursor: 'default'
   }}
-  onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.borderColor=D.borderHi; e.currentTarget.style.boxShadow=`0 8px 24px ${colorDim}` }}
-  onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.borderColor=D.border; e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,0.2)' }}>
+    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = D.borderHi; e.currentTarget.style.boxShadow = `0 8px 24px ${colorDim}` }}
+    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.2)' }}>
     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
       <div>
         <p style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>{label}</p>
@@ -282,11 +282,11 @@ const VehiclesPage = () => {
               border: `1px solid ${D.border}`
             }}>
               {/* decorative circles */}
-              {[['80%','−20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
-                <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
+              {[['80%', '−20px', '180px', 'rgba(255,255,255,0.03)'], ['20%', '60%', '120px', 'rgba(255,255,255,0.04)'], ['55%', '80%', '90px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
+                <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
               ))}
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', color: '#fff', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
                   <Car size={32} strokeWidth={1.5} />
                 </div>
                 <div>
@@ -339,7 +339,7 @@ const VehiclesPage = () => {
                   </button>
                 ))}
               </div>
-              <button 
+              <button
                 onClick={openModal}
                 style={{
                   padding: '9px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
@@ -377,8 +377,8 @@ const VehiclesPage = () => {
                       const s = statusColors[v.status] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
                       return (
                         <tr key={v.id} style={{ borderBottom: `1px solid ${D.border}`, background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)', transition: 'background 0.15s' }}
-                            onMouseEnter={e => e.currentTarget.style.background='rgba(99,102,241,0.08)'}
-                            onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'}>
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.08)'}
+                          onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'}>
                           <td style={{ padding: '14px 16px', fontWeight: 700, color: D.blue }}>{v.registrationNo ?? 'N/A'}</td>
                           <td style={{ padding: '14px 16px', color: D.text, fontWeight: 600 }}>{v.manufacturer ?? 'N/A'} {v.model ?? 'N/A'}</td>
                           <td style={{ padding: '14px 16px', color: D.textSub }}>{v.year ?? 'N/A'}</td>
@@ -393,13 +393,13 @@ const VehiclesPage = () => {
                           <td style={{ padding: '14px 16px' }}>
                             <div style={{ display: 'flex', gap: 6 }}>
                               <button onClick={() => openEditModal(v)} style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
-                                onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor='rgba(99,102,241,0.4)'; e.currentTarget.style.color='#a5b4fc' }}
-                                onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor=D.border; e.currentTarget.style.color=D.text }}>
+                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; e.currentTarget.style.color = '#a5b4fc' }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
                                 <Edit2 size={14} style={{ marginRight: 6 }} /> Edit
                               </button>
                               <button onClick={() => openDeleteModal(v)} style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
-                                onMouseEnter={e => { e.currentTarget.style.background='rgba(248,113,113,0.2)' }}
-                                onMouseLeave={e => { e.currentTarget.style.background='rgba(248,113,113,0.1)' }}>
+                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.2)' }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)' }}>
                                 <Trash2 size={14} style={{ marginRight: 6 }} /> Delete
                               </button>
                             </div>
@@ -471,7 +471,7 @@ const VehiclesPage = () => {
                 </div>
                 <div style={{ display: 'flex', gap: 12 }}>
                   <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    <Check size={16}/> Add Vehicle
+                    <Check size={16} /> Add Vehicle
                   </button>
                   <button type="button" onClick={closeModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
                     Cancel
@@ -541,7 +541,7 @@ const VehiclesPage = () => {
                 </div>
                 <div style={{ display: 'flex', gap: 12 }}>
                   <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    <Check size={16}/> Save Changes
+                    <Check size={16} /> Save Changes
                   </button>
                   <button type="button" onClick={closeEditModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
                     Cancel
