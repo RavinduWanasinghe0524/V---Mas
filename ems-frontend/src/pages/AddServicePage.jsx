@@ -168,6 +168,36 @@ const AddServicePage = () => {
 
         <div className="page-body">
 
+          {/* Hero Banner */}
+          <div style={{
+            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
+            borderRadius: 20,
+            padding: '32px 36px',
+            marginBottom: 28,
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            border: `1px solid rgba(255,255,255,0.07)`
+          }}>
+            {/* decorative circles */}
+            {[['80%','−20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
+              <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
+            ))}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
+              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', color: '#fff', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <Wrench size={32} strokeWidth={1.5} />
+              </div>
+              <div>
+                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  {isEditing ? 'Edit Service Record' : 'Add Service Record'}
+                </h1>
+                <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
+                  {isEditing ? 'Update the details of an existing vehicle service record.' : 'Create a new maintenance and service record.'}
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* ── Back button ─────────────────────────────────────── */}
           <button
             onClick={() => navigate('/service')}

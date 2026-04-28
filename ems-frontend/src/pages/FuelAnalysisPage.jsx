@@ -279,15 +279,34 @@ const FuelAnalysisPage = () => {
             </div>
           )}
 
-          {/* ── Page title + driver tabs ─────────────────────── */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 14 }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Fuel size={24} color={D.indigo}/> Fuel Analysis
-              </h1>
-              <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: D.textSub }}>
-                {isDriver ? 'Track your vehicle fuel consumption.' : 'Fleet-wide consumption trends, cost breakdowns & efficiency tracking.'}
-              </p>
+          {/* ── Hero Banner ─────────────────────────────────────── */}
+          <div style={{
+            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
+            borderRadius: 20,
+            padding: '32px 36px',
+            marginBottom: 28,
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            border: `1px solid rgba(255,255,255,0.07)`,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16
+          }}>
+            {/* decorative circles */}
+            {[['80%','−20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
+              <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
+            ))}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
+              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', color: '#fff', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <Fuel size={32} strokeWidth={1.5} />
+              </div>
+              <div>
+                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  Fuel Analysis
+                </h1>
+                <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
+                  {isDriver ? 'Track your vehicle fuel consumption.' : 'Fleet-wide consumption trends, cost breakdowns & efficiency tracking.'}
+                </p>
+              </div>
             </div>
             {isDriver && (
               <div style={{ display: 'flex', gap: 5, background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 4, border: `1px solid ${D.border}` }}>
