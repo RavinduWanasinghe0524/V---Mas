@@ -134,7 +134,7 @@ const UsersPage = () => {
   const handleApprove = async (id, username) => {
     try {
       await userAPI.approveUser(id)
-      setActionMsg(`✅ ${username} has been approved.`)
+      setActionMsg(`${username} has been approved.`)
       setTimeout(() => setActionMsg(''), 4000)
       loadPending()
       loadUsers()
@@ -147,7 +147,7 @@ const UsersPage = () => {
     if (!window.confirm(`Reject "${username}"? Their account will be set to Inactive.`)) return
     try {
       await userAPI.rejectUser(id)
-      setActionMsg(`❌ ${username}'s account has been rejected.`)
+      setActionMsg(`${username}'s account has been rejected.`)
       setTimeout(() => setActionMsg(''), 4000)
       loadPending()
       loadUsers()
@@ -241,8 +241,8 @@ const UsersPage = () => {
                 <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
               ))}
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', fontSize: '2rem', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  👥
+                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', color: '#fff', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <Users size={32} strokeWidth={1.5} />
                 </div>
                 <div>
                   <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -473,8 +473,8 @@ const UsersPage = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(99,102,241,0.4)' }}>
-                    {editingUser ? '✓ Save Changes' : '✓ Create User'}
+                  <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Check size={16}/> {editingUser ? 'Save Changes' : 'Create User'}
                   </button>
                   <button type="button" onClick={() => setShowModal(false)} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
                     Cancel

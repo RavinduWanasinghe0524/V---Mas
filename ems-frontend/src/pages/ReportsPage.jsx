@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
+import { 
+  Car, Fuel, Wrench, Users, MapPin, DollarSign, 
+  FileText, Calendar, Download, ClipboardList, BarChart2, Loader2
+} from 'lucide-react'
 
 /* ── Dark palette ───────────────────────────────────────────── */
 const D = {
@@ -31,7 +35,7 @@ const D = {
 const reportTypes = [
   {
     id: 'vehicle-summary',
-    icon: '🚗',
+    icon: <Car size={24} strokeWidth={1.5} />,
     title: 'Vehicle Summary Report',
     desc: 'Overview of all fleet vehicles including status, mileage, and assignments.',
     category: 'Fleet',
@@ -40,7 +44,7 @@ const reportTypes = [
   },
   {
     id: 'fuel-report',
-    icon: '⛽',
+    icon: <Fuel size={24} strokeWidth={1.5} />,
     title: 'Fuel Consumption Report',
     desc: 'Detailed fuel usage breakdown per vehicle, driver, and time period.',
     category: 'Fuel',
@@ -49,7 +53,7 @@ const reportTypes = [
   },
   {
     id: 'service-report',
-    icon: '🔧',
+    icon: <Wrench size={24} strokeWidth={1.5} />,
     title: 'Service & Maintenance Report',
     desc: 'Summary of all service records, costs, and upcoming maintenance schedules.',
     category: 'Maintenance',
@@ -58,7 +62,7 @@ const reportTypes = [
   },
   {
     id: 'user-report',
-    icon: '👥',
+    icon: <Users size={24} strokeWidth={1.5} />,
     title: 'User Activity Report',
     desc: 'User registration, role distribution, login history, and account statuses.',
     category: 'Users',
@@ -67,7 +71,7 @@ const reportTypes = [
   },
   {
     id: 'location-report',
-    icon: '📍',
+    icon: <MapPin size={24} strokeWidth={1.5} />,
     title: 'Location & Route Report',
     desc: 'Vehicle location history, routes taken, and distance covered per vehicle.',
     category: 'Fleet',
@@ -76,7 +80,7 @@ const reportTypes = [
   },
   {
     id: 'cost-report',
-    icon: '💰',
+    icon: <DollarSign size={24} strokeWidth={1.5} />,
     title: 'Cost Analysis Report',
     desc: 'Full cost breakdown including fuel, maintenance, and operational expenses.',
     category: 'Finance',
@@ -130,8 +134,8 @@ const ReportsPage = () => {
               <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
             ))}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', fontSize: '2rem', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                📊
+              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', color: '#fff', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <BarChart2 size={32} strokeWidth={1.5} />
               </div>
               <div>
                 <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -147,10 +151,10 @@ const ReportsPage = () => {
           {/* Quick stats */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
             {[
-              { label: 'Reports Generated', value: '38',    icon: '📄', colorDim: D.purpleDim, colorHex: D.purple },
-              { label: 'This Month',        value: '12',    icon: '📅', colorDim: D.blueDim,   colorHex: D.blue   },
-              { label: 'Total Downloads',   value: '127',   icon: '⬇️', colorDim: D.greenDim,  colorHex: D.green  },
-              { label: 'Report Types',      value: reportTypes.length.toString(), icon: '📋', colorDim: D.indigoDim, colorHex: D.indigo },
+              { label: 'Reports Generated', value: '38',    icon: <FileText size={20} strokeWidth={1.5} />, colorDim: D.purpleDim, colorHex: D.purple },
+              { label: 'This Month',        value: '12',    icon: <Calendar size={20} strokeWidth={1.5} />, colorDim: D.blueDim,   colorHex: D.blue   },
+              { label: 'Total Downloads',   value: '127',   icon: <Download size={20} strokeWidth={1.5} />, colorDim: D.greenDim,  colorHex: D.green  },
+              { label: 'Report Types',      value: reportTypes.length.toString(), icon: <ClipboardList size={20} strokeWidth={1.5} />, colorDim: D.indigoDim, colorHex: D.indigo },
             ].map(s => (
               <div key={s.label} style={{
                 background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`,
@@ -164,7 +168,7 @@ const ReportsPage = () => {
                     <p style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>{s.label}</p>
                     <p style={{ fontSize: '1.55rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif", lineHeight: 1 }}>{s.value}</p>
                   </div>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: s.colorDim, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', boxShadow: `0 4px 12px ${s.colorDim}`, flexShrink: 0, border: `1px solid ${s.colorHex}30` }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: s.colorDim, color: s.colorHex, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 12px ${s.colorDim}`, flexShrink: 0, border: `1px solid ${s.colorHex}30` }}>
                     {s.icon}
                   </div>
                 </div>
@@ -184,7 +188,7 @@ const ReportsPage = () => {
               onMouseEnter={e => { e.currentTarget.style.borderColor = D.borderHi; e.currentTarget.style.background = D.surfaceHi; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 12, background: r.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', border: `1px solid ${r.color}30`, boxShadow: `0 4px 12px ${r.bg}` }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 12, background: r.bg, color: r.color, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${r.color}30`, boxShadow: `0 4px 12px ${r.bg}` }}>
                     {r.icon}
                   </div>
                   <span style={{ background: r.bg, color: r.color, fontSize: '0.68rem', fontWeight: 700, padding: '3px 10px', borderRadius: 999, textTransform: 'uppercase', letterSpacing: '0.05em', border: `1px solid ${r.color}30` }}>
@@ -206,7 +210,7 @@ const ReportsPage = () => {
                       transition: 'all 0.2s ease', boxShadow: generating === r.id ? 'none' : `0 4px 14px ${r.bg}`
                     }}
                   >
-                    {generating === r.id ? '⏳ Generating…' : '⬇ Generate PDF'}
+                    {generating === r.id ? <><Loader2 size={14} className="animate-spin" style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}/> Generating…</> : <><Download size={14} style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}/> Generate PDF</>}
                   </button>
                   <button style={{ padding: '9px 12px', borderRadius: 10, border: `1px solid ${r.color}40`, background: r.bg, color: r.color, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}
                     onMouseEnter={e => { e.currentTarget.style.background = r.color; e.currentTarget.style.color = '#fff' }}
@@ -234,8 +238,8 @@ const ReportsPage = () => {
                   <tr key={r.name} style={{ borderBottom: `1px solid ${D.border}`, background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)', transition: 'background 0.15s' }}
                       onMouseEnter={e => e.currentTarget.style.background='rgba(99,102,241,0.08)'}
                       onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'}>
-                    <td style={{ padding: '14px 16px', fontWeight: 600, color: D.text }}>
-                      <span style={{ marginRight: 10, filter: 'grayscale(0.5)' }}>📄</span>{r.name}
+                    <td style={{ padding: '14px 16px', fontWeight: 600, color: D.text, display: 'flex', alignItems: 'center' }}>
+                      <FileText size={16} style={{ marginRight: 10, color: D.textSub }} />{r.name}
                     </td>
                     <td style={{ padding: '14px 16px', color: D.textSub }}>{r.generated}</td>
                     <td style={{ padding: '14px 16px' }}>
@@ -249,7 +253,7 @@ const ReportsPage = () => {
                         <button style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
                           onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor='rgba(99,102,241,0.4)'; e.currentTarget.style.color='#a5b4fc' }}
                           onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor=D.border; e.currentTarget.style.color=D.text }}>
-                          ⬇ Download
+                          <Download size={12} strokeWidth={2} style={{ marginRight: 4 }} /> Download
                         </button>
                         <button style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
                           onMouseEnter={e => { e.currentTarget.style.background='rgba(248,113,113,0.2)' }}

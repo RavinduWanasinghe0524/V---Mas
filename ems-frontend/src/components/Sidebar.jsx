@@ -1,5 +1,9 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { 
+  LayoutDashboard, Truck, Wrench, Users, Fuel, 
+  MapPin, BarChart2, User, UserCheck, ClipboardList 
+} from 'lucide-react'
 
 // Helper for initials
 const getInitials = (name) => {
@@ -11,32 +15,32 @@ const getInitials = (name) => {
 
 const navItems = {
   ADMIN: [
-    { label: 'Dashboard',     icon: '📊', to: '/dashboard'     },
-    { label: 'Vehicles',      icon: '🚗', to: '/vehicles'      },
-    { label: 'Service',       icon: '🔧', to: '/service'       },
-    { label: 'Users',         icon: '👥', to: '/users'         },
-    { label: 'Fuel Analysis', icon: '⛽', to: '/fuel-analysis' },
-    { label: 'Location',      icon: '📍', to: '/location'      },
-    { label: 'Reports',       icon: '📈', to: '/reports'       },
-    { label: 'My Profile',    icon: '👤', to: '/profile'       },
+    { label: 'Dashboard',     icon: <LayoutDashboard size={20} strokeWidth={1.5} />, to: '/dashboard'     },
+    { label: 'Vehicles',      icon: <Truck size={20} strokeWidth={1.5} />, to: '/vehicles'      },
+    { label: 'Service',       icon: <Wrench size={20} strokeWidth={1.5} />, to: '/service'       },
+    { label: 'Users',         icon: <Users size={20} strokeWidth={1.5} />, to: '/users'         },
+    { label: 'Fuel Analysis', icon: <Fuel size={20} strokeWidth={1.5} />, to: '/fuel-analysis' },
+    { label: 'Location',      icon: <MapPin size={20} strokeWidth={1.5} />, to: '/location'      },
+    { label: 'Reports',       icon: <BarChart2 size={20} strokeWidth={1.5} />, to: '/reports'       },
+    { label: 'My Profile',    icon: <User size={20} strokeWidth={1.5} />, to: '/profile'       },
   ],
   CONTROLLER: [
-    { label: 'Dashboard', icon: '📊', to: '/dashboard' },
-    { label: 'Vehicles', icon: '🚗', to: '/vehicles', disabled: true },
-    { label: 'Driver Assignment', icon: '👨‍✈️', to: '/assignments', disabled: true },
-    { label: 'Live Tracking', icon: '📍', to: '/tracking', disabled: true },
-    { label: 'Fuel Management', icon: '⛽', to: '/fuel-management' },
-    { label: 'Service', icon: '🔧', to: '/service' },
-    { label: 'Users', icon: '👥', to: '/users' },
-    { label: 'My Profile', icon: '👤', to: '/profile' },
+    { label: 'Dashboard', icon: <LayoutDashboard size={20} strokeWidth={1.5} />, to: '/dashboard' },
+    { label: 'Vehicles', icon: <Truck size={20} strokeWidth={1.5} />, to: '/vehicles', disabled: true },
+    { label: 'Driver Assignment', icon: <UserCheck size={20} strokeWidth={1.5} />, to: '/assignments', disabled: true },
+    { label: 'Live Tracking', icon: <MapPin size={20} strokeWidth={1.5} />, to: '/tracking', disabled: true },
+    { label: 'Fuel Management', icon: <Fuel size={20} strokeWidth={1.5} />, to: '/fuel-management' },
+    { label: 'Service', icon: <Wrench size={20} strokeWidth={1.5} />, to: '/service' },
+    { label: 'Users', icon: <Users size={20} strokeWidth={1.5} />, to: '/users' },
+    { label: 'My Profile', icon: <User size={20} strokeWidth={1.5} />, to: '/profile' },
   ],
   DRIVER: [
-    { label: 'Dashboard', icon: '📊', to: '/dashboard' },
-    { label: 'My Vehicle', icon: '🚗', to: '/vehicle', disabled: true },
-    { label: 'Task List', icon: '📋', to: '/tasks', disabled: true },
-    { label: 'Fuel Log', icon: '⛽', to: '/fuel-log' },
-    { label: 'Service History', icon: '🔧', to: '/service' },
-    { label: 'My Profile', icon: '👤', to: '/profile' },
+    { label: 'Dashboard', icon: <LayoutDashboard size={20} strokeWidth={1.5} />, to: '/dashboard' },
+    { label: 'My Vehicle', icon: <Truck size={20} strokeWidth={1.5} />, to: '/vehicle', disabled: true },
+    { label: 'Task List', icon: <ClipboardList size={20} strokeWidth={1.5} />, to: '/tasks', disabled: true },
+    { label: 'Fuel Log', icon: <Fuel size={20} strokeWidth={1.5} />, to: '/fuel-log' },
+    { label: 'Service History', icon: <Wrench size={20} strokeWidth={1.5} />, to: '/service' },
+    { label: 'My Profile', icon: <User size={20} strokeWidth={1.5} />, to: '/profile' },
   ],
 }
 
@@ -58,7 +62,7 @@ const Sidebar = () => {
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="sidebar-brand">
-          <div className="sidebar-logo">🚗</div>
+          <div className="sidebar-logo"><Truck size={24} color="#60a5fa" strokeWidth={2} /></div>
           <div>
             <div className="sidebar-title">V-MAS</div>
             <div className="sidebar-subtitle">Fleet Management</div>

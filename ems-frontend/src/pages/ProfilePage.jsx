@@ -3,6 +3,7 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { profileAPI, fuelAPI, serviceAPI, vehicleAPI } from '../services/api'
+import { User, Mail, Key, ShieldCheck, Shield, Globe, Fuel, Ruler, Calendar, Car, Wrench, Edit2, AlertCircle, CheckCircle, Eye, EyeOff, Check } from 'lucide-react'
 
 /* ── Dark palette ───────────────────────────────────────────── */
 const D = {
@@ -247,8 +248,8 @@ const ProfilePage = () => {
               <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
             ))}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', fontSize: '2rem', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                👤
+              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', color: '#fff', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <User size={32} strokeWidth={1.5} />
               </div>
               <div>
                 <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -284,8 +285,8 @@ const ProfilePage = () => {
                   background: '#6366f1', borderRadius: '50%',
                   width: 28, height: 28, display: 'flex', alignItems: 'center',
                   justifyContent: 'center', border: `2px solid ${D.surface}`,
-                  fontSize: '0.75rem',
-                }}>✏️</div>
+                  color: '#fff'
+                }}><Edit2 size={12} strokeWidth={2.5}/></div>
               </div>
               <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
 
@@ -323,7 +324,7 @@ const ProfilePage = () => {
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {permissions.map(p => (
                     <li key={p} style={{ fontSize: '0.8rem', color: D.text, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ color: D.green }}>✓</span> {p}
+                      <Check size={14} color={D.green} /> {p}
                     </li>
                   ))}
                 </ul>
@@ -365,10 +366,10 @@ const ProfilePage = () => {
                   </div>
 
                   {[
-                    { icon: '👤', label: 'Username',       value: user?.userName },
-                    { icon: '📧', label: 'Email',          value: user?.email },
-                    { icon: '🔑', label: 'Role',           value: <RoleBadge role={user?.role} /> },
-                    { icon: '✅', label: 'Account Status', value: <span style={{ background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>● {user?.accountStatus}</span> },
+                    { icon: <User size={18}/>, label: 'Username',       value: user?.userName },
+                    { icon: <Mail size={18}/>, label: 'Email',          value: user?.email },
+                    { icon: <Key size={18}/>, label: 'Role',           value: <RoleBadge role={user?.role} /> },
+                    { icon: <ShieldCheck size={18}/>, label: 'Account Status', value: <span style={{ background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>● {user?.accountStatus}</span> },
                   ].map((row, idx, arr) => (
                     <div key={idx} style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -376,7 +377,7 @@ const ProfilePage = () => {
                       borderBottom: idx < arr.length - 1 ? `1px solid ${D.border}` : 'none',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: '1.1rem' }}>{row.icon}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', color: D.textSub }}>{row.icon}</span>
                         <span style={{ fontSize: '0.875rem', color: D.textSub, fontWeight: 600 }}>{row.label}</span>
                       </div>
                       <span style={{ fontSize: '0.875rem', color: D.text, fontWeight: 600 }}>
@@ -392,14 +393,14 @@ const ProfilePage = () => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {[
-                        { icon: '🔐', title: 'Authentication',  sub: 'JWT Token-based authentication active', badge: 'Secure', badgeColor: D.green, badgeDim: D.greenDim },
-                        { icon: '🌐', title: 'Backend API',     sub: 'Connected to V-MAS Spring Boot backend', badge: 'Connected', badgeColor: D.blue, badgeDim: D.blueDim },
+                        { icon: <Shield size={20}/>, title: 'Authentication',  sub: 'JWT Token-based authentication active', badge: 'Secure', badgeColor: D.green, badgeDim: D.greenDim },
+                        { icon: <Globe size={20}/>, title: 'Backend API',     sub: 'Connected to V-MAS Spring Boot backend', badge: 'Connected', badgeColor: D.blue, badgeDim: D.blueDim },
                       ].map(item => (
                         <div key={item.title} style={{
                           display: 'flex', alignItems: 'center', gap: 10, padding: 14,
                           background: D.surfaceHi, borderRadius: 8, border: `1px solid ${D.border}`,
                         }}>
-                          <span style={{ fontSize: '1.2rem' }}>{item.icon}</span>
+                          <span style={{ display: 'flex', alignItems: 'center', color: D.indigo }}>{item.icon}</span>
                           <div>
                             <div style={{ fontSize: '0.82rem', fontWeight: 700, color: D.text }}>{item.title}</div>
                             <div style={{ fontSize: '0.75rem', color: D.textSub }}>{item.sub}</div>
@@ -422,8 +423,8 @@ const ProfilePage = () => {
                     <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${D.border}, transparent)` }}></div>
                   </div>
 
-                  {profileError   && <div style={{ padding: '12px 16px', borderRadius: 8, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600 }}>⚠️ {profileError}</div>}
-                  {profileSuccess && <div style={{ padding: '12px 16px', borderRadius: 8, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600 }}>✅ {profileSuccess}</div>}
+                  {profileError   && <div style={{ padding: '12px 16px', borderRadius: 8, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><AlertCircle size={16}/> {profileError}</div>}
+                  {profileSuccess && <div style={{ padding: '12px 16px', borderRadius: 8, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><CheckCircle size={16}/> {profileSuccess}</div>}
 
                   <form onSubmit={handleProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
@@ -512,8 +513,8 @@ const ProfilePage = () => {
                     <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${D.border}, transparent)` }}></div>
                   </div>
 
-                  {pwError   && <div style={{ padding: '12px 16px', borderRadius: 8, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600 }}>⚠️ {pwError}</div>}
-                  {pwSuccess && <div style={{ padding: '12px 16px', borderRadius: 8, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600 }}>✅ {pwSuccess}</div>}
+                  {pwError   && <div style={{ padding: '12px 16px', borderRadius: 8, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><AlertCircle size={16}/> {pwError}</div>}
+                  {pwSuccess && <div style={{ padding: '12px 16px', borderRadius: 8, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><CheckCircle size={16}/> {pwSuccess}</div>}
 
                   <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
@@ -542,7 +543,7 @@ const ProfilePage = () => {
                               color: D.textSub, fontSize: '1rem',
                             }}
                           >
-                            {showPasswords ? '🙈' : '👁️'}
+                            {showPasswords ? <EyeOff size={16}/> : <Eye size={16}/>}
                           </button>
                         </div>
                       </div>
@@ -567,8 +568,8 @@ const ProfilePage = () => {
                             : 'Strong'}
                         </span>
                         {pwForm.newPassword.length > 0 && pwForm.confirmPassword.length > 0 && (
-                          <span style={{ marginLeft: 16, color: pwForm.newPassword === pwForm.confirmPassword ? D.green : D.red }}>
-                            {pwForm.newPassword === pwForm.confirmPassword ? '✓ Passwords match' : '✗ Passwords do not match'}
+                          <span style={{ marginLeft: 16, color: pwForm.newPassword === pwForm.confirmPassword ? D.green : D.red, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            {pwForm.newPassword === pwForm.confirmPassword ? <><CheckCircle size={12}/> Passwords match</> : <><AlertCircle size={12}/> Passwords do not match</>}
                           </span>
                         )}
                       </div>
@@ -608,14 +609,14 @@ const ProfilePage = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16 }}>
                       {user?.role === 'DRIVER' ? (
                         <>
-                          <StatCard icon="⛽" label="Total Fuel Logs"    value={stats.totalLogs}       colorDim={D.blueDim} colorHex={D.blue} />
-                          <StatCard icon="📏" label="Avg Efficiency"     value={`${stats.avgEfficiency} km/L`} colorDim={D.greenDim} colorHex={D.green} />
-                          <StatCard icon="📅" label="Last Entry"         value={stats.lastEntry}        colorDim={D.goldDim} colorHex={D.gold} />
+                          <StatCard icon={<Fuel size={20}/>} label="Total Fuel Logs"    value={stats.totalLogs}       colorDim={D.blueDim} colorHex={D.blue} />
+                          <StatCard icon={<Ruler size={20}/>} label="Avg Efficiency"     value={`${stats.avgEfficiency} km/L`} colorDim={D.greenDim} colorHex={D.green} />
+                          <StatCard icon={<Calendar size={20}/>} label="Last Entry"         value={stats.lastEntry}        colorDim={D.goldDim} colorHex={D.gold} />
                         </>
                       ) : (
                         <>
-                          <StatCard icon="🚗" label="Total Vehicles"     value={stats.totalVehicles}    colorDim={D.purpleDim} colorHex={D.purple} />
-                          <StatCard icon="🔧" label="Upcoming Services"  value={stats.upcomingServices} colorDim={D.orangeDim} colorHex={D.orange} />
+                          <StatCard icon={<Car size={20}/>} label="Total Vehicles"     value={stats.totalVehicles}    colorDim={D.purpleDim} colorHex={D.purple} />
+                          <StatCard icon={<Wrench size={20}/>} label="Upcoming Services"  value={stats.upcomingServices} colorDim={D.orangeDim} colorHex={D.orange} />
                         </>
                       )}
                     </div>
@@ -663,7 +664,7 @@ const StatCard = ({ icon, label, value, colorDim, colorHex }) => (
     background: D.surfaceHi, border: `1px solid ${D.border}`,
     textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center'
   }}>
-    <div style={{ width: 44, height: 44, borderRadius: 12, background: colorDim, border: `1px solid ${colorHex}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', marginBottom: 12 }}>{icon}</div>
+    <div style={{ width: 44, height: 44, borderRadius: 12, background: colorDim, border: `1px solid ${colorHex}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colorHex, marginBottom: 12 }}>{icon}</div>
     <div style={{ fontSize: '1.5rem', fontWeight: 800, color: D.text, marginBottom: 4, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>{value}</div>
     <div style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
   </div>
