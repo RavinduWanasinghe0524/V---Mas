@@ -393,14 +393,14 @@ const ServicePage = () => {
                 <button
                   onClick={() => setViewMode('list')}
                   style={{
-                    background: viewMode === 'list' ? '#2563eb' : 'transparent', color: viewMode === 'list' ? '#fff' : '#64748b', border: 'none', borderRadius: 10,
+                    background: viewMode === 'list' ? '#ffffff' : 'transparent', color: viewMode === 'list' ? '#4338ca' : '#a5b4fc', border: 'none', borderRadius: 10,
                     padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
                     cursor: 'pointer', transition: 'all 0.15s ease'
                   }}>List</button>
                 <button
                   onClick={() => setViewMode('calendar')}
                   style={{
-                    background: viewMode === 'calendar' ? '#2563eb' : 'transparent', color: viewMode === 'calendar' ? '#fff' : '#64748b', border: 'none', borderRadius: 10,
+                    background: viewMode === 'calendar' ? '#ffffff' : 'transparent', color: viewMode === 'calendar' ? '#4338ca' : '#a5b4fc', border: 'none', borderRadius: 10,
                     padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
                     cursor: 'pointer', transition: 'all 0.15s ease'
                   }}>Calendar</button>
@@ -414,13 +414,13 @@ const ServicePage = () => {
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8,
                     padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
-                    background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(59,130,246,0.35)', transition: 'all 0.2s ease',
+                    background: '#ffffff', color: '#4338ca', border: 'none', cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.1)', transition: 'all 0.2s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#2563eb'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#3b82f6'; e.currentTarget.style.transform = 'translateY(0)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.transform = 'translateY(0)' }}
                 >
-                  + Schedule
+                  <Calendar size={18} /> Schedule
                 </button>
               )}
             </div>
