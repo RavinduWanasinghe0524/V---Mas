@@ -45,8 +45,8 @@ const ProgressBar = ({ value, max, color }) => {
   )
 }
 
-/* ── Service Record Card ────────────────────────────────────────── */
-const ServiceCard = ({ record, index, isDriver, onEdit, onDelete }) => {
+/* ── Service List Card (Old Style) ──────────────────────────────── */
+const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
@@ -152,7 +152,6 @@ const ServiceCard = ({ record, index, isDriver, onEdit, onDelete }) => {
       {!isDriver && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
           <button
-            id={`edit-service-${record.id}`}
             onClick={() => onEdit(record.id)}
             style={{
               padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 600,
@@ -166,7 +165,6 @@ const ServiceCard = ({ record, index, isDriver, onEdit, onDelete }) => {
             <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Edit2 size={12} /> Edit</span>
           </button>
           <button
-            id={`delete-service-${record.id}`}
             onClick={() => onDelete(record.id)}
             style={{
               padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 600,
@@ -181,7 +179,119 @@ const ServiceCard = ({ record, index, isDriver, onEdit, onDelete }) => {
           </button>
         </div>
       )}
+    </div>
+  )
+}
 
+/* ── Service Grid Card (New Style) ──────────────────────────────── */
+const ServiceGridCard = ({ record, index, isDriver, onEdit, onDelete }) => {
+  const [hovered, setHovered] = useState(false)
+  const status = getStatus(record)
+  const sc = STATUS_CONFIG[status]
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: '#0f172a',
+        border: `1px solid ${hovered ? '#3b82f6' : 'rgba(255,255,255,0.08)'}`,
+        borderRadius: 12,
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16,
+        transition: 'all 0.2s ease',
+        animation: `fadeUp 0.3s ease ${index * 0.05}s both`,
+      }}
+    >
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div style={{ color: '#60a5fa', fontSize: '1.05rem', fontWeight: 700, marginBottom: 4 }}>
+            {record.serviceType?.replace(/_/g, ' ') || 'Service'}
+          </div>
+          <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>
+            {record.vehicleRegNumber || '—'}
+            {record.serviceTypeDetail ? ` - ${record.serviceTypeDetail}` : ''}
+          </div>
+        </div>
+        <div style={{
+          padding: '4px 10px', borderRadius: 999,
+          fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em',
+          background: sc.bg, color: sc.color,
+          border: `1px solid ${sc.border}`,
+          textTransform: 'uppercase'
+        }}>
+          {sc.label}
+        </div>
+      </div>
+
+      <div style={{ height: 1, background: 'rgba(255,255,255,0.08)' }} />
+
+      {/* Description */}
+      <div style={{ color: '#e2e8f0', fontSize: '0.85rem' }}>
+        {record.description || 'No description provided.'}
+      </div>
+
+      {/* Stats Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+        <div>
+          <div style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Date</div>
+          <div style={{ color: '#f8fafc', fontSize: '0.9rem', fontWeight: 700 }}>
+            {record.serviceDate ? new Date(record.serviceDate).toLocaleDateString() : '—'}
+          </div>
+        </div>
+        <div>
+          <div style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Mileage</div>
+          <div style={{ color: '#f8fafc', fontSize: '0.9rem', fontWeight: 700 }}>
+            {record.currentMileageKm ? `${Number(record.currentMileageKm).toLocaleString()} km` : '—'}
+          </div>
+        </div>
+        <div>
+          <div style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Cost</div>
+          <div style={{ color: '#f8fafc', fontSize: '0.9rem', fontWeight: 700 }}>
+            Rs. {Number(record.serviceCost || 0).toLocaleString()}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#94a3b8', fontSize: '0.75rem' }}>
+          <Wrench size={12} /> {record.technicianWorkshop || '—'}
+        </div>
+        <div style={{ color: '#64748b', fontSize: '0.75rem' }}>
+          Next: {record.nextServiceDue ? record.nextServiceDue.substring(0, 10) : '—'}
+        </div>
+      </div>
+
+      {/* Actions */}
+      {!isDriver && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 12 }}>
+          <button
+            onClick={() => onEdit(record.id)}
+            style={{
+              flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600,
+              background: 'rgba(99,102,241,0.1)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.2)', cursor: 'pointer', transition: 'all 0.15s'
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.25)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.1)' }}
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => onDelete(record.id)}
+            style={{
+              flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600,
+              background: 'rgba(239,68,68,0.1)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.2)', cursor: 'pointer', transition: 'all 0.15s'
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.25)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)' }}
+          >
+            Delete
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -278,7 +388,7 @@ const ServicePage = () => {
   const [filter, setFilter] = useState('ALL')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
-  const [viewMode, setViewMode] = useState('list')
+  const [viewMode, setViewMode] = useState('grid')
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -314,7 +424,7 @@ const ServicePage = () => {
   const completed = services.filter(s => getStatus(s) === 'COMPLETED').length
   const total = services.length
 
-  /* Filtered list */
+  /* Filtered and sorted list */
   const filtered = services.filter(s => {
     if (filter !== 'ALL' && getStatus(s) !== filter) return false
     if (search) {
@@ -327,6 +437,10 @@ const ServicePage = () => {
       )
     }
     return true
+  }).sort((a, b) => {
+    const dateA = a.serviceDate ? new Date(a.serviceDate) : new Date(0);
+    const dateB = b.serviceDate ? new Date(b.serviceDate) : new Date(0);
+    return dateB - dateA; // Newest first
   })
 
   /* ── Shared dark-card style ───────────────────────────────────── */
@@ -382,7 +496,7 @@ const ServicePage = () => {
 
             {/* Top-right Actions: Toggle & Add */}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 16, zIndex: 10 }}>
-              {/* List / Calendar Toggle */}
+              {/* List / Grid / Calendar Toggle */}
               <div style={{
                 display: 'flex', alignItems: 'center',
                 background: 'rgba(255,255,255,0.03)',
@@ -397,6 +511,13 @@ const ServicePage = () => {
                     padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
                     cursor: 'pointer', transition: 'all 0.15s ease'
                   }}>List</button>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  style={{
+                    background: viewMode === 'grid' ? '#ffffff' : 'transparent', color: viewMode === 'grid' ? '#4338ca' : '#a5b4fc', border: 'none', borderRadius: 10,
+                    padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
+                    cursor: 'pointer', transition: 'all 0.15s ease'
+                  }}>Grid</button>
                 <button
                   onClick={() => setViewMode('calendar')}
                   style={{
@@ -534,14 +655,18 @@ const ServicePage = () => {
           </div>
 
           {/* ── Main View Area ──────────────────────────────────────── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={
+            viewMode === 'calendar' ? { display: 'flex', flexDirection: 'column', gap: 12 } : 
+            viewMode === 'grid' ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 } : 
+            { display: 'flex', flexDirection: 'column', gap: 16 }
+          }>
 
             {loading ? (
               /* Skeleton loader */
-              [1, 2, 3].map(i => (
+              [1, 2, 3, 4, 5, 6].map(i => (
                 <div key={i} style={{
                   background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-                  borderRadius: 14, padding: '22px', height: 84,
+                  borderRadius: 14, padding: '22px', minHeight: viewMode === 'grid' ? 200 : 84,
                   animation: 'pulse 1.5s ease infinite',
                 }} />
               ))
@@ -575,9 +700,20 @@ const ServicePage = () => {
                 getStatus={getStatus}
                 STATUS_CONFIG={STATUS_CONFIG}
               />
+            ) : viewMode === 'grid' ? (
+              filtered.map((record, i) => (
+                <ServiceGridCard
+                  key={record.id}
+                  record={record}
+                  index={i}
+                  isDriver={isDriver}
+                  onEdit={id => navigate(`/service/edit/${id}`)}
+                  onDelete={handleDelete}
+                />
+              ))
             ) : (
               filtered.map((record, i) => (
-                <ServiceCard
+                <ServiceListCard
                   key={record.id}
                   record={record}
                   index={i}
