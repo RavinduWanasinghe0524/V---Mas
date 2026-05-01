@@ -15,7 +15,7 @@ const buildUser = (userDto) => ({
   userName:      userDto.userName,
   email:         userDto.email,
   role:          userDto.role,          // "ADMIN" | "CONTROLLER" | "DRIVER"
-  accountStatus: userDto.accountStatus, // "ACTIVE" | "INACTIVE"
+  accountStatus: userDto.accountStatus, // "ACTIVE" | "INACTIVE" | "PENDING"
   profilePicture:
     userDto.profilePicture ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(userDto.userName)}&background=6366f1&color=fff&size=128&bold=true`,
@@ -43,13 +43,10 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   // ── LOGIN ──────────────────────────────────────────────────────────
-  // Backend response shape:
-  //   { success, message, data: { token, user: UserDto } }
   const login = async (userName, password) => {
     try {
       const response = await authAPI.login({ userName, password })
 
-      // Parse the real response structure
       const responseData = response.data?.data
       const jwt          = responseData?.token
       const userDto      = responseData?.user
@@ -74,7 +71,10 @@ export const AuthProvider = ({ children }) => {
   }
 
   // ── REGISTER ───────────────────────────────────────────────────────
-  // Same response shape as login
+  // After the backend change, register returns no JWT (PENDING state).
+  // We handle both: if a token is returned (backward compat) we log in;
+  // if not, we return { success: true, pending: true } for the UI to show
+  // the "Pending Approval" screen.
   const register = async (userData) => {
     try {
       const response = await authAPI.register(userData)
@@ -83,11 +83,12 @@ export const AuthProvider = ({ children }) => {
       const jwt          = responseData?.token
       const userDto      = responseData?.user
 
-      if (!jwt || !userDto) {
-        return { success: false, error: 'Unexpected response from server' }
+      // Future backend: no token returned (PENDING) — just signal success
+      if (!jwt) {
+        return { success: true, pending: true }
       }
 
-      // Prefer the profilePicture the user supplied, otherwise use avatar
+      // Current backend (ACTIVE, token returned) — log the user in normally
       const normalised = buildUser({
         ...userDto,
         profilePicture: userData.profilePicture || userDto.profilePicture,
@@ -98,7 +99,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', jwt)
       localStorage.setItem('user', JSON.stringify(normalised))
 
-      return { success: true }
+      return { success: true, pending: false }
     } catch (error) {
       const msg =
         error.response?.data?.message ||

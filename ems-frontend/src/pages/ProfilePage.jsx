@@ -3,6 +3,63 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { profileAPI, fuelAPI, serviceAPI, vehicleAPI } from '../services/api'
+import { User, Mail, Key, ShieldCheck, Shield, Globe, Fuel, Ruler, Calendar, Car, Wrench, Edit2, AlertCircle, CheckCircle, Eye, EyeOff, Check } from 'lucide-react'
+
+/* ── Dark palette ───────────────────────────────────────────── */
+const D = {
+  bg:        '#0d1117',
+  surface:   '#161b27',
+  surfaceHi: '#1e2535',
+  border:    'rgba(255,255,255,0.07)',
+  borderHi:  'rgba(255,255,255,0.13)',
+  text:      '#e2e8f0',
+  textSub:   '#64748b',
+  textFaint: '#374151',
+  green:     '#4ade80',
+  greenDim:  'rgba(74,222,128,0.15)',
+  blue:      '#60a5fa',
+  blueDim:   'rgba(96,165,250,0.15)',
+  orange:    '#f97316',
+  orangeDim: 'rgba(249,115,22,0.15)',
+  red:       '#f87171',
+  redDim:    'rgba(248,113,113,0.15)',
+  purple:    '#a78bfa',
+  purpleDim: 'rgba(167,139,250,0.15)',
+  gold:      '#fbbf24',
+  goldDim:   'rgba(251,191,36,0.15)',
+}
+
+const inputStyle = {
+  width: '100%',
+  padding: '10px 14px',
+  borderRadius: 8,
+  border: `1px solid rgba(255,255,255,0.1)`,
+  fontSize: '0.85rem',
+  color: D.text,
+  background: 'rgba(255,255,255,0.05)',
+  outline: 'none',
+  transition: 'border-color 0.15s, box-shadow 0.15s',
+  fontFamily: 'inherit',
+}
+
+const labelStyle = {
+  display: 'block',
+  marginBottom: 6,
+  fontSize: '0.78rem',
+  fontWeight: 700,
+  color: D.textSub,
+  textTransform: 'uppercase',
+  letterSpacing: '0.02em',
+}
+
+const onFocus = e => {
+  e.target.style.borderColor = 'rgba(99,102,241,0.5)'
+  e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'
+}
+const onBlur = e => {
+  e.target.style.borderColor = 'rgba(255,255,255,0.1)'
+  e.target.style.boxShadow = 'none'
+}
 
 const ProfilePage = () => {
   const { user, isAdmin, updateUser } = useAuth()
@@ -94,25 +151,15 @@ const ProfilePage = () => {
     setProfileSuccess('')
     setProfileLoading(true)
     try {
-      console.log('Submitting profile update...')
-      console.log('Token:', localStorage.getItem('token') ? 'Present' : 'Missing')
-      
       const res = await profileAPI.updateMyProfile({
         email:          profileForm.email,
         profilePicture: profileForm.profilePicture,
       })
-      
-      console.log('Response:', res.data)
       const updated = res.data?.data
-      if (updated) {
-        console.log('Updating user context with:', updated)
-        updateUser(updated)
-        setProfileSuccess('Profile updated successfully')
-      }
+      if (updated) updateUser(updated)
+      setProfileSuccess('Profile updated successfully')
     } catch (err) {
-      console.error('Profile update error:', err)
-      const errorMsg = err.response?.data?.message || err.message || 'Failed to update profile'
-      setProfileError(errorMsg)
+      setProfileError(err.response?.data?.message || 'Failed to update profile')
     } finally {
       setProfileLoading(false)
     }
@@ -148,11 +195,15 @@ const ProfilePage = () => {
 
   // ── Helpers ─────────────────────────────────────────────────────────────
 
-  const roleBadgeClass = {
-    ADMIN:      'badge badge-admin',
-    CONTROLLER: 'badge badge-controller',
-    DRIVER:     'badge badge-driver',
-  }[user?.role] || 'badge'
+  const RoleBadge = ({ role }) => {
+    const cfg = {
+      ADMIN:      { label: 'Admin',      bg: D.purpleDim, color: D.purple, border: `1px solid ${D.purple}30` },
+      CONTROLLER: { label: 'Controller', bg: D.blueDim,   color: D.blue,   border: `1px solid ${D.blue}30` },
+      DRIVER:     { label: 'Driver',     bg: D.greenDim,  color: D.green,  border: `1px solid ${D.green}30` },
+    }
+    const { label, bg, color, border } = cfg[role] || cfg.DRIVER
+    return <span style={{ background: bg, color, border, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
+  }
 
   const roleDescription = {
     ADMIN:      'Full system access — manage users, view reports, and configure the system.',
@@ -173,37 +224,48 @@ const ProfilePage = () => {
     { key: 'stats',    label: 'Activity' },
   ]
 
-  const inputStyle = {
-    width: '100%', padding: '10px 14px',
-    background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-    borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)',
-    fontSize: '0.875rem', fontFamily: 'inherit', outline: 'none',
-    boxSizing: 'border-box',
-  }
-
-  const labelStyle = {
-    display: 'block', marginBottom: 6,
-    fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)',
-  }
-
   return (
-    <div className="app-shell">
+    <div className="app-shell dark-theme-wrapper" style={{ background: D.bg }}>
       <Sidebar />
-      <div className="main-content">
+      <div className="main-content" style={{ background: D.bg }}>
         <Topbar title="My Profile" subtitle="Home / Profile" />
         <div className="page-body">
 
-          <div className="page-header">
-            <div>
-              <h1 className="page-title">My Profile</h1>
-              <p className="page-subtitle">Manage your account information and security settings</p>
+          {/* Hero Banner */}
+          <div style={{
+            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
+            borderRadius: 20,
+            padding: '32px 36px',
+            marginBottom: 28,
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            border: `1px solid ${D.border}`,
+            display: 'flex', alignItems: 'center', gap: 20
+          }}>
+            {/* decorative circles */}
+            {[['80%','−20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
+              <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
+            ))}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
+              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', color: '#fff', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <User size={32} strokeWidth={1.5} />
+              </div>
+              <div>
+                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  My Profile
+                </h1>
+                <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
+                  Manage your account information and security settings
+                </p>
+              </div>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 24, alignItems: 'start' }}>
 
             {/* ── Left: Profile Card ── */}
-            <div className="card" style={{ textAlign: 'center' }}>
+            <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, padding: 24, textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
               {/* Avatar */}
               <div
                 style={{ position: 'relative', display: 'inline-block', marginBottom: 20, cursor: 'pointer' }}
@@ -211,49 +273,41 @@ const ProfilePage = () => {
                 title="Click to change photo"
               >
                 <img
-                  src={profileForm.profilePicture || user?.profilePicture}
+                  src={profileForm.profilePicture || user?.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.userName || 'U')}&background=6366f1&color=fff&size=128&bold=true`}
                   alt={user?.userName}
-                  className="avatar-xl"
+                  style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${D.surfaceHi}`, boxShadow: `0 0 0 1px ${D.border}` }}
                   onError={e => {
                     e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.userName || 'U')}&background=6366f1&color=fff&size=128&bold=true`
                   }}
                 />
                 <div style={{
                   position: 'absolute', bottom: 0, right: 0,
-                  background: 'var(--text-accent)', borderRadius: '50%',
+                  background: '#6366f1', borderRadius: '50%',
                   width: 28, height: 28, display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', border: '2px solid var(--bg-card)',
-                  fontSize: '0.75rem',
-                }}>✏️</div>
+                  justifyContent: 'center', border: `2px solid ${D.surface}`,
+                  color: '#fff'
+                }}><Edit2 size={12} strokeWidth={2.5}/></div>
               </div>
               <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
 
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                <img
-                  src={profileForm.profilePicture || user?.profilePicture}
-                  alt={user?.userName}
-                  style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--text-accent)' }}
-                  onError={e => {
-                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.userName || 'U')}&background=6366f1&color=fff&size=40&bold=true`
-                  }}
-                />
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: D.text, marginBottom: 6 }}>
                 {user?.userName}
               </h2>
               <div style={{ marginBottom: 8 }}>
-                <span className={roleBadgeClass}>{user?.role}</span>
+                <RoleBadge role={user?.role} />
               </div>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+              <p style={{ fontSize: '0.8rem', color: D.textSub, lineHeight: 1.6 }}>
                 {roleDescription}
               </p>
 
               {/* Status indicator */}
               <div style={{
                 marginTop: 16, padding: '10px 14px',
-                background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8,
+                background: D.surfaceHi, borderRadius: 8,
+                border: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', gap: 8,
               }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--success)', flexShrink: 0 }} />
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: D.green, flexShrink: 0, boxShadow: `0 0 6px ${D.green}` }} />
+                <span style={{ fontSize: '0.8rem', color: D.text, fontWeight: 700 }}>
                   {user?.accountStatus || 'ACTIVE'}
                 </span>
               </div>
@@ -261,16 +315,16 @@ const ProfilePage = () => {
               {/* Permissions */}
               <div style={{
                 marginTop: 16, padding: '14px 16px',
-                background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--border)', textAlign: 'left',
+                background: D.surfaceHi, borderRadius: 8,
+                border: `1px solid ${D.border}`, textAlign: 'left',
               }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
                   Your Permissions
                 </div>
-                <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {permissions.map(p => (
-                    <li key={p} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ color: 'var(--success)' }}>✓</span> {p}
+                    <li key={p} style={{ fontSize: '0.8rem', color: D.text, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Check size={14} color={D.green} /> {p}
                     </li>
                   ))}
                 </ul>
@@ -282,19 +336,20 @@ const ProfilePage = () => {
               {/* Tab bar */}
               <div style={{
                 display: 'flex', gap: 4, marginBottom: 20,
-                background: 'var(--bg-elevated)', padding: 4, borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--border)',
+                background: D.surface, padding: 6, borderRadius: 12,
+                border: `1px solid ${D.border}`,
               }}>
                 {tabs.map(tab => (
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key)}
                     style={{
-                      flex: 1, padding: '8px 12px', borderRadius: 6, border: 'none',
-                      cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 600,
+                      flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
+                      cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 700,
                       transition: 'all 0.15s ease',
-                      background: activeTab === tab.key ? 'var(--text-accent)' : 'transparent',
-                      color:      activeTab === tab.key ? '#fff' : 'var(--text-muted)',
+                      background: activeTab === tab.key ? 'rgba(99,102,241,0.15)' : 'transparent',
+                      color:      activeTab === tab.key ? '#a5b4fc' : D.textSub,
+                      boxShadow:  activeTab === tab.key ? '0 0 0 1px rgba(99,102,241,0.3)' : 'none',
                     }}
                   >
                     {tab.label}
@@ -304,28 +359,28 @@ const ProfilePage = () => {
 
               {/* ── Tab: Account Info ── */}
               {activeTab === 'info' && (
-                <div className="card">
-                  <div className="section-header" style={{ marginBottom: 20 }}>
-                    <h2 className="section-title">Account Information</h2>
-                    <div className="section-divider"></div>
+                <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+                    <h2 style={{ margin: 0, fontSize: '1.15rem', color: D.text, fontWeight: 700 }}>Account Information</h2>
+                    <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${D.border}, transparent)` }}></div>
                   </div>
 
                   {[
-                    { icon: '👤', label: 'Username',       value: user?.userName },
-                    { icon: '📧', label: 'Email',          value: user?.email },
-                    { icon: '🔑', label: 'Role',           value: <span className={roleBadgeClass}>{user?.role}</span> },
-                    { icon: '✅', label: 'Account Status', value: <span className="badge badge-active">● {user?.accountStatus}</span> },
+                    { icon: <User size={18}/>, label: 'Username',       value: user?.userName },
+                    { icon: <Mail size={18}/>, label: 'Email',          value: user?.email },
+                    { icon: <Key size={18}/>, label: 'Role',           value: <RoleBadge role={user?.role} /> },
+                    { icon: <ShieldCheck size={18}/>, label: 'Account Status', value: <span style={{ background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>● {user?.accountStatus}</span> },
                   ].map((row, idx, arr) => (
                     <div key={idx} style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '14px 0',
-                      borderBottom: idx < arr.length - 1 ? '1px solid var(--border)' : 'none',
+                      borderBottom: idx < arr.length - 1 ? `1px solid ${D.border}` : 'none',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: '1.1rem' }}>{row.icon}</span>
-                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 500 }}>{row.label}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', color: D.textSub }}>{row.icon}</span>
+                        <span style={{ fontSize: '0.875rem', color: D.textSub, fontWeight: 600 }}>{row.label}</span>
                       </div>
-                      <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                      <span style={{ fontSize: '0.875rem', color: D.text, fontWeight: 600 }}>
                         {row.value}
                       </span>
                     </div>
@@ -333,24 +388,26 @@ const ProfilePage = () => {
 
                   {/* Session info */}
                   <div style={{ marginTop: 24 }}>
-                    <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
                       Session
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {[
-                        { icon: '🔐', title: 'Authentication',  sub: 'JWT Token-based authentication active', badge: 'Secure'    },
-                        { icon: '🌐', title: 'Backend API',     sub: 'Connected to V-MAS Spring Boot backend', badge: 'Connected' },
+                        { icon: <Shield size={20}/>, title: 'Authentication',  sub: 'JWT Token-based authentication active', badge: 'Secure', badgeColor: D.green, badgeDim: D.greenDim },
+                        { icon: <Globe size={20}/>, title: 'Backend API',     sub: 'Connected to V-MAS Spring Boot backend', badge: 'Connected', badgeColor: D.blue, badgeDim: D.blueDim },
                       ].map(item => (
                         <div key={item.title} style={{
                           display: 'flex', alignItems: 'center', gap: 10, padding: 14,
-                          background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+                          background: D.surfaceHi, borderRadius: 8, border: `1px solid ${D.border}`,
                         }}>
-                          <span style={{ fontSize: '1.2rem' }}>{item.icon}</span>
+                          <span style={{ display: 'flex', alignItems: 'center', color: D.indigo }}>{item.icon}</span>
                           <div>
-                            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>{item.title}</div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.sub}</div>
+                            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: D.text }}>{item.title}</div>
+                            <div style={{ fontSize: '0.75rem', color: D.textSub }}>{item.sub}</div>
                           </div>
-                          <span className="badge badge-active" style={{ marginLeft: 'auto' }}>{item.badge}</span>
+                          <span style={{ marginLeft: 'auto', background: item.badgeDim, color: item.badgeColor, border: `1px solid ${item.badgeColor}30`, padding: '3px 8px', borderRadius: 999, fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                            {item.badge}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -360,25 +417,25 @@ const ProfilePage = () => {
 
               {/* ── Tab: Edit Profile ── */}
               {activeTab === 'edit' && (
-                <div className="card">
-                  <div className="section-header" style={{ marginBottom: 20 }}>
-                    <h2 className="section-title">Edit Profile</h2>
-                    <div className="section-divider"></div>
+                <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+                    <h2 style={{ margin: 0, fontSize: '1.15rem', color: D.text, fontWeight: 700 }}>Edit Profile</h2>
+                    <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${D.border}, transparent)` }}></div>
                   </div>
 
-                  {profileError   && <div className="alert alert-error"   style={{ marginBottom: 16 }}><span>⚠️</span> {profileError}</div>}
-                  {profileSuccess && <div className="alert alert-success" style={{ marginBottom: 16 }}><span>✅</span> {profileSuccess}</div>}
+                  {profileError   && <div style={{ padding: '12px 16px', borderRadius: 8, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><AlertCircle size={16}/> {profileError}</div>}
+                  {profileSuccess && <div style={{ padding: '12px 16px', borderRadius: 8, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><CheckCircle size={16}/> {profileSuccess}</div>}
 
                   <form onSubmit={handleProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
                     {/* Username (read-only) */}
                     <div>
-                      <label style={labelStyle}>Username <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(cannot be changed)</span></label>
+                      <label style={labelStyle}>Username <span style={{ color: D.textFaint, fontWeight: 400, textTransform: 'none' }}>(cannot be changed)</span></label>
                       <input
                         type="text"
                         value={user?.userName || ''}
                         disabled
-                        style={{ ...inputStyle, opacity: 0.55, cursor: 'not-allowed' }}
+                        style={{ ...inputStyle, opacity: 0.5, cursor: 'not-allowed', background: D.surfaceHi }}
                       />
                     </div>
 
@@ -391,6 +448,7 @@ const ProfilePage = () => {
                         onChange={e => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
                         required
                         style={inputStyle}
+                        onFocus={onFocus} onBlur={onBlur}
                       />
                     </div>
 
@@ -401,7 +459,7 @@ const ProfilePage = () => {
                         <img
                           src={profileForm.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.userName || 'U')}&background=6366f1&color=fff&size=128&bold=true`}
                           alt="preview"
-                          style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border)', flexShrink: 0 }}
+                          style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${D.border}`, flexShrink: 0 }}
                           onError={e => {
                             e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.userName || 'U')}&background=6366f1&color=fff&size=128&bold=true`
                           }}
@@ -411,16 +469,18 @@ const ProfilePage = () => {
                             type="button"
                             onClick={handleAvatarClick}
                             style={{
-                              padding: '8px 16px', borderRadius: 'var(--radius-sm)',
-                              border: '1px solid var(--border)', background: 'var(--bg-elevated)',
-                              color: 'var(--text-secondary)', cursor: 'pointer',
-                              fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 600,
-                              alignSelf: 'flex-start',
+                              padding: '8px 16px', borderRadius: 8,
+                              border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)',
+                              color: D.text, cursor: 'pointer',
+                              fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 700,
+                              alignSelf: 'flex-start', transition: 'all 0.15s'
                             }}
+                            onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.1)'}
+                            onMouseLeave={e => e.currentTarget.style.background='rgba(255,255,255,0.05)'}
                           >
                             Upload Image
                           </button>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          <span style={{ fontSize: '0.75rem', color: D.textSub }}>
                             JPG, PNG — max 1 MB
                           </span>
                         </div>
@@ -431,11 +491,12 @@ const ProfilePage = () => {
                       type="submit"
                       disabled={profileLoading}
                       style={{
-                        padding: '10px 24px', borderRadius: 'var(--radius-sm)',
-                        border: 'none', background: 'var(--text-accent)', color: '#fff',
+                        padding: '10px 24px', borderRadius: 10,
+                        border: 'none', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff',
                         cursor: profileLoading ? 'not-allowed' : 'pointer',
-                        fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600,
+                        fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 700,
                         opacity: profileLoading ? 0.7 : 1, alignSelf: 'flex-start',
+                        boxShadow: '0 4px 14px rgba(99,102,241,0.4)', transition: 'all 0.2s ease'
                       }}
                     >
                       {profileLoading ? 'Saving…' : 'Save Changes'}
@@ -446,14 +507,14 @@ const ProfilePage = () => {
 
               {/* ── Tab: Change Password ── */}
               {activeTab === 'password' && (
-                <div className="card">
-                  <div className="section-header" style={{ marginBottom: 20 }}>
-                    <h2 className="section-title">Change Password</h2>
-                    <div className="section-divider"></div>
+                <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+                    <h2 style={{ margin: 0, fontSize: '1.15rem', color: D.text, fontWeight: 700 }}>Change Password</h2>
+                    <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${D.border}, transparent)` }}></div>
                   </div>
 
-                  {pwError   && <div className="alert alert-error"   style={{ marginBottom: 16 }}><span>⚠️</span> {pwError}</div>}
-                  {pwSuccess && <div className="alert alert-success" style={{ marginBottom: 16 }}><span>✅</span> {pwSuccess}</div>}
+                  {pwError   && <div style={{ padding: '12px 16px', borderRadius: 8, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><AlertCircle size={16}/> {pwError}</div>}
+                  {pwSuccess && <div style={{ padding: '12px 16px', borderRadius: 8, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><CheckCircle size={16}/> {pwSuccess}</div>}
 
                   <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
@@ -471,6 +532,7 @@ const ProfilePage = () => {
                             onChange={e => setPwForm(prev => ({ ...prev, [field.key]: e.target.value }))}
                             required
                             style={{ ...inputStyle, paddingRight: 40 }}
+                            onFocus={onFocus} onBlur={onBlur}
                           />
                           <button
                             type="button"
@@ -478,10 +540,10 @@ const ProfilePage = () => {
                             style={{
                               position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
                               background: 'none', border: 'none', cursor: 'pointer',
-                              color: 'var(--text-muted)', fontSize: '1rem',
+                              color: D.textSub, fontSize: '1rem',
                             }}
                           >
-                            {showPasswords ? '🙈' : '👁️'}
+                            {showPasswords ? <EyeOff size={16}/> : <Eye size={16}/>}
                           </button>
                         </div>
                       </div>
@@ -490,24 +552,24 @@ const ProfilePage = () => {
                     {/* Password strength hint */}
                     {pwForm.newPassword.length > 0 && (
                       <div style={{
-                        padding: '10px 14px', borderRadius: 'var(--radius-sm)',
-                        background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                        fontSize: '0.78rem', color: 'var(--text-muted)',
+                        padding: '10px 14px', borderRadius: 8,
+                        background: D.surfaceHi, border: `1px solid ${D.border}`,
+                        fontSize: '0.78rem', color: D.textSub,
                       }}>
                         Strength: {' '}
                         <span style={{
                           fontWeight: 700,
-                          color: pwForm.newPassword.length < 6 ? '#ef4444'
-                            : pwForm.newPassword.length < 10 ? '#f59e0b'
-                            : '#10b981',
+                          color: pwForm.newPassword.length < 6 ? D.red
+                            : pwForm.newPassword.length < 10 ? D.gold
+                            : D.green,
                         }}>
                           {pwForm.newPassword.length < 6 ? 'Weak'
                             : pwForm.newPassword.length < 10 ? 'Moderate'
                             : 'Strong'}
                         </span>
                         {pwForm.newPassword.length > 0 && pwForm.confirmPassword.length > 0 && (
-                          <span style={{ marginLeft: 16, color: pwForm.newPassword === pwForm.confirmPassword ? '#10b981' : '#ef4444' }}>
-                            {pwForm.newPassword === pwForm.confirmPassword ? '✓ Passwords match' : '✗ Passwords do not match'}
+                          <span style={{ marginLeft: 16, color: pwForm.newPassword === pwForm.confirmPassword ? D.green : D.red, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            {pwForm.newPassword === pwForm.confirmPassword ? <><CheckCircle size={12}/> Passwords match</> : <><AlertCircle size={12}/> Passwords do not match</>}
                           </span>
                         )}
                       </div>
@@ -517,11 +579,12 @@ const ProfilePage = () => {
                       type="submit"
                       disabled={pwLoading}
                       style={{
-                        padding: '10px 24px', borderRadius: 'var(--radius-sm)',
-                        border: 'none', background: 'var(--text-accent)', color: '#fff',
+                        padding: '10px 24px', borderRadius: 10,
+                        border: 'none', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff',
                         cursor: pwLoading ? 'not-allowed' : 'pointer',
-                        fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600,
+                        fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 700,
                         opacity: pwLoading ? 0.7 : 1, alignSelf: 'flex-start',
+                        boxShadow: '0 4px 14px rgba(99,102,241,0.4)', transition: 'all 0.2s ease'
                       }}
                     >
                       {pwLoading ? 'Updating…' : 'Update Password'}
@@ -532,33 +595,33 @@ const ProfilePage = () => {
 
               {/* ── Tab: Activity Stats ── */}
               {activeTab === 'stats' && (
-                <div className="card">
-                  <div className="section-header" style={{ marginBottom: 20 }}>
-                    <h2 className="section-title">Activity Overview</h2>
-                    <div className="section-divider"></div>
+                <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+                    <h2 style={{ margin: 0, fontSize: '1.15rem', color: D.text, fontWeight: 700 }}>Activity Overview</h2>
+                    <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${D.border}, transparent)` }}></div>
                   </div>
 
                   {statsLoading ? (
-                    <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
+                    <div style={{ textAlign: 'center', padding: 40, color: D.textSub, fontWeight: 600 }}>
                       Loading stats…
                     </div>
                   ) : stats ? (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16 }}>
                       {user?.role === 'DRIVER' ? (
                         <>
-                          <StatCard icon="⛽" label="Total Fuel Logs"    value={stats.totalLogs}       color="var(--text-accent)" />
-                          <StatCard icon="📏" label="Avg Efficiency"     value={`${stats.avgEfficiency} km/L`} color="#10b981" />
-                          <StatCard icon="📅" label="Last Entry"         value={stats.lastEntry}        color="#f59e0b" />
+                          <StatCard icon={<Fuel size={20}/>} label="Total Fuel Logs"    value={stats.totalLogs}       colorDim={D.blueDim} colorHex={D.blue} />
+                          <StatCard icon={<Ruler size={20}/>} label="Avg Efficiency"     value={`${stats.avgEfficiency} km/L`} colorDim={D.greenDim} colorHex={D.green} />
+                          <StatCard icon={<Calendar size={20}/>} label="Last Entry"         value={stats.lastEntry}        colorDim={D.goldDim} colorHex={D.gold} />
                         </>
                       ) : (
                         <>
-                          <StatCard icon="🚗" label="Total Vehicles"     value={stats.totalVehicles}    color="var(--text-accent)" />
-                          <StatCard icon="🔧" label="Upcoming Services"  value={stats.upcomingServices} color="#f59e0b" />
+                          <StatCard icon={<Car size={20}/>} label="Total Vehicles"     value={stats.totalVehicles}    colorDim={D.purpleDim} colorHex={D.purple} />
+                          <StatCard icon={<Wrench size={20}/>} label="Upcoming Services"  value={stats.upcomingServices} colorDim={D.orangeDim} colorHex={D.orange} />
                         </>
                       )}
                     </div>
                   ) : (
-                    <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
+                    <div style={{ textAlign: 'center', padding: 40, color: D.textSub, fontWeight: 600 }}>
                       No activity data available.
                     </div>
                   )}
@@ -569,19 +632,41 @@ const ProfilePage = () => {
           </div>
         </div>
       </div>
+      {/* ── Dark theme overrides for sidebar/topbar ─────────── */}
+      <style>{`
+        .dark-theme-wrapper .topbar { background: #161b27 !important; border-bottom-color: rgba(255,255,255,0.07) !important; }
+        .dark-theme-wrapper .topbar-title { color: #e2e8f0 !important; }
+        .dark-theme-wrapper .topbar-breadcrumb { color: #475569 !important; }
+        .dark-theme-wrapper .topbar-user { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.1) !important; }
+        .dark-theme-wrapper .topbar-user:hover { background: rgba(99,102,241,0.15) !important; border-color: rgba(99,102,241,0.4) !important; }
+        .dark-theme-wrapper .topbar-name { color: #e2e8f0 !important; }
+        .dark-theme-wrapper .sidebar { background: #111827 !important; border-right-color: rgba(255,255,255,0.07) !important; }
+        .dark-theme-wrapper .sidebar-header { border-bottom-color: rgba(255,255,255,0.07) !important; }
+        .dark-theme-wrapper .sidebar-title { color: #f1f5f9 !important; }
+        .dark-theme-wrapper .sidebar-subtitle { color: #475569 !important; }
+        .dark-theme-wrapper .nav-section-label { color: #334155 !important; }
+        .dark-theme-wrapper .nav-item { color: #64748b !important; }
+        .dark-theme-wrapper .nav-item:hover { background: rgba(255,255,255,0.05) !important; color: #cbd5e1 !important; }
+        
+        .dark-theme-wrapper .sidebar-divider { background: rgba(255,255,255,0.07) !important; }
+        .dark-theme-wrapper .sidebar-logout-btn { color: rgba(255,255,255,0.4) !important; }
+        .dark-theme-wrapper .sidebar-logout-btn:hover { color: #f87171 !important; }
+        .dark-theme-wrapper .sidebar-user-card { background: rgba(255,255,255,0.03) !important; }
+        .dark-theme-wrapper .sidebar-footer { border-top-color: rgba(255,255,255,0.07) !important; }
+      `}</style>
     </div>
   )
 }
 
-const StatCard = ({ icon, label, value, color }) => (
+const StatCard = ({ icon, label, value, colorDim, colorHex }) => (
   <div style={{
-    padding: 20, borderRadius: 'var(--radius-sm)',
-    background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-    textAlign: 'center',
+    padding: 20, borderRadius: 12,
+    background: D.surfaceHi, border: `1px solid ${D.border}`,
+    textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center'
   }}>
-    <div style={{ fontSize: '2rem', marginBottom: 10 }}>{icon}</div>
-    <div style={{ fontSize: '1.5rem', fontWeight: 700, color, marginBottom: 4 }}>{value}</div>
-    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500 }}>{label}</div>
+    <div style={{ width: 44, height: 44, borderRadius: 12, background: colorDim, border: `1px solid ${colorHex}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colorHex, marginBottom: 12 }}>{icon}</div>
+    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: D.text, marginBottom: 4, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>{value}</div>
+    <div style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
   </div>
 )
 

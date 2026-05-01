@@ -46,11 +46,15 @@ export const authAPI = {
 }
 
 export const userAPI = {
-  getAllUsers:  ()         => api.get('/users'),
-  getUserById: (id)       => api.get(`/users/${id}`),
-  createUser:  (data)     => api.post('/users', data),
-  updateUser:  (id, data) => api.put(`/users/${id}`, data),
-  deleteUser:  (id)       => api.delete(`/users/${id}`),
+  getAllUsers:     ()         => api.get('/users'),
+  getUserById:    (id)       => api.get(`/users/${id}`),
+  createUser:     (data)     => api.post('/users', data),
+  updateUser:     (id, data) => api.put(`/users/${id}`, data),
+  deleteUser:     (id)       => api.delete(`/users/${id}`),
+  // ── Admin approval workflow ─────────────────────────────────────────
+  getPendingUsers: ()        => api.get('/users/pending'),
+  approveUser:    (id)       => api.patch(`/users/${id}/approve`),
+  rejectUser:     (id)       => api.patch(`/users/${id}/reject`),
 }
 
 export const profileAPI = {
