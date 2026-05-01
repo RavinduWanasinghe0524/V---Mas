@@ -116,12 +116,20 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user')
   }
 
+  // ── UPDATE USER ────────────────────────────────────────────────────
+  const updateUser = (updatedUserDto) => {
+    const normalised = buildUser(updatedUserDto)
+    setUser(normalised)
+    localStorage.setItem('user', JSON.stringify(normalised))
+  }
+
   const value = {
     user,
     token,
     login,
     register,
     logout,
+    updateUser,
     isAuthenticated: !!token,
     isAdmin:      user?.role === 'ADMIN',
     isController: user?.role === 'CONTROLLER',

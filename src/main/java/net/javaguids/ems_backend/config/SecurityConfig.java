@@ -68,6 +68,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/vehicles/**").authenticated()
 
                         // ── Users / admin ────────────────────────────────────────
+                        // Allow all authenticated users to access their own profile
+                        .requestMatchers("/api/users/me", "/api/users/me/**").authenticated()
+                        // Restrict other user management to ADMIN/CONTROLLER
                         .requestMatchers("/api/users/**").hasAnyRole("ADMIN", "CONTROLLER")
 
                         // ── Everything else requires login ───────────────────────

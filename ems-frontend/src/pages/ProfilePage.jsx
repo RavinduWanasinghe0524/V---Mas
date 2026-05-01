@@ -94,15 +94,25 @@ const ProfilePage = () => {
     setProfileSuccess('')
     setProfileLoading(true)
     try {
+      console.log('Submitting profile update...')
+      console.log('Token:', localStorage.getItem('token') ? 'Present' : 'Missing')
+      
       const res = await profileAPI.updateMyProfile({
         email:          profileForm.email,
         profilePicture: profileForm.profilePicture,
       })
+      
+      console.log('Response:', res.data)
       const updated = res.data?.data
-      if (updated) updateUser(updated)
-      setProfileSuccess('Profile updated successfully')
+      if (updated) {
+        console.log('Updating user context with:', updated)
+        updateUser(updated)
+        setProfileSuccess('Profile updated successfully')
+      }
     } catch (err) {
-      setProfileError(err.response?.data?.message || 'Failed to update profile')
+      console.error('Profile update error:', err)
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to update profile'
+      setProfileError(errorMsg)
     } finally {
       setProfileLoading(false)
     }
@@ -218,7 +228,15 @@ const ProfilePage = () => {
               </div>
               <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
 
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                <img
+                  src={profileForm.profilePicture || user?.profilePicture}
+                  alt={user?.userName}
+                  style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--text-accent)' }}
+                  onError={e => {
+                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.userName || 'U')}&background=6366f1&color=fff&size=40&bold=true`
+                  }}
+                />
                 {user?.userName}
               </h2>
               <div style={{ marginBottom: 8 }}>

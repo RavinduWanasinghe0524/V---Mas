@@ -21,15 +21,16 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Global 401/403 handler — but NOT for the login/register endpoints
+// Global 401/403 handler — but NOT for the login/register/profile endpoints
 // (those 401s should be handled by the calling code to show error messages)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     const url = error.config?.url || ''
     const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register')
+    const isProfileEndpoint = url.includes('/users/me')
 
-    if (!isAuthEndpoint && (error.response?.status === 401 || error.response?.status === 403)) {
+    if (!isAuthEndpoint && !isProfileEndpoint && (error.response?.status === 401 || error.response?.status === 403)) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.location.href = '/login'
