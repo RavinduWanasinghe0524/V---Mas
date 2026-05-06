@@ -53,17 +53,24 @@ const darkInput = {
   boxSizing: 'border-box',
 }
 
-/* ── SVG Bar Chart ──────────────────────────────────────────── */
-const BarChart = ({ data, maxVal }) => {
+/* ── SVG Bar Chart (fixed 12-slot width — never resizes on period change) ── */
+const BarChart = ({ data, maxVal, highlightCount = 12 }) => {
   if (!data.length) return (
-    <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.textSub }}>
+    <div style={{ height: 192, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.textSub }}>
       No data available
     </div>
   )
-  const H = 160, W_BAR = 18, GAP = 6
+  // Always render exactly 12 slots so the SVG size never changes.
+  // Slots beyond `highlightCount` from the right are rendered at reduced opacity.
+  const TOTAL = 12
+  const H = 160, W_BAR = 16, SLOT = 58   // fixed slot width → total = 12 * 58 = 696
+  const TOTAL_W = TOTAL * SLOT
+  // Pad data array to TOTAL slots on the left with empty months if needed
+  const padded = Array.from({ length: TOTAL }, (_, i) => data[i] ?? { month: '', Diesel: 0, Petrol: 0 })
+  const dimStart = TOTAL - highlightCount   // months before this index are dimmed
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <svg width="100%" viewBox={`0 0 ${data.length * (W_BAR * 2 + GAP + 20)} ${H + 32}`} style={{ minWidth: data.length * 52 }}>
+    <div style={{ width: '100%', overflow: 'hidden' }}>
+      <svg width="100%" viewBox={`0 0 ${TOTAL_W} ${H + 32}`} preserveAspectRatio="none">
         <defs>
           <linearGradient id="barD" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#818cf8" />
@@ -78,22 +85,28 @@ const BarChart = ({ data, maxVal }) => {
         {[0, 0.25, 0.5, 0.75, 1].map(f => (
           <line key={f}
             x1={0} y1={H - f * H}
-            x2="100%" y2={H - f * H}
+            x2={TOTAL_W} y2={H - f * H}
             stroke="rgba(255,255,255,0.05)" strokeWidth={1} />
         ))}
-        {data.map((d, i) => {
-          const x = i * (W_BAR * 2 + GAP + 20) + 10
+        {padded.map((d, i) => {
+          const x = i * SLOT + (SLOT - W_BAR * 2 - 3) / 2
           const dH = maxVal > 0 ? Math.max((d.Diesel / maxVal) * H, d.Diesel > 0 ? 4 : 0) : 0
           const pH = maxVal > 0 ? Math.max((d.Petrol / maxVal) * H, d.Petrol > 0 ? 4 : 0) : 0
+          const dim = i < dimStart
+          const opacity = dim ? 0.15 : 1
           return (
-            <g key={d.month}>
+            <g key={i} opacity={opacity} style={{ transition: 'opacity 0.3s ease' }}>
               <rect x={x} y={H - dH} width={W_BAR} height={dH} rx={3} fill="url(#barD)">
-                <title>Diesel: {d.Diesel.toFixed(1)} L</title>
+                {!dim && <title>Diesel: {d.Diesel.toFixed(1)} L</title>}
               </rect>
               <rect x={x + W_BAR + 3} y={H - pH} width={W_BAR} height={pH} rx={3} fill="url(#barP)">
-                <title>Petrol: {d.Petrol.toFixed(1)} L</title>
+                {!dim && <title>Petrol: {d.Petrol.toFixed(1)} L</title>}
               </rect>
-              <text x={x + W_BAR} y={H + 18} textAnchor="middle" fill={D.textSub} fontSize={10} fontWeight={600}>{d.month}</text>
+              {d.month ? (
+                <text x={i * SLOT + SLOT / 2} y={H + 18} textAnchor="middle"
+                  fill={dim ? 'rgba(100,116,139,0.4)' : D.textSub}
+                  fontSize={9} fontWeight={600}>{d.month}</text>
+              ) : null}
             </g>
           )
         })}
@@ -289,7 +302,7 @@ const FuelAnalysisPage = () => {
   const monthlyData = (chartData.months || []).map((month, i) => ({
     month, Diesel: chartData.data?.Diesel?.[i] || 0, Petrol: chartData.data?.Petrol?.[i] || 0,
   }))
-  const sliced = period === '3M' ? monthlyData.slice(-3) : period === '6M' ? monthlyData.slice(-6) : monthlyData
+  const highlightCount = period === '3M' ? 3 : period === '6M' ? 6 : 12
   const maxVal = Math.max(...(chartData.data?.Diesel || [0]), ...(chartData.data?.Petrol || [0]), 1)
 
   /* efficiency trend from vehicle stats */
@@ -445,7 +458,7 @@ const FuelAnalysisPage = () => {
                       ))}
                     </div>
                   </div>
-                  <BarChart data={sliced} maxVal={maxVal} />
+                  <BarChart data={monthlyData} maxVal={maxVal} highlightCount={highlightCount} />
                   <div style={{ display: 'flex', gap: 20, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${D.border}` }}>
                     {[['Diesel', 'url(#barD)', '#818cf8'], ['Petrol', 'url(#barP)', '#fbbf24']].map(([n, , c]) => (
                       <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.72rem', color: D.textSub, fontWeight: 600 }}>
