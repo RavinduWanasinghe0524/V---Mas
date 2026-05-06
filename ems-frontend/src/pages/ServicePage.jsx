@@ -4,18 +4,19 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { serviceAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign } from 'lucide-react'
 
 /* ── Service type icon map ──────────────────────────────────────── */
 const SERVICE_TYPE_ICONS = {
-  OIL_CHANGE:           '🛢️',
-  ENGINE_TUNE_UP:       '⚙️',
-  BRAKE_SERVICE:        '🔴',
-  TIRE_ROTATION:        '🔄',
-  TRANSMISSION_SERVICE: '⚙️',
-  AC_SERVICE:           '❄️',
-  BATTERY_REPLACEMENT:  '🔋',
-  GENERAL_INSPECTION:   '🔍',
-  OTHER:                '🔧',
+  OIL_CHANGE: <Droplet size={22} />,
+  ENGINE_TUNE_UP: <Settings size={22} />,
+  BRAKE_SERVICE: <Circle size={22} />,
+  TIRE_ROTATION: <RotateCcw size={22} />,
+  TRANSMISSION_SERVICE: <Settings size={22} />,
+  AC_SERVICE: <Thermometer size={22} />,
+  BATTERY_REPLACEMENT: <Battery size={22} />,
+  GENERAL_INSPECTION: <Search size={22} />,
+  OTHER: <Wrench size={22} />,
 }
 
 /* ── Status helpers ─────────────────────────────────────────────── */
@@ -29,9 +30,9 @@ const getStatus = (s) => {
 }
 
 const STATUS_CONFIG = {
-  ALL:       { label: 'All',       color: '#6366f1', bg: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.3)'  },
-  SCHEDULED: { label: 'Scheduled', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)'  },
-  COMPLETED: { label: 'Completed', color: '#10b981', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)'  },
+  ALL: { label: 'All', color: '#6366f1', bg: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.3)' },
+  SCHEDULED: { label: 'Scheduled', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' },
+  COMPLETED: { label: 'Completed', color: '#10b981', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)' },
 }
 
 /* ── Progress bar widths for stat cards ─────────────────────────── */
@@ -44,12 +45,12 @@ const ProgressBar = ({ value, max, color }) => {
   )
 }
 
-/* ── Service Record Card ────────────────────────────────────────── */
-const ServiceCard = ({ record, index, isDriver, onEdit, onDelete }) => {
+/* ── Service List Card (Old Style) ──────────────────────────────── */
+const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
-  const icon = SERVICE_TYPE_ICONS[record.serviceType] || '🔧'
+  const icon = SERVICE_TYPE_ICONS[record.serviceType] || <Wrench size={22} />
 
   return (
     <div
@@ -76,7 +77,7 @@ const ServiceCard = ({ record, index, isDriver, onEdit, onDelete }) => {
         background: 'rgba(99,102,241,0.18)',
         border: '1px solid rgba(99,102,241,0.25)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: '1.25rem',
+        color: '#a5b4fc',
       }}>
         {icon}
       </div>
@@ -105,24 +106,24 @@ const ServiceCard = ({ record, index, isDriver, onEdit, onDelete }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           {/* Vehicle */}
           <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#93c5fd', fontWeight: 600 }}>
-            🚗 {record.vehicleRegNumber || '—'}
+            <Car size={14} /> {record.vehicleRegNumber || '—'}
           </span>
           {/* Date */}
           {record.serviceDate && (
             <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: '#94a3b8' }}>
-              📅 {record.serviceDate.substring(0, 10)}
+              <Calendar size={14} /> {record.serviceDate.substring(0, 10)}
             </span>
           )}
           {/* Mileage */}
           {record.currentMileageKm && (
             <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: '#94a3b8' }}>
-              📍 {Number(record.currentMileageKm).toLocaleString()} km
+              <MapPin size={14} /> {Number(record.currentMileageKm).toLocaleString()} km
             </span>
           )}
           {/* Workshop */}
           {record.technicianWorkshop && (
             <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: '#94a3b8' }}>
-              🔩 {record.technicianWorkshop}
+              <Wrench size={14} /> {record.technicianWorkshop}
             </span>
           )}
         </div>
@@ -151,7 +152,6 @@ const ServiceCard = ({ record, index, isDriver, onEdit, onDelete }) => {
       {!isDriver && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
           <button
-            id={`edit-service-${record.id}`}
             onClick={() => onEdit(record.id)}
             style={{
               padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 600,
@@ -162,10 +162,9 @@ const ServiceCard = ({ record, index, isDriver, onEdit, onDelete }) => {
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.3)'; e.currentTarget.style.color = '#fff' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; e.currentTarget.style.color = '#a5b4fc' }}
           >
-            ✏ Edit
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Edit2 size={12} /> Edit</span>
           </button>
           <button
-            id={`delete-service-${record.id}`}
             onClick={() => onDelete(record.id)}
             style={{
               padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 600,
@@ -176,11 +175,123 @@ const ServiceCard = ({ record, index, isDriver, onEdit, onDelete }) => {
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.3)'; e.currentTarget.style.color = '#fff' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; e.currentTarget.style.color = '#fca5a5' }}
           >
-            🗑 Delete
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Trash2 size={12} /> Delete</span>
           </button>
         </div>
       )}
+    </div>
+  )
+}
 
+/* ── Service Grid Card (New Style) ──────────────────────────────── */
+const ServiceGridCard = ({ record, index, isDriver, onEdit, onDelete }) => {
+  const [hovered, setHovered] = useState(false)
+  const status = getStatus(record)
+  const sc = STATUS_CONFIG[status]
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: '#0f172a',
+        border: `1px solid ${hovered ? '#3b82f6' : 'rgba(255,255,255,0.08)'}`,
+        borderRadius: 12,
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16,
+        transition: 'all 0.2s ease',
+        animation: `fadeUp 0.3s ease ${index * 0.05}s both`,
+      }}
+    >
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div style={{ color: '#60a5fa', fontSize: '1.05rem', fontWeight: 700, marginBottom: 4 }}>
+            {record.serviceType?.replace(/_/g, ' ') || 'Service'}
+          </div>
+          <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>
+            {record.vehicleRegNumber || '—'}
+            {record.serviceTypeDetail ? ` - ${record.serviceTypeDetail}` : ''}
+          </div>
+        </div>
+        <div style={{
+          padding: '4px 10px', borderRadius: 999,
+          fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em',
+          background: sc.bg, color: sc.color,
+          border: `1px solid ${sc.border}`,
+          textTransform: 'uppercase'
+        }}>
+          {sc.label}
+        </div>
+      </div>
+
+      <div style={{ height: 1, background: 'rgba(255,255,255,0.08)' }} />
+
+      {/* Description */}
+      <div style={{ color: '#e2e8f0', fontSize: '0.85rem' }}>
+        {record.description || 'No description provided.'}
+      </div>
+
+      {/* Stats Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+        <div>
+          <div style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Date</div>
+          <div style={{ color: '#f8fafc', fontSize: '0.9rem', fontWeight: 700 }}>
+            {record.serviceDate ? new Date(record.serviceDate).toLocaleDateString() : '—'}
+          </div>
+        </div>
+        <div>
+          <div style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Mileage</div>
+          <div style={{ color: '#f8fafc', fontSize: '0.9rem', fontWeight: 700 }}>
+            {record.currentMileageKm ? `${Number(record.currentMileageKm).toLocaleString()} km` : '—'}
+          </div>
+        </div>
+        <div>
+          <div style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Cost</div>
+          <div style={{ color: '#f8fafc', fontSize: '0.9rem', fontWeight: 700 }}>
+            Rs. {Number(record.serviceCost || 0).toLocaleString()}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#94a3b8', fontSize: '0.75rem' }}>
+          <Wrench size={12} /> {record.technicianWorkshop || '—'}
+        </div>
+        <div style={{ color: '#64748b', fontSize: '0.75rem' }}>
+          Next: {record.nextServiceDue ? record.nextServiceDue.substring(0, 10) : '—'}
+        </div>
+      </div>
+
+      {/* Actions */}
+      {!isDriver && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 12 }}>
+          <button
+            onClick={() => onEdit(record.id)}
+            style={{
+              flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600,
+              background: 'rgba(99,102,241,0.1)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.2)', cursor: 'pointer', transition: 'all 0.15s'
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.25)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.1)' }}
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => onDelete(record.id)}
+            style={{
+              flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600,
+              background: 'rgba(239,68,68,0.1)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.2)', cursor: 'pointer', transition: 'all 0.15s'
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.25)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)' }}
+          >
+            Delete
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -242,19 +353,19 @@ const ServiceCalendar = ({ services, onEdit, isDriver, getStatus, STATUS_CONFIG 
               <div style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 600, marginBottom: 8 }}>{day}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {dayServices.map(s => {
-                    const status = getStatus(s)
-                    const sc = STATUS_CONFIG[status] || STATUS_CONFIG.COMPLETED
-                    return (
-                      <div key={s.id} onClick={() => !isDriver && onEdit(s.id)} style={{ cursor: isDriver ? 'default' : 'pointer', fontSize: '0.7rem', fontWeight: 600, background: sc.bg, color: sc.color, padding: '4px 6px', borderRadius: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', border: `1px solid ${sc.border}` }}>
-                        {s.vehicleRegNumber}
-                      </div>
-                    )
+                  const status = getStatus(s)
+                  const sc = STATUS_CONFIG[status] || STATUS_CONFIG.COMPLETED
+                  return (
+                    <div key={s.id} onClick={() => !isDriver && onEdit(s.id)} style={{ cursor: isDriver ? 'default' : 'pointer', fontSize: '0.7rem', fontWeight: 600, background: sc.bg, color: sc.color, padding: '4px 6px', borderRadius: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', border: `1px solid ${sc.border}` }}>
+                      {s.vehicleRegNumber}
+                    </div>
+                  )
                 })}
               </div>
             </div>
           )
         })}
-        
+
         {Array.from({ length: (7 - ((firstDay + daysInMonth) % 7)) % 7 }).map((_, i) => (
           <div key={`end-blank-${i}`} style={{ background: '#0f172a', minHeight: 110, borderTop: '1px solid rgba(255,255,255,0.05)' }}></div>
         ))}
@@ -269,15 +380,15 @@ const ServiceCalendar = ({ services, onEdit, isDriver, getStatus, STATUS_CONFIG 
 ══════════════════════════════════════════════════════════════════ */
 const ServicePage = () => {
   const { user } = useAuth()
-  const navigate  = useNavigate()
-  const isDriver  = user?.role === 'DRIVER'
+  const navigate = useNavigate()
+  const isDriver = user?.role === 'DRIVER'
 
   const [services, setServices] = useState([])
-  const [stats,    setStats]    = useState(null)
-  const [filter,   setFilter]   = useState('ALL')
-  const [search,   setSearch]   = useState('')
-  const [loading,  setLoading]  = useState(true)
-  const [viewMode, setViewMode] = useState('list')
+  const [stats, setStats] = useState(null)
+  const [filter, setFilter] = useState('ALL')
+  const [search, setSearch] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [viewMode, setViewMode] = useState('grid')
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -286,7 +397,7 @@ const ServicePage = () => {
         serviceAPI.getAllServices(),
         serviceAPI.getServiceStats(),
       ])
-      setServices(servRes.data.data  || [])
+      setServices(servRes.data.data || [])
       setStats(statsRes.data.data)
     } catch (err) {
       console.error('Error loading service data', err)
@@ -311,9 +422,9 @@ const ServicePage = () => {
   /* Derived counts */
   const scheduled = services.filter(s => getStatus(s) === 'SCHEDULED').length
   const completed = services.filter(s => getStatus(s) === 'COMPLETED').length
-  const total     = services.length
+  const total = services.length
 
-  /* Filtered list */
+  /* Filtered and sorted list */
   const filtered = services.filter(s => {
     if (filter !== 'ALL' && getStatus(s) !== filter) return false
     if (search) {
@@ -326,6 +437,10 @@ const ServicePage = () => {
       )
     }
     return true
+  }).sort((a, b) => {
+    const dateA = a.serviceDate ? new Date(a.serviceDate) : new Date(0);
+    const dateB = b.serviceDate ? new Date(b.serviceDate) : new Date(0);
+    return dateB - dateA; // Newest first
   })
 
   /* ── Shared dark-card style ───────────────────────────────────── */
@@ -349,24 +464,39 @@ const ServicePage = () => {
 
         <div className="page-body" style={{ padding: '28px 32px' }}>
 
-          {/* ── Page Header ─────────────────────────────────────── */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 16 }}>
-            <div>
-              <h1 style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: '1.75rem', fontWeight: 800,
-                color: '#f1f5f9', margin: 0, letterSpacing: '-0.02em',
-              }}>
-                {isDriver ? 'Service History' : 'Service'}
-              </h1>
-              <p style={{ margin: '4px 0 0', fontSize: '0.875rem', color: '#64748b' }}>
-                {isDriver ? 'View your vehicle service and maintenance history.' : 'Schedule and track vehicle maintenance records.'}
-              </p>
+          {/* Hero Banner */}
+          <div style={{
+            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
+            borderRadius: 20,
+            padding: '32px 36px',
+            marginBottom: 28,
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            border: `1px solid rgba(255,255,255,0.07)`,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16
+          }}>
+            {/* decorative circles */}
+            {[['80%', '−20px', '180px', 'rgba(255,255,255,0.03)'], ['20%', '60%', '120px', 'rgba(255,255,255,0.04)'], ['55%', '80%', '90px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
+              <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
+            ))}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
+              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <Wrench size={32} strokeWidth={1.5} />
+              </div>
+              <div>
+                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  {isDriver ? 'Service History' : 'Service Management'}
+                </h1>
+                <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
+                  {isDriver ? 'View your vehicle service and maintenance history.' : 'Schedule and track vehicle maintenance records.'}
+                </p>
+              </div>
             </div>
 
             {/* Top-right Actions: Toggle & Add */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              {/* List / Calendar Toggle */}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 16, zIndex: 10 }}>
+              {/* List / Grid / Calendar Toggle */}
               <div style={{
                 display: 'flex', alignItems: 'center',
                 background: 'rgba(255,255,255,0.03)',
@@ -374,20 +504,27 @@ const ServicePage = () => {
                 borderRadius: 14,
                 padding: 4,
               }}>
-                <button 
+                <button
                   onClick={() => setViewMode('list')}
                   style={{
-                  background: viewMode === 'list' ? '#2563eb' : 'transparent', color: viewMode === 'list' ? '#fff' : '#64748b', border: 'none', borderRadius: 10,
-                  padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
-                  cursor: 'pointer', transition: 'all 0.15s ease'
-                }}>List</button>
-                <button 
+                    background: viewMode === 'list' ? '#ffffff' : 'transparent', color: viewMode === 'list' ? '#4338ca' : '#a5b4fc', border: 'none', borderRadius: 10,
+                    padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
+                    cursor: 'pointer', transition: 'all 0.15s ease'
+                  }}>List</button>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  style={{
+                    background: viewMode === 'grid' ? '#ffffff' : 'transparent', color: viewMode === 'grid' ? '#4338ca' : '#a5b4fc', border: 'none', borderRadius: 10,
+                    padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
+                    cursor: 'pointer', transition: 'all 0.15s ease'
+                  }}>Grid</button>
+                <button
                   onClick={() => setViewMode('calendar')}
                   style={{
-                  background: viewMode === 'calendar' ? '#2563eb' : 'transparent', color: viewMode === 'calendar' ? '#fff' : '#64748b', border: 'none', borderRadius: 10,
-                  padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
-                  cursor: 'pointer', transition: 'all 0.15s ease'
-                }}>Calendar</button>
+                    background: viewMode === 'calendar' ? '#ffffff' : 'transparent', color: viewMode === 'calendar' ? '#4338ca' : '#a5b4fc', border: 'none', borderRadius: 10,
+                    padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
+                    cursor: 'pointer', transition: 'all 0.15s ease'
+                  }}>Calendar</button>
               </div>
 
               {/* Add button — Admin & Controller */}
@@ -398,13 +535,13 @@ const ServicePage = () => {
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8,
                     padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
-                    background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(59,130,246,0.35)', transition: 'all 0.2s ease',
+                    background: '#ffffff', color: '#4338ca', border: 'none', cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.1)', transition: 'all 0.2s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#2563eb'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#3b82f6'; e.currentTarget.style.transform = 'translateY(0)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.transform = 'translateY(0)' }}
                 >
-                  + Schedule
+                  <Calendar size={18} /> Schedule
                 </button>
               )}
             </div>
@@ -417,7 +554,7 @@ const ServicePage = () => {
               <div style={darkCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <p style={{ fontSize: '2rem', fontWeight: 800, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{total}</p>
-                  <span style={{ fontSize: '1.25rem' }}>📋</span>
+                  <span style={{ display: 'flex', alignItems: 'center', color: '#6366f1' }}><ClipboardList size={28} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Total Records</p>
                 <ProgressBar value={total} max={total || 1} color="#6366f1" />
@@ -427,7 +564,7 @@ const ServicePage = () => {
               <div style={darkCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <p style={{ fontSize: '2rem', fontWeight: 800, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{scheduled}</p>
-                  <span style={{ fontSize: '1.25rem' }}>📅</span>
+                  <span style={{ display: 'flex', alignItems: 'center', color: '#f59e0b' }}><Calendar size={28} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Scheduled</p>
                 <ProgressBar value={scheduled} max={total || 1} color="#f59e0b" />
@@ -437,7 +574,7 @@ const ServicePage = () => {
               <div style={darkCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <p style={{ fontSize: '2rem', fontWeight: 800, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{completed}</p>
-                  <span style={{ fontSize: '1.25rem' }}>✅</span>
+                  <span style={{ display: 'flex', alignItems: 'center', color: '#10b981' }}><CheckCircle size={28} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Completed</p>
                 <ProgressBar value={completed} max={total || 1} color="#10b981" />
@@ -450,7 +587,7 @@ const ServicePage = () => {
                     <p style={{ fontSize: '1.55rem', fontWeight: 800, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
                       Rs.{(stats.totalServiceCost || 0).toLocaleString()}
                     </p>
-                    <span style={{ fontSize: '1.25rem' }}>💰</span>
+                    <span style={{ display: 'flex', alignItems: 'center', color: '#3b82f6' }}><CircleDollarSign size={28} /></span>
                   </div>
                   <p style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Total Cost</p>
                   <ProgressBar value={100} max={100} color="#3b82f6" />
@@ -497,7 +634,7 @@ const ServicePage = () => {
 
             {/* Search */}
             <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#475569', fontSize: '0.85rem' }}>🔍</span>
+              <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#475569', display: 'flex', alignItems: 'center' }}><Search size={16} /></span>
               <input
                 id="service-search"
                 value={search}
@@ -512,20 +649,24 @@ const ServicePage = () => {
                   transition: 'border-color 0.15s',
                 }}
                 onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)' }}
-                onBlur={e  => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
+                onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
               />
             </div>
           </div>
 
           {/* ── Main View Area ──────────────────────────────────────── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={
+            viewMode === 'calendar' ? { display: 'flex', flexDirection: 'column', gap: 12 } : 
+            viewMode === 'grid' ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 } : 
+            { display: 'flex', flexDirection: 'column', gap: 16 }
+          }>
 
             {loading ? (
               /* Skeleton loader */
-              [1, 2, 3].map(i => (
+              [1, 2, 3, 4, 5, 6].map(i => (
                 <div key={i} style={{
                   background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-                  borderRadius: 14, padding: '22px', height: 84,
+                  borderRadius: 14, padding: '22px', minHeight: viewMode === 'grid' ? 200 : 84,
                   animation: 'pulse 1.5s ease infinite',
                 }} />
               ))
@@ -535,7 +676,7 @@ const ServicePage = () => {
                 background: 'rgba(255,255,255,0.02)', borderRadius: 16,
                 border: '1px dashed rgba(255,255,255,0.1)',
               }}>
-                <div style={{ fontSize: '3rem', marginBottom: 16 }}>🔍</div>
+                <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center', opacity: 0.5 }}><Search size={48} /></div>
                 <p style={{ color: '#64748b', fontSize: '0.95rem', fontWeight: 500 }}>No service records found.</p>
                 {!isDriver && (
                   <button
@@ -552,16 +693,27 @@ const ServicePage = () => {
                 )}
               </div>
             ) : viewMode === 'calendar' ? (
-              <ServiceCalendar 
-                services={filtered} 
-                isDriver={isDriver} 
-                onEdit={id => navigate(`/service/edit/${id}`)} 
-                getStatus={getStatus} 
-                STATUS_CONFIG={STATUS_CONFIG} 
+              <ServiceCalendar
+                services={filtered}
+                isDriver={isDriver}
+                onEdit={id => navigate(`/service/edit/${id}`)}
+                getStatus={getStatus}
+                STATUS_CONFIG={STATUS_CONFIG}
               />
+            ) : viewMode === 'grid' ? (
+              filtered.map((record, i) => (
+                <ServiceGridCard
+                  key={record.id}
+                  record={record}
+                  index={i}
+                  isDriver={isDriver}
+                  onEdit={id => navigate(`/service/edit/${id}`)}
+                  onDelete={handleDelete}
+                />
+              ))
             ) : (
               filtered.map((record, i) => (
-                <ServiceCard
+                <ServiceListCard
                   key={record.id}
                   record={record}
                   index={i}
