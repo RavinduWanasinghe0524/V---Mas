@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
-@SuppressWarnings("null")
 public class VehicleServiceImpl implements VehicleService {
 
     private final VehicleRepository vehicleRepository;
