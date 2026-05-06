@@ -163,7 +163,7 @@ const FuelAnalysisPage = () => {
   const [period, setPeriod] = useState('6M')
   const [activeTab, setActiveTab] = useState('dashboard')
 
-  const [summary, setSummary] = useState({ totalDiesel: 0, totalPetrol: 0, totalVolume: 0, totalCost: 0 })
+  const [summary, setSummary] = useState({ totalDiesel: 0, totalPetrol: 0, totalVolume: 0, totalCost: 0, logCount: 0 })
   const [chartData, setChartData] = useState({ months: [], data: { Diesel: [], Petrol: [] } })
   const [vehicleStats, setVehicleStats] = useState([])
   const [myVehicleLogs, setMyVehicleLogs] = useState([])
@@ -186,19 +186,81 @@ const FuelAnalysisPage = () => {
     const loadData = async () => {
       try {
         setLoading(true)
-        const [summaryRes, chartRes] = await Promise.all([fuelAPI.getSummary(), fuelAPI.getChartData()])
-        setSummary(summaryRes.data.data || { totalDiesel: 0, totalPetrol: 0, totalVolume: 0, totalCost: 0 })
-        setChartData(chartRes.data.data || { months: [], data: { Diesel: [], Petrol: [] } })
 
         if (isAdmin || isController) {
-          const [statsRes, allLogsRes] = await Promise.all([fuelAPI.getVehicleStats(), fuelAPI.getAllFuelLogs()])
-          setVehicleStats(statsRes.data.data || [])
-          setAllFuelLogs((allLogsRes.data.data || []).filter(l => !l.isDeleted).sort((a, b) => new Date(b.date) - new Date(a.date)))
-        }
-        if (isDriver) {
-          const logsRes = await fuelAPI.getMyLogs()
+          // ── Admin/Controller: compute everything locally from raw logs ──
+          // This mirrors FuelManagementPage approach and avoids backend
+          // analytics endpoints which have a NULL/false mismatch on is_deleted.
+          const allLogsRes = await fuelAPI.getAllFuelLogs()
+          const rawLogs = allLogsRes.data.data || []
+          const activeLogs = rawLogs.filter(l => !l.isDeleted)
+
+          // Sort for display table (newest first)
+          setAllFuelLogs([...activeLogs].sort((a, b) => new Date(b.date) - new Date(a.date)))
+
+          // ── Summary KPIs (all-time totals, same as FuelManagementPage) ──
+          const curYear = new Date().getFullYear()
+
+          const totalDiesel = activeLogs.filter(l => l.fuelType?.toLowerCase() === 'diesel').reduce((s, l) => s + (l.liters || 0), 0)
+          const totalPetrol = activeLogs.filter(l => l.fuelType?.toLowerCase() === 'petrol').reduce((s, l) => s + (l.liters || 0), 0)
+          const totalVolume = totalDiesel + totalPetrol
+          const totalCost   = activeLogs.reduce((s, l) => s + (l.totalCost || 0), 0)
+
+          setSummary({ totalDiesel, totalPetrol, totalVolume, totalCost, logCount: activeLogs.length })
+
+          // ── Monthly Chart (current year) ──────────────────────────────
+          const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
+          const dieselArr = Array(12).fill(0)
+          const petrolArr = Array(12).fill(0)
+
+          activeLogs.forEach(l => {
+            const d = new Date(l.date)
+            if (d.getFullYear() !== curYear) return
+            const m = d.getMonth()
+            if (l.fuelType?.toLowerCase() === 'diesel') dieselArr[m] += (l.liters || 0)
+            else if (l.fuelType?.toLowerCase() === 'petrol') petrolArr[m] += (l.liters || 0)
+          })
+
+          setChartData({ months, data: { Diesel: dieselArr, Petrol: petrolArr } })
+
+          // ── Per-vehicle stats ─────────────────────────────────────────
+          const vehicleMap = {}
+          activeLogs.forEach(l => {
+            if (!vehicleMap[l.vehicleRegNumber]) {
+              vehicleMap[l.vehicleRegNumber] = { logs: [], totalSpending: 0 }
+            }
+            vehicleMap[l.vehicleRegNumber].logs.push(l)
+            vehicleMap[l.vehicleRegNumber].totalSpending += (l.totalCost || 0)
+          })
+
+          const statsArr = Object.entries(vehicleMap).map(([reg, { logs, totalSpending }]) => {
+            // Sort logs by date desc, efficiency = (latestMileage - prevMileage) / latestLiters
+            const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date))
+            let fuelEfficiency = null
+            if (sorted.length >= 2) {
+              const diff = sorted[0].mileage - sorted[1].mileage
+              const lit  = sorted[0].liters
+              if (lit > 0) fuelEfficiency = Math.round((diff / lit) * 100) / 100
+            }
+            const efficiencyStatus = fuelEfficiency == null ? 'Insufficient Data'
+              : fuelEfficiency < 5  ? 'Poor'
+              : fuelEfficiency < 10 ? 'Good'
+              : 'Excellent'
+            return { vehicleRegNumber: reg, fuelEfficiency, totalSpending, efficiencyStatus }
+          })
+
+          setVehicleStats(statsArr)
+
+        } else if (isDriver) {
+          // ── Driver: use own-scoped summary + chart + logs ─────────────
+          const [summaryRes, chartRes, logsRes] = await Promise.all([
+            fuelAPI.getSummary(), fuelAPI.getChartData(), fuelAPI.getMyLogs()
+          ])
+          setSummary(summaryRes.data.data || { totalDiesel: 0, totalPetrol: 0, totalVolume: 0, totalCost: 0 })
+          setChartData(chartRes.data.data || { months: [], data: { Diesel: [], Petrol: [] } })
           setMyVehicleLogs(logsRes.data.data || [])
         }
+
       } catch (err) { console.error('Error loading fuel data:', err) }
       finally { setLoading(false) }
     }
@@ -331,21 +393,27 @@ const FuelAnalysisPage = () => {
           ════════════════════════════════════════════════════ */}
           {(!isDriver || activeTab === 'dashboard') && (
             <>
-              {/* ── 4 KPI cards ──────────────────────────────── */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 14, marginBottom: 20 }}>
-                {[
-                  { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: <Fuel size={20}/>, iconBg: D.indigoDim, iconColor: D.indigo, trend: null },
-                  { label: 'Total Petrol', value: `${Math.round(summary.totalPetrol).toLocaleString()} L`, icon: <Fuel size={20}/>, iconBg: D.goldDim, iconColor: D.gold, trend: null },
-                  { label: 'Total Volume', value: `${Math.round(summary.totalVolume).toLocaleString()} L`, icon: <BarChart2 size={20}/>, iconBg: D.tealDim, iconColor: D.teal, trend: null },
-                  { label: 'Total Cost (LKR)', value: `Rs. ${Math.round(summary.totalCost).toLocaleString()}`, icon: <CircleDollarSign size={20}/>, iconBg: D.greenDim, iconColor: D.green, trend: null },
-                ].map(s => (
+              {/* ── KPI cards ──────────────────────────────── */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 14, marginBottom: 20 }}>
+                {(isAdmin || isController ? [
+                  { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: <Fuel size={20}/>, iconBg: D.indigoDim, iconColor: D.indigo },
+                  { label: 'Total Petrol', value: `${Math.round(summary.totalPetrol).toLocaleString()} L`, icon: <Fuel size={20}/>, iconBg: D.goldDim, iconColor: D.gold },
+                  { label: 'Total Volume', value: `${Math.round(summary.totalVolume).toLocaleString()} L`, icon: <BarChart2 size={20}/>, iconBg: D.tealDim, iconColor: D.teal },
+                  { label: 'Total Cost (LKR)', value: `Rs. ${Math.round(summary.totalCost).toLocaleString()}`, icon: <CircleDollarSign size={20}/>, iconBg: D.greenDim, iconColor: D.green },
+                  { label: 'Active Logs', value: summary.logCount, icon: <BarChart2 size={20}/>, iconBg: D.purpleDim, iconColor: D.purple },
+                ] : [
+                  { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: <Fuel size={20}/>, iconBg: D.indigoDim, iconColor: D.indigo },
+                  { label: 'Total Petrol', value: `${Math.round(summary.totalPetrol).toLocaleString()} L`, icon: <Fuel size={20}/>, iconBg: D.goldDim, iconColor: D.gold },
+                  { label: 'Total Volume', value: `${Math.round(summary.totalVolume).toLocaleString()} L`, icon: <BarChart2 size={20}/>, iconBg: D.tealDim, iconColor: D.teal },
+                  { label: 'Total Cost (LKR)', value: `Rs. ${Math.round(summary.totalCost).toLocaleString()}`, icon: <CircleDollarSign size={20}/>, iconBg: D.greenDim, iconColor: D.green },
+                ]).map(s => (
                   <div key={s.label} style={{
                     ...card, padding: '20px 22px', transition: 'all 0.25s ease', cursor: 'default',
                   }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = D.borderHi; e.currentTarget.style.transform = 'translateY(-2px)' }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.transform = 'translateY(0)' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
-                      <div style={{ width: 38, height: 38, borderRadius: 10, background: s.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', border: `1px solid ${s.iconColor}30` }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 10, background: s.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', border: `1px solid ${s.iconColor}30`, color: s.iconColor }}>
                         {s.icon}
                       </div>
                     </div>
@@ -354,6 +422,7 @@ const FuelAnalysisPage = () => {
                   </div>
                 ))}
               </div>
+
 
               {/* ── Charts row ───────────────────────────────── */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
