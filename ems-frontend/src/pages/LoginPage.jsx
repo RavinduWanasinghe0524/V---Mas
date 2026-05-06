@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, Mail, Lock, Truck, Shield, BarChart3, MapPin, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Shield, BarChart3, MapPin, AlertCircle } from 'lucide-react';
 import './LoginPage.css';
 import bgImage from '../assets/login-bg.jpg';
+import logo from '../assets/logo.png';
 
 const LoginPage = () => {
   const [userName, setUserName] = useState('');
@@ -54,8 +55,16 @@ const LoginPage = () => {
 
           <div className="split-login-left-content">
             <div className="split-login-logo-container">
-              <div className="split-login-logo-box">
-                <Truck className="split-login-logo-icon" color="white" size={20} />
+              <div className="split-login-logo-box" style={{ background: 'transparent', padding: 0, overflow: 'hidden' }}>
+                <img
+                  src={logo}
+                  alt="V-MAS"
+                  style={{
+                    width: '100%', height: '100%',
+                    objectFit: 'cover', display: 'block',
+                    filter: 'drop-shadow(0 0 10px rgba(99,102,241,0.7))',
+                  }}
+                />
               </div>
               <span className="split-login-logo-text">V-MAS</span>
             </div>
@@ -95,8 +104,16 @@ const LoginPage = () => {
         {/* Right Panel - Form */}
         <div className="split-login-right">
           <div className="split-login-mobile-logo">
-            <div className="split-login-mobile-logo-box">
-              <Truck size={16} color="white" />
+            <div className="split-login-mobile-logo-box" style={{ background: 'transparent', padding: 0, overflow: 'hidden' }}>
+              <img
+                src={logo}
+                alt="V-MAS"
+                style={{
+                  width: '100%', height: '100%',
+                  objectFit: 'cover', display: 'block',
+                  filter: 'drop-shadow(0 0 8px rgba(99,102,241,0.6))',
+                }}
+              />
             </div>
             <span className="split-login-title" style={{ marginBottom: 0 }}>V-MAS</span>
           </div>

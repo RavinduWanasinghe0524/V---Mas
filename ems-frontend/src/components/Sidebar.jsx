@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import logo from '../assets/logo.png'
 import { useAuth } from '../context/AuthContext'
 import { 
   LayoutDashboard, Truck, Wrench, Users, Fuel, 
@@ -62,7 +63,20 @@ const Sidebar = () => {
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="sidebar-brand">
-          <div className="sidebar-logo"><Truck size={24} color="#60a5fa" strokeWidth={2} /></div>
+          <div className="sidebar-logo" style={{ padding: 0, overflow: 'hidden', background: 'transparent', boxShadow: 'none' }}>
+            <img
+              src={logo}
+              alt="V-MAS"
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                objectFit: 'cover',
+                filter: 'drop-shadow(0 0 8px rgba(99,102,241,0.6))',
+                display: 'block',
+              }}
+            />
+          </div>
           <div>
             <div className="sidebar-title">V-MAS</div>
             <div className="sidebar-subtitle">Fleet Management</div>
