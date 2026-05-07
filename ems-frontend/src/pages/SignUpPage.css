@@ -1,0 +1,664 @@
+/* ── Page Transition Animations ───────────────────── */
+@keyframes signupPageEnter {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes signupCardReveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Container */
+.split-signup-container {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: #0f172a;
+  animation: signupPageEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Background image */
+.split-signup-bg-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+/* Gradient overlay — matches LoginPage exactly */
+.split-signup-bg-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(15, 23, 42, 0.8), rgba(30, 58, 138, 0.4), rgba(15, 23, 42, 0.3));
+  z-index: 1;
+}
+
+/* Main card */
+.split-signup-main-card {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 1080px;
+  margin: 1.5rem 1rem;
+  display: flex;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5);
+  animation: signupCardReveal 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
+}
+
+/* ── Left Panel ───────────────────────────────────── */
+.split-signup-left {
+  display: none;
+  position: relative;
+  overflow: hidden;
+  padding: 2.5rem;
+  width: 42%;
+  flex-shrink: 0;
+  /* Blue-first gradient, same as LoginPage left panel */
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(99, 102, 241, 0.2));
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (min-width: 768px) {
+  .split-signup-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+}
+
+/* Decorative glow orbs */
+.split-signup-circle-1 {
+  position: absolute;
+  top: -5rem;
+  left: -5rem;
+  width: 15rem;
+  height: 15rem;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.15);
+  filter: blur(40px);
+}
+
+.split-signup-circle-2 {
+  position: absolute;
+  bottom: -5rem;
+  right: -2.5rem;
+  width: 15rem;
+  height: 15rem;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.15);
+  filter: blur(40px);
+}
+
+/* Left content */
+.split-signup-left-content {
+  position: relative;
+  z-index: 10;
+}
+
+.split-signup-logo-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 3rem;
+}
+
+.split-signup-logo-box {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+}
+
+.split-signup-logo-text {
+  color: white;
+  font-size: 1.25rem;
+  letter-spacing: 0.025em;
+  font-weight: 500;
+}
+
+.split-signup-heading {
+  color: white;
+  font-size: 1.875rem;
+  margin-bottom: 1rem;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.split-signup-subheading {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+  line-height: 1.625;
+}
+
+.split-signup-features {
+  margin-top: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.split-signup-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.split-signup-feature-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.split-signup-feature-text {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+}
+
+.split-signup-copyright {
+  position: relative;
+  z-index: 10;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.75rem;
+}
+
+/* ── Right Panel ──────────────────────────────────── */
+.split-signup-right {
+  flex: 1;
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow-y: auto;
+}
+
+@media (min-width: 768px) {
+  .split-signup-right {
+    padding: 2.75rem 3rem;
+  }
+}
+
+/* Mobile logo */
+.split-signup-mobile-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 768px) {
+  .split-signup-mobile-logo {
+    display: none;
+  }
+}
+
+.split-signup-mobile-logo-box {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+}
+
+/* Headings */
+.split-signup-title {
+  color: white;
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+.split-signup-subtitle {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+  margin-bottom: 1.75rem;
+}
+
+/* Error alert */
+.split-signup-error {
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  color: #fca5a5;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Form */
+.split-signup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+/* Two-column row for password fields */
+.split-signup-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 540px) {
+  .split-signup-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.split-signup-input-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Label */
+.split-signup-label {
+  display: block;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+  margin-left: 0.25rem;
+}
+
+/* Input group */
+.split-signup-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: border-color 0.2s;
+}
+
+/* Blue focus border — matches LoginPage */
+.split-signup-input-group:focus-within {
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.split-signup-input-icon {
+  color: #93c5fd;
+  flex-shrink: 0;
+}
+
+.split-signup-input {
+  background: transparent;
+  color: white;
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.split-signup-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Eye / toggle button */
+.split-signup-input-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+
+.split-signup-input-btn:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Select overrides */
+.split-signup-select-group {
+  position: relative;
+}
+
+.split-signup-select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.split-signup-select option {
+  background: #1e293b;
+  color: white;
+}
+
+.split-signup-select-caret {
+  color: rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+/* Password strength meter */
+.split-signup-strength {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.split-signup-strength-bars {
+  display: flex;
+  gap: 3px;
+  flex: 1;
+}
+
+.split-signup-strength-bar {
+  flex: 1;
+  height: 3px;
+  border-radius: 9999px;
+  transition: background 0.3s;
+}
+
+.split-signup-strength-label {
+  font-size: 0.65rem;
+  white-space: nowrap;
+  font-weight: 500;
+  min-width: 4.5rem;
+  text-align: right;
+}
+
+/* Match hint */
+.split-signup-match-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  font-size: 0.7rem;
+  margin-left: 0.25rem;
+}
+
+/* Submit button — blue-first gradient, matches LoginPage */
+.split-signup-submit {
+  width: 100%;
+  padding: 0.875rem;
+  border-radius: 1rem;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  box-shadow: 0 4px 24px rgba(99, 102, 241, 0.35);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.split-signup-submit:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 28px rgba(99, 102, 241, 0.45);
+}
+
+.split-signup-submit:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.split-signup-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Footer link */
+.split-signup-footer {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.split-signup-footer a {
+  color: #93c5fd;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.split-signup-footer a:hover {
+  color: #bfdbfe;
+}
+
+/* ── Info banner ─────────────────────────────────────────────────── */
+.split-signup-info-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.split-signup-info-banner svg {
+  color: #93c5fd;
+  flex-shrink: 0;
+}
+
+.split-signup-info-banner strong {
+  color: #bfdbfe;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   PENDING APPROVAL CONFIRMATION CARD (shared with signup flow)
+══════════════════════════════════════════════════════════════════ */
+.split-pending-card {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 480px;
+  margin: 2rem 1rem;
+  padding: 3rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5);
+  animation: pendingFadeIn 0.5s ease both;
+}
+
+@keyframes pendingFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Pulsing icon ring */
+.split-pending-icon-ring {
+  position: relative;
+  width: 5rem;
+  height: 5rem;
+  margin-bottom: 1.75rem;
+}
+
+.split-pending-icon-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.25);
+  animation: pendingPulse 2s ease-in-out infinite;
+}
+
+@keyframes pendingPulse {
+  0%, 100% { transform: scale(1);    opacity: 0.8; }
+  50%       { transform: scale(1.25); opacity: 0.3; }
+}
+
+.split-pending-icon-inner {
+  position: absolute;
+  inset: 0.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.45);
+}
+
+/* Headings */
+.split-pending-title {
+  color: white;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.split-pending-sub {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.split-pending-highlight {
+  color: #93c5fd;
+  font-weight: 600;
+}
+
+.split-pending-desc {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.85rem;
+  line-height: 1.7;
+  margin-bottom: 2rem;
+  max-width: 340px;
+}
+
+/* Step tracker */
+.split-pending-steps {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 2.25rem;
+  width: 100%;
+  justify-content: center;
+}
+
+.split-pending-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.split-pending-step-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+}
+
+.split-pending-step.done .split-pending-step-icon {
+  color: #22c55e;
+}
+.split-pending-step.done span {
+  color: rgba(255,255,255,0.7);
+}
+
+.split-pending-step.waiting .split-pending-step-icon {
+  color: #f59e0b;
+  animation: pendingPulse 1.5s ease-in-out infinite;
+}
+.split-pending-step.waiting span {
+  color: #fbbf24;
+  font-weight: 500;
+}
+
+.split-pending-step.inactive .split-pending-step-icon {
+  color: rgba(255,255,255,0.2);
+}
+.split-pending-step.inactive span {
+  color: rgba(255,255,255,0.25);
+}
+
+.split-pending-step-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  margin-bottom: 1rem;
+  min-width: 2rem;
+  max-width: 4rem;
+}
+
+/* Back button */
+.split-pending-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 2rem;
+  border-radius: 1rem;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.35);
+  text-decoration: none;
+  transition: all 0.2s;
+  margin-bottom: 1.75rem;
+}
+
+.split-pending-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Footer */
+.split-pending-footer {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 0.7rem;
+}
