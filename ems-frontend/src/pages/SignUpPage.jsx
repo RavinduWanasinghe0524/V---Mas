@@ -4,10 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import {
   Eye, EyeOff, Mail, Lock, User, Users, Settings,
   Car, AlertCircle, CheckCircle, ChevronDown, Clock, ArrowLeft,
-  Shield, BarChart3, MapPin
+  Shield, BarChart3, MapPin, Moon, Sun
 } from 'lucide-react';
 import bgImage from '../assets/login-bg.jpg';
 import logo from '../assets/logo.png';
+import { useTheme } from '../context/ThemeContext';
 import './SignUpPage.css';
 
 const SignUpPage = () => {
@@ -27,7 +28,9 @@ const SignUpPage = () => {
   const [registered, setRegistered]     = useState(false);
 
   const { register, isAuthenticated } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const isDark = theme === 'blue';
 
   useEffect(() => {
     if (isAuthenticated) navigate('/dashboard');
@@ -90,6 +93,10 @@ const SignUpPage = () => {
       <div className="split-signup-container">
         <img src={bgImage} alt="background" className="split-signup-bg-image" />
         <div className="split-signup-bg-gradient" />
+        <button onClick={toggleTheme} className="auth-theme-toggle" title={isDark ? 'Switch to Light theme' : 'Switch to Blue theme'}>
+          {isDark ? <Sun size={16} /> : <Moon size={16} />}
+          {isDark ? 'Light' : 'Blue'}
+        </button>
 
         <div className="split-pending-card">
           <div className="split-pending-icon-ring">
@@ -143,6 +150,10 @@ const SignUpPage = () => {
     <div className="split-signup-container">
       <img src={bgImage} alt="Dark background with vehicle lights" className="split-signup-bg-image" />
       <div className="split-signup-bg-gradient" />
+      <button onClick={toggleTheme} className="auth-theme-toggle" title={isDark ? 'Switch to Light theme' : 'Switch to Blue theme'}>
+        {isDark ? <Sun size={16} /> : <Moon size={16} />}
+        {isDark ? 'Light' : 'Blue'}
+      </button>
 
       <div className="split-signup-main-card">
 

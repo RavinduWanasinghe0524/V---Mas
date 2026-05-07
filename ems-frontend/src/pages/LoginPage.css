@@ -465,3 +465,127 @@
 .split-login-footer a:hover {
   color: #bfdbfe;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SHARED THEME TOGGLE BUTTON (login + signup pages)
+═══════════════════════════════════════════════════════════════════ */
+.auth-theme-toggle {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: all 0.25s ease;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+}
+.auth-theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT THEME OVERRIDES (data-theme="light")
+═══════════════════════════════════════════════════════════════════ */
+
+/* Container — soft blue-white background */
+[data-theme="light"] .split-login-container {
+  background-color: #eff6ff;
+}
+
+/* Gradient overlay — very subtle, white-dominant */
+[data-theme="light"] .split-login-bg-gradient {
+  background: linear-gradient(to right,
+    rgba(239, 246, 255, 0.92),
+    rgba(219, 234, 254, 0.75),
+    rgba(239, 246, 255, 0.6)
+  );
+}
+
+/* Background image — faded in light mode */
+[data-theme="light"] .split-login-bg-image {
+  opacity: 0.18;
+}
+
+/* Main card — strong white glass */
+[data-theme="light"] .split-login-main-card {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  box-shadow: 0 20px 60px rgba(37, 99, 235, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+}
+
+/* Left panel — keep solid blue (looks great on light) */
+[data-theme="light"] .split-login-left {
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+}
+
+/* Left text stays white (on blue panel) — no override needed */
+
+/* Right panel text */
+[data-theme="light"] .split-login-title { color: #111827; }
+[data-theme="light"] .split-login-subtitle { color: #6b7280; }
+[data-theme="light"] .split-login-label { color: #374151; }
+
+/* Input groups */
+[data-theme="light"] .split-login-input-group {
+  background: #f0f7ff;
+  border: 1.5px solid #bfdbfe;
+}
+[data-theme="light"] .split-login-input-group:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+}
+[data-theme="light"] .split-login-input-icon { color: #3b82f6; }
+[data-theme="light"] .split-login-input { color: #111827; }
+[data-theme="light"] .split-login-input::placeholder { color: #9ca3af; }
+[data-theme="light"] .split-login-input-btn { color: #9ca3af; }
+[data-theme="light"] .split-login-input-btn:hover { color: #3b82f6; }
+
+/* Remember me / options */
+[data-theme="light"] .split-login-remember-text { color: #4b5563; }
+[data-theme="light"] .split-login-forgot { color: #3b82f6; }
+[data-theme="light"] .split-login-forgot:hover { color: #1d4ed8; }
+
+/* Divider */
+[data-theme="light"] .split-login-divider-line { background: #e0e7ff; }
+[data-theme="light"] .split-login-divider-text { color: #9ca3af; }
+
+/* Social buttons */
+[data-theme="light"] .split-login-social-btn {
+  background: #f0f7ff;
+  border: 1.5px solid #bfdbfe;
+  color: #374151;
+}
+[data-theme="light"] .split-login-social-btn:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+/* Footer */
+[data-theme="light"] .split-login-footer { color: #6b7280; }
+[data-theme="light"] .split-login-footer a { color: #3b82f6; }
+[data-theme="light"] .split-login-footer a:hover { color: #1d4ed8; }
+
+/* Theme toggle in light mode */
+[data-theme="light"] .auth-theme-toggle {
+  background: rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.25);
+  color: #1d4ed8;
+}
+[data-theme="light"] .auth-theme-toggle:hover {
+  background: rgba(37, 99, 235, 0.18);
+  border-color: rgba(37, 99, 235, 0.4);
+  color: #1e40af;
+}

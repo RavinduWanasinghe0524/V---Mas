@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import logo from './assets/logo.png'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { ThemeProvider } from './context/ThemeContext'
 import PrivateRoute from './components/PrivateRoute'
 
 // ── Eagerly loaded (entry points — always needed immediately) ──────────────
@@ -101,7 +102,8 @@ const PageLoader = () => (
 
 function App() {
   return (
-    <AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
       <Router>
         <Suspense fallback={<PageLoader />}>
           <Routes>
@@ -123,7 +125,8 @@ function App() {
           </Routes>
         </Suspense>
       </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 

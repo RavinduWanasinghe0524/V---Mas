@@ -2,67 +2,21 @@ import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
+import { useD } from '../context/ThemeContext'
 import { userAPI } from '../services/api'
 import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck } from 'lucide-react'
-
-/* ── Dark palette ───────────────────────────────────────────── */
-const D = {
-  bg:        '#0d1117',
-  surface:   '#161b27',
-  surfaceHi: '#1e2535',
-  border:    'rgba(255,255,255,0.07)',
-  borderHi:  'rgba(255,255,255,0.13)',
-  text:      '#e2e8f0',
-  textSub:   '#64748b',
-  textFaint: '#374151',
-  green:     '#4ade80',
-  greenDim:  'rgba(74,222,128,0.15)',
-  blue:      '#60a5fa',
-  blueDim:   'rgba(96,165,250,0.15)',
-  orange:    '#f97316',
-  orangeDim: 'rgba(249,115,22,0.15)',
-  red:       '#f87171',
-  redDim:    'rgba(248,113,113,0.15)',
-  purple:    '#a78bfa',
-  purpleDim: 'rgba(167,139,250,0.15)',
-  gold:      '#fbbf24',
-  goldDim:   'rgba(251,191,36,0.15)',
-}
-
-const inputStyle = {
-  width: '100%',
-  padding: '10px 14px',
-  borderRadius: 8,
-  border: `1px solid rgba(255,255,255,0.1)`,
-  fontSize: '0.85rem',
-  color: D.text,
-  background: 'rgba(255,255,255,0.05)',
-  outline: 'none',
-  transition: 'border-color 0.15s, box-shadow 0.15s',
-  fontFamily: 'inherit',
-}
-
-const labelStyle = {
-  display: 'block',
-  marginBottom: 6,
-  fontSize: '0.78rem',
-  fontWeight: 700,
-  color: D.textSub,
-  textTransform: 'uppercase',
-  letterSpacing: '0.02em',
-}
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(99,102,241,0.5)'
   e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'
 }
 const onBlur = e => {
-  e.target.style.borderColor = 'rgba(255,255,255,0.1)'
+  e.target.style.borderColor = ''
   e.target.style.boxShadow = 'none'
 }
 
-// ── Role badge helper ──────────────────────────────────────────────
-const RoleBadge = ({ role }) => {
+// ── Role badge helper ────────────────────────────────────────────────
+const RoleBadge = ({ role, D }) => {
   const cfg = {
     ADMIN:      { label: 'Admin',      bg: D.purpleDim, color: D.purple, border: `1px solid ${D.purple}30` },
     CONTROLLER: { label: 'Controller', bg: D.blueDim,   color: D.blue,   border: `1px solid ${D.blue}30` },
@@ -72,13 +26,13 @@ const RoleBadge = ({ role }) => {
   return <span style={{ background: bg, color, border, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
 }
 
-// ── Status badge helper ────────────────────────────────────────────
-const StatusBadge = ({ status }) => {
+// ── Status badge helper ──────────────────────────────────────────────
+const StatusBadge = ({ status, D }) => {
   const cfg = {
-    ACTIVE:    { label: 'Active',    bg: D.greenDim,  color: D.green,  border: `1px solid ${D.green}30` },
-    PENDING:   { label: 'Pending',   bg: D.goldDim,   color: D.gold,   border: `1px solid ${D.gold}30` },
-    INACTIVE:  { label: 'Inactive',  bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: `1px solid rgba(255,255,255,0.1)` },
-    SUSPENDED: { label: 'Suspended', bg: D.redDim,    color: D.red,    border: `1px solid ${D.red}30` },
+    ACTIVE:    { label: 'Active',    bg: D.greenDim, color: D.green,  border: `1px solid ${D.green}30` },
+    PENDING:   { label: 'Pending',   bg: D.goldDim,  color: D.gold,   border: `1px solid ${D.gold}30` },
+    INACTIVE:  { label: 'Inactive',  bg: D.surfaceHi, color: D.textSub, border: `1px solid ${D.border}` },
+    SUSPENDED: { label: 'Suspended', bg: D.redDim,   color: D.red,    border: `1px solid ${D.red}30` },
   }
   const { label, bg, color, border } = cfg[status] || cfg.ACTIVE
   return <span style={{ background: bg, color, border, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
@@ -86,6 +40,17 @@ const StatusBadge = ({ status }) => {
 
 
 const UsersPage = () => {
+  const D = useD()
+  const inputStyle = {
+    width: '100%', padding: '10px 14px', borderRadius: 8,
+    border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem',
+    color: D.text, background: D.inputBg, outline: 'none',
+    transition: 'border-color 0.15s, box-shadow 0.15s', fontFamily: 'inherit',
+  }
+  const labelStyle = {
+    display: 'block', marginBottom: 6, fontSize: '0.78rem', fontWeight: 700,
+    color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.02em',
+  }
   const { isAdmin, isController } = useAuth()
 
   const [users,        setUsers]        = useState([])
@@ -205,7 +170,7 @@ const UsersPage = () => {
 
   if (!isAdmin && !isController) {
     return (
-      <div className="app-shell dark-theme-wrapper" style={{ background: D.bg }}>
+      <div className="app-shell" style={{ background: D.bg }}>
         <Sidebar />
         <div className="main-content" style={{ background: D.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ color: D.red, background: D.redDim, padding: '16px 24px', borderRadius: 12, border: `1px solid ${D.red}30` }}>
@@ -218,7 +183,7 @@ const UsersPage = () => {
 
   return (
     <>
-      <div className="app-shell dark-theme-wrapper" style={{ background: D.bg }}>
+      <div className="app-shell" style={{ background: D.bg }}>
         <Sidebar />
         <div className="main-content" style={{ background: D.bg }}>
           <Topbar title="User Management" subtitle="Home / Users" />
@@ -313,7 +278,7 @@ const UsersPage = () => {
                           <div>
                             <p style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem' }}>{u.userName}</p>
                             <p style={{ margin: '2px 0 6px', fontSize: '0.75rem', color: D.textSub }}>{u.email}</p>
-                            <RoleBadge role={u.role} />
+                            <RoleBadge role={u.role} D={D} />
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: 8 }}>
@@ -384,8 +349,8 @@ const UsersPage = () => {
                               </div>
                             </td>
                             <td style={{ padding: '12px 16px', color: D.text }}>{u.email}</td>
-                            <td style={{ padding: '12px 16px' }}><RoleBadge role={u.role} /></td>
-                            <td style={{ padding: '12px 16px' }}><StatusBadge status={u.accountStatus} /></td>
+                            <td style={{ padding: '12px 16px' }}><RoleBadge role={u.role} D={D} /></td>
+                            <td style={{ padding: '12px 16px' }}><StatusBadge status={u.accountStatus} D={D} /></td>
                             <td style={{ padding: '12px 16px' }}>
                               <div style={{ display: 'flex', gap: 6 }}>
                                 {u.accountStatus === 'PENDING' && (
@@ -416,6 +381,7 @@ const UsersPage = () => {
             )}
           </div>
         </div>
+      </div>
 
         {/* ── Modal ─────────────────────────────────────────────────── */}
         {showModal && (
@@ -484,30 +450,6 @@ const UsersPage = () => {
             </div>
           </div>
         )}
-      </div>
-
-      {/* ── Dark theme overrides for sidebar/topbar ─────────── */}
-      <style>{`
-        .dark-theme-wrapper .topbar { background: #161b27 !important; border-bottom-color: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .topbar-title { color: #e2e8f0 !important; }
-        .dark-theme-wrapper .topbar-breadcrumb { color: #475569 !important; }
-        .dark-theme-wrapper .topbar-user { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.1) !important; }
-        .dark-theme-wrapper .topbar-user:hover { background: rgba(99,102,241,0.15) !important; border-color: rgba(99,102,241,0.4) !important; }
-        .dark-theme-wrapper .topbar-name { color: #e2e8f0 !important; }
-        .dark-theme-wrapper .sidebar { background: #111827 !important; border-right-color: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .sidebar-header { border-bottom-color: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .sidebar-title { color: #f1f5f9 !important; }
-        .dark-theme-wrapper .sidebar-subtitle { color: #475569 !important; }
-        .dark-theme-wrapper .nav-section-label { color: #334155 !important; }
-        .dark-theme-wrapper .nav-item { color: #64748b !important; }
-        .dark-theme-wrapper .nav-item:hover { background: rgba(255,255,255,0.05) !important; color: #cbd5e1 !important; }
-        
-        .dark-theme-wrapper .sidebar-divider { background: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .sidebar-logout-btn { color: rgba(255,255,255,0.4) !important; }
-        .dark-theme-wrapper .sidebar-logout-btn:hover { color: #f87171 !important; }
-        .dark-theme-wrapper .sidebar-user-card { background: rgba(255,255,255,0.03) !important; }
-        .dark-theme-wrapper .sidebar-footer { border-top-color: rgba(255,255,255,0.07) !important; }
-      `}</style>
     </>
   )
 }

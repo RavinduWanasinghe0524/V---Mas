@@ -2,55 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
+import { useD } from '../context/ThemeContext'
 import { profileAPI, fuelAPI, serviceAPI, vehicleAPI } from '../services/api'
 import { User, Mail, Key, ShieldCheck, Shield, Globe, Fuel, Ruler, Calendar, Car, Wrench, Edit2, AlertCircle, CheckCircle, Eye, EyeOff, Check } from 'lucide-react'
-
-/* ── Dark palette ───────────────────────────────────────────── */
-const D = {
-  bg:        '#0d1117',
-  surface:   '#161b27',
-  surfaceHi: '#1e2535',
-  border:    'rgba(255,255,255,0.07)',
-  borderHi:  'rgba(255,255,255,0.13)',
-  text:      '#e2e8f0',
-  textSub:   '#64748b',
-  textFaint: '#374151',
-  green:     '#4ade80',
-  greenDim:  'rgba(74,222,128,0.15)',
-  blue:      '#60a5fa',
-  blueDim:   'rgba(96,165,250,0.15)',
-  orange:    '#f97316',
-  orangeDim: 'rgba(249,115,22,0.15)',
-  red:       '#f87171',
-  redDim:    'rgba(248,113,113,0.15)',
-  purple:    '#a78bfa',
-  purpleDim: 'rgba(167,139,250,0.15)',
-  gold:      '#fbbf24',
-  goldDim:   'rgba(251,191,36,0.15)',
-}
-
-const inputStyle = {
-  width: '100%',
-  padding: '10px 14px',
-  borderRadius: 8,
-  border: `1px solid rgba(255,255,255,0.1)`,
-  fontSize: '0.85rem',
-  color: D.text,
-  background: 'rgba(255,255,255,0.05)',
-  outline: 'none',
-  transition: 'border-color 0.15s, box-shadow 0.15s',
-  fontFamily: 'inherit',
-}
-
-const labelStyle = {
-  display: 'block',
-  marginBottom: 6,
-  fontSize: '0.78rem',
-  fontWeight: 700,
-  color: D.textSub,
-  textTransform: 'uppercase',
-  letterSpacing: '0.02em',
-}
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(99,102,241,0.5)'
@@ -62,27 +16,38 @@ const onBlur = e => {
 }
 
 const ProfilePage = () => {
+  const D = useD()
+  const inputStyle = {
+    width: '100%', padding: '10px 14px', borderRadius: 8,
+    border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem',
+    color: D.text, background: D.inputBg, outline: 'none',
+    transition: 'border-color 0.15s, box-shadow 0.15s', fontFamily: 'inherit',
+  }
+  const labelStyle = {
+    display: 'block', marginBottom: 6, fontSize: '0.78rem', fontWeight: 700,
+    color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.02em',
+  }
   const { user, isAdmin, updateUser } = useAuth()
 
-  // ── Edit Profile state ──────────────────────────────────────────────────
+  // ÔöÇÔöÇ Edit Profile state ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
   const [profileForm, setProfileForm]   = useState({ email: '', profilePicture: '' })
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileSuccess, setProfileSuccess] = useState('')
   const [profileError, setProfileError]     = useState('')
   const fileInputRef = useRef(null)
 
-  // ── Change Password state ───────────────────────────────────────────────
+  // ÔöÇÔöÇ Change Password state ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
   const [pwForm, setPwForm]     = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
   const [pwLoading, setPwLoading]   = useState(false)
   const [pwSuccess, setPwSuccess]   = useState('')
   const [pwError, setPwError]       = useState('')
   const [showPasswords, setShowPasswords] = useState(false)
 
-  // ── Activity stats state ────────────────────────────────────────────────
+  // ÔöÇÔöÇ Activity stats state ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
   const [stats, setStats] = useState(null)
   const [statsLoading, setStatsLoading] = useState(true)
 
-  // ── Active tab ──────────────────────────────────────────────────────────
+  // ÔöÇÔöÇ Active tab ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
   const [activeTab, setActiveTab] = useState('info')
 
   // Populate form when user loads
@@ -128,7 +93,7 @@ const ProfilePage = () => {
     if (user) fetchStats()
   }, [user])
 
-  // ── Handlers ────────────────────────────────────────────────────────────
+  // ÔöÇÔöÇ Handlers ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
   const handleAvatarClick = () => fileInputRef.current?.click()
 
@@ -193,7 +158,7 @@ const ProfilePage = () => {
     }
   }
 
-  // ── Helpers ─────────────────────────────────────────────────────────────
+  // ÔöÇÔöÇ Helpers ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
   const RoleBadge = ({ role }) => {
     const cfg = {
@@ -206,9 +171,9 @@ const ProfilePage = () => {
   }
 
   const roleDescription = {
-    ADMIN:      'Full system access — manage users, view reports, and configure the system.',
-    CONTROLLER: 'Fleet control access — manage vehicles, assign drivers, and monitor operations.',
-    DRIVER:     'Driver access — view assigned vehicles, tasks, and log fuel consumption.',
+    ADMIN:      'Full system access ÔÇö manage users, view reports, and configure the system.',
+    CONTROLLER: 'Fleet control access ÔÇö manage vehicles, assign drivers, and monitor operations.',
+    DRIVER:     'Driver access ÔÇö view assigned vehicles, tasks, and log fuel consumption.',
   }[user?.role] || ''
 
   const permissions = {
@@ -225,7 +190,7 @@ const ProfilePage = () => {
   ]
 
   return (
-    <div className="app-shell dark-theme-wrapper" style={{ background: D.bg }}>
+    <div className="app-shell" style={{ background: D.bg }}>
       <Sidebar />
       <div className="main-content" style={{ background: D.bg }}>
         <Topbar title="My Profile" subtitle="Home / Profile" />
@@ -244,7 +209,7 @@ const ProfilePage = () => {
             display: 'flex', alignItems: 'center', gap: 20
           }}>
             {/* decorative circles */}
-            {[['80%','−20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
+            {[['80%','ÔêÆ20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
               <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
             ))}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -264,7 +229,7 @@ const ProfilePage = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 24, alignItems: 'start' }}>
 
-            {/* ── Left: Profile Card ── */}
+            {/* ÔöÇÔöÇ Left: Profile Card ÔöÇÔöÇ */}
             <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, padding: 24, textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
               {/* Avatar */}
               <div
@@ -331,7 +296,7 @@ const ProfilePage = () => {
               </div>
             </div>
 
-            {/* ── Right: Tabbed Panel ── */}
+            {/* ÔöÇÔöÇ Right: Tabbed Panel ÔöÇÔöÇ */}
             <div>
               {/* Tab bar */}
               <div style={{
@@ -357,7 +322,7 @@ const ProfilePage = () => {
                 ))}
               </div>
 
-              {/* ── Tab: Account Info ── */}
+              {/* ÔöÇÔöÇ Tab: Account Info ÔöÇÔöÇ */}
               {activeTab === 'info' && (
                 <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
@@ -369,7 +334,7 @@ const ProfilePage = () => {
                     { icon: <User size={18}/>, label: 'Username',       value: user?.userName },
                     { icon: <Mail size={18}/>, label: 'Email',          value: user?.email },
                     { icon: <Key size={18}/>, label: 'Role',           value: <RoleBadge role={user?.role} /> },
-                    { icon: <ShieldCheck size={18}/>, label: 'Account Status', value: <span style={{ background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>● {user?.accountStatus}</span> },
+                    { icon: <ShieldCheck size={18}/>, label: 'Account Status', value: <span style={{ background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>ÔùÅ {user?.accountStatus}</span> },
                   ].map((row, idx, arr) => (
                     <div key={idx} style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -415,7 +380,7 @@ const ProfilePage = () => {
                 </div>
               )}
 
-              {/* ── Tab: Edit Profile ── */}
+              {/* ÔöÇÔöÇ Tab: Edit Profile ÔöÇÔöÇ */}
               {activeTab === 'edit' && (
                 <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
@@ -481,7 +446,7 @@ const ProfilePage = () => {
                             Upload Image
                           </button>
                           <span style={{ fontSize: '0.75rem', color: D.textSub }}>
-                            JPG, PNG — max 1 MB
+                            JPG, PNG ÔÇö max 1 MB
                           </span>
                         </div>
                       </div>
@@ -499,13 +464,13 @@ const ProfilePage = () => {
                         boxShadow: '0 4px 14px rgba(99,102,241,0.4)', transition: 'all 0.2s ease'
                       }}
                     >
-                      {profileLoading ? 'Saving…' : 'Save Changes'}
+                      {profileLoading ? 'SavingÔÇª' : 'Save Changes'}
                     </button>
                   </form>
                 </div>
               )}
 
-              {/* ── Tab: Change Password ── */}
+              {/* ÔöÇÔöÇ Tab: Change Password ÔöÇÔöÇ */}
               {activeTab === 'password' && (
                 <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
@@ -587,13 +552,13 @@ const ProfilePage = () => {
                         boxShadow: '0 4px 14px rgba(99,102,241,0.4)', transition: 'all 0.2s ease'
                       }}
                     >
-                      {pwLoading ? 'Updating…' : 'Update Password'}
+                      {pwLoading ? 'UpdatingÔÇª' : 'Update Password'}
                     </button>
                   </form>
                 </div>
               )}
 
-              {/* ── Tab: Activity Stats ── */}
+              {/* ÔöÇÔöÇ Tab: Activity Stats ÔöÇÔöÇ */}
               {activeTab === 'stats' && (
                 <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
@@ -603,20 +568,20 @@ const ProfilePage = () => {
 
                   {statsLoading ? (
                     <div style={{ textAlign: 'center', padding: 40, color: D.textSub, fontWeight: 600 }}>
-                      Loading stats…
+                      Loading statsÔÇª
                     </div>
                   ) : stats ? (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16 }}>
                       {user?.role === 'DRIVER' ? (
                         <>
-                          <StatCard icon={<Fuel size={20}/>} label="Total Fuel Logs"    value={stats.totalLogs}       colorDim={D.blueDim} colorHex={D.blue} />
-                          <StatCard icon={<Ruler size={20}/>} label="Avg Efficiency"     value={`${stats.avgEfficiency} km/L`} colorDim={D.greenDim} colorHex={D.green} />
-                          <StatCard icon={<Calendar size={20}/>} label="Last Entry"         value={stats.lastEntry}        colorDim={D.goldDim} colorHex={D.gold} />
+                          <StatCard icon={<Fuel size={20}/>} label="Total Fuel Logs"    value={stats.totalLogs}       colorDim={D.blueDim} colorHex={D.blue} D={D} />
+                          <StatCard icon={<Ruler size={20}/>} label="Avg Efficiency"     value={`${stats.avgEfficiency} km/L`} colorDim={D.greenDim} colorHex={D.green} D={D} />
+                          <StatCard icon={<Calendar size={20}/>} label="Last Entry"         value={stats.lastEntry}        colorDim={D.goldDim} colorHex={D.gold} D={D} />
                         </>
                       ) : (
                         <>
-                          <StatCard icon={<Car size={20}/>} label="Total Vehicles"     value={stats.totalVehicles}    colorDim={D.purpleDim} colorHex={D.purple} />
-                          <StatCard icon={<Wrench size={20}/>} label="Upcoming Services"  value={stats.upcomingServices} colorDim={D.orangeDim} colorHex={D.orange} />
+                          <StatCard icon={<Car size={20}/>} label="Total Vehicles"     value={stats.totalVehicles}    colorDim={D.purpleDim} colorHex={D.purple} D={D} />
+                          <StatCard icon={<Wrench size={20}/>} label="Upcoming Services"  value={stats.upcomingServices} colorDim={D.orangeDim} colorHex={D.orange} D={D} />
                         </>
                       )}
                     </div>
@@ -632,33 +597,11 @@ const ProfilePage = () => {
           </div>
         </div>
       </div>
-      {/* ── Dark theme overrides for sidebar/topbar ─────────── */}
-      <style>{`
-        .dark-theme-wrapper .topbar { background: #161b27 !important; border-bottom-color: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .topbar-title { color: #e2e8f0 !important; }
-        .dark-theme-wrapper .topbar-breadcrumb { color: #475569 !important; }
-        .dark-theme-wrapper .topbar-user { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.1) !important; }
-        .dark-theme-wrapper .topbar-user:hover { background: rgba(99,102,241,0.15) !important; border-color: rgba(99,102,241,0.4) !important; }
-        .dark-theme-wrapper .topbar-name { color: #e2e8f0 !important; }
-        .dark-theme-wrapper .sidebar { background: #111827 !important; border-right-color: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .sidebar-header { border-bottom-color: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .sidebar-title { color: #f1f5f9 !important; }
-        .dark-theme-wrapper .sidebar-subtitle { color: #475569 !important; }
-        .dark-theme-wrapper .nav-section-label { color: #334155 !important; }
-        .dark-theme-wrapper .nav-item { color: #64748b !important; }
-        .dark-theme-wrapper .nav-item:hover { background: rgba(255,255,255,0.05) !important; color: #cbd5e1 !important; }
-        
-        .dark-theme-wrapper .sidebar-divider { background: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .sidebar-logout-btn { color: rgba(255,255,255,0.4) !important; }
-        .dark-theme-wrapper .sidebar-logout-btn:hover { color: #f87171 !important; }
-        .dark-theme-wrapper .sidebar-user-card { background: rgba(255,255,255,0.03) !important; }
-        .dark-theme-wrapper .sidebar-footer { border-top-color: rgba(255,255,255,0.07) !important; }
-      `}</style>
     </div>
   )
 }
 
-const StatCard = ({ icon, label, value, colorDim, colorHex }) => (
+const StatCard = ({ icon, label, value, colorDim, colorHex, D }) => (
   <div style={{
     padding: 20, borderRadius: 12,
     background: D.surfaceHi, border: `1px solid ${D.border}`,

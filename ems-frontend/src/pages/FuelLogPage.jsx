@@ -1,31 +1,10 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
+import { useD } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { fuelAPI } from '../services/api'
 import { Fuel, CircleDollarSign, BarChart2, Car, Check, X, Plus, Loader2 } from 'lucide-react'
-
-/* ── Dark palette ───────────────────────────────────────────── */
-const D = {
-  bg:        '#0d1117',
-  surface:   '#161b27',
-  surfaceHi: '#1e2535',
-  border:    'rgba(255,255,255,0.07)',
-  borderHi:  'rgba(255,255,255,0.13)',
-  text:      '#e2e8f0',
-  textSub:   '#64748b',
-  textFaint: '#374151',
-  indigo:    '#818cf8',
-  indigoDim: 'rgba(129,140,248,0.15)',
-  red:       '#f87171',
-  redDim:    'rgba(248,113,113,0.15)',
-  green:     '#4ade80',
-  greenDim:  'rgba(74,222,128,0.15)',
-  gold:      '#fbbf24',
-  goldDim:   'rgba(251,191,36,0.15)',
-  blue:      '#60a5fa',
-  blueDim:   'rgba(96,165,250,0.15)',
-}
 
 const inputStyle = {
   width: '100%',
@@ -60,6 +39,7 @@ const onBlur = e => {
 }
 
 const FuelLogPage = () => {
+  const D = useD()
   const { user } = useAuth()
   
   // State for fuel logs
@@ -184,7 +164,7 @@ const FuelLogPage = () => {
             border: `1px solid ${D.border}`
           }}>
             {/* decorative circles */}
-            {[['80%','−20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
+            {[['80%','âˆ’20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
               <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
             ))}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -446,7 +426,7 @@ const FuelLogPage = () => {
                               {log.fuelEfficiency.toFixed(2)} km/L
                             </span>
                           ) : (
-                            <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>
+                            <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>â€”</span>
                           )}
                         </td>
                         <td style={{ padding: '14px 16px' }}>
