@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, Mail, Lock, Shield, BarChart3, MapPin, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Shield, BarChart3, MapPin, AlertCircle, Moon, Sun } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 import './LoginPage.css';
 import bgImage from '../assets/login-bg.jpg';
 import logo from '../assets/logo.png';
@@ -15,7 +16,9 @@ const LoginPage = () => {
   const [remember, setRemember] = useState(false);
   
   const { login, isAuthenticated } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const isDark = theme === 'blue';
 
   useEffect(() => {
     if (isAuthenticated) navigate('/dashboard');
@@ -43,6 +46,16 @@ const LoginPage = () => {
         className="split-login-bg-image" 
       />
       <div className="split-login-bg-gradient" />
+
+      {/* Theme Toggle Button */}
+      <button
+        onClick={toggleTheme}
+        className="auth-theme-toggle"
+        title={isDark ? 'Switch to Light theme' : 'Switch to Blue theme'}
+      >
+        {isDark ? <Sun size={16} /> : <Moon size={16} />}
+        {isDark ? 'Light' : 'Blue'}
+      </button>
 
       {/* Main Split Container */}
       <div className="split-login-main-card">

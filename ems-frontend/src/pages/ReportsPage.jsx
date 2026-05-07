@@ -1,93 +1,11 @@
 import { useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
-import { 
-  Car, Fuel, Wrench, Users, MapPin, DollarSign, 
+import { useD } from '../context/ThemeContext'
+import {
+  Car, Fuel, Wrench, Users, MapPin, DollarSign,
   FileText, Calendar, Download, ClipboardList, BarChart2, Loader2
 } from 'lucide-react'
-
-/* ── Dark palette ───────────────────────────────────────────── */
-const D = {
-  bg:        '#0d1117',
-  surface:   '#161b27',
-  surfaceHi: '#1e2535',
-  border:    'rgba(255,255,255,0.07)',
-  borderHi:  'rgba(255,255,255,0.13)',
-  text:      '#e2e8f0',
-  textSub:   '#64748b',
-  textFaint: '#374151',
-  indigo:    '#818cf8',
-  indigoDim: 'rgba(129,140,248,0.15)',
-  gold:      '#fbbf24',
-  goldDim:   'rgba(251,191,36,0.15)',
-  green:     '#4ade80',
-  greenDim:  'rgba(74,222,128,0.15)',
-  blue:      '#60a5fa',
-  blueDim:   'rgba(96,165,250,0.15)',
-  purple:    '#a78bfa',
-  purpleDim: 'rgba(167,139,250,0.15)',
-  pink:      '#f472b6',
-  pinkDim:   'rgba(244,114,182,0.15)',
-  red:       '#f87171',
-  redDim:    'rgba(248,113,113,0.15)'
-}
-
-const reportTypes = [
-  {
-    id: 'vehicle-summary',
-    icon: <Car size={24} strokeWidth={1.5} />,
-    title: 'Vehicle Summary Report',
-    desc: 'Overview of all fleet vehicles including status, mileage, and assignments.',
-    category: 'Fleet',
-    color: D.indigo,
-    bg: D.indigoDim,
-  },
-  {
-    id: 'fuel-report',
-    icon: <Fuel size={24} strokeWidth={1.5} />,
-    title: 'Fuel Consumption Report',
-    desc: 'Detailed fuel usage breakdown per vehicle, driver, and time period.',
-    category: 'Fuel',
-    color: D.gold,
-    bg: D.goldDim,
-  },
-  {
-    id: 'service-report',
-    icon: <Wrench size={24} strokeWidth={1.5} />,
-    title: 'Service & Maintenance Report',
-    desc: 'Summary of all service records, costs, and upcoming maintenance schedules.',
-    category: 'Maintenance',
-    color: D.green,
-    bg: D.greenDim,
-  },
-  {
-    id: 'user-report',
-    icon: <Users size={24} strokeWidth={1.5} />,
-    title: 'User Activity Report',
-    desc: 'User registration, role distribution, login history, and account statuses.',
-    category: 'Users',
-    color: D.blue,
-    bg: D.blueDim,
-  },
-  {
-    id: 'location-report',
-    icon: <MapPin size={24} strokeWidth={1.5} />,
-    title: 'Location & Route Report',
-    desc: 'Vehicle location history, routes taken, and distance covered per vehicle.',
-    category: 'Fleet',
-    color: D.purple,
-    bg: D.purpleDim,
-  },
-  {
-    id: 'cost-report',
-    icon: <DollarSign size={24} strokeWidth={1.5} />,
-    title: 'Cost Analysis Report',
-    desc: 'Full cost breakdown including fuel, maintenance, and operational expenses.',
-    category: 'Finance',
-    color: D.pink,
-    bg: D.pinkDim,
-  },
-]
 
 const recentReports = [
   { name: 'Vehicle Summary – Mar 2026',   generated: '2026-03-20', format: 'PDF',  size: '245 KB' },
@@ -96,7 +14,7 @@ const recentReports = [
   { name: 'Service Summary – Feb 2026',   generated: '2026-03-02', format: 'PDF',  size: '198 KB' },
 ]
 
-const SectionHeader = ({ title }) => (
+const SectionHeader = ({ title, D }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20, marginTop: 10 }}>
     <h2 style={{ margin: 0, fontSize: '1.15rem', color: D.text, fontWeight: 700 }}>{title}</h2>
     <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${D.border}, transparent)` }}></div>
@@ -104,6 +22,15 @@ const SectionHeader = ({ title }) => (
 )
 
 const ReportsPage = () => {
+  const D = useD()
+  const reportTypes = [
+    { id: 'vehicle-summary',  icon: <Car size={24} strokeWidth={1.5} />,        title: 'Vehicle Summary Report',       desc: 'Overview of all fleet vehicles including status, mileage, and assignments.',          category: 'Fleet',       color: D.indigo, bg: D.indigoDim },
+    { id: 'fuel-report',      icon: <Fuel size={24} strokeWidth={1.5} />,       title: 'Fuel Consumption Report',      desc: 'Detailed fuel usage breakdown per vehicle, driver, and time period.',                  category: 'Fuel',        color: D.gold,   bg: D.goldDim   },
+    { id: 'service-report',   icon: <Wrench size={24} strokeWidth={1.5} />,     title: 'Service & Maintenance Report', desc: 'Summary of all service records, costs, and upcoming maintenance schedules.',           category: 'Maintenance', color: D.green,  bg: D.greenDim  },
+    { id: 'user-report',      icon: <Users size={24} strokeWidth={1.5} />,      title: 'User Activity Report',         desc: 'User registration, role distribution, login history, and account statuses.',           category: 'Users',       color: D.blue,   bg: D.blueDim   },
+    { id: 'location-report',  icon: <MapPin size={24} strokeWidth={1.5} />,     title: 'Location & Route Report',      desc: 'Vehicle location history, routes taken, and distance covered per vehicle.',            category: 'Fleet',       color: D.purple, bg: D.purpleDim },
+    { id: 'cost-report',      icon: <DollarSign size={24} strokeWidth={1.5} />, title: 'Cost Analysis Report',         desc: 'Full cost breakdown including fuel, maintenance, and operational expenses.',            category: 'Finance',     color: D.indigo, bg: D.indigoDim },
+  ]
   const [generating, setGenerating] = useState(null)
 
   const handleGenerate = (id) => {
@@ -112,7 +39,7 @@ const ReportsPage = () => {
   }
 
   return (
-    <div className="app-shell dark-theme-wrapper" style={{ background: D.bg }}>
+    <div className="app-shell" style={{ background: D.bg }}>
       <Sidebar />
       <div className="main-content" style={{ background: D.bg }}>
         <Topbar title="Reports" subtitle="Home / Reports" />
@@ -177,7 +104,7 @@ const ReportsPage = () => {
           </div>
 
           {/* Generate Reports */}
-          <SectionHeader title="Generate Reports" />
+          <SectionHeader title="Generate Reports" D={D} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20, marginBottom: 36 }}>
             {reportTypes.map(r => (
               <div key={r.id} style={{
@@ -223,7 +150,7 @@ const ReportsPage = () => {
           </div>
 
           {/* Recent Reports */}
-          <SectionHeader title="Recent Reports" />
+          <SectionHeader title="Recent Reports" D={D} />
           <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
               <thead style={{ background: D.surfaceHi }}>
@@ -271,28 +198,6 @@ const ReportsPage = () => {
         </div>
       </div>
 
-      {/* ── Dark theme overrides for sidebar/topbar ─────────── */}
-      <style>{`
-        .dark-theme-wrapper .topbar { background: #161b27 !important; border-bottom-color: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .topbar-title { color: #e2e8f0 !important; }
-        .dark-theme-wrapper .topbar-breadcrumb { color: #475569 !important; }
-        .dark-theme-wrapper .topbar-user { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.1) !important; }
-        .dark-theme-wrapper .topbar-user:hover { background: rgba(99,102,241,0.15) !important; border-color: rgba(99,102,241,0.4) !important; }
-        .dark-theme-wrapper .topbar-name { color: #e2e8f0 !important; }
-        .dark-theme-wrapper .sidebar { background: #111827 !important; border-right-color: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .sidebar-header { border-bottom-color: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .sidebar-title { color: #f1f5f9 !important; }
-        .dark-theme-wrapper .sidebar-subtitle { color: #475569 !important; }
-        .dark-theme-wrapper .nav-section-label { color: #334155 !important; }
-        .dark-theme-wrapper .nav-item { color: #64748b !important; }
-        .dark-theme-wrapper .nav-item:hover { background: rgba(255,255,255,0.05) !important; color: #cbd5e1 !important; }
-        
-        .dark-theme-wrapper .sidebar-divider { background: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .sidebar-logout-btn { color: rgba(255,255,255,0.4) !important; }
-        .dark-theme-wrapper .sidebar-logout-btn:hover { color: #f87171 !important; }
-        .dark-theme-wrapper .sidebar-user-card { background: rgba(255,255,255,0.03) !important; }
-        .dark-theme-wrapper .sidebar-footer { border-top-color: rgba(255,255,255,0.07) !important; }
-      `}</style>
     </div>
   )
 }
