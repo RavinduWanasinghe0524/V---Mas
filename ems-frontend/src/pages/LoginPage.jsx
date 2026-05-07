@@ -199,7 +199,7 @@ const LoginPage = () => {
 
           <p className="split-login-footer">
             New to V-MAS?{" "}
-            <Link to="/register">Create an account</Link>
+            <Link to="/signup">Create an account</Link>
           </p>
         </div>
       </div>

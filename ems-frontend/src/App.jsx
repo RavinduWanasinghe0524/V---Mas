@@ -6,7 +6,7 @@ import PrivateRoute from './components/PrivateRoute'
 
 // ── Eagerly loaded (entry points — always needed immediately) ──────────────
 import LoginPage    from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
+import SignUpPage from './pages/SignUpPage'
 
 // ── Lazily loaded (code-split per page) ───────────────────────────────────
 const DashboardPage     = lazy(() => import('./pages/DashboardPage'))
@@ -106,7 +106,7 @@ function App() {
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/login"            element={<LoginPage />} />
-            <Route path="/register"         element={<RegisterPage />} />
+            <Route path="/signup"           element={<SignUpPage />} />
             <Route path="/dashboard"        element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
             <Route path="/users"            element={<PrivateRoute><UsersPage /></PrivateRoute>} />
             <Route path="/profile"          element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
