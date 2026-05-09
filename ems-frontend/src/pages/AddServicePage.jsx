@@ -4,6 +4,7 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { serviceAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import { useD } from '../context/ThemeContext'
 import { Wrench, AlertTriangle, ArrowLeft, Check, Save, Plus } from 'lucide-react'
 
 const SERVICE_TYPES = [
@@ -30,49 +31,21 @@ const initialForm = {
   description: '',
 }
 
-/* ── Dark palette ───────────────────────────────────────────── */
-const D = {
-  bg: '#0d1117',
-  surface: '#161b27',
-  surfaceHi: '#1e2535',
-  border: 'rgba(255,255,255,0.07)',
-  borderHi: 'rgba(255,255,255,0.13)',
-  text: '#e2e8f0',
-  textSub: '#64748b',
-  textFaint: '#374151',
-  indigo: '#818cf8',
-  indigoDim: 'rgba(129,140,248,0.15)',
-  red: '#f87171',
-  redDim: 'rgba(248,113,113,0.15)',
-}
-
-/* ─── Shared field styles ─────────────── */
-const fieldLabel = {
-  display: 'block',
-  fontSize: '0.78rem',
-  fontWeight: 700,
-  color: D.textSub,
-  textTransform: 'uppercase',
-  letterSpacing: '0.02em',
-  marginBottom: 6,
-}
-const fieldInput = (hasError) => ({
-  width: '100%',
-  padding: '10px 14px',
-  background: 'rgba(255,255,255,0.05)',
-  border: `1px solid ${hasError ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.1)'}`,
-  borderRadius: 8,
-  color: D.text,
-  fontSize: '0.85rem',
-  outline: 'none',
-  fontFamily: 'inherit',
-  transition: 'border-color 0.15s, box-shadow 0.15s',
-  boxSizing: 'border-box',
-})
-const fieldError = { color: D.red, fontSize: '0.72rem', marginTop: 4 }
-
 const AddServicePage = () => {
+  const D = useD()
   const { user } = useAuth()
+  const fieldLabel = {
+    display: 'block', fontSize: '0.78rem', fontWeight: 700,
+    color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 6,
+  }
+  const fieldInput = (hasError) => ({
+    width: '100%', padding: '10px 14px', background: D.inputBg,
+    border: `1px solid ${hasError ? 'rgba(248,113,113,0.5)' : D.inputBorder}`,
+    borderRadius: 8, color: D.text, fontSize: '0.85rem',
+    outline: 'none', fontFamily: 'inherit',
+    transition: 'border-color 0.15s, box-shadow 0.15s', boxSizing: 'border-box',
+  })
+  const fieldError = { color: D.red, fontSize: '0.72rem', marginTop: 4 }
   const navigate = useNavigate()
   const { id } = useParams()
   const isEditing = Boolean(id)
@@ -150,7 +123,7 @@ const AddServicePage = () => {
         <div className="main-content" style={{ background: D.bg }}>
           <Topbar title="Service" subtitle="Home / Service" />
           <div className="page-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-            <div style={{ color: D.indigo, fontSize: '1rem', fontWeight: 600 }}>Loading record…</div>
+            <div style={{ color: D.indigo, fontSize: '1rem', fontWeight: 600 }}>Loading recordÔÇª</div>
           </div>
         </div>
       </div>
@@ -158,7 +131,7 @@ const AddServicePage = () => {
   }
 
   return (
-    <div className="app-shell dark-theme-wrapper" style={{ background: D.bg }}>
+    <div className="app-shell" style={{ background: D.bg }}>
       <Sidebar />
       <div className="main-content" style={{ background: D.bg }}>
         <Topbar
@@ -180,7 +153,7 @@ const AddServicePage = () => {
             border: `1px solid rgba(255,255,255,0.07)`
           }}>
             {/* decorative circles */}
-            {[['80%', '−20px', '180px', 'rgba(255,255,255,0.03)'], ['20%', '60%', '120px', 'rgba(255,255,255,0.04)'], ['55%', '80%', '90px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
+            {[['80%', 'ÔêÆ20px', '180px', 'rgba(255,255,255,0.03)'], ['20%', '60%', '120px', 'rgba(255,255,255,0.04)'], ['55%', '80%', '90px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
               <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
             ))}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -198,7 +171,7 @@ const AddServicePage = () => {
             </div>
           </div>
 
-          {/* ── Back button ─────────────────────────────────────── */}
+          {/* ÔöÇÔöÇ Back button ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
           <button
             onClick={() => navigate('/service')}
             style={{
@@ -214,7 +187,7 @@ const AddServicePage = () => {
             <ArrowLeft size={16} /> Back to Service History
           </button>
 
-          {/* ── Main card — full width of page-body ─────────────── */}
+          {/* ÔöÇÔöÇ Main card ÔÇö full width of page-body ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
           <div style={{
             background: D.surface,
             border: `1px solid ${D.border}`,
@@ -262,7 +235,7 @@ const AddServicePage = () => {
                 <div style={{ flex: 1, height: 1, background: D.border }} />
               </div>
 
-              {/* Row 1 — Vehicle + Service Type */}
+              {/* Row 1 ÔÇö Vehicle + Service Type */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
                 <div>
                   <label style={fieldLabel}>Vehicle (License Plate) *</label>
@@ -303,7 +276,7 @@ const AddServicePage = () => {
                   <input
                     type="text" name="serviceTypeDetail"
                     value={formData.serviceTypeDetail} onChange={handleChange}
-                    placeholder="Describe the service…"
+                    placeholder="Describe the serviceÔÇª"
                     style={fieldInput(errors.serviceTypeDetail)}
                     onFocus={focusBorder}
                     onBlur={e => blurBorder(e, errors.serviceTypeDetail)}
@@ -312,7 +285,7 @@ const AddServicePage = () => {
                 </div>
               )}
 
-              {/* Row 2 — Date + Mileage */}
+              {/* Row 2 ÔÇö Date + Mileage */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
                 <div>
                   <label style={fieldLabel}>Service Date *</label>
@@ -339,7 +312,7 @@ const AddServicePage = () => {
                 </div>
               </div>
 
-              {/* Row 3 — Cost + Workshop */}
+              {/* Row 3 ÔÇö Cost + Workshop */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
                 <div>
                   <label style={fieldLabel}>Service Cost (Rs.) *</label>
@@ -373,7 +346,7 @@ const AddServicePage = () => {
                 <div style={{ flex: 1, height: 1, background: D.border }} />
               </div>
 
-              {/* Row 4 — Next Service + Description */}
+              {/* Row 4 ÔÇö Next Service + Description */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 32 }}>
                 <div>
                   <label style={fieldLabel}>Next Service Due <span style={{ fontWeight: 400, color: D.textFaint, textTransform: 'none' }}>(Optional)</span></label>
@@ -389,7 +362,7 @@ const AddServicePage = () => {
                   <label style={fieldLabel}>Description / Notes <span style={{ fontWeight: 400, color: D.textFaint, textTransform: 'none' }}>(Optional)</span></label>
                   <textarea
                     name="description" value={formData.description} onChange={handleChange}
-                    rows={3} placeholder="Any additional notes…"
+                    rows={3} placeholder="Any additional notesÔÇª"
                     style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }}
                     onFocus={focusBorder}
                     onBlur={e => blurBorder(e, false)}
@@ -425,7 +398,7 @@ const AddServicePage = () => {
                   onMouseEnter={e => { if (!loading) { e.currentTarget.style.transform = 'translateY(-1px)' } }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
                 >
-                  {loading ? 'Saving…' : isEditing ? <><Save size={16} /> Save Changes</> : <><Plus size={16} /> Add Record</>}
+                  {loading ? 'SavingÔÇª' : isEditing ? <><Save size={16} /> Save Changes</> : <><Plus size={16} /> Add Record</>}
                 </button>
               </div>
 
@@ -433,34 +406,6 @@ const AddServicePage = () => {
           </div>
         </div>
       </div>
-      {/* ── Dark theme overrides for sidebar/topbar ─────────── */}
-      <style>{`
-        .dark-theme-wrapper .topbar { background: #161b27 !important; border-bottom-color: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .topbar-title { color: #e2e8f0 !important; }
-        .dark-theme-wrapper .topbar-breadcrumb { color: #475569 !important; }
-        .dark-theme-wrapper .topbar-user { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.1) !important; color: #e2e8f0 !important; }
-        .dark-theme-wrapper .topbar-user:hover { background: rgba(99,102,241,0.15) !important; border-color: rgba(99,102,241,0.4) !important; }
-        .dark-theme-wrapper .topbar-name { color: #e2e8f0 !important; }
-        .dark-theme-wrapper .sidebar { background: #111827 !important; border-right-color: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .sidebar-header { border-bottom-color: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .sidebar-title { color: #f1f5f9 !important; }
-        .dark-theme-wrapper .sidebar-subtitle { color: #475569 !important; }
-        .dark-theme-wrapper .nav-section-label { color: #334155 !important; }
-        .dark-theme-wrapper .nav-item { color: #64748b !important; }
-        .dark-theme-wrapper .nav-item:hover { background: rgba(255,255,255,0.05) !important; color: #cbd5e1 !important; }
-        .dark-theme-wrapper .nav-item.active { background: rgba(99,102,241,0.18) !important; color: #a5b4fc !important; }
-        .dark-theme-wrapper .sidebar-divider { background: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .sidebar-logout-btn { color: rgba(255,255,255,0.4) !important; }
-        .dark-theme-wrapper .sidebar-logout-btn:hover { color: #f87171 !important; }
-        .dark-theme-wrapper .sidebar-user-card { background: rgba(255,255,255,0.03) !important; }
-        .dark-theme-wrapper .sidebar-footer { border-top-color: rgba(255,255,255,0.07) !important; }
-        
-        /* Input date icon inverted */
-        input[type="date"]::-webkit-calendar-picker-indicator {
-          filter: invert(1);
-          opacity: 0.5;
-        }
-      `}</style>
     </div>
   )
 }

@@ -1,73 +1,22 @@
 import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
-
 import { useAuth } from '../context/AuthContext'
+import { useD } from '../context/ThemeContext'
 import { vehicleAPI, employeeAPI } from '../services/api'
 import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, X, Check } from 'lucide-react'
-
-/* ── Dark palette ───────────────────────────────────────────── */
-const D = {
-  bg: '#0d1117',
-  surface: '#161b27',
-  surfaceHi: '#1e2535',
-  border: 'rgba(255,255,255,0.07)',
-  borderHi: 'rgba(255,255,255,0.13)',
-  text: '#e2e8f0',
-  textSub: '#64748b',
-  textFaint: '#374151',
-  green: '#4ade80',
-  greenDim: 'rgba(74,222,128,0.15)',
-  blue: '#60a5fa',
-  blueDim: 'rgba(96,165,250,0.15)',
-  orange: '#f97316',
-  orangeDim: 'rgba(249,115,22,0.15)',
-  red: '#f87171',
-  redDim: 'rgba(248,113,113,0.15)',
-  purple: '#a78bfa',
-  purpleDim: 'rgba(167,139,250,0.15)',
-}
-
-const statusColors = {
-  ACTIVE: { bg: D.greenDim, color: D.green, border: 'rgba(74,222,128,0.3)' },
-  AVAILABLE: { bg: D.blueDim, color: D.blue, border: 'rgba(96,165,250,0.3)' },
-  SERVICE: { bg: D.orangeDim, color: D.orange, border: 'rgba(249,115,22,0.3)' },
-  INACTIVE: { bg: D.redDim, color: D.red, border: 'rgba(248,113,113,0.3)' },
-}
-
-const inputStyle = {
-  width: '100%',
-  padding: '10px 14px',
-  borderRadius: 8,
-  border: `1px solid rgba(255,255,255,0.1)`,
-  fontSize: '0.85rem',
-  color: D.text,
-  background: 'rgba(255,255,255,0.05)',
-  outline: 'none',
-  transition: 'border-color 0.15s, box-shadow 0.15s',
-  fontFamily: 'inherit',
-}
-
-const labelStyle = {
-  display: 'block',
-  marginBottom: 6,
-  fontSize: '0.78rem',
-  fontWeight: 700,
-  color: D.textSub,
-  textTransform: 'uppercase',
-  letterSpacing: '0.02em',
-}
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(99,102,241,0.5)'
   e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'
 }
 const onBlur = e => {
-  e.target.style.borderColor = 'rgba(255,255,255,0.1)'
+  e.target.style.borderColor = ''
   e.target.style.boxShadow = 'none'
 }
 
-const StatBadge = ({ label, value, icon, colorDim, colorHex }) => (
+
+const StatBadge = ({ label, value, icon, colorDim, colorHex, D }) => (
   <div style={{
     background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`,
     padding: '20px 22px', transition: 'all 0.25s ease', boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
@@ -88,6 +37,25 @@ const StatBadge = ({ label, value, icon, colorDim, colorHex }) => (
 )
 
 const VehiclesPage = () => {
+  const D = useD()
+
+  const statusColors = {
+    ACTIVE:    { bg: D.greenDim,  color: D.green,  border: `${D.green}50`  },
+    AVAILABLE: { bg: D.blueDim,   color: D.blue,   border: `${D.blue}50`   },
+    SERVICE:   { bg: D.orangeDim, color: D.orange, border: `${D.orange}50` },
+    INACTIVE:  { bg: D.redDim,    color: D.red,    border: `${D.red}50`    },
+  }
+  const inputStyle = {
+    width: '100%', padding: '10px 14px', borderRadius: 8,
+    border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem',
+    color: D.text, background: D.inputBg, outline: 'none',
+    transition: 'border-color 0.15s, box-shadow 0.15s', fontFamily: 'inherit',
+  }
+  const labelStyle = {
+    display: 'block', marginBottom: 6, fontSize: '0.78rem', fontWeight: 700,
+    color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.02em',
+  }
+
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('ALL')
   const { user, isAdmin } = useAuth()
@@ -117,6 +85,15 @@ const VehiclesPage = () => {
     driverId: '',
     currentMileageKm: ''
   })
+
+  useEffect(() => {
+    if (isModalOpen || isEditModalOpen || isDeleteModalOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [isModalOpen, isEditModalOpen, isDeleteModalOpen])
 
   useEffect(() => {
     const loadData = async () => {
@@ -264,7 +241,7 @@ const VehiclesPage = () => {
 
   return (
     <>
-      <div className="app-shell dark-theme-wrapper" style={{ background: D.bg }}>
+      <div className="app-shell" style={{ background: D.bg }}>
         <Sidebar />
         <div className="main-content" style={{ background: D.bg }}>
           <Topbar title="Vehicles" subtitle="Home / Vehicles" />
@@ -302,10 +279,10 @@ const VehiclesPage = () => {
 
             {/* Stats row */}
             <div style={{ display: 'flex', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
-              <StatBadge label="Total Vehicles" value={vehicles.length} icon={<Car size={20} />} colorDim={D.purpleDim} colorHex={D.purple} />
-              <StatBadge label="Active" value={counts.ACTIVE} icon={<CheckCircle size={20} />} colorDim={D.greenDim} colorHex={D.green} />
-              <StatBadge label="In Service" value={counts.SERVICE} icon={<Wrench size={20} />} colorDim={D.orangeDim} colorHex={D.orange} />
-              <StatBadge label="Available" value={counts.AVAILABLE} icon={<Circle size={20} />} colorDim={D.blueDim} colorHex={D.blue} />
+              <StatBadge label="Total Vehicles" value={vehicles.length} icon={<Car size={20} />} colorDim={D.purpleDim} colorHex={D.purple} D={D} />
+              <StatBadge label="Active" value={counts.ACTIVE} icon={<CheckCircle size={20} />} colorDim={D.greenDim} colorHex={D.green} D={D} />
+              <StatBadge label="In Service" value={counts.SERVICE} icon={<Wrench size={20} />} colorDim={D.orangeDim} colorHex={D.orange} D={D} />
+              <StatBadge label="Available" value={counts.AVAILABLE} icon={<Circle size={20} />} colorDim={D.blueDim} colorHex={D.blue} D={D} />
             </div>
 
             {/* Toolbar */}
@@ -574,28 +551,6 @@ const VehiclesPage = () => {
         )}
       </div>
 
-      {/* ── Dark theme overrides for sidebar/topbar ─────────── */}
-      <style>{`
-        .dark-theme-wrapper .topbar { background: #161b27 !important; border-bottom-color: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .topbar-title { color: #e2e8f0 !important; }
-        .dark-theme-wrapper .topbar-breadcrumb { color: #475569 !important; }
-        .dark-theme-wrapper .topbar-user { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.1) !important; }
-        .dark-theme-wrapper .topbar-user:hover { background: rgba(99,102,241,0.15) !important; border-color: rgba(99,102,241,0.4) !important; }
-        .dark-theme-wrapper .topbar-name { color: #e2e8f0 !important; }
-        .dark-theme-wrapper .sidebar { background: #111827 !important; border-right-color: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .sidebar-header { border-bottom-color: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .sidebar-title { color: #f1f5f9 !important; }
-        .dark-theme-wrapper .sidebar-subtitle { color: #475569 !important; }
-        .dark-theme-wrapper .nav-section-label { color: #334155 !important; }
-        .dark-theme-wrapper .nav-item { color: #64748b !important; }
-        .dark-theme-wrapper .nav-item:hover { background: rgba(255,255,255,0.05) !important; color: #cbd5e1 !important; }
-        
-        .dark-theme-wrapper .sidebar-divider { background: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .sidebar-logout-btn { color: rgba(255,255,255,0.4) !important; }
-        .dark-theme-wrapper .sidebar-logout-btn:hover { color: #f87171 !important; }
-        .dark-theme-wrapper .sidebar-user-card { background: rgba(255,255,255,0.03) !important; }
-        .dark-theme-wrapper .sidebar-footer { border-top-color: rgba(255,255,255,0.07) !important; }
-      `}</style>
     </>
   )
 }

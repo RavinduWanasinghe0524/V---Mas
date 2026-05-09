@@ -1,3 +1,26 @@
+/* ── Page Transition Animations ───────────────────── */
+@keyframes loginPageEnter {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes loginCardReveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 /* Split Panel Login Styles */
 .split-login-container {
   position: relative;
@@ -8,6 +31,7 @@
   justify-content: center;
   overflow: hidden;
   background-color: #0f172a;
+  animation: loginPageEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* Background image */
@@ -20,13 +44,7 @@
   z-index: 0;
 }
 
-/* Gradient overlay */
-.split-login-bg-gradient {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to right, rgba(15, 23, 42, 0.8), rgba(30, 58, 138, 0.4), rgba(15, 23, 42, 0.3));
-  z-index: 1;
-}
+
 
 /* Main Split Container */
 .split-login-main-card {
@@ -43,6 +61,7 @@
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5);
+  animation: loginCardReveal 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
 }
 
 /* Left Panel - Branding */
@@ -440,3 +459,119 @@
 .split-login-footer a:hover {
   color: #bfdbfe;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SHARED THEME TOGGLE BUTTON (login + signup pages)
+═══════════════════════════════════════════════════════════════════ */
+.auth-theme-toggle {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: all 0.25s ease;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+}
+.auth-theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT THEME OVERRIDES (data-theme="light")
+═══════════════════════════════════════════════════════════════════ */
+
+/* Theme toggle in light mode */
+[data-theme="light"] .auth-theme-toggle {
+  background: rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.25);
+  color: #1d4ed8;
+}
+[data-theme="light"] .auth-theme-toggle:hover {
+  background: rgba(37, 99, 235, 0.18);
+  border-color: rgba(37, 99, 235, 0.4);
+  color: #1e40af;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT THEME OVERRIDES FOR LEFT PANEL
+═══════════════════════════════════════════════════════════════════ */
+[data-theme="light"] .split-login-left {
+  background: rgba(255, 255, 255, 0.5);
+  border-right: 1px solid rgba(59, 130, 246, 0.15);
+}
+[data-theme="light"] .split-login-logo-text { color: #111827; }
+[data-theme="light"] .split-login-heading { color: #111827; }
+[data-theme="light"] .split-login-subheading { color: #4b5563; }
+[data-theme="light"] .split-login-feature-text { color: #374151; }
+[data-theme="light"] .split-login-feature-icon {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.2);
+}
+[data-theme="light"] .split-login-copyright { color: #9ca3af; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT THEME OVERRIDES FOR RIGHT PANEL (TEXT & INPUTS)
+═══════════════════════════════════════════════════════════════════ */
+[data-theme="light"] .split-login-title { color: #111827; }
+[data-theme="light"] .split-login-subtitle { color: #4b5563; }
+[data-theme="light"] .split-login-label { color: #374151; }
+[data-theme="light"] .split-login-error { 
+  background: rgba(220, 38, 38, 0.1);
+  border-color: rgba(220, 38, 38, 0.2);
+  color: #dc2626;
+}
+
+/* Inputs */
+[data-theme="light"] .split-login-input-group {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+}
+[data-theme="light"] .split-login-input-group:focus-within {
+  border-color: #3b82f6;
+  background: rgba(255, 255, 255, 0.9);
+}
+[data-theme="light"] .split-login-input-icon { color: #3b82f6; }
+[data-theme="light"] .split-login-input { color: #111827; }
+[data-theme="light"] .split-login-input::placeholder { color: #6b7280; }
+[data-theme="light"] .split-login-input-btn { color: #6b7280; }
+[data-theme="light"] .split-login-input-btn:hover { color: #111827; }
+
+/* Options & Links */
+[data-theme="light"] .split-login-remember-text { color: #374151; }
+[data-theme="light"] .split-login-checkbox { border-color: rgba(15, 23, 42, 0.2); }
+[data-theme="light"] .split-login-forgot { color: #2563eb; }
+[data-theme="light"] .split-login-forgot:hover { color: #1d4ed8; }
+
+/* Divider */
+[data-theme="light"] .split-login-divider-line { background: rgba(15, 23, 42, 0.1); }
+[data-theme="light"] .split-login-divider-text { color: #6b7280; }
+
+/* Socials */
+[data-theme="light"] .split-login-social-btn {
+  color: #374151;
+  border-color: rgba(15, 23, 42, 0.15);
+  background: rgba(255, 255, 255, 0.5);
+}
+[data-theme="light"] .split-login-social-btn:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* Footer */
+[data-theme="light"] .split-login-footer { color: #4b5563; }
+[data-theme="light"] .split-login-footer a { color: #2563eb; }
+[data-theme="light"] .split-login-footer a:hover { color: #1d4ed8; }

@@ -51,8 +51,16 @@
   --sidebar-w:        260px;
   --sidebar-bg:       #ffffff;
 
-  /* Navbar */
+  /* Topbar */
   --navbar-h:         64px;
+  --topbar-bg:        #ffffff;
+  --topbar-border:    #e5e7eb;
+
+  /* Surface tokens for dark-capable pages */
+  --surface:          #ffffff;
+  --surface-hi:       #f8faff;
+  --surface-border:   #e2e8f0;
+  --surface-border-hi:#cbd5e1;
 
   /* Radius */
   --radius-xs:        4px;
@@ -74,9 +82,133 @@
   --t-med:            0.25s ease;
 }
 
+/* ── Blue (Dark) Theme Overrides ───────────────────────────────── */
+[data-theme="blue"] {
+  /* Brand */
+  --primary:          #818cf8;
+  --primary-dark:     #6366f1;
+  --primary-light:    rgba(99,102,241,0.15);
+  --primary-muted:    rgba(99,102,241,0.18);
+  --primary-glow:     rgba(99,102,241,0.35);
+
+  /* Secondary accents */
+  --success:          #4ade80;
+  --success-bg:       rgba(74,222,128,0.15);
+  --success-text:     #4ade80;
+  --warning:          #fbbf24;
+  --warning-bg:       rgba(251,191,36,0.15);
+  --warning-text:     #fbbf24;
+  --danger:           #f87171;
+  --danger-bg:        rgba(248,113,113,0.15);
+  --danger-text:      #f87171;
+  --info:             #60a5fa;
+  --info-bg:          rgba(96,165,250,0.15);
+  --info-text:        #60a5fa;
+
+  /* Backgrounds */
+  --bg-body:          #0d1117;
+  --bg-white:         #161b27;
+  --bg-gray-50:       #1e2535;
+  --bg-gray-100:      #232d3f;
+
+  /* Borders */
+  --border:           rgba(255,255,255,0.07);
+  --border-strong:    rgba(255,255,255,0.13);
+  --border-focus:     #6366f1;
+
+  /* Text */
+  --text-primary:     #e2e8f0;
+  --text-secondary:   #cbd5e1;
+  --text-muted:       #64748b;
+  --text-light:       #475569;
+  --text-white:       #ffffff;
+  --text-accent:      #818cf8;
+
+  /* Sidebar */
+  --sidebar-bg:       #111827;
+
+  /* Topbar */
+  --topbar-bg:        #0f172a;
+  --topbar-border:    rgba(255,255,255,0.05);
+
+  /* Surface tokens */
+  --surface:          #161b27;
+  --surface-hi:       #1e2535;
+  --surface-border:   rgba(255,255,255,0.07);
+  --surface-border-hi:rgba(255,255,255,0.13);
+
+  /* Scrollbar */
+  --scrollbar-thumb:  rgba(255,255,255,0.15);
+
+  /* Shadows */
+  --shadow-xs:        0 1px 2px rgba(0,0,0,0.3);
+  --shadow-sm:        0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md:        0 4px 6px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3);
+  --shadow-lg:        0 10px 15px rgba(0,0,0,0.4), 0 4px 6px rgba(0,0,0,0.3);
+  --shadow-xl:        0 20px 25px rgba(0,0,0,0.5), 0 10px 10px rgba(0,0,0,0.3);
+}
+
+/* Blue theme scrollbar */
+[data-theme="blue"] ::-webkit-scrollbar-track { background: #1e2535; }
+[data-theme="blue"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
+[data-theme="blue"] ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+
+/* Blue theme badge overrides */
+[data-theme="blue"] .badge-admin       { background: rgba(109,40,217,0.2); color: #a78bfa; }
+[data-theme="blue"] .badge-controller  { background: rgba(59,130,246,0.15); color: #60a5fa; }
+[data-theme="blue"] .badge-driver      { background: rgba(16,185,129,0.15); color: #4ade80; }
+[data-theme="blue"] .badge-active      { background: rgba(16,185,129,0.15); color: #4ade80; }
+[data-theme="blue"] .badge-inactive    { background: rgba(248,113,113,0.15); color: #f87171; }
+[data-theme="blue"] .badge-warning     { background: rgba(251,191,36,0.15); color: #fbbf24; }
+[data-theme="blue"] .badge-info        { background: rgba(96,165,250,0.15); color: #60a5fa; }
+[data-theme="blue"] .badge-success     { background: rgba(74,222,128,0.15); color: #4ade80; }
+[data-theme="blue"] .badge-danger      { background: rgba(248,113,113,0.15); color: #f87171; }
+[data-theme="blue"] .badge-secondary   { background: rgba(255,255,255,0.07); color: #64748b; }
+[data-theme="blue"] .badge-primary     { background: rgba(99,102,241,0.18); color: #818cf8; }
+
+[data-theme="blue"] .role-badge.role-admin       { background: rgba(109,40,217,0.2); color: #a78bfa; }
+[data-theme="blue"] .role-badge.role-controller  { background: rgba(59,130,246,0.15); color: #60a5fa; }
+[data-theme="blue"] .role-badge.role-driver      { background: rgba(16,185,129,0.15); color: #4ade80; }
+[data-theme="blue"] .status-badge.status-active  { background: rgba(74,222,128,0.15); color: #4ade80; }
+[data-theme="blue"] .status-badge.status-inactive { background: rgba(248,113,113,0.15); color: #f87171; }
+
+/* ── Blue theme form controls ──────────────────────────────────── */
+[data-theme="blue"] .form-control {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.1);
+  color: #e2e8f0;
+}
+[data-theme="blue"] .form-control:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+}
+[data-theme="blue"] .form-control::placeholder { color: #475569; }
+[data-theme="blue"] select.form-control option  { background: #1e2535; }
+
+/* ── Blue theme icon colors ────────────────────────────────────── */
+[data-theme="blue"] .icon-purple { background: rgba(124,58,237,0.2); color: #a78bfa; }
+[data-theme="blue"] .icon-blue   { background: rgba(29,78,216,0.2);  color: #60a5fa; }
+[data-theme="blue"] .icon-green  { background: rgba(16,185,129,0.15); color: #4ade80; }
+[data-theme="blue"] .icon-orange { background: rgba(234,88,12,0.15);  color: #fb923c; }
+[data-theme="blue"] .icon-red    { background: rgba(220,38,38,0.15);  color: #f87171; }
+[data-theme="blue"] .icon-yellow { background: rgba(202,138,4,0.15);  color: #fbbf24; }
+[data-theme="blue"] .icon-pink   { background: rgba(157,23,77,0.15);  color: #f472b6; }
+[data-theme="blue"] .icon-indigo { background: rgba(67,56,202,0.15);  color: #818cf8; }
+
+
 /* ── Reset & Base ──────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
+
+/* Smooth theme transitions on everything */
+*, *::before, *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease, box-shadow 0.3s ease;
+}
+/* But don't animate layout/transform transitions */
+button, a, input, select, textarea, img, svg {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease, box-shadow 0.3s ease, opacity 0.2s ease, transform 0.15s ease;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg-body);
@@ -95,6 +227,7 @@ img { display: block; max-width: 100%; }
 ::-webkit-scrollbar-track { background: var(--bg-gray-100); }
 ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; }
 ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
 
 /* ── Animations ────────────────────────────────────────────────── */
 @keyframes spin    { to { transform: rotate(360deg); } }
