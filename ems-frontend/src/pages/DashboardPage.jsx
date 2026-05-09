@@ -227,13 +227,11 @@ const DashboardPage = () => {
 
           {/* Hero Banner */}
           <div style={{
-            background: isDark
-              ? 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)'
-              : 'linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #7c3aed 100%)',
+            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
             borderRadius: 20, padding: '32px 36px', marginBottom: 32,
             position: 'relative', overflow: 'hidden',
-            boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.3)' : '0 8px 32px rgba(79,70,229,0.25)',
-            border: isDark ? '1px solid rgba(255,255,255,0.07)' : 'none',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            border: '1px solid rgba(255,255,255,0.07)',
           }}>
             {[['80%', '-20px', '180px', 'rgba(255,255,255,0.04)'], ['20%', '60%', '120px', 'rgba(255,255,255,0.05)'], ['55%', '80%', '90px', 'rgba(255,255,255,0.03)']].map(([t, l, s, bg], i) => (
               <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />

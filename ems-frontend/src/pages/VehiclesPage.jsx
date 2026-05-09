@@ -87,6 +87,15 @@ const VehiclesPage = () => {
   })
 
   useEffect(() => {
+    if (isModalOpen || isEditModalOpen || isDeleteModalOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [isModalOpen, isEditModalOpen, isDeleteModalOpen])
+
+  useEffect(() => {
     const loadData = async () => {
       try {
         if (isAdmin) {
