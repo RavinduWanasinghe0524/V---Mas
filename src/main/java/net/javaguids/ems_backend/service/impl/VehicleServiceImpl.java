@@ -34,7 +34,6 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
-    @SuppressWarnings("null")
     public VehicleDto getVehicleById(Long id) {
         Vehicle vehicle = vehicleRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
         return VehicleMapper.mapToVehicleDto(vehicle);
@@ -48,7 +47,6 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
-    @SuppressWarnings("null")
     public VehicleDto updateVehicle(Long id, VehicleDto vehicleDto) {
         Vehicle vehicle = vehicleRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
 
@@ -74,7 +72,6 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
-    @SuppressWarnings("null")
     public void deleteVehicle(Long id) {
         Vehicle vehicle = vehicleRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
         vehicleRepository.delete(vehicle);
@@ -87,7 +84,6 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
-    @SuppressWarnings("null")
     public VehicleDto assignDriver(Long vehicleId, Long driverId) throws BadRequestException {
         // fetch driver
         User driver = userRepository.findById(driverId).orElseThrow(() -> new ResourceNotFoundException("No such driver found."));
