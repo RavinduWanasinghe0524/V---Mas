@@ -3,7 +3,7 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
-import { fuelAPI } from '../services/api'
+import { fuelAPI, vehicleAPI, userAPI } from '../services/api'
 import { Fuel, CircleDollarSign, BarChart2, Car, Trash2, ClipboardList, Plus, Search, Edit2, AlertTriangle, Check, X, Loader2 } from 'lucide-react'
 
 
@@ -76,12 +76,18 @@ const FuelManagementPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deletingLog, setDeletingLog] = useState(null)
   const [toast, setToast] = useState(null)
+  const [vehicles, setVehicles] = useState([])
+  const [driversList, setDriversList] = useState([])
 
   const [stats, setStats] = useState({
     totalLogs: 0, totalFuel: 0, totalCost: 0, avgEfficiency: 0, vehicleCount: 0,
   })
 
   useEffect(() => { loadAllLogs() }, [])
+  useEffect(() => {
+    vehicleAPI.getAllVehicles().then(r => setVehicles(r.data.data || [])).catch(() => {})
+    userAPI.getAllDrivers().then(r => setDriversList(r.data.data || [])).catch(() => {})
+  }, [])
   useEffect(() => { applyFilters() }, [allLogs, searchTerm, filterFuelType, filterStatus, activeTab])
 
   const showToast = (msg, type = 'success') => {
@@ -137,6 +143,22 @@ const FuelManagementPage = () => {
     const { name, value } = e.target
     if (editingLog) setEditingLog(p => ({ ...p, [name]: value }))
     else setFormData(p => ({ ...p, [name]: value }))
+  }
+
+  // When a vehicle is selected in the Add form, auto-fill the assigned driver
+  const handleVehicleSelect = e => {
+    const regNo = e.target.value
+    const selected = vehicles.find(v => v.registrationNo === regNo)
+    // Convert PETROL → Petrol, DIESEL → Diesel, etc.
+    const fuelType = selected?.fuelType
+      ? selected.fuelType.charAt(0).toUpperCase() + selected.fuelType.slice(1).toLowerCase()
+      : undefined
+    setFormData(p => ({
+      ...p,
+      vehicleRegNumber: regNo,
+      ...(fuelType && { fuelType }),
+      driverUsername: selected?.driverName && selected.driverName !== 'Not Assigned' ? selected.driverName : p.driverUsername,
+    }))
   }
 
   const handleAddFuelLog = async e => {
@@ -559,7 +581,14 @@ const FuelManagementPage = () => {
                   {/* Vehicle Reg */}
                   <div>
                     <label style={labelStyle}>Vehicle Registration <span style={{ color: D.red }}>*</span></label>
-                    <input type="text" name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={handleInputChange} required placeholder="e.g. WP-CAB-1234" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                    <select name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={handleVehicleSelect} required style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
+                      <option value="" style={{ background: D.surfaceHi }}>— Select Vehicle —</option>
+                      {vehicles.map(v => (
+                        <option key={v.id} value={v.registrationNo} style={{ background: D.surfaceHi }}>
+                          {v.registrationNo}{v.driverName && v.driverName !== 'Not Assigned' ? ` (${v.driverName})` : ''}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   {/* Fuel Type */}
                   <div>

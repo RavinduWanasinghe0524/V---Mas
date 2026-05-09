@@ -3,7 +3,7 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
-import { fuelAPI } from '../services/api'
+import { fuelAPI, vehicleAPI } from '../services/api'
 import { Fuel, CircleDollarSign, BarChart2, Car, Check, X, Plus, Loader2 } from 'lucide-react'
 
 
@@ -47,10 +47,10 @@ const FuelLogPage = () => {
   // State for fuel logs
   const [myVehicleLogs, setMyVehicleLogs] = useState([])
   const [loading, setLoading] = useState(true)
-  
-  // State for Add Fuel Log Form
+  const [assignedVehicle, setAssignedVehicle] = useState(null)
+
   const [formData, setFormData] = useState({
-    vehicleRegNumber: user?.vehicleRegNumber || '',
+    vehicleRegNumber: '',
     fuelType: 'Diesel',
     liters: '',
     costPerLiter: '',
@@ -62,20 +62,35 @@ const FuelLogPage = () => {
 
   // Load fuel logs
   useEffect(() => {
-    const loadLogs = async () => {
+    const loadData = async () => {
       try {
         setLoading(true)
-        // Driver-scoped endpoint: GET /api/fuel/my-logs
-        const logsRes = await fuelAPI.getMyLogs()
-        setMyVehicleLogs(logsRes.data.data || [])
-      } catch (error) {
-        console.error('Error loading fuel logs:', error)
+        const [logsRes, vehicleRes] = await Promise.allSettled([
+          fuelAPI.getMyLogs(),
+          vehicleAPI.getAssignedVehicle(),
+        ])
+        if (logsRes.status === 'fulfilled') setMyVehicleLogs(logsRes.value.data.data || [])
+        if (vehicleRes.status === 'fulfilled') {
+          const v = vehicleRes.value.data.data
+          setAssignedVehicle(v)
+          if (v?.registrationNo) {
+            const fuelType = v.fuelType
+              ? v.fuelType.charAt(0).toUpperCase() + v.fuelType.slice(1).toLowerCase()
+              : undefined
+            setFormData(p => ({
+              ...p,
+              vehicleRegNumber: v.registrationNo,
+              ...(fuelType && { fuelType }),
+            }))
+          }
+        }
+      } catch (err) {
+        console.error('Error loading fuel log data:', err)
       } finally {
         setLoading(false)
       }
     }
-    
-    loadLogs()
+    loadData()
   }, [user])
 
   // Handle form input change
@@ -107,7 +122,7 @@ const FuelLogPage = () => {
       
       // Reset form
       setFormData({
-        vehicleRegNumber: user?.vehicleRegNumber || '',
+        vehicleRegNumber: assignedVehicle?.registrationNo || '',
         fuelType: 'Diesel',
         liters: '',
         costPerLiter: '',
@@ -243,17 +258,19 @@ const FuelLogPage = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 20, marginBottom: 24 }}>
                   <div>
                     <label style={labelStyle}>Vehicle Registration Number *</label>
-                    <input 
-                      type="text" 
-                      name="vehicleRegNumber" 
-                      value={formData.vehicleRegNumber} 
-                      onChange={handleInputChange}
-                      required 
-                      readOnly={!!user?.vehicleRegNumber}
-                      placeholder="e.g., WP-CAB-1234"
-                      style={{ ...inputStyle, background: user?.vehicleRegNumber ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)' }}
-                      onFocus={onFocus} onBlur={onBlur}
+                    <input
+                      type="text"
+                      name="vehicleRegNumber"
+                      value={formData.vehicleRegNumber}
+                      readOnly
+                      placeholder="No vehicle assigned"
+                      style={{ ...inputStyle, background: 'rgba(255,255,255,0.02)', cursor: 'not-allowed', color: assignedVehicle ? D.blue : D.textSub, fontWeight: assignedVehicle ? 700 : 400 }}
                     />
+                    {assignedVehicle && (
+                      <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: D.textSub }}>
+                        Auto-filled from your assigned vehicle
+                      </p>
+                    )}
                   </div>
 
                   <div>
