@@ -5,7 +5,31 @@ import Topbar from '../components/Topbar'
 import { serviceAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
-import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign } from 'lucide-react'
+import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle } from 'lucide-react'
+
+const SERVICE_TYPES = [
+  { value: 'OIL_CHANGE', label: 'Oil Change' },
+  { value: 'ENGINE_TUNE_UP', label: 'Engine Tune Up' },
+  { value: 'BRAKE_SERVICE', label: 'Brake Service' },
+  { value: 'TIRE_ROTATION', label: 'Tire Rotation' },
+  { value: 'TRANSMISSION_SERVICE', label: 'Transmission Service' },
+  { value: 'AC_SERVICE', label: 'AC Service' },
+  { value: 'BATTERY_REPLACEMENT', label: 'Battery Replacement' },
+  { value: 'GENERAL_INSPECTION', label: 'General Inspection' },
+  { value: 'OTHER', label: 'Other' },
+]
+
+const initialForm = {
+  vehicleRegNumber: '',
+  serviceType: '',
+  serviceTypeDetail: '',
+  serviceDate: '',
+  currentMileageKm: '',
+  serviceCost: '',
+  technicianWorkshop: '',
+  nextServiceDue: '',
+  description: '',
+}
 
 /* ── Service type icon map ──────────────────────────────────────── */
 const SERVICE_TYPE_ICONS = {
@@ -388,6 +412,112 @@ const ServicePage = () => {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState('grid')
 
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [editingServiceId, setEditingServiceId] = useState(null)
+  const [errors, setErrors] = useState({})
+  const [submitError, setSubmitError] = useState(null)
+  const [formData, setFormData] = useState(initialForm)
+  const [editFormData, setEditFormData] = useState(initialForm)
+  const [formLoading, setFormLoading] = useState(false)
+
+  useEffect(() => {
+    if (isAddModalOpen || isEditModalOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [isAddModalOpen, isEditModalOpen])
+
+  const validate = (data) => {
+    const e = {}
+    if (!data.vehicleRegNumber?.trim()) e.vehicleRegNumber = 'Required'
+    if (!data.serviceType) e.serviceType = 'Required'
+    if (data.serviceType === 'OTHER' && !data.serviceTypeDetail?.trim())
+      e.serviceTypeDetail = 'Required for Other'
+    if (!data.serviceDate) e.serviceDate = 'Required'
+    if (!data.currentMileageKm) e.currentMileageKm = 'Required'
+    if (!data.serviceCost) e.serviceCost = 'Required'
+    if (!data.technicianWorkshop?.trim()) e.technicianWorkshop = 'Required'
+    return e
+  }
+
+  const openAddModal = () => {
+    setFormData(initialForm)
+    setErrors({})
+    setSubmitError(null)
+    setIsAddModalOpen(true)
+  }
+  const closeAddModal = () => setIsAddModalOpen(false)
+
+  const handleAddChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: undefined }))
+  }
+
+  const handleAddSubmit = async (e) => {
+    e.preventDefault()
+    const errs = validate(formData)
+    if (Object.keys(errs).length) { setErrors(errs); return }
+    setFormLoading(true)
+    setSubmitError(null)
+    try {
+      await serviceAPI.createService(formData)
+      setIsAddModalOpen(false)
+      loadData()
+    } catch (err) {
+      setSubmitError(err.response?.data?.message || 'Failed to save service record.')
+    } finally {
+      setFormLoading(false)
+    }
+  }
+
+  const openEditModal = (id) => {
+    const record = services.find(s => s.id === id)
+    if (!record) return
+    setEditingServiceId(id)
+    setEditFormData({
+      vehicleRegNumber: record.vehicleRegNumber || '',
+      serviceType: record.serviceType || '',
+      serviceTypeDetail: record.serviceTypeDetail || '',
+      serviceDate: record.serviceDate ? record.serviceDate.substring(0, 10) : '',
+      currentMileageKm: record.currentMileageKm || '',
+      serviceCost: record.serviceCost || '',
+      technicianWorkshop: record.technicianWorkshop || '',
+      nextServiceDue: record.nextServiceDue ? record.nextServiceDue.substring(0, 10) : '',
+      description: record.description || '',
+    })
+    setErrors({})
+    setSubmitError(null)
+    setIsEditModalOpen(true)
+  }
+  const closeEditModal = () => setIsEditModalOpen(false)
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target
+    setEditFormData(prev => ({ ...prev, [name]: value }))
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: undefined }))
+  }
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault()
+    const errs = validate(editFormData)
+    if (Object.keys(errs).length) { setErrors(errs); return }
+    setFormLoading(true)
+    setSubmitError(null)
+    try {
+      await serviceAPI.updateService(editingServiceId, editFormData)
+      setIsEditModalOpen(false)
+      loadData()
+    } catch (err) {
+      setSubmitError(err.response?.data?.message || 'Failed to update service record.')
+    } finally {
+      setFormLoading(false)
+    }
+  }
+
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
@@ -451,6 +581,23 @@ const ServicePage = () => {
     transition: 'all 0.2s ease',
     boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
   }
+
+  /* ── Modal form styles ────────────────────────────────────────── */
+  const fieldLabel = {
+    display: 'block', fontSize: '0.78rem', fontWeight: 700,
+    color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 6,
+  }
+  const fieldInput = (hasError) => ({
+    width: '100%', padding: '10px 14px', background: D.inputBg,
+    border: `1px solid ${hasError ? 'rgba(248,113,113,0.5)' : D.inputBorder}`,
+    borderRadius: 8, color: D.text, fontSize: '0.85rem',
+    outline: 'none', fontFamily: 'inherit',
+    transition: 'border-color 0.15s, box-shadow 0.15s', boxSizing: 'border-box',
+  })
+  const fieldError = { color: D.red, fontSize: '0.72rem', margin: '4px 0 0 0' }
+
+  const focusBorder = (e) => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)' }
+  const blurBorder = (e, hasErr) => { e.target.style.borderColor = hasErr ? 'rgba(248,113,113,0.5)' : D.inputBorder; e.target.style.boxShadow = 'none' }
 
   return (
     <div className="app-shell">
@@ -530,7 +677,7 @@ const ServicePage = () => {
               {!isDriver && (
                 <button
                   id="add-service-btn"
-                  onClick={() => navigate('/service/add')}
+                  onClick={openAddModal}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8,
                     padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
@@ -673,7 +820,7 @@ const ServicePage = () => {
                 <p style={{ color: D.textSub, fontSize: '0.95rem', fontWeight: 500 }}>No service records found.</p>
                 {!isDriver && (
                   <button
-                    onClick={() => navigate('/service/add')}
+                    onClick={openAddModal}
                     style={{
                       marginTop: 16, padding: '9px 22px', borderRadius: 10,
                       background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
@@ -689,7 +836,7 @@ const ServicePage = () => {
               <ServiceCalendar
                 services={filtered}
                 isDriver={isDriver}
-                onEdit={id => navigate(`/service/edit/${id}`)}
+                onEdit={openEditModal}
                 getStatus={getStatus}
                 STATUS_CONFIG={STATUS_CONFIG}
                 D={D}
@@ -701,7 +848,7 @@ const ServicePage = () => {
                   record={record}
                   index={i}
                   isDriver={isDriver}
-                  onEdit={id => navigate(`/service/edit/${id}`)}
+                  onEdit={openEditModal}
                   onDelete={handleDelete}
                   D={D}
                 />
@@ -713,7 +860,7 @@ const ServicePage = () => {
                   record={record}
                   index={i}
                   isDriver={isDriver}
-                  onEdit={id => navigate(`/service/edit/${id}`)}
+                  onEdit={openEditModal}
                   onDelete={handleDelete}
                   D={D}
                 />
@@ -730,6 +877,212 @@ const ServicePage = () => {
 
         </div>
       </div>
+
+      {/* ── Add Modal ──────────────────────────────────────────────── */}
+      {isAddModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease' }}>
+          <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 640, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden' }}>
+            <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: D.indigoDim, color: D.indigo, border: `1px solid ${D.indigo}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Wrench size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Add Service Record</h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: D.textSub }}>Log a new service or maintenance record for a vehicle.</p>
+                </div>
+              </div>
+              <button onClick={closeAddModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
+            </div>
+
+            {submitError && (
+              <div style={{ margin: '20px 28px 0', background: D.redDim, border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, padding: '10px 16px', color: D.red, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertTriangle size={18} /> {submitError}
+              </div>
+            )}
+
+            <form onSubmit={handleAddSubmit} style={{ padding: '24px 28px' }} noValidate>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Vehicle & Service Details</span>
+                <div style={{ flex: 1, height: 1, background: D.border }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+                <div>
+                  <label style={fieldLabel}>Vehicle (License Plate) <span style={{ color: D.red }}>*</span></label>
+                  <input type="text" name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={handleAddChange} placeholder="e.g. KA-01-AB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
+                  {errors.vehicleRegNumber && <p style={fieldError}>{errors.vehicleRegNumber}</p>}
+                </div>
+                <div>
+                  <label style={fieldLabel}>Service Type <span style={{ color: D.red }}>*</span></label>
+                  <select name="serviceType" value={formData.serviceType} onChange={handleAddChange} style={{ ...fieldInput(errors.serviceType), cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '18px', paddingRight: 38 }} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceType)}>
+                    <option value="" disabled style={{ background: D.surfaceHi }}>Select service type</option>
+                    {SERVICE_TYPES.map(t => <option key={t.value} value={t.value} style={{ background: D.surfaceHi }}>{t.label}</option>)}
+                  </select>
+                  {errors.serviceType && <p style={fieldError}>{errors.serviceType}</p>}
+                </div>
+
+                {formData.serviceType === 'OTHER' && (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={fieldLabel}>Service Type Detail <span style={{ color: D.red }}>*</span></label>
+                    <input type="text" name="serviceTypeDetail" value={formData.serviceTypeDetail} onChange={handleAddChange} placeholder="Describe the service…" style={fieldInput(errors.serviceTypeDetail)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceTypeDetail)} />
+                    {errors.serviceTypeDetail && <p style={fieldError}>{errors.serviceTypeDetail}</p>}
+                  </div>
+                )}
+
+                <div>
+                  <label style={fieldLabel}>Service Date <span style={{ color: D.red }}>*</span></label>
+                  <input type="date" name="serviceDate" value={formData.serviceDate} onChange={handleAddChange} style={fieldInput(errors.serviceDate)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceDate)} />
+                  {errors.serviceDate && <p style={fieldError}>{errors.serviceDate}</p>}
+                </div>
+                <div>
+                  <label style={fieldLabel}>Current Mileage (km) <span style={{ color: D.red }}>*</span></label>
+                  <input type="number" name="currentMileageKm" value={formData.currentMileageKm} onChange={handleAddChange} placeholder="e.g. 45000" style={fieldInput(errors.currentMileageKm)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.currentMileageKm)} />
+                  {errors.currentMileageKm && <p style={fieldError}>{errors.currentMileageKm}</p>}
+                </div>
+                <div>
+                  <label style={fieldLabel}>Service Cost (Rs.) <span style={{ color: D.red }}>*</span></label>
+                  <input type="number" step="0.01" name="serviceCost" value={formData.serviceCost} onChange={handleAddChange} placeholder="e.g. 8500" style={fieldInput(errors.serviceCost)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceCost)} />
+                  {errors.serviceCost && <p style={fieldError}>{errors.serviceCost}</p>}
+                </div>
+                <div>
+                  <label style={fieldLabel}>Technician / Workshop <span style={{ color: D.red }}>*</span></label>
+                  <input type="text" name="technicianWorkshop" value={formData.technicianWorkshop} onChange={handleAddChange} placeholder="e.g. Auto Care Center" style={fieldInput(errors.technicianWorkshop)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.technicianWorkshop)} />
+                  {errors.technicianWorkshop && <p style={fieldError}>{errors.technicianWorkshop}</p>}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0 16px' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Optional Details</span>
+                <div style={{ flex: 1, height: 1, background: D.border }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 28 }}>
+                <div>
+                  <label style={fieldLabel}>Next Service Due</label>
+                  <input type="date" name="nextServiceDue" value={formData.nextServiceDue} onChange={handleAddChange} style={fieldInput(false)} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                </div>
+                <div>
+                  <label style={fieldLabel}>Description / Notes</label>
+                  <textarea name="description" value={formData.description} onChange={handleAddChange} rows={3} placeholder="Any additional notes…" style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button type="submit" disabled={formLoading} style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: formLoading ? 'rgba(99,102,241,0.6)' : 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: formLoading ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: formLoading ? 'none' : '0 4px 16px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  {formLoading ? 'Saving...' : <><Check size={16} /> Add Record</>}
+                </button>
+                <button type="button" onClick={closeAddModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Modal ──────────────────────────────────────────────── */}
+      {isEditModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease' }}>
+          <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 640, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden' }}>
+            <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: D.indigoDim, color: D.indigo, border: `1px solid ${D.indigo}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Edit2 size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Edit Service Record</h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: D.textSub }}>Update the details of this service record.</p>
+                </div>
+              </div>
+              <button onClick={closeEditModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
+            </div>
+
+            {submitError && (
+              <div style={{ margin: '20px 28px 0', background: D.redDim, border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, padding: '10px 16px', color: D.red, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertTriangle size={18} /> {submitError}
+              </div>
+            )}
+
+            <form onSubmit={handleEditSubmit} style={{ padding: '24px 28px' }} noValidate>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Vehicle & Service Details</span>
+                <div style={{ flex: 1, height: 1, background: D.border }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+                <div>
+                  <label style={fieldLabel}>Vehicle (License Plate) <span style={{ color: D.red }}>*</span></label>
+                  <input type="text" name="vehicleRegNumber" value={editFormData.vehicleRegNumber} onChange={handleEditChange} placeholder="e.g. KA-01-AB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
+                  {errors.vehicleRegNumber && <p style={fieldError}>{errors.vehicleRegNumber}</p>}
+                </div>
+                <div>
+                  <label style={fieldLabel}>Service Type <span style={{ color: D.red }}>*</span></label>
+                  <select name="serviceType" value={editFormData.serviceType} onChange={handleEditChange} style={{ ...fieldInput(errors.serviceType), cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '18px', paddingRight: 38 }} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceType)}>
+                    <option value="" disabled style={{ background: D.surfaceHi }}>Select service type</option>
+                    {SERVICE_TYPES.map(t => <option key={t.value} value={t.value} style={{ background: D.surfaceHi }}>{t.label}</option>)}
+                  </select>
+                  {errors.serviceType && <p style={fieldError}>{errors.serviceType}</p>}
+                </div>
+
+                {editFormData.serviceType === 'OTHER' && (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={fieldLabel}>Service Type Detail <span style={{ color: D.red }}>*</span></label>
+                    <input type="text" name="serviceTypeDetail" value={editFormData.serviceTypeDetail} onChange={handleEditChange} placeholder="Describe the service…" style={fieldInput(errors.serviceTypeDetail)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceTypeDetail)} />
+                    {errors.serviceTypeDetail && <p style={fieldError}>{errors.serviceTypeDetail}</p>}
+                  </div>
+                )}
+
+                <div>
+                  <label style={fieldLabel}>Service Date <span style={{ color: D.red }}>*</span></label>
+                  <input type="date" name="serviceDate" value={editFormData.serviceDate} onChange={handleEditChange} style={fieldInput(errors.serviceDate)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceDate)} />
+                  {errors.serviceDate && <p style={fieldError}>{errors.serviceDate}</p>}
+                </div>
+                <div>
+                  <label style={fieldLabel}>Current Mileage (km) <span style={{ color: D.red }}>*</span></label>
+                  <input type="number" name="currentMileageKm" value={editFormData.currentMileageKm} onChange={handleEditChange} placeholder="e.g. 45000" style={fieldInput(errors.currentMileageKm)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.currentMileageKm)} />
+                  {errors.currentMileageKm && <p style={fieldError}>{errors.currentMileageKm}</p>}
+                </div>
+                <div>
+                  <label style={fieldLabel}>Service Cost (Rs.) <span style={{ color: D.red }}>*</span></label>
+                  <input type="number" step="0.01" name="serviceCost" value={editFormData.serviceCost} onChange={handleEditChange} placeholder="e.g. 8500" style={fieldInput(errors.serviceCost)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceCost)} />
+                  {errors.serviceCost && <p style={fieldError}>{errors.serviceCost}</p>}
+                </div>
+                <div>
+                  <label style={fieldLabel}>Technician / Workshop <span style={{ color: D.red }}>*</span></label>
+                  <input type="text" name="technicianWorkshop" value={editFormData.technicianWorkshop} onChange={handleEditChange} placeholder="e.g. Auto Care Center" style={fieldInput(errors.technicianWorkshop)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.technicianWorkshop)} />
+                  {errors.technicianWorkshop && <p style={fieldError}>{errors.technicianWorkshop}</p>}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0 16px' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Optional Details</span>
+                <div style={{ flex: 1, height: 1, background: D.border }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 28 }}>
+                <div>
+                  <label style={fieldLabel}>Next Service Due</label>
+                  <input type="date" name="nextServiceDue" value={editFormData.nextServiceDue} onChange={handleEditChange} style={fieldInput(false)} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                </div>
+                <div>
+                  <label style={fieldLabel}>Description / Notes</label>
+                  <textarea name="description" value={editFormData.description} onChange={handleEditChange} rows={3} placeholder="Any additional notes…" style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button type="submit" disabled={formLoading} style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: formLoading ? 'rgba(99,102,241,0.6)' : 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: formLoading ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: formLoading ? 'none' : '0 4px 16px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  {formLoading ? 'Saving...' : <><Check size={16} /> Save Changes</>}
+                </button>
+                <button type="button" onClick={closeEditModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ── Scoped Styles ── */}
       <style>{`
