@@ -67,6 +67,7 @@ const VehiclesPage = () => {
   const [deletingVehicle, setDeletingVehicle] = useState(null)
   const [drivers, setDrivers] = useState([])
   const [assignedVehicle, setAssignedVehicle] = useState(null)
+  const [addError, setAddError] = useState('')
   const [vehicles, setVehicles] = useState([])
   const [formData, setFormData] = useState({
     model: '',
@@ -127,6 +128,7 @@ const VehiclesPage = () => {
 
   const closeModal = () => {
     setIsModalOpen(false)
+    setAddError('')
     setFormData({
       model: '',
       registrationNo: '',
@@ -141,17 +143,25 @@ const VehiclesPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setAddError('')
     try {
-      const saveRes = await vehicleAPI.registerVehicle(formData)
+      const { driverId, ...rest } = formData
+      const vehiclePayload = {
+        ...rest,
+        year: rest.year ? Number(rest.year) : undefined,
+        currentMileageKm: rest.currentMileageKm ? Number(rest.currentMileageKm) : undefined,
+      }
+      const saveRes = await vehicleAPI.registerVehicle(vehiclePayload)
       const saved = saveRes.data.data
-      // Assign driver if selected
-      if (formData.driverId && saved?.id) {
-        await vehicleAPI.assignDriver(saved.id, formData.driverId)
+      if (driverId && saved?.id) {
+        await vehicleAPI.assignDriver(saved.id, driverId)
       }
       const response = await vehicleAPI.getAllVehicles()
       setVehicles(response.data.data || [])
       closeModal()
     } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Failed to add vehicle.'
+      setAddError(msg)
       console.error('Error adding vehicle:', err)
     }
   }
@@ -515,10 +525,10 @@ const VehiclesPage = () => {
                     <label style={labelStyle}>Fuel Type <span style={{ color: D.red }}>*</span></label>
                     <select name="fuelType" value={formData.fuelType} onChange={handleChange} required style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
                       <option value="" style={{ background: D.surfaceHi }}>Select Fuel Type</option>
-                      <option value="Petrol" style={{ background: D.surfaceHi }}>Petrol</option>
-                      <option value="Diesel" style={{ background: D.surfaceHi }}>Diesel</option>
-                      <option value="Electric" style={{ background: D.surfaceHi }}>Electric</option>
-                      <option value="Hybrid" style={{ background: D.surfaceHi }}>Hybrid</option>
+                      <option value="PETROL" style={{ background: D.surfaceHi }}>Petrol</option>
+                      <option value="DIESEL" style={{ background: D.surfaceHi }}>Diesel</option>
+                      <option value="ELECTRIC" style={{ background: D.surfaceHi }}>Electric</option>
+                      <option value="HYBRID" style={{ background: D.surfaceHi }}>Hybrid</option>
                     </select>
                   </div>
                   <div>
@@ -533,6 +543,11 @@ const VehiclesPage = () => {
                     </select>
                   </div>
                 </div>
+                {addError && (
+                  <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 8, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', color: D.red, fontSize: '0.83rem', fontWeight: 600 }}>
+                    ⚠ {addError}
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: 12 }}>
                   <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                     <Check size={16} /> Add Vehicle
