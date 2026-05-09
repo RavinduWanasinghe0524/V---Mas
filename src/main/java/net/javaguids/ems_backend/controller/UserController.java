@@ -7,6 +7,7 @@ import net.javaguids.ems_backend.dto.RegisterRequest;
 import net.javaguids.ems_backend.dto.UpdateProfileRequest;
 import net.javaguids.ems_backend.dto.UserDto;
 import net.javaguids.ems_backend.entity.User;
+import net.javaguids.ems_backend.enums.Role;
 import net.javaguids.ems_backend.repository.UserRepository;
 import net.javaguids.ems_backend.service.UserService;
 import net.javaguids.ems_backend.util.ApiResponseUtil;
@@ -102,6 +103,20 @@ public class UserController {
         UserDto updated = userService.rejectUser(id);
         log.info("User rejected successfully with ID: {}", id);
         return ApiResponseUtil.success("User rejected successfully", updated, HttpStatus.OK);
+    }
+
+    // ── Admin/Controller: Active drivers list (for assign-driver dropdown) ──
+
+    @GetMapping("/drivers")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    public ResponseEntity<ApiResponse<List<UserDto>>> getAllDrivers() {
+        log.info("Get all active drivers request received");
+        List<UserDto> drivers = userService.getAllUsers().stream()
+                .filter(u -> Role.DRIVER.equals(u.getRole())
+                          && "ACTIVE".equals(String.valueOf(u.getAccountStatus())))
+                .collect(Collectors.toList());
+        log.info("Returning {} active drivers", drivers.size());
+        return ApiResponseUtil.success("Drivers fetched successfully", drivers, HttpStatus.OK);
     }
 
     // ── Admin: Full user list ────────────────────────────────────────

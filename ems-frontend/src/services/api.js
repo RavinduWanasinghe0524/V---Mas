@@ -55,6 +55,8 @@ export const userAPI = {
   getPendingUsers: ()        => api.get('/users/pending'),
   approveUser:    (id)       => api.patch(`/users/${id}/approve`),
   rejectUser:     (id)       => api.patch(`/users/${id}/reject`),
+  // ── Driver list (for assign-driver dropdown) ─────────────────────────
+  getAllDrivers:   ()         => api.get('/users/drivers'),
 }
 
 export const profileAPI = {
@@ -72,12 +74,13 @@ export const employeeAPI = {
 }
 
 export const vehicleAPI = {
-  getAllVehicles: () => api.get('/vehicles'),
-  getVehicleById: (id) => api.get(`/vehicles/${id}`),
-  updateVehicle: (id, data) => api.put(`/vehicles/${id}`, data),
-  deleteVehicle: (id) => api.delete(`/vehicles/${id}`),
-  registerVehicle: (data) => api.post('/vehicles', data),
-  assignVehicle: (id, employeeId) => api.post(`/vehicles/${id}/assign`, { employeeId })
+  getAllVehicles:    ()                  => api.get('/vehicles'),
+  getVehicleById:   (id)                => api.get(`/vehicles/${id}`),
+  updateVehicle:    (id, data)          => api.put(`/vehicles/${id}`, data),
+  deleteVehicle:    (id)                => api.delete(`/vehicles/${id}`),
+  registerVehicle:  (data)              => api.post('/vehicles', data),
+  assignDriver:     (vehicleId, driverId) => api.patch(`/vehicles/${vehicleId}/driver/${driverId}`),
+  getAssignedVehicle: ()               => api.get('/vehicles/assigned'),
 }
 
 export const fuelAPI = {
