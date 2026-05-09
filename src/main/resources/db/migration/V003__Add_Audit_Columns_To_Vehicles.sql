@@ -1,0 +1,2 @@
+ALTER TABLE vehicles ADD COLUMN updated_at DATETIME(6);
+ALTER TABLE vehicles ADD COLUMN updated_by VARCHAR(100);

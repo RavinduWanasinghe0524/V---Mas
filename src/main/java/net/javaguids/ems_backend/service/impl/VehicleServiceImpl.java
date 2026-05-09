@@ -13,6 +13,7 @@ import net.javaguids.ems_backend.service.VehicleService;
 import org.apache.coyote.BadRequestException;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -47,27 +48,28 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
-    public VehicleDto updateVehicle(Long id, VehicleDto vehicleDto) {
+    public VehicleDto updateVehicle(Long id, VehicleDto vehicleDto, String updatedBy) {
         Vehicle vehicle = vehicleRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
 
-        // Check if registration number is being changed to one that already exists
         if (!vehicle.getRegistrationNo().equals(vehicleDto.getRegistrationNo()) && vehicleRepository.existsByRegistrationNo(vehicleDto.getRegistrationNo())) {
             throw new RuntimeException("Vehicle with registration number '" + vehicleDto.getRegistrationNo() + "' already exists.");
         }
 
-        Vehicle newVehicle = new Vehicle();
-        newVehicle.setId(vehicle.getId());
-        newVehicle.setStatus(vehicle.getStatus());
+        // Update vehicleName to keep it in sync with manufacturer + model
+        String name = ((vehicleDto.getManufacturer() != null ? vehicleDto.getManufacturer() : "") + " "
+                     + (vehicleDto.getModel() != null ? vehicleDto.getModel() : "")).trim();
+        vehicle.setVehicleName(name.isEmpty() ? vehicle.getVehicleName() : name);
 
-//        vehicle.setVehicleName(vehicleDto.getVehicleName());
-        newVehicle.setRegistrationNo(vehicleDto.getRegistrationNo());
-        newVehicle.setManufacturer(vehicleDto.getManufacturer());
-        newVehicle.setModel(vehicleDto.getModel());
-        newVehicle.setYear(vehicleDto.getYear());
-        newVehicle.setFuelType(vehicle.getFuelType());
-        newVehicle.setCurrentMileageKm(vehicleDto.getCurrentMileageKm());
+        vehicle.setRegistrationNo(vehicleDto.getRegistrationNo());
+        vehicle.setManufacturer(vehicleDto.getManufacturer());
+        vehicle.setModel(vehicleDto.getModel());
+        vehicle.setYear(vehicleDto.getYear());
+        if (vehicleDto.getFuelType() != null) vehicle.setFuelType(vehicleDto.getFuelType());
+        vehicle.setCurrentMileageKm(vehicleDto.getCurrentMileageKm());
+        vehicle.setUpdatedBy(updatedBy);
+        vehicle.setUpdatedAt(LocalDateTime.now());
 
-        Vehicle updated = vehicleRepository.save(newVehicle);
+        Vehicle updated = vehicleRepository.save(vehicle);
         return VehicleMapper.mapToVehicleDto(updated);
     }
 

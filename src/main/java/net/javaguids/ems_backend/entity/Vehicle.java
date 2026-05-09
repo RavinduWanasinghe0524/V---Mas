@@ -49,6 +49,12 @@ public class Vehicle {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @Column(name = "updated_by", length = 100)
+    private String updatedBy;
+
     @Column(name = "status",nullable = false)
     private VehicleSatus status;
 

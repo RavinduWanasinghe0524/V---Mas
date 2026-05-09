@@ -18,6 +18,8 @@ public class VehicleMapper {
                 vehicle.getYear(),
                 vehicle.getCurrentMileageKm(),
                 vehicle.getCreatedAt(),
+                vehicle.getUpdatedAt(),
+                vehicle.getUpdatedBy(),
                 driver != null ? driver.getId() : 0,
                 driver != null ? driver.getUserName() : "Not Assigned",
                 vehicle.getStatus(),

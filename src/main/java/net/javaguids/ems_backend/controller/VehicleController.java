@@ -29,7 +29,7 @@ public class VehicleController {
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     @PostMapping
     public ResponseEntity<ApiResponse<VehicleDto>> createVehicle(@RequestBody VehicleDto vehicleDto) {
-        vehicleDto.setStatus(VehicleSatus.ACTIVE);
+        vehicleDto.setStatus(VehicleSatus.AVAILABLE);
         VehicleDto saved = vehicleService.createVehicle(vehicleDto);
         return ApiResponseUtil.success("Vehicle created successfully", saved, HttpStatus.CREATED);
     }
@@ -53,8 +53,11 @@ public class VehicleController {
     // PUT /api/vehicles/{id} — Update vehicle
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<VehicleDto>> updateVehicle(@PathVariable Long id, @RequestBody VehicleDto vehicleDto) {
-        VehicleDto updated = vehicleService.updateVehicle(id, vehicleDto);
+    public ResponseEntity<ApiResponse<VehicleDto>> updateVehicle(
+            @PathVariable Long id,
+            @RequestBody VehicleDto vehicleDto,
+            @AuthenticationPrincipal UserDetails loggedUser) {
+        VehicleDto updated = vehicleService.updateVehicle(id, vehicleDto, loggedUser.getUsername());
         return ApiResponseUtil.success("Vehicle updated successfully", updated, HttpStatus.OK);
     }
 
