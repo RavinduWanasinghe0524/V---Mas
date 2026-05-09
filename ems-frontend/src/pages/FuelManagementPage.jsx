@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
@@ -6,52 +6,51 @@ import { useAuth } from '../context/AuthContext'
 import { fuelAPI } from '../services/api'
 import { Fuel, CircleDollarSign, BarChart2, Car, Trash2, ClipboardList, Plus, Search, Edit2, AlertTriangle, Check, X, Loader2 } from 'lucide-react'
 
-/* â”€â”€ Shared style helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-const card = {
-  background: D.surface,
-  borderRadius: 16,
-  border: `1px solid ${D.border}`,
-  boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-  overflow: 'hidden',
-}
-
-const inputStyle = {
-  width: '100%',
-  padding: '10px 14px',
-  borderRadius: 8,
-  border: '1px solid rgba(255,255,255,0.1)',
-  fontSize: '0.875rem',
-  color: D.text,
-  background: 'rgba(255,255,255,0.05)',
-  outline: 'none',
-  transition: 'border-color 0.15s, box-shadow 0.15s',
-  fontFamily: 'inherit',
-}
-
-const labelStyle = {
-  display: 'block',
-  fontSize: '0.78rem',
-  fontWeight: 700,
-  color: D.textSub,
-  marginBottom: 6,
-  letterSpacing: '0.02em',
-  textTransform: 'uppercase',
-}
-
-/* â”€â”€ Focus handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-const onFocus = e => {
-  e.target.style.borderColor = 'rgba(167,139,250,0.5)'
-  e.target.style.boxShadow = '0 0 0 3px rgba(167,139,250,0.1)'
-}
-const onBlur = e => {
-  e.target.style.borderColor = 'rgba(255,255,255,0.1)'
-  e.target.style.boxShadow = 'none'
-}
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const FuelManagementPage = () => {
   const D = useD()
   const { user } = useAuth()
+
+  const card = {
+    background: D.surface,
+    borderRadius: 16,
+    border: `1px solid ${D.border}`,
+    boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+    overflow: 'hidden',
+  }
+
+  const inputStyle = {
+    width: '100%',
+    padding: '10px 14px',
+    borderRadius: 8,
+    border: `1px solid ${D.inputBorder}`,
+    fontSize: '0.875rem',
+    color: D.text,
+    background: D.inputBg,
+    outline: 'none',
+    transition: 'border-color 0.15s, box-shadow 0.15s',
+    fontFamily: 'inherit',
+  }
+
+  const labelStyle = {
+    display: 'block',
+    fontSize: '0.78rem',
+    fontWeight: 700,
+    color: D.textSub,
+    marginBottom: 6,
+    letterSpacing: '0.02em',
+    textTransform: 'uppercase',
+  }
+
+  const onFocus = e => {
+    e.target.style.borderColor = D.purple
+    e.target.style.boxShadow = `0 0 0 3px ${D.purpleDim}`
+  }
+  const onBlur = e => {
+    e.target.style.borderColor = D.inputBorder
+    e.target.style.boxShadow = 'none'
+  }
 
   const [allLogs, setAllLogs] = useState([])
   const [filteredLogs, setFilteredLogs] = useState([])
@@ -211,7 +210,7 @@ const FuelManagementPage = () => {
 
   /* â”€â”€ Loading state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   if (loading) return (
-    <div className="app-shell fuel-dark" style={{ background: D.bg }}>
+    <div className="app-shell" style={{ background: D.bg }}>
       <Sidebar />
       <div className="main-content" style={{ background: D.bg }}>
         <Topbar title="Fuel Management" subtitle="Home / Fuel Management" />
@@ -229,7 +228,7 @@ const FuelManagementPage = () => {
 
   /* â”€â”€ Main render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   return (
-    <div className="app-shell fuel-dark" style={{ background: D.bg }}>
+    <div className="app-shell" style={{ background: D.bg }}>
       <Sidebar />
       <div className="main-content" style={{ background: D.bg }}>
         <Topbar title="Fuel Management" subtitle="Home / Fuel Management" />
