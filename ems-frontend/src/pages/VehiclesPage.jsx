@@ -3,7 +3,7 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
-import { vehicleAPI, employeeAPI } from '../services/api'
+import { vehicleAPI, userAPI } from '../services/api'
 import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, X, Check } from 'lucide-react'
 
 const onFocus = e => {
@@ -58,14 +58,15 @@ const VehiclesPage = () => {
 
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('ALL')
-  const { user, isAdmin } = useAuth()
+  const { user, isAdmin, isDriver } = useAuth()
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [editingVehicle, setEditingVehicle] = useState(null)
   const [deletingVehicle, setDeletingVehicle] = useState(null)
-  const [employees, setEmployees] = useState([])
+  const [drivers, setDrivers] = useState([])
+  const [assignedVehicle, setAssignedVehicle] = useState(null)
   const [vehicles, setVehicles] = useState([])
   const [formData, setFormData] = useState({
     model: '',
@@ -98,11 +99,20 @@ const VehiclesPage = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        if (isAdmin) {
-          const vehicleResponse = await vehicleAPI.getAllVehicles();
-          setVehicles(vehicleResponse.data.data || [])
-          const employeeResponse = await employeeAPI.getAllEmployees();
-          setEmployees(employeeResponse.data.data || [])
+        if (isDriver) {
+          try {
+            const res = await vehicleAPI.getAssignedVehicle()
+            setAssignedVehicle(res.data.data || null)
+          } catch {
+            setAssignedVehicle(null)
+          }
+        } else {
+          const [vehicleRes, driverRes] = await Promise.all([
+            vehicleAPI.getAllVehicles(),
+            userAPI.getAllDrivers(),
+          ])
+          setVehicles(vehicleRes.data.data || [])
+          setDrivers(driverRes.data.data || [])
         }
       } catch (err) {
         console.error('Error loading data:', err)
@@ -111,7 +121,7 @@ const VehiclesPage = () => {
       }
     }
     loadData()
-  }, [isAdmin])
+  }, [isAdmin, isDriver])
 
   const openModal = () => setIsModalOpen(true)
 
@@ -132,9 +142,13 @@ const VehiclesPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      await vehicleAPI.registerVehicle(formData)
-      // Reload vehicles
-      const response = await vehicleAPI.getAllVehicles();
+      const saveRes = await vehicleAPI.registerVehicle(formData)
+      const saved = saveRes.data.data
+      // Assign driver if selected
+      if (formData.driverId && saved?.id) {
+        await vehicleAPI.assignDriver(saved.id, formData.driverId)
+      }
+      const response = await vehicleAPI.getAllVehicles()
       setVehicles(response.data.data || [])
       closeModal()
     } catch (err) {
@@ -187,10 +201,12 @@ const VehiclesPage = () => {
         manufacturer: editFormData.manufacturer,
         year: editFormData.year,
         fuelType: editFormData.fuelType.toUpperCase(),
-        driverId: editFormData.driverId,
         currentMileageKm: editFormData.currentMileageKm
       })
-      // Reload vehicles
+      // Assign / re-assign driver if changed
+      if (editFormData.driverId) {
+        await vehicleAPI.assignDriver(editingVehicle.id, editFormData.driverId)
+      }
       const response = await vehicleAPI.getAllVehicles()
       setVehicles(response.data.data || [])
       closeEditModal()
@@ -237,6 +253,77 @@ const VehiclesPage = () => {
     AVAILABLE: vehicles.filter(v => v.status === 'AVAILABLE').length,
     SERVICE: vehicles.filter(v => v.status === 'SERVICE').length,
     INACTIVE: vehicles.filter(v => v.status === 'INACTIVE').length,
+  }
+
+  // ── Driver: My Vehicle view ────────────────────────────────────────────
+  if (isDriver) {
+    const v = assignedVehicle
+    const statusColors = {
+      ACTIVE:    { bg: D.greenDim,  color: D.green,  border: `${D.green}50`  },
+      AVAILABLE: { bg: D.blueDim,   color: D.blue,   border: `${D.blue}50`   },
+      SERVICE:   { bg: D.orangeDim, color: D.orange, border: `${D.orange}50` },
+      INACTIVE:  { bg: D.redDim,    color: D.red,    border: `${D.red}50`    },
+    }
+    const sc = v ? (statusColors[v.status] || {}) : {}
+    return (
+      <div className="app-shell" style={{ background: D.bg }}>
+        <Sidebar />
+        <div className="main-content" style={{ background: D.bg }}>
+          <Topbar title="My Vehicle" subtitle="Home / My Vehicle" />
+          <div className="page-body">
+            {/* Hero */}
+            <div style={{ background: 'linear-gradient(135deg,#1e1b4b 0%,#312e81 45%,#4338ca 100%)', borderRadius: 20, padding: '32px 36px', marginBottom: 28, position: 'relative', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', border: `1px solid ${D.border}` }}>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
+                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <Car size={32} strokeWidth={1.5} />
+                </div>
+                <div>
+                  <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>My Assigned Vehicle</h1>
+                  <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>Details of the vehicle currently assigned to you.</p>
+                </div>
+              </div>
+            </div>
+
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '60px 0', color: D.textSub }}>Loading…</div>
+            ) : !v ? (
+              <div style={{ background: D.surface, borderRadius: 20, border: `1px solid ${D.border}`, padding: '60px 32px', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
+                <div style={{ marginBottom: 16, opacity: 0.3, display: 'flex', justifyContent: 'center' }}><Car size={56} /></div>
+                <p style={{ fontWeight: 700, fontSize: '1.1rem', color: D.text, margin: '0 0 8px' }}>No Vehicle Assigned</p>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: D.textSub }}>You haven't been assigned a vehicle yet. Contact your administrator.</p>
+              </div>
+            ) : (
+              <div style={{ background: D.surface, borderRadius: 20, border: `1px solid ${D.border}`, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
+                {/* Card Header */}
+                <div style={{ padding: '20px 28px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '0.72rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Registration No.</p>
+                    <p style={{ margin: '4px 0 0', fontSize: '1.5rem', fontWeight: 800, color: D.blue, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>{v.registrationNo}</p>
+                  </div>
+                  <span style={{ background: sc.bg, color: sc.color, padding: '6px 14px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', border: `1px solid ${sc.border}` }}>{v.status}</span>
+                </div>
+                {/* Details Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 1, background: D.border }}>
+                  {[
+                    ['Make & Model', `${v.manufacturer ?? '—'} ${v.model ?? '—'}`],
+                    ['Year', v.year ?? '—'],
+                    ['Fuel Type', v.fuelType ?? '—'],
+                    ['Current Mileage', v.currentMileageKm ? `${v.currentMileageKm.toLocaleString()} km` : '—'],
+                    ['Chassis No.', v.chassisNumber ?? '—'],
+                    ['Added On', v.createdAt ? new Date(v.createdAt).toLocaleDateString() : '—'],
+                  ].map(([label, val]) => (
+                    <div key={label} style={{ background: D.surface, padding: '20px 24px' }}>
+                      <p style={{ margin: 0, fontSize: '0.72rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{label}</p>
+                      <p style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: D.text }}>{val}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -442,7 +529,7 @@ const VehiclesPage = () => {
                     <label style={labelStyle}>Assign Driver <span style={{ color: D.textFaint, fontWeight: 400, textTransform: 'none' }}>(optional)</span></label>
                     <select name="driverId" value={formData.driverId} onChange={handleChange} style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
                       <option value="" style={{ background: D.surfaceHi }}>Unassigned</option>
-                      {employees.map(emp => <option key={emp.id} value={emp.id} style={{ background: D.surfaceHi }}>{emp.name}</option>)}
+                      {drivers.map(d => <option key={d.id} value={d.id} style={{ background: D.surfaceHi }}>{d.userName}</option>)}
                     </select>
                   </div>
                 </div>
@@ -512,7 +599,7 @@ const VehiclesPage = () => {
                     <label style={labelStyle}>Assign Driver</label>
                     <select name="driverId" value={editFormData.driverId} onChange={handleEditChange} style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
                       <option value="" style={{ background: D.surfaceHi }}>Unassigned</option>
-                      {employees.map(emp => <option key={emp.id} value={emp.id} style={{ background: D.surfaceHi }}>{emp.name}</option>)}
+                      {drivers.map(d => <option key={d.id} value={d.id} style={{ background: D.surfaceHi }}>{d.userName}</option>)}
                     </select>
                   </div>
                 </div>
