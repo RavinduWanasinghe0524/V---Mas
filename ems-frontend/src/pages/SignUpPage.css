@@ -44,13 +44,7 @@
   z-index: 0;
 }
 
-/* Gradient overlay — matches LoginPage exactly */
-.split-signup-bg-gradient {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to right, rgba(15, 23, 42, 0.8), rgba(30, 58, 138, 0.4), rgba(15, 23, 42, 0.3));
-  z-index: 1;
-}
+
 
 /* Main card */
 .split-signup-main-card {
@@ -666,46 +660,56 @@
 /* ═══════════════════════════════════════════════════════════════════
    LIGHT THEME OVERRIDES — SIGNUP PAGE
 ═══════════════════════════════════════════════════════════════════ */
-[data-theme="light"] .split-signup-container { background-color: #eff6ff; }
 
-[data-theme="light"] .split-signup-bg-gradient {
-  background: linear-gradient(to right,
-    rgba(239,246,255,0.92), rgba(219,234,254,0.75), rgba(239,246,255,0.6)
-  );
-}
-[data-theme="light"] .split-signup-bg-image { opacity: 0.18; }
 
-[data-theme="light"] .split-signup-main-card {
-  background: rgba(255,255,255,0.9);
-  border: 1px solid rgba(59,130,246,0.15);
-  box-shadow: 0 20px 60px rgba(37,99,235,0.12), 0 4px 16px rgba(0,0,0,0.06);
-}
-
-/* Left panel stays solid blue */
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT THEME OVERRIDES FOR LEFT PANEL
+═══════════════════════════════════════════════════════════════════ */
 [data-theme="light"] .split-signup-left {
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background: rgba(255, 255, 255, 0.5);
+  border-right: 1px solid rgba(59, 130, 246, 0.15);
 }
+[data-theme="light"] .split-signup-logo-text { color: #111827; }
+[data-theme="light"] .split-signup-heading { color: #111827; }
+[data-theme="light"] .split-signup-subheading { color: #4b5563; }
+[data-theme="light"] .split-signup-feature-text { color: #374151; }
+[data-theme="light"] .split-signup-feature-icon {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.2);
+}
+[data-theme="light"] .split-signup-copyright { color: #9ca3af; }
 
-/* Right panel text */
-[data-theme="light"] .split-signup-title  { color: #111827; }
-[data-theme="light"] .split-signup-subtitle { color: #6b7280; }
-[data-theme="light"] .split-signup-label  { color: #374151; }
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT THEME OVERRIDES FOR RIGHT PANEL (TEXT & INPUTS)
+═══════════════════════════════════════════════════════════════════ */
+[data-theme="light"] .split-signup-title { color: #111827; }
+[data-theme="light"] .split-signup-subtitle { color: #4b5563; }
+[data-theme="light"] .split-signup-label { color: #374151; }
+[data-theme="light"] .split-signup-error { 
+  background: rgba(220, 38, 38, 0.1);
+  border-color: rgba(220, 38, 38, 0.2);
+  color: #dc2626;
+}
 
 /* Inputs */
 [data-theme="light"] .split-signup-input-group {
-  background: #f0f7ff;
-  border: 1.5px solid #bfdbfe;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(15, 23, 42, 0.1);
 }
 [data-theme="light"] .split-signup-input-group:focus-within {
   border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+  background: rgba(255, 255, 255, 0.9);
 }
 [data-theme="light"] .split-signup-input-icon { color: #3b82f6; }
-[data-theme="light"] .split-signup-input     { color: #111827; }
-[data-theme="light"] .split-signup-input::placeholder { color: #9ca3af; }
-[data-theme="light"] .split-signup-input-btn { color: #9ca3af; }
-[data-theme="light"] .split-signup-input-btn:hover { color: #3b82f6; }
+[data-theme="light"] .split-signup-input { color: #111827; }
+[data-theme="light"] .split-signup-input::placeholder { color: #6b7280; }
+[data-theme="light"] .split-signup-input-btn { color: #6b7280; }
+[data-theme="light"] .split-signup-input-btn:hover { color: #111827; }
+
+/* Select specific */
 [data-theme="light"] .split-signup-select option { background: #ffffff; color: #111827; }
+[data-theme="light"] .split-signup-select-caret { color: #6b7280; }
 
 /* Info banner */
 [data-theme="light"] .split-signup-info-banner {
@@ -716,25 +720,27 @@
 [data-theme="light"] .split-signup-info-banner svg { color: #3b82f6; }
 [data-theme="light"] .split-signup-info-banner strong { color: #1d4ed8; }
 
-/* Password strength label */
-[data-theme="light"] .split-signup-match-hint span { }
+/* Password strength and match hints */
+[data-theme="light"] .split-signup-strength-bar { background: rgba(15, 23, 42, 0.1); }
 
 /* Footer */
-[data-theme="light"] .split-signup-footer { color: #6b7280; }
-[data-theme="light"] .split-signup-footer a { color: #3b82f6; }
+[data-theme="light"] .split-signup-footer { color: #4b5563; }
+[data-theme="light"] .split-signup-footer a { color: #2563eb; }
 [data-theme="light"] .split-signup-footer a:hover { color: #1d4ed8; }
 
 /* Pending card */
 [data-theme="light"] .split-pending-card {
-  background: rgba(255,255,255,0.92);
-  border: 1px solid rgba(59,130,246,0.15);
-  box-shadow: 0 20px 60px rgba(37,99,235,0.12);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
 }
 [data-theme="light"] .split-pending-title { color: #111827; }
-[data-theme="light"] .split-pending-sub   { color: #374151; }
-[data-theme="light"] .split-pending-desc  { color: #6b7280; }
+[data-theme="light"] .split-pending-sub { color: #4b5563; }
+[data-theme="light"] .split-pending-desc { color: #6b7280; }
 [data-theme="light"] .split-pending-highlight { color: #2563eb; }
-[data-theme="light"] .split-pending-step.done span   { color: #374151; }
+[data-theme="light"] .split-pending-step.done span { color: #374151; }
 [data-theme="light"] .split-pending-step.inactive span { color: #9ca3af; }
-[data-theme="light"] .split-pending-step-line { background: #e0e7ff; }
+[data-theme="light"] .split-pending-step.inactive .split-pending-step-icon { color: rgba(15, 23, 42, 0.2); }
+[data-theme="light"] .split-pending-step-line { background: rgba(15, 23, 42, 0.1); }
 [data-theme="light"] .split-pending-footer { color: #9ca3af; }
+

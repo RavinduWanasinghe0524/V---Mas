@@ -6,7 +6,8 @@ import {
   Car, AlertCircle, CheckCircle, ChevronDown, Clock, ArrowLeft,
   Shield, BarChart3, MapPin, Moon, Sun
 } from 'lucide-react';
-import bgImage from '../assets/login-bg.jpg';
+import bgImageDark from '../assets/login-bg.jpg';
+import bgImageLight from '../assets/Login bg image (White).png';
 import logo from '../assets/logo.png';
 import { useTheme } from '../context/ThemeContext';
 import './SignUpPage.css';
@@ -91,11 +92,10 @@ const SignUpPage = () => {
   if (registered) {
     return (
       <div className="split-signup-container">
-        <img src={bgImage} alt="background" className="split-signup-bg-image" />
-        <div className="split-signup-bg-gradient" />
-        <button onClick={toggleTheme} className="auth-theme-toggle" title={isDark ? 'Switch to Light theme' : 'Switch to Blue theme'}>
+        <img src={isDark ? bgImageDark : bgImageLight} alt="background" className="split-signup-bg-image" />
+        <button onClick={toggleTheme} className="auth-theme-toggle" title={isDark ? 'Switch to Day Theme' : 'Switch to Night Theme'}>
           {isDark ? <Sun size={16} /> : <Moon size={16} />}
-          {isDark ? 'Light' : 'Blue'}
+          {isDark ? 'Day Theme' : 'Night Theme'}
         </button>
 
         <div className="split-pending-card">
@@ -148,11 +148,10 @@ const SignUpPage = () => {
   // ── SIGN UP FORM ─────────────────────────────────────────────────────────
   return (
     <div className="split-signup-container">
-      <img src={bgImage} alt="Dark background with vehicle lights" className="split-signup-bg-image" />
-      <div className="split-signup-bg-gradient" />
-      <button onClick={toggleTheme} className="auth-theme-toggle" title={isDark ? 'Switch to Light theme' : 'Switch to Blue theme'}>
+      <img src={isDark ? bgImageDark : bgImageLight} alt="Background image" className="split-signup-bg-image" />
+      <button onClick={toggleTheme} className="auth-theme-toggle" title={isDark ? 'Switch to Day Theme' : 'Switch to Night Theme'}>
         {isDark ? <Sun size={16} /> : <Moon size={16} />}
-        {isDark ? 'Light' : 'Blue'}
+        {isDark ? 'Day Theme' : 'Night Theme'}
       </button>
 
       <div className="split-signup-main-card">

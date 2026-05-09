@@ -50,7 +50,7 @@ const Topbar = () => {
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          title={isDark ? 'Switch to Light theme' : 'Switch to Blue theme'}
+          title={isDark ? 'Switch to Day Theme' : 'Switch to Night Theme'}
           style={{
             display: 'flex', alignItems: 'center',
             background: isDark ? '#3b82f6' : '#e0e7ff',

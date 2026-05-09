@@ -310,7 +310,7 @@ const FuelAnalysisPage = () => {
   )
 
   return (
-    <div className="app-shell fuel-dark" style={{ background: D.bg }}>
+    <div className="app-shell" style={{ background: D.bg }}>
       <Sidebar />
       <div className="main-content" style={{ background: D.bg }}>
         <Topbar title="Fuel Analysis" subtitle="Home / Fuel Analysis" />

@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, Mail, Lock, Shield, BarChart3, MapPin, AlertCircle, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import './LoginPage.css';
-import bgImage from '../assets/login-bg.jpg';
+import bgImageDark from '../assets/login-bg.jpg';
+import bgImageLight from '../assets/Login bg image (White).png';
 import logo from '../assets/logo.png';
 
 const LoginPage = () => {
@@ -41,20 +42,19 @@ const LoginPage = () => {
     <div className="split-login-container">
       {/* Background with user provided image */}
       <img 
-        src={bgImage} 
-        alt="Dark background with vehicle lights" 
+        src={isDark ? bgImageDark : bgImageLight} 
+        alt="Background image" 
         className="split-login-bg-image" 
       />
-      <div className="split-login-bg-gradient" />
 
       {/* Theme Toggle Button */}
       <button
         onClick={toggleTheme}
         className="auth-theme-toggle"
-        title={isDark ? 'Switch to Light theme' : 'Switch to Blue theme'}
+        title={isDark ? 'Switch to Day Theme' : 'Switch to Night Theme'}
       >
         {isDark ? <Sun size={16} /> : <Moon size={16} />}
-        {isDark ? 'Light' : 'Blue'}
+        {isDark ? 'Day Theme' : 'Night Theme'}
       </button>
 
       {/* Main Split Container */}
