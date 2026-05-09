@@ -13,7 +13,7 @@ public interface VehicleService {
 
     List<VehicleDto> getAllVehicles();
 
-    VehicleDto updateVehicle(Long id, VehicleDto vehicleDto);
+    VehicleDto updateVehicle(Long id, VehicleDto vehicleDto, String updatedBy);
 
     void deleteVehicle(Long id);
 

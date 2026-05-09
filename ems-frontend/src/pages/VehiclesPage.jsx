@@ -433,7 +433,7 @@ const VehiclesPage = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead style={{ background: D.surfaceHi }}>
                     <tr>
-                      {['Reg. No.', 'Make / Model', 'Year', 'Fuel Type', 'Driver', 'Mileage (km)', 'Status', 'Actions'].map(h => (
+                      {['Reg. No.', 'Make / Model', 'Year', 'Fuel Type', 'Driver', 'Mileage (km)', 'Status', ...(isAdmin ? ['Last Modified'] : []), 'Actions'].map(h => (
                         <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: D.textSub, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${D.border}`, whiteSpace: 'nowrap' }}>{h}</th>
                       ))}
                     </tr>
@@ -441,7 +441,7 @@ const VehiclesPage = () => {
                   <tbody>
                     {filtered.length === 0 ? (
                       <tr>
-                        <td colSpan={8} style={{ padding: '60px 32px', textAlign: 'center', color: D.textSub }}>
+                        <td colSpan={isAdmin ? 9 : 8} style={{ padding: '60px 32px', textAlign: 'center', color: D.textSub }}>
                           <div style={{ marginBottom: 12, opacity: 0.3, display: 'flex', justifyContent: 'center' }}><Car size={48} /></div>
                           <p style={{ fontWeight: 700, fontSize: '1rem', color: D.text, margin: '0 0 6px' }}>No vehicles found.</p>
                           <p style={{ margin: 0, fontSize: '0.85rem' }}>Try adjusting your search or filters.</p>
@@ -464,6 +464,20 @@ const VehiclesPage = () => {
                               {v.status ?? 'N/A'}
                             </span>
                           </td>
+                          {isAdmin && (
+                            <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                              {v.updatedBy ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                  <span style={{ fontWeight: 700, fontSize: '0.78rem', color: D.purple }}>{v.updatedBy}</span>
+                                  <span style={{ fontSize: '0.7rem', color: D.textSub }}>
+                                    {v.updatedAt ? new Date(v.updatedAt).toLocaleString() : ''}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>
+                              )}
+                            </td>
+                          )}
                           <td style={{ padding: '14px 16px' }}>
                             <div style={{ display: 'flex', gap: 6 }}>
                               <button onClick={() => openEditModal(v)} style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
