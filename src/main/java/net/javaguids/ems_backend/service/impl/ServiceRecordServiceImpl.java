@@ -10,6 +10,7 @@ import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.mapper.ServiceRecordMapper;
 import net.javaguids.ems_backend.repository.ServiceRecordRepository;
 import net.javaguids.ems_backend.service.ServiceRecordService;
+import net.javaguids.ems_backend.service.NotificationService;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     private final ServiceRecordRepository serviceRecordRepository;
+    private final NotificationService notificationService;
 
     @Override
     public ServiceRecordDto createServiceRecord(ServiceRecordDto dto) {
@@ -67,6 +69,13 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
         record.setDescription(dto.getDescription());
 
         ServiceRecord updated = serviceRecordRepository.save(record);
+        
+        notificationService.createNotification(
+                "VEH-" + updated.getVehicleRegNumber(),
+                "Service record for vehicle " + updated.getVehicleRegNumber() + " was updated.",
+                "SERVICE_UPDATE"
+        );
+        
         return ServiceRecordMapper.mapToServiceRecordDto(updated);
     }
 

@@ -1,7 +1,9 @@
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
-import { Search, Bell, Moon, Sun, User } from 'lucide-react'
+import { Search, Bell, Moon, Sun, User, Check, Trash2, Info } from 'lucide-react'
+import { notificationAPI } from '../services/api'
 
 const roleText = {
   ADMIN: 'System Administrator',
@@ -13,6 +15,59 @@ const Topbar = () => {
   const { user } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const isDark = theme === 'blue'
+
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [showNotifications, setShowNotifications] = useState(false)
+  const dropdownRef = useRef(null)
+
+  const fetchNotifications = async () => {
+    if (user?.role !== 'ADMIN') return
+    try {
+      const res = await notificationAPI.getAll()
+      const data = res.data.data || []
+      setNotifications(data)
+      setUnreadCount(data.filter(n => !n.isRead).length)
+    } catch (err) {
+      console.error('Error fetching notifications:', err)
+    }
+  }
+
+  useEffect(() => {
+    fetchNotifications()
+    const interval = setInterval(fetchNotifications, 30000) // Poll every 30s
+    return () => clearInterval(interval)
+  }, [user])
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowNotifications(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      await notificationAPI.markAsRead(id)
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))
+      setUnreadCount(prev => Math.max(0, prev - 1))
+    } catch (err) {
+      console.error('Error marking as read:', err)
+    }
+  }
+
+  const handleMarkAllRead = async () => {
+    try {
+      await notificationAPI.markAllAsRead()
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+      setUnreadCount(0)
+    } catch (err) {
+      console.error('Error marking all as read:', err)
+    }
+  }
 
   return (
     <header style={{
@@ -85,18 +140,76 @@ const Topbar = () => {
           </div>
         </button>
 
-        {/* Bell Icon */}
-        <div style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Bell size={22} color={isDark ? '#94a3b8' : '#64748b'} />
-          <div style={{
-            position: 'absolute', top: -5, right: -5,
-            background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 700,
-            width: 16, height: 16, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: `2px solid var(--topbar-bg)`,
-          }}>
-            3
+        {/* Bell Icon / Notifications */}
+        {user?.role === 'ADMIN' && (
+          <div ref={dropdownRef} style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div onClick={() => setShowNotifications(!showNotifications)} style={{ position: 'relative' }}>
+              <Bell size={22} color={isDark ? '#94a3b8' : '#64748b'} />
+              {unreadCount > 0 && (
+                <div style={{
+                  position: 'absolute', top: -5, right: -5,
+                  background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 700,
+                  width: 16, height: 16, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: `2px solid var(--topbar-bg)`,
+                }}>
+                  {unreadCount}
+                </div>
+              )}
+            </div>
+
+            {/* Notification Dropdown */}
+            {showNotifications && (
+              <div style={{
+                position: 'absolute', top: '100%', right: -20, marginTop: 16,
+                width: 320, background: isDark ? '#1e293b' : '#ffffff',
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'}`,
+                borderRadius: 16, boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+                zIndex: 100, display: 'flex', flexDirection: 'column', overflow: 'hidden'
+              }}>
+                <div style={{ padding: '16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ margin: 0, fontSize: '1rem', color: isDark ? '#fff' : '#1e293b', fontWeight: 600 }}>Notifications</h3>
+                  {unreadCount > 0 && (
+                    <button onClick={handleMarkAllRead} style={{ background: 'transparent', border: 'none', color: '#3b82f6', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}>
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+                
+                <div style={{ maxHeight: 350, overflowY: 'auto' }}>
+                  {notifications.length === 0 ? (
+                    <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No recent notifications</div>
+                  ) : (
+                    notifications.map(n => (
+                      <div key={n.id} onClick={() => !n.isRead && handleMarkAsRead(n.id)} style={{
+                        padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
+                        display: 'flex', gap: 12, alignItems: 'flex-start',
+                        background: n.isRead ? 'transparent' : (isDark ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)'),
+                        cursor: n.isRead ? 'default' : 'pointer',
+                        transition: 'background 0.2s',
+                      }}>
+                        <div style={{ background: n.isRead ? (isDark ? '#334155' : '#e2e8f0') : '#3b82f6', color: '#fff', borderRadius: '50%', padding: 6, display: 'flex' }}>
+                          <Info size={14} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#e2e8f0' : '#334155', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>
+                            {n.message}
+                          </p>
+                          <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>
+                            {new Date(n.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                        {!n.isRead && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', marginTop: 6 }} />}
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div style={{ background: isDark ? 'rgba(0,0,0,0.1)' : '#f8fafc', padding: 10, textAlign: 'center' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>System generated notifications</span>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
         {/* User Profile */}
         <Link to="/profile" style={{ textDecoration: 'none' }}>
