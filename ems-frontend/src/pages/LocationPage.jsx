@@ -1,46 +1,28 @@
 import { useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
+import { useD } from '../context/ThemeContext'
 import { MapPin, Car, Circle, ParkingSquare, Radio, Clock, Zap } from 'lucide-react'
 
 const vehicles = [
   { id: 1, reg: 'WP-CAB-1234', driver: 'Kamal Perera',   status: 'MOVING',  speed: 58,   location: 'Colombo 07, Rosmead Pl', lat: 6.902, lng: 79.875, lastUpdate: '2 min ago' },
   { id: 2, reg: 'WP-CAB-5678', driver: 'Nimal Silva',    status: 'IDLE',    speed: 0,    location: 'Nugegoda, High Level Rd', lat: 6.871, lng: 79.896, lastUpdate: '5 min ago' },
-  { id: 3, reg: 'SP-7890',     driver: '—',              status: 'PARKED',  speed: 0,    location: 'Kandy City Centre',       lat: 7.291, lng: 80.636, lastUpdate: '1 hr ago'  },
+  { id: 3, reg: 'SP-7890',     driver: 'ÔÇö',              status: 'PARKED',  speed: 0,    location: 'Kandy City Centre',       lat: 7.291, lng: 80.636, lastUpdate: '1 hr ago'  },
   { id: 4, reg: 'WP-CAB-9012', driver: 'Sunil Fernando', status: 'MOVING',  speed: 72,   location: 'Galle Road, Dehiwala',   lat: 6.848, lng: 79.867, lastUpdate: '1 min ago' },
 ]
 
-/* ── Dark palette ───────────────────────────────────────────── */
-const D = {
-  bg:        '#0d1117',
-  surface:   '#161b27',
-  surfaceHi: '#1e2535',
-  border:    'rgba(255,255,255,0.07)',
-  borderHi:  'rgba(255,255,255,0.13)',
-  text:      '#e2e8f0',
-  textSub:   '#64748b',
-  textFaint: '#374151',
-  green:     '#4ade80',
-  greenDim:  'rgba(74,222,128,0.15)',
-  gold:      '#fbbf24',
-  goldDim:   'rgba(251,191,36,0.15)',
-  indigo:    '#818cf8',
-  indigoDim: 'rgba(129,140,248,0.15)',
-  purple:    '#a78bfa',
-  purpleDim: 'rgba(167,139,250,0.15)',
-}
-
-const statusColors = {
-  MOVING: { bg: D.greenDim,  color: D.green,  dot: '#10b981' },
-  IDLE:   { bg: D.goldDim,   color: D.gold,   dot: '#f59e0b' },
-  PARKED: { bg: D.indigoDim, color: D.indigo, dot: '#6366f1' },
-}
 
 const LocationPage = () => {
+  const D = useD()
+  const statusColors = {
+    MOVING: { bg: D.greenDim,  color: D.green,  dot: '#10b981' },
+    IDLE:   { bg: D.goldDim,   color: D.gold,   dot: '#f59e0b' },
+    PARKED: { bg: D.indigoDim, color: D.indigo, dot: '#6366f1' },
+  }
   const [selected, setSelected] = useState(null)
 
   return (
-    <div className="app-shell dark-theme-wrapper" style={{ background: D.bg }}>
+    <div className="app-shell" style={{ background: D.bg }}>
       <Sidebar />
       <div className="main-content" style={{ background: D.bg }}>
         <Topbar title="Location" subtitle="Home / Location" />
@@ -58,7 +40,7 @@ const LocationPage = () => {
             border: `1px solid ${D.border}`
           }}>
             {/* decorative circles */}
-            {[['80%','−20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
+            {[['80%','ÔêÆ20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
               <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
             ))}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -223,7 +205,7 @@ const LocationPage = () => {
                 </div>
 
                 <div style={{ position: 'absolute', bottom: 16, right: 16, fontSize: '0.72rem', color: '#a5b4fc', background: 'rgba(15,23,42,0.7)', border: `1px solid rgba(99,102,241,0.2)`, padding: '6px 12px', borderRadius: 8, backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <MapPin size={12} /> Live positions — updates every 30s
+                  <MapPin size={12} /> Live positions ÔÇö updates every 30s
                 </div>
               </div>
 
@@ -249,41 +231,6 @@ const LocationPage = () => {
 
         </div>
       </div>
-      
-      {/* ── Dark theme overrides for sidebar/topbar ─────────── */}
-      <style>{`
-        .dark-theme-wrapper .topbar {
-          background: #161b27 !important;
-          border-bottom-color: rgba(255,255,255,0.07) !important;
-        }
-        .dark-theme-wrapper .topbar-title { color: #e2e8f0 !important; }
-        .dark-theme-wrapper .topbar-breadcrumb { color: #475569 !important; }
-        .dark-theme-wrapper .topbar-user {
-          background: rgba(255,255,255,0.05) !important;
-          border-color: rgba(255,255,255,0.1) !important;
-        }
-        .dark-theme-wrapper .topbar-user:hover {
-          background: rgba(99,102,241,0.15) !important;
-          border-color: rgba(99,102,241,0.4) !important;
-        }
-        .dark-theme-wrapper .topbar-name { color: #e2e8f0 !important; }
-        .dark-theme-wrapper .sidebar {
-          background: #111827 !important;
-          border-right-color: rgba(255,255,255,0.07) !important;
-        }
-        .dark-theme-wrapper .sidebar-header { border-bottom-color: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .sidebar-title { color: #f1f5f9 !important; }
-        .dark-theme-wrapper .sidebar-subtitle { color: #475569 !important; }
-        .dark-theme-wrapper .nav-section-label { color: #334155 !important; }
-        .dark-theme-wrapper .nav-item { color: #64748b !important; }
-        .dark-theme-wrapper .nav-item:hover { background: rgba(255,255,255,0.05) !important; color: #cbd5e1 !important; }
-        
-        .dark-theme-wrapper .sidebar-divider { background: rgba(255,255,255,0.07) !important; }
-        .dark-theme-wrapper .sidebar-logout-btn { color: rgba(255,255,255,0.4) !important; }
-        .dark-theme-wrapper .sidebar-logout-btn:hover { color: #f87171 !important; }
-        .dark-theme-wrapper .sidebar-user-card { background: rgba(255,255,255,0.03) !important; }
-        .dark-theme-wrapper .sidebar-footer { border-top-color: rgba(255,255,255,0.07) !important; }
-      `}</style>
     </div>
   )
 }

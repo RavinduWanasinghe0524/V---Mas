@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, Mail, Lock, Shield, BarChart3, MapPin, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Shield, BarChart3, MapPin, AlertCircle, Moon, Sun } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 import './LoginPage.css';
-import bgImage from '../assets/login-bg.jpg';
+import bgImageDark from '../assets/login-bg.jpg';
+import bgImageLight from '../assets/Login bg image (White).png';
 import logo from '../assets/logo.png';
 
 const LoginPage = () => {
@@ -15,7 +17,9 @@ const LoginPage = () => {
   const [remember, setRemember] = useState(false);
   
   const { login, isAuthenticated } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const isDark = theme === 'blue';
 
   useEffect(() => {
     if (isAuthenticated) navigate('/dashboard');
@@ -38,11 +42,20 @@ const LoginPage = () => {
     <div className="split-login-container">
       {/* Background with user provided image */}
       <img 
-        src={bgImage} 
-        alt="Dark background with vehicle lights" 
+        src={isDark ? bgImageDark : bgImageLight} 
+        alt="Background image" 
         className="split-login-bg-image" 
       />
-      <div className="split-login-bg-gradient" />
+
+      {/* Theme Toggle Button */}
+      <button
+        onClick={toggleTheme}
+        className="auth-theme-toggle"
+        title={isDark ? 'Switch to Day Theme' : 'Switch to Night Theme'}
+      >
+        {isDark ? <Sun size={16} /> : <Moon size={16} />}
+        {isDark ? 'Day Theme' : 'Night Theme'}
+      </button>
 
       {/* Main Split Container */}
       <div className="split-login-main-card">
@@ -199,7 +212,7 @@ const LoginPage = () => {
 
           <p className="split-login-footer">
             New to V-MAS?{" "}
-            <Link to="/register">Create an account</Link>
+            <Link to="/signup">Create an account</Link>
           </p>
         </div>
       </div>

@@ -4,7 +4,32 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { serviceAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
-import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign } from 'lucide-react'
+import { useD } from '../context/ThemeContext'
+import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle } from 'lucide-react'
+
+const SERVICE_TYPES = [
+  { value: 'OIL_CHANGE', label: 'Oil Change' },
+  { value: 'ENGINE_TUNE_UP', label: 'Engine Tune Up' },
+  { value: 'BRAKE_SERVICE', label: 'Brake Service' },
+  { value: 'TIRE_ROTATION', label: 'Tire Rotation' },
+  { value: 'TRANSMISSION_SERVICE', label: 'Transmission Service' },
+  { value: 'AC_SERVICE', label: 'AC Service' },
+  { value: 'BATTERY_REPLACEMENT', label: 'Battery Replacement' },
+  { value: 'GENERAL_INSPECTION', label: 'General Inspection' },
+  { value: 'OTHER', label: 'Other' },
+]
+
+const initialForm = {
+  vehicleRegNumber: '',
+  serviceType: '',
+  serviceTypeDetail: '',
+  serviceDate: '',
+  currentMileageKm: '',
+  serviceCost: '',
+  technicianWorkshop: '',
+  nextServiceDue: '',
+  description: '',
+}
 
 /* ── Service type icon map ──────────────────────────────────────── */
 const SERVICE_TYPE_ICONS = {
@@ -36,17 +61,17 @@ const STATUS_CONFIG = {
 }
 
 /* ── Progress bar widths for stat cards ─────────────────────────── */
-const ProgressBar = ({ value, max, color }) => {
+const ProgressBar = ({ value, max, color, D }) => {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0
   return (
-    <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 999, marginTop: 12, overflow: 'hidden' }}>
+    <div style={{ height: 4, background: D ? D.border : 'rgba(255,255,255,0.08)', borderRadius: 999, marginTop: 12, overflow: 'hidden' }}>
       <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 999, transition: 'width 0.6s ease' }} />
     </div>
   )
 }
 
 /* ── Service List Card (Old Style) ──────────────────────────────── */
-const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete }) => {
+const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete, D }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
@@ -57,8 +82,8 @@ const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete }) => {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: hovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
-        border: `1px solid ${hovered ? 'rgba(99,102,241,0.35)' : 'rgba(255,255,255,0.08)'}`,
+        background: hovered ? D.surfaceHi : D.surface,
+        border: `1px solid ${hovered ? D.borderHi : D.border}`,
         borderRadius: 14,
         padding: '18px 22px',
         display: 'flex',
@@ -67,17 +92,17 @@ const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete }) => {
         transition: 'all 0.2s ease',
         cursor: 'default',
         transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
-        boxShadow: hovered ? '0 8px 32px rgba(0,0,0,0.25)' : 'none',
+        boxShadow: hovered ? '0 8px 32px rgba(0,0,0,0.12)' : 'none',
         animation: `fadeUp 0.3s ease ${index * 0.05}s both`,
       }}
     >
       {/* Icon */}
       <div style={{
         width: 46, height: 46, borderRadius: 12, flexShrink: 0,
-        background: 'rgba(99,102,241,0.18)',
-        border: '1px solid rgba(99,102,241,0.25)',
+        background: D.indigoDim,
+        border: `1px solid ${D.borderHi}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#a5b4fc',
+        color: D.indigo,
       }}>
         {icon}
       </div>
@@ -85,7 +110,7 @@ const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete }) => {
       {/* Main info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
-          <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#f1f5f9' }}>
+          <span style={{ fontWeight: 700, fontSize: '0.95rem', color: D.text }}>
             {record.serviceType?.replace(/_/g, ' ') || 'Service'}
           </span>
           {/* Status badge */}
@@ -99,38 +124,33 @@ const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete }) => {
             {sc.label}
           </span>
           {record.serviceTypeDetail && (
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>({record.serviceTypeDetail})</span>
+            <span style={{ fontSize: '0.75rem', color: D.textSub }}>({record.serviceTypeDetail})</span>
           )}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          {/* Vehicle */}
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#93c5fd', fontWeight: 600 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: D.blue, fontWeight: 600 }}>
             <Car size={14} /> {record.vehicleRegNumber || '—'}
           </span>
-          {/* Date */}
           {record.serviceDate && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: '#94a3b8' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: D.textSub }}>
               <Calendar size={14} /> {record.serviceDate.substring(0, 10)}
             </span>
           )}
-          {/* Mileage */}
           {record.currentMileageKm && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: '#94a3b8' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: D.textSub }}>
               <MapPin size={14} /> {Number(record.currentMileageKm).toLocaleString()} km
             </span>
           )}
-          {/* Workshop */}
           {record.technicianWorkshop && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: '#94a3b8' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: D.textSub }}>
               <Wrench size={14} /> {record.technicianWorkshop}
             </span>
           )}
         </div>
 
-        {/* Description / notes */}
         {record.description && (
-          <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>
+          <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: D.textSub, fontStyle: 'italic' }}>
             {record.description}
           </p>
         )}
@@ -138,29 +158,29 @@ const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete }) => {
 
       {/* Cost */}
       <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 90 }}>
-        <div style={{ fontSize: '1rem', fontWeight: 800, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
           Rs. {Number(record.serviceCost || 0).toLocaleString()}
         </div>
         {record.nextServiceDue && (
-          <div style={{ fontSize: '0.67rem', color: '#64748b', marginTop: 3 }}>
+          <div style={{ fontSize: '0.67rem', color: D.textSub, marginTop: 3 }}>
             Next: {record.nextServiceDue.substring(0, 10)}
           </div>
         )}
       </div>
 
-      {/* Actions — Admin / Controller only */}
+      {/* Actions */}
       {!isDriver && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
           <button
             onClick={() => onEdit(record.id)}
             style={{
               padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 600,
-              background: 'rgba(99,102,241,0.15)', color: '#a5b4fc',
-              border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer',
+              background: D.indigoDim, color: D.indigo,
+              border: `1px solid ${D.borderHi}`, cursor: 'pointer',
               transition: 'all 0.15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.3)'; e.currentTarget.style.color = '#fff' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; e.currentTarget.style.color = '#a5b4fc' }}
+            onMouseEnter={e => { e.currentTarget.style.background = D.indigo; e.currentTarget.style.color = '#fff' }}
+            onMouseLeave={e => { e.currentTarget.style.background = D.indigoDim; e.currentTarget.style.color = D.indigo }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Edit2 size={12} /> Edit</span>
           </button>
@@ -168,12 +188,12 @@ const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete }) => {
             onClick={() => onDelete(record.id)}
             style={{
               padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 600,
-              background: 'rgba(239,68,68,0.12)', color: '#fca5a5',
-              border: '1px solid rgba(239,68,68,0.25)', cursor: 'pointer',
+              background: D.redDim, color: D.red,
+              border: `1px solid rgba(239,68,68,0.25)`, cursor: 'pointer',
               transition: 'all 0.15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.3)'; e.currentTarget.style.color = '#fff' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; e.currentTarget.style.color = '#fca5a5' }}
+            onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+            onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Trash2 size={12} /> Delete</span>
           </button>
@@ -184,7 +204,7 @@ const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete }) => {
 }
 
 /* ── Service Grid Card (New Style) ──────────────────────────────── */
-const ServiceGridCard = ({ record, index, isDriver, onEdit, onDelete }) => {
+const ServiceGridCard = ({ record, index, isDriver, onEdit, onDelete, D }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
@@ -194,8 +214,8 @@ const ServiceGridCard = ({ record, index, isDriver, onEdit, onDelete }) => {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: '#0f172a',
-        border: `1px solid ${hovered ? '#3b82f6' : 'rgba(255,255,255,0.08)'}`,
+        background: D.surface,
+        border: `1px solid ${hovered ? D.borderHi : D.border}`,
         borderRadius: 12,
         padding: '20px',
         display: 'flex',
@@ -203,15 +223,16 @@ const ServiceGridCard = ({ record, index, isDriver, onEdit, onDelete }) => {
         gap: 16,
         transition: 'all 0.2s ease',
         animation: `fadeUp 0.3s ease ${index * 0.05}s both`,
+        boxShadow: hovered ? '0 8px 24px rgba(0,0,0,0.1)' : 'none',
       }}
     >
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <div style={{ color: '#60a5fa', fontSize: '1.05rem', fontWeight: 700, marginBottom: 4 }}>
+          <div style={{ color: D.blue, fontSize: '1.05rem', fontWeight: 700, marginBottom: 4 }}>
             {record.serviceType?.replace(/_/g, ' ') || 'Service'}
           </div>
-          <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>
+          <div style={{ color: D.textSub, fontSize: '0.8rem' }}>
             {record.vehicleRegNumber || '—'}
             {record.serviceTypeDetail ? ` - ${record.serviceTypeDetail}` : ''}
           </div>
@@ -227,55 +248,55 @@ const ServiceGridCard = ({ record, index, isDriver, onEdit, onDelete }) => {
         </div>
       </div>
 
-      <div style={{ height: 1, background: 'rgba(255,255,255,0.08)' }} />
+      <div style={{ height: 1, background: D.border }} />
 
       {/* Description */}
-      <div style={{ color: '#e2e8f0', fontSize: '0.85rem' }}>
+      <div style={{ color: D.text, fontSize: '0.85rem' }}>
         {record.description || 'No description provided.'}
       </div>
 
       {/* Stats Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
         <div>
-          <div style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Date</div>
-          <div style={{ color: '#f8fafc', fontSize: '0.9rem', fontWeight: 700 }}>
+          <div style={{ color: D.textSub, fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Date</div>
+          <div style={{ color: D.text, fontSize: '0.9rem', fontWeight: 700 }}>
             {record.serviceDate ? new Date(record.serviceDate).toLocaleDateString() : '—'}
           </div>
         </div>
         <div>
-          <div style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Mileage</div>
-          <div style={{ color: '#f8fafc', fontSize: '0.9rem', fontWeight: 700 }}>
+          <div style={{ color: D.textSub, fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Mileage</div>
+          <div style={{ color: D.text, fontSize: '0.9rem', fontWeight: 700 }}>
             {record.currentMileageKm ? `${Number(record.currentMileageKm).toLocaleString()} km` : '—'}
           </div>
         </div>
         <div>
-          <div style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Cost</div>
-          <div style={{ color: '#f8fafc', fontSize: '0.9rem', fontWeight: 700 }}>
+          <div style={{ color: D.textSub, fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Cost</div>
+          <div style={{ color: D.text, fontSize: '0.9rem', fontWeight: 700 }}>
             Rs. {Number(record.serviceCost || 0).toLocaleString()}
           </div>
         </div>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#94a3b8', fontSize: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: D.textSub, fontSize: '0.75rem' }}>
           <Wrench size={12} /> {record.technicianWorkshop || '—'}
         </div>
-        <div style={{ color: '#64748b', fontSize: '0.75rem' }}>
+        <div style={{ color: D.textSub, fontSize: '0.75rem' }}>
           Next: {record.nextServiceDue ? record.nextServiceDue.substring(0, 10) : '—'}
         </div>
       </div>
 
       {/* Actions */}
       {!isDriver && (
-        <div style={{ display: 'flex', gap: 8, marginTop: 12, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 12 }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, borderTop: `1px solid ${D.border}`, paddingTop: 12 }}>
           <button
             onClick={() => onEdit(record.id)}
             style={{
               flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600,
-              background: 'rgba(99,102,241,0.1)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.2)', cursor: 'pointer', transition: 'all 0.15s'
+              background: D.indigoDim, color: D.indigo, border: `1px solid ${D.borderHi}`, cursor: 'pointer', transition: 'all 0.15s'
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.25)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.1)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = D.indigo; e.currentTarget.style.color = '#fff' }}
+            onMouseLeave={e => { e.currentTarget.style.background = D.indigoDim; e.currentTarget.style.color = D.indigo }}
           >
             Edit
           </button>
@@ -283,10 +304,10 @@ const ServiceGridCard = ({ record, index, isDriver, onEdit, onDelete }) => {
             onClick={() => onDelete(record.id)}
             style={{
               flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600,
-              background: 'rgba(239,68,68,0.1)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.2)', cursor: 'pointer', transition: 'all 0.15s'
+              background: D.redDim, color: D.red, border: `1px solid rgba(239,68,68,0.2)`, cursor: 'pointer', transition: 'all 0.15s'
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.25)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+            onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
           >
             Delete
           </button>
@@ -297,7 +318,7 @@ const ServiceGridCard = ({ record, index, isDriver, onEdit, onDelete }) => {
 }
 
 /* ── Calendar View ────────────────────────────────────────────── */
-const ServiceCalendar = ({ services, onEdit, isDriver, getStatus, STATUS_CONFIG }) => {
+const ServiceCalendar = ({ services, onEdit, isDriver, getStatus, STATUS_CONFIG, D }) => {
   const [currentDate, setCurrentDate] = useState(new Date())
 
   const year = currentDate.getFullYear()
@@ -326,31 +347,31 @@ const ServiceCalendar = ({ services, onEdit, isDriver, getStatus, STATUS_CONFIG 
   }, {})
 
   return (
-    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-        <h2 style={{ fontSize: '1.25rem', color: '#f1f5f9', margin: 0 }}>{monthName} {year}</h2>
+    <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: `1px solid ${D.border}` }}>
+        <h2 style={{ fontSize: '1.25rem', color: D.text, margin: 0 }}>{monthName} {year}</h2>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={prevMonth} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1', padding: '6px 14px', borderRadius: 8, cursor: 'pointer', fontSize: '0.9rem' }}>Prev</button>
-          <button onClick={nextMonth} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1', padding: '6px 14px', borderRadius: 8, cursor: 'pointer', fontSize: '0.9rem' }}>Next</button>
+          <button onClick={prevMonth} style={{ background: D.surfaceHi, border: `1px solid ${D.border}`, color: D.text, padding: '6px 14px', borderRadius: 8, cursor: 'pointer', fontSize: '0.9rem' }}>Prev</button>
+          <button onClick={nextMonth} style={{ background: D.surfaceHi, border: `1px solid ${D.border}`, color: D.text, padding: '6px 14px', borderRadius: 8, cursor: 'pointer', fontSize: '0.9rem' }}>Next</button>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', background: 'rgba(255,255,255,0.05)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', background: D.border }}>
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} style={{ padding: '12px 10px', background: 'rgba(15,23,42,0.6)', color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div key={day} style={{ padding: '12px 10px', background: D.surfaceHi, color: D.textSub, fontSize: '0.8rem', fontWeight: 600, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             {day}
           </div>
         ))}
 
         {Array.from({ length: firstDay }).map((_, i) => (
-          <div key={`blank-${i}`} style={{ background: '#0f172a', minHeight: 110 }}></div>
+          <div key={`blank-${i}`} style={{ background: D.bg, minHeight: 110 }}></div>
         ))}
 
         {days.map(day => {
           const dayServices = servicesByDate[day] || []
           return (
-            <div key={day} style={{ background: '#0f1e35', minHeight: 110, padding: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              <div style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 600, marginBottom: 8 }}>{day}</div>
+            <div key={day} style={{ background: D.surface, minHeight: 110, padding: '8px', borderTop: `1px solid ${D.border}` }}>
+              <div style={{ fontSize: '0.85rem', color: D.text, fontWeight: 600, marginBottom: 8 }}>{day}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {dayServices.map(s => {
                   const status = getStatus(s)
@@ -367,7 +388,7 @@ const ServiceCalendar = ({ services, onEdit, isDriver, getStatus, STATUS_CONFIG 
         })}
 
         {Array.from({ length: (7 - ((firstDay + daysInMonth) % 7)) % 7 }).map((_, i) => (
-          <div key={`end-blank-${i}`} style={{ background: '#0f172a', minHeight: 110, borderTop: '1px solid rgba(255,255,255,0.05)' }}></div>
+          <div key={`end-blank-${i}`} style={{ background: D.bg, minHeight: 110, borderTop: `1px solid ${D.border}` }}></div>
         ))}
       </div>
     </div>
@@ -379,6 +400,7 @@ const ServiceCalendar = ({ services, onEdit, isDriver, getStatus, STATUS_CONFIG 
    MAIN PAGE
 ══════════════════════════════════════════════════════════════════ */
 const ServicePage = () => {
+  const D = useD()
   const { user } = useAuth()
   const navigate = useNavigate()
   const isDriver = user?.role === 'DRIVER'
@@ -389,6 +411,112 @@ const ServicePage = () => {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState('grid')
+
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [editingServiceId, setEditingServiceId] = useState(null)
+  const [errors, setErrors] = useState({})
+  const [submitError, setSubmitError] = useState(null)
+  const [formData, setFormData] = useState(initialForm)
+  const [editFormData, setEditFormData] = useState(initialForm)
+  const [formLoading, setFormLoading] = useState(false)
+
+  useEffect(() => {
+    if (isAddModalOpen || isEditModalOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [isAddModalOpen, isEditModalOpen])
+
+  const validate = (data) => {
+    const e = {}
+    if (!data.vehicleRegNumber?.trim()) e.vehicleRegNumber = 'Required'
+    if (!data.serviceType) e.serviceType = 'Required'
+    if (data.serviceType === 'OTHER' && !data.serviceTypeDetail?.trim())
+      e.serviceTypeDetail = 'Required for Other'
+    if (!data.serviceDate) e.serviceDate = 'Required'
+    if (!data.currentMileageKm) e.currentMileageKm = 'Required'
+    if (!data.serviceCost) e.serviceCost = 'Required'
+    if (!data.technicianWorkshop?.trim()) e.technicianWorkshop = 'Required'
+    return e
+  }
+
+  const openAddModal = () => {
+    setFormData(initialForm)
+    setErrors({})
+    setSubmitError(null)
+    setIsAddModalOpen(true)
+  }
+  const closeAddModal = () => setIsAddModalOpen(false)
+
+  const handleAddChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: undefined }))
+  }
+
+  const handleAddSubmit = async (e) => {
+    e.preventDefault()
+    const errs = validate(formData)
+    if (Object.keys(errs).length) { setErrors(errs); return }
+    setFormLoading(true)
+    setSubmitError(null)
+    try {
+      await serviceAPI.createService(formData)
+      setIsAddModalOpen(false)
+      loadData()
+    } catch (err) {
+      setSubmitError(err.response?.data?.message || 'Failed to save service record.')
+    } finally {
+      setFormLoading(false)
+    }
+  }
+
+  const openEditModal = (id) => {
+    const record = services.find(s => s.id === id)
+    if (!record) return
+    setEditingServiceId(id)
+    setEditFormData({
+      vehicleRegNumber: record.vehicleRegNumber || '',
+      serviceType: record.serviceType || '',
+      serviceTypeDetail: record.serviceTypeDetail || '',
+      serviceDate: record.serviceDate ? record.serviceDate.substring(0, 10) : '',
+      currentMileageKm: record.currentMileageKm || '',
+      serviceCost: record.serviceCost || '',
+      technicianWorkshop: record.technicianWorkshop || '',
+      nextServiceDue: record.nextServiceDue ? record.nextServiceDue.substring(0, 10) : '',
+      description: record.description || '',
+    })
+    setErrors({})
+    setSubmitError(null)
+    setIsEditModalOpen(true)
+  }
+  const closeEditModal = () => setIsEditModalOpen(false)
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target
+    setEditFormData(prev => ({ ...prev, [name]: value }))
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: undefined }))
+  }
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault()
+    const errs = validate(editFormData)
+    if (Object.keys(errs).length) { setErrors(errs); return }
+    setFormLoading(true)
+    setSubmitError(null)
+    try {
+      await serviceAPI.updateService(editingServiceId, editFormData)
+      setIsEditModalOpen(false)
+      loadData()
+    } catch (err) {
+      setSubmitError(err.response?.data?.message || 'Failed to update service record.')
+    } finally {
+      setFormLoading(false)
+    }
+  }
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -440,23 +568,41 @@ const ServicePage = () => {
   }).sort((a, b) => {
     const dateA = a.serviceDate ? new Date(a.serviceDate) : new Date(0);
     const dateB = b.serviceDate ? new Date(b.serviceDate) : new Date(0);
-    return dateB - dateA; // Newest first
+    return dateB - dateA;
   })
 
-  /* ── Shared dark-card style ───────────────────────────────────── */
-  const darkCard = {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
+  /* ── Shared stat-card style ───────────────────────────────────── */
+  const statCard = {
+    background: D.surface,
+    border: `1px solid ${D.border}`,
     borderRadius: 16,
     padding: '22px 24px',
     flex: 1,
     transition: 'all 0.2s ease',
+    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
   }
 
+  /* ── Modal form styles ────────────────────────────────────────── */
+  const fieldLabel = {
+    display: 'block', fontSize: '0.78rem', fontWeight: 700,
+    color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 6,
+  }
+  const fieldInput = (hasError) => ({
+    width: '100%', padding: '10px 14px', background: D.inputBg,
+    border: `1px solid ${hasError ? 'rgba(248,113,113,0.5)' : D.inputBorder}`,
+    borderRadius: 8, color: D.text, fontSize: '0.85rem',
+    outline: 'none', fontFamily: 'inherit',
+    transition: 'border-color 0.15s, box-shadow 0.15s', boxSizing: 'border-box',
+  })
+  const fieldError = { color: D.red, fontSize: '0.72rem', margin: '4px 0 0 0' }
+
+  const focusBorder = (e) => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)' }
+  const blurBorder = (e, hasErr) => { e.target.style.borderColor = hasErr ? 'rgba(248,113,113,0.5)' : D.inputBorder; e.target.style.boxShadow = 'none' }
+
   return (
-    <div className="app-shell service-page-dark">
+    <div className="app-shell">
       <Sidebar />
-      <div className="main-content" style={{ background: '#0f172a', minHeight: '100vh' }}>
+      <div className="main-content" style={{ background: D.bg, minHeight: '100vh' }}>
         <Topbar
           title={isDriver ? 'Service History' : 'Service'}
           subtitle={`Home / ${isDriver ? 'Service History' : 'Service'}`}
@@ -531,7 +677,7 @@ const ServicePage = () => {
               {!isDriver && (
                 <button
                   id="add-service-btn"
-                  onClick={() => navigate('/service/add')}
+                  onClick={openAddModal}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8,
                     padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
@@ -551,46 +697,46 @@ const ServicePage = () => {
           {!loading && (
             <div style={{ display: 'flex', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
               {/* Total */}
-              <div style={darkCard}>
+              <div style={statCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <p style={{ fontSize: '2rem', fontWeight: 800, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{total}</p>
+                  <p style={{ fontSize: '2rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{total}</p>
                   <span style={{ display: 'flex', alignItems: 'center', color: '#6366f1' }}><ClipboardList size={28} /></span>
                 </div>
-                <p style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Total Records</p>
-                <ProgressBar value={total} max={total || 1} color="#6366f1" />
+                <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Total Records</p>
+                <ProgressBar value={total} max={total || 1} color="#6366f1" D={D} />
               </div>
 
               {/* Scheduled */}
-              <div style={darkCard}>
+              <div style={statCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <p style={{ fontSize: '2rem', fontWeight: 800, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{scheduled}</p>
+                  <p style={{ fontSize: '2rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{scheduled}</p>
                   <span style={{ display: 'flex', alignItems: 'center', color: '#f59e0b' }}><Calendar size={28} /></span>
                 </div>
-                <p style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Scheduled</p>
-                <ProgressBar value={scheduled} max={total || 1} color="#f59e0b" />
+                <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Scheduled</p>
+                <ProgressBar value={scheduled} max={total || 1} color="#f59e0b" D={D} />
               </div>
 
               {/* Completed */}
-              <div style={darkCard}>
+              <div style={statCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <p style={{ fontSize: '2rem', fontWeight: 800, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{completed}</p>
+                  <p style={{ fontSize: '2rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{completed}</p>
                   <span style={{ display: 'flex', alignItems: 'center', color: '#10b981' }}><CheckCircle size={28} /></span>
                 </div>
-                <p style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Completed</p>
-                <ProgressBar value={completed} max={total || 1} color="#10b981" />
+                <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Completed</p>
+                <ProgressBar value={completed} max={total || 1} color="#10b981" D={D} />
               </div>
 
               {/* Total Cost */}
               {stats && (
-                <div style={darkCard}>
+                <div style={statCard}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <p style={{ fontSize: '1.55rem', fontWeight: 800, color: '#f1f5f9', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
+                    <p style={{ fontSize: '1.55rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
                       Rs.{(stats.totalServiceCost || 0).toLocaleString()}
                     </p>
-                    <span style={{ display: 'flex', alignItems: 'center', color: '#3b82f6' }}><CircleDollarSign size={28} /></span>
+                    <span style={{ display: 'flex', alignItems: 'center', color: D.blue }}><CircleDollarSign size={28} /></span>
                   </div>
-                  <p style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Total Cost</p>
-                  <ProgressBar value={100} max={100} color="#3b82f6" />
+                  <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Total Cost</p>
+                  <ProgressBar value={100} max={100} color={D.blue} D={D} />
                 </div>
               )}
             </div>
@@ -598,13 +744,12 @@ const ServicePage = () => {
 
           {/* ── Filter Tabs + Search ───────────────────────────────── */}
           <div style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: D.surface,
+            border: `1px solid ${D.border}`,
             borderRadius: 14, padding: '14px 18px',
             display: 'flex', alignItems: 'center',
             gap: 10, flexWrap: 'wrap', marginBottom: 20,
           }}>
-            {/* Filter pills */}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
                 const count = key === 'ALL' ? total : key === 'SCHEDULED' ? scheduled : completed
@@ -616,9 +761,9 @@ const ServicePage = () => {
                     onClick={() => setFilter(key)}
                     style={{
                       padding: '6px 14px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 700,
-                      border: active ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                      border: active ? 'none' : `1px solid ${D.border}`,
                       background: active ? `linear-gradient(135deg, #3b82f6, #6366f1)` : 'transparent',
-                      color: active ? '#fff' : '#94a3b8',
+                      color: active ? '#fff' : D.textSub,
                       cursor: 'pointer', transition: 'all 0.15s ease',
                       boxShadow: active ? '0 2px 12px rgba(99,102,241,0.4)' : 'none',
                     }}
@@ -628,13 +773,9 @@ const ServicePage = () => {
                 )
               })}
             </div>
-
-            {/* Spacer */}
             <div style={{ flex: 1 }} />
-
-            {/* Search */}
             <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#475569', display: 'flex', alignItems: 'center' }}><Search size={16} /></span>
+              <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: D.textSub, display: 'flex', alignItems: 'center' }}><Search size={16} /></span>
               <input
                 id="service-search"
                 value={search}
@@ -643,13 +784,13 @@ const ServicePage = () => {
                 style={{
                   padding: '8px 14px 8px 32px',
                   borderRadius: 10, fontSize: '0.82rem',
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  color: '#e2e8f0', outline: 'none', minWidth: 240,
+                  background: D.inputBg,
+                  border: `1px solid ${D.inputBorder}`,
+                  color: D.text, outline: 'none', minWidth: 240,
                   transition: 'border-color 0.15s',
                 }}
                 onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)' }}
-                onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
+                onBlur={e => { e.target.style.borderColor = D.inputBorder }}
               />
             </div>
           </div>
@@ -662,10 +803,9 @@ const ServicePage = () => {
           }>
 
             {loading ? (
-              /* Skeleton loader */
               [1, 2, 3, 4, 5, 6].map(i => (
                 <div key={i} style={{
-                  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+                  background: D.surface, border: `1px solid ${D.border}`,
                   borderRadius: 14, padding: '22px', minHeight: viewMode === 'grid' ? 200 : 84,
                   animation: 'pulse 1.5s ease infinite',
                 }} />
@@ -673,14 +813,14 @@ const ServicePage = () => {
             ) : filtered.length === 0 ? (
               <div style={{
                 textAlign: 'center', padding: '64px 32px',
-                background: 'rgba(255,255,255,0.02)', borderRadius: 16,
-                border: '1px dashed rgba(255,255,255,0.1)',
+                background: D.surface, borderRadius: 16,
+                border: `1px dashed ${D.border}`,
               }}>
-                <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center', opacity: 0.5 }}><Search size={48} /></div>
-                <p style={{ color: '#64748b', fontSize: '0.95rem', fontWeight: 500 }}>No service records found.</p>
+                <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center', opacity: 0.5, color: D.textSub }}><Search size={48} /></div>
+                <p style={{ color: D.textSub, fontSize: '0.95rem', fontWeight: 500 }}>No service records found.</p>
                 {!isDriver && (
                   <button
-                    onClick={() => navigate('/service/add')}
+                    onClick={openAddModal}
                     style={{
                       marginTop: 16, padding: '9px 22px', borderRadius: 10,
                       background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
@@ -696,9 +836,10 @@ const ServicePage = () => {
               <ServiceCalendar
                 services={filtered}
                 isDriver={isDriver}
-                onEdit={id => navigate(`/service/edit/${id}`)}
+                onEdit={openEditModal}
                 getStatus={getStatus}
                 STATUS_CONFIG={STATUS_CONFIG}
+                D={D}
               />
             ) : viewMode === 'grid' ? (
               filtered.map((record, i) => (
@@ -707,8 +848,9 @@ const ServicePage = () => {
                   record={record}
                   index={i}
                   isDriver={isDriver}
-                  onEdit={id => navigate(`/service/edit/${id}`)}
+                  onEdit={openEditModal}
                   onDelete={handleDelete}
+                  D={D}
                 />
               ))
             ) : (
@@ -718,8 +860,9 @@ const ServicePage = () => {
                   record={record}
                   index={i}
                   isDriver={isDriver}
-                  onEdit={id => navigate(`/service/edit/${id}`)}
+                  onEdit={openEditModal}
                   onDelete={handleDelete}
+                  D={D}
                 />
               ))
             )}
@@ -727,92 +870,227 @@ const ServicePage = () => {
 
           {/* ── Footer count ──────────────────────────────────────── */}
           {!loading && filtered.length > 0 && (
-            <div style={{ marginTop: 18, fontSize: '0.78rem', color: '#475569', textAlign: 'right' }}>
-              Showing <strong style={{ color: '#94a3b8' }}>{filtered.length}</strong> of <strong style={{ color: '#94a3b8' }}>{services.length}</strong> records
+            <div style={{ marginTop: 18, fontSize: '0.78rem', color: D.textSub, textAlign: 'right' }}>
+              Showing <strong style={{ color: D.text }}>{filtered.length}</strong> of <strong style={{ color: D.text }}>{services.length}</strong> records
             </div>
           )}
 
         </div>
       </div>
 
-      {/* ── Dark-theme overrides for this page ── */}
+      {/* ── Add Modal ──────────────────────────────────────────────── */}
+      {isAddModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease' }}>
+          <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 640, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden' }}>
+            <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: D.indigoDim, color: D.indigo, border: `1px solid ${D.indigo}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Wrench size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Add Service Record</h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: D.textSub }}>Log a new service or maintenance record for a vehicle.</p>
+                </div>
+              </div>
+              <button onClick={closeAddModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
+            </div>
+
+            {submitError && (
+              <div style={{ margin: '20px 28px 0', background: D.redDim, border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, padding: '10px 16px', color: D.red, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertTriangle size={18} /> {submitError}
+              </div>
+            )}
+
+            <form onSubmit={handleAddSubmit} style={{ padding: '24px 28px' }} noValidate>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Vehicle & Service Details</span>
+                <div style={{ flex: 1, height: 1, background: D.border }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+                <div>
+                  <label style={fieldLabel}>Vehicle (License Plate) <span style={{ color: D.red }}>*</span></label>
+                  <input type="text" name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={handleAddChange} placeholder="e.g. KA-01-AB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
+                  {errors.vehicleRegNumber && <p style={fieldError}>{errors.vehicleRegNumber}</p>}
+                </div>
+                <div>
+                  <label style={fieldLabel}>Service Type <span style={{ color: D.red }}>*</span></label>
+                  <select name="serviceType" value={formData.serviceType} onChange={handleAddChange} style={{ ...fieldInput(errors.serviceType), cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '18px', paddingRight: 38 }} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceType)}>
+                    <option value="" disabled style={{ background: D.surfaceHi }}>Select service type</option>
+                    {SERVICE_TYPES.map(t => <option key={t.value} value={t.value} style={{ background: D.surfaceHi }}>{t.label}</option>)}
+                  </select>
+                  {errors.serviceType && <p style={fieldError}>{errors.serviceType}</p>}
+                </div>
+
+                {formData.serviceType === 'OTHER' && (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={fieldLabel}>Service Type Detail <span style={{ color: D.red }}>*</span></label>
+                    <input type="text" name="serviceTypeDetail" value={formData.serviceTypeDetail} onChange={handleAddChange} placeholder="Describe the service…" style={fieldInput(errors.serviceTypeDetail)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceTypeDetail)} />
+                    {errors.serviceTypeDetail && <p style={fieldError}>{errors.serviceTypeDetail}</p>}
+                  </div>
+                )}
+
+                <div>
+                  <label style={fieldLabel}>Service Date <span style={{ color: D.red }}>*</span></label>
+                  <input type="date" name="serviceDate" value={formData.serviceDate} onChange={handleAddChange} style={fieldInput(errors.serviceDate)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceDate)} />
+                  {errors.serviceDate && <p style={fieldError}>{errors.serviceDate}</p>}
+                </div>
+                <div>
+                  <label style={fieldLabel}>Current Mileage (km) <span style={{ color: D.red }}>*</span></label>
+                  <input type="number" name="currentMileageKm" value={formData.currentMileageKm} onChange={handleAddChange} placeholder="e.g. 45000" style={fieldInput(errors.currentMileageKm)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.currentMileageKm)} />
+                  {errors.currentMileageKm && <p style={fieldError}>{errors.currentMileageKm}</p>}
+                </div>
+                <div>
+                  <label style={fieldLabel}>Service Cost (Rs.) <span style={{ color: D.red }}>*</span></label>
+                  <input type="number" step="0.01" name="serviceCost" value={formData.serviceCost} onChange={handleAddChange} placeholder="e.g. 8500" style={fieldInput(errors.serviceCost)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceCost)} />
+                  {errors.serviceCost && <p style={fieldError}>{errors.serviceCost}</p>}
+                </div>
+                <div>
+                  <label style={fieldLabel}>Technician / Workshop <span style={{ color: D.red }}>*</span></label>
+                  <input type="text" name="technicianWorkshop" value={formData.technicianWorkshop} onChange={handleAddChange} placeholder="e.g. Auto Care Center" style={fieldInput(errors.technicianWorkshop)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.technicianWorkshop)} />
+                  {errors.technicianWorkshop && <p style={fieldError}>{errors.technicianWorkshop}</p>}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0 16px' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Optional Details</span>
+                <div style={{ flex: 1, height: 1, background: D.border }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 28 }}>
+                <div>
+                  <label style={fieldLabel}>Next Service Due</label>
+                  <input type="date" name="nextServiceDue" value={formData.nextServiceDue} onChange={handleAddChange} style={fieldInput(false)} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                </div>
+                <div>
+                  <label style={fieldLabel}>Description / Notes</label>
+                  <textarea name="description" value={formData.description} onChange={handleAddChange} rows={3} placeholder="Any additional notes…" style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button type="submit" disabled={formLoading} style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: formLoading ? 'rgba(99,102,241,0.6)' : 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: formLoading ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: formLoading ? 'none' : '0 4px 16px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  {formLoading ? 'Saving...' : <><Check size={16} /> Add Record</>}
+                </button>
+                <button type="button" onClick={closeAddModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Modal ──────────────────────────────────────────────── */}
+      {isEditModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease' }}>
+          <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 640, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden' }}>
+            <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: D.indigoDim, color: D.indigo, border: `1px solid ${D.indigo}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Edit2 size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Edit Service Record</h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: D.textSub }}>Update the details of this service record.</p>
+                </div>
+              </div>
+              <button onClick={closeEditModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
+            </div>
+
+            {submitError && (
+              <div style={{ margin: '20px 28px 0', background: D.redDim, border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, padding: '10px 16px', color: D.red, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertTriangle size={18} /> {submitError}
+              </div>
+            )}
+
+            <form onSubmit={handleEditSubmit} style={{ padding: '24px 28px' }} noValidate>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Vehicle & Service Details</span>
+                <div style={{ flex: 1, height: 1, background: D.border }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+                <div>
+                  <label style={fieldLabel}>Vehicle (License Plate) <span style={{ color: D.red }}>*</span></label>
+                  <input type="text" name="vehicleRegNumber" value={editFormData.vehicleRegNumber} onChange={handleEditChange} placeholder="e.g. KA-01-AB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
+                  {errors.vehicleRegNumber && <p style={fieldError}>{errors.vehicleRegNumber}</p>}
+                </div>
+                <div>
+                  <label style={fieldLabel}>Service Type <span style={{ color: D.red }}>*</span></label>
+                  <select name="serviceType" value={editFormData.serviceType} onChange={handleEditChange} style={{ ...fieldInput(errors.serviceType), cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '18px', paddingRight: 38 }} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceType)}>
+                    <option value="" disabled style={{ background: D.surfaceHi }}>Select service type</option>
+                    {SERVICE_TYPES.map(t => <option key={t.value} value={t.value} style={{ background: D.surfaceHi }}>{t.label}</option>)}
+                  </select>
+                  {errors.serviceType && <p style={fieldError}>{errors.serviceType}</p>}
+                </div>
+
+                {editFormData.serviceType === 'OTHER' && (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={fieldLabel}>Service Type Detail <span style={{ color: D.red }}>*</span></label>
+                    <input type="text" name="serviceTypeDetail" value={editFormData.serviceTypeDetail} onChange={handleEditChange} placeholder="Describe the service…" style={fieldInput(errors.serviceTypeDetail)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceTypeDetail)} />
+                    {errors.serviceTypeDetail && <p style={fieldError}>{errors.serviceTypeDetail}</p>}
+                  </div>
+                )}
+
+                <div>
+                  <label style={fieldLabel}>Service Date <span style={{ color: D.red }}>*</span></label>
+                  <input type="date" name="serviceDate" value={editFormData.serviceDate} onChange={handleEditChange} style={fieldInput(errors.serviceDate)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceDate)} />
+                  {errors.serviceDate && <p style={fieldError}>{errors.serviceDate}</p>}
+                </div>
+                <div>
+                  <label style={fieldLabel}>Current Mileage (km) <span style={{ color: D.red }}>*</span></label>
+                  <input type="number" name="currentMileageKm" value={editFormData.currentMileageKm} onChange={handleEditChange} placeholder="e.g. 45000" style={fieldInput(errors.currentMileageKm)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.currentMileageKm)} />
+                  {errors.currentMileageKm && <p style={fieldError}>{errors.currentMileageKm}</p>}
+                </div>
+                <div>
+                  <label style={fieldLabel}>Service Cost (Rs.) <span style={{ color: D.red }}>*</span></label>
+                  <input type="number" step="0.01" name="serviceCost" value={editFormData.serviceCost} onChange={handleEditChange} placeholder="e.g. 8500" style={fieldInput(errors.serviceCost)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceCost)} />
+                  {errors.serviceCost && <p style={fieldError}>{errors.serviceCost}</p>}
+                </div>
+                <div>
+                  <label style={fieldLabel}>Technician / Workshop <span style={{ color: D.red }}>*</span></label>
+                  <input type="text" name="technicianWorkshop" value={editFormData.technicianWorkshop} onChange={handleEditChange} placeholder="e.g. Auto Care Center" style={fieldInput(errors.technicianWorkshop)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.technicianWorkshop)} />
+                  {errors.technicianWorkshop && <p style={fieldError}>{errors.technicianWorkshop}</p>}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0 16px' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Optional Details</span>
+                <div style={{ flex: 1, height: 1, background: D.border }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 28 }}>
+                <div>
+                  <label style={fieldLabel}>Next Service Due</label>
+                  <input type="date" name="nextServiceDue" value={editFormData.nextServiceDue} onChange={handleEditChange} style={fieldInput(false)} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                </div>
+                <div>
+                  <label style={fieldLabel}>Description / Notes</label>
+                  <textarea name="description" value={editFormData.description} onChange={handleEditChange} rows={3} placeholder="Any additional notes…" style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button type="submit" disabled={formLoading} style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: formLoading ? 'rgba(99,102,241,0.6)' : 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: formLoading ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: formLoading ? 'none' : '0 4px 16px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  {formLoading ? 'Saving...' : <><Check size={16} /> Save Changes</>}
+                </button>
+                <button type="button" onClick={closeEditModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Scoped Styles ── */}
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.4; }
         }
-        input[id="service-search"]::placeholder { color: #475569; }
-
-        /* Topbar dark */
-        .service-page-dark .topbar {
-          background: #0f172a !important;
-          border-bottom-color: rgba(255,255,255,0.08) !important;
-        }
-        .service-page-dark .topbar-title {
-          color: #f1f5f9 !important;
-        }
-        .service-page-dark .topbar-breadcrumb {
-          color: #475569 !important;
-        }
-        .service-page-dark .topbar-user {
-          background: rgba(255,255,255,0.05) !important;
-          border-color: rgba(255,255,255,0.1) !important;
-          color: #e2e8f0 !important;
-        }
-        .service-page-dark .topbar-user:hover {
-          background: rgba(99,102,241,0.15) !important;
-          border-color: rgba(99,102,241,0.4) !important;
-        }
-        .service-page-dark .topbar-name {
-          color: #e2e8f0 !important;
-        }
-
-        /* Sidebar dark */
-        .service-page-dark .sidebar {
-          background: #0f1e35 !important;
-          border-right-color: rgba(255,255,255,0.07) !important;
-        }
-        .service-page-dark .sidebar-header {
-          border-bottom-color: rgba(255,255,255,0.07) !important;
-        }
-        .service-page-dark .sidebar-title {
-          color: #f1f5f9 !important;
-        }
-        .service-page-dark .sidebar-subtitle {
-          color: #475569 !important;
-        }
-        .service-page-dark .nav-section-label {
-          color: #334155 !important;
-        }
-        .service-page-dark .nav-item {
-          color: #64748b !important;
-        }
-        .service-page-dark .nav-item:hover {
-          background: rgba(255,255,255,0.05) !important;
-          color: #cbd5e1 !important;
-        }
-        .service-page-dark .nav-item.active {
-          background: rgba(99,102,241,0.18) !important;
-          color: #a5b4fc !important;
-        }
-        .service-page-dark .sidebar-footer {
-          border-top-color: rgba(255,255,255,0.07) !important;
-        }
-        .service-page-dark .sidebar-divider {
-          background: rgba(255,255,255,0.07) !important;
-        }
-        .service-page-dark .sidebar-logout-btn {
-          color: rgba(255,255,255,0.5) !important;
-        }
-        .service-page-dark .sidebar-logout-btn:hover {
-          color: #ef4444 !important;
-        }
-        .service-page-dark .sidebar-user-card {
-          background: rgba(255,255,255,0.03) !important;
-        }
-        .service-page-dark .sidebar-user-name {
-          color: #e2e8f0 !important;
-        }
+        input[id="service-search"]::placeholder { color: ${D.textSub}; }
       `}</style>
     </div>
   )

@@ -1,74 +1,56 @@
 import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
+import { useD } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
-import { fuelAPI } from '../services/api'
+import { fuelAPI, vehicleAPI } from '../services/api'
 import { Fuel, CircleDollarSign, BarChart2, Car, Check, X, Plus, Loader2 } from 'lucide-react'
 
-/* ── Dark palette ───────────────────────────────────────────── */
-const D = {
-  bg:        '#0d1117',
-  surface:   '#161b27',
-  surfaceHi: '#1e2535',
-  border:    'rgba(255,255,255,0.07)',
-  borderHi:  'rgba(255,255,255,0.13)',
-  text:      '#e2e8f0',
-  textSub:   '#64748b',
-  textFaint: '#374151',
-  indigo:    '#818cf8',
-  indigoDim: 'rgba(129,140,248,0.15)',
-  red:       '#f87171',
-  redDim:    'rgba(248,113,113,0.15)',
-  green:     '#4ade80',
-  greenDim:  'rgba(74,222,128,0.15)',
-  gold:      '#fbbf24',
-  goldDim:   'rgba(251,191,36,0.15)',
-  blue:      '#60a5fa',
-  blueDim:   'rgba(96,165,250,0.15)',
-}
 
-const inputStyle = {
-  width: '100%',
-  padding: '10px 14px',
-  borderRadius: 8,
-  border: `1px solid rgba(255,255,255,0.1)`,
-  fontSize: '0.85rem',
-  color: D.text,
-  background: 'rgba(255,255,255,0.05)',
-  outline: 'none',
-  transition: 'border-color 0.15s, box-shadow 0.15s',
-  fontFamily: 'inherit',
-}
-
-const labelStyle = {
-  display: 'block',
-  marginBottom: 6,
-  fontSize: '0.78rem',
-  fontWeight: 700,
-  color: D.textSub,
-  textTransform: 'uppercase',
-  letterSpacing: '0.02em',
-}
-
-const onFocus = e => {
-  e.target.style.borderColor = 'rgba(99,102,241,0.5)'
-  e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'
-}
-const onBlur = e => {
-  e.target.style.borderColor = 'rgba(255,255,255,0.1)'
-  e.target.style.boxShadow = 'none'
-}
 
 const FuelLogPage = () => {
+  const D = useD()
   const { user } = useAuth()
+
+  const inputStyle = {
+    width: '100%',
+    padding: '10px 14px',
+    borderRadius: 8,
+    border: `1px solid ${D.inputBorder}`,
+    fontSize: '0.85rem',
+    color: D.text,
+    background: D.inputBg,
+    outline: 'none',
+    transition: 'border-color 0.15s, box-shadow 0.15s',
+    fontFamily: 'inherit',
+  }
+
+  const labelStyle = {
+    display: 'block',
+    marginBottom: 6,
+    fontSize: '0.78rem',
+    fontWeight: 700,
+    color: D.textSub,
+    textTransform: 'uppercase',
+    letterSpacing: '0.02em',
+  }
+
+  const onFocus = e => {
+    e.target.style.borderColor = D.indigo
+    e.target.style.boxShadow = `0 0 0 3px ${D.indigoDim}`
+  }
+  const onBlur = e => {
+    e.target.style.borderColor = D.inputBorder
+    e.target.style.boxShadow = 'none'
+  }
   
   // State for fuel logs
   const [myVehicleLogs, setMyVehicleLogs] = useState([])
   const [loading, setLoading] = useState(true)
-  
-  // State for Add Fuel Log Form
+  const [assignedVehicle, setAssignedVehicle] = useState(null)
+
   const [formData, setFormData] = useState({
-    vehicleRegNumber: user?.vehicleRegNumber || '',
+    vehicleRegNumber: '',
     fuelType: 'Diesel',
     liters: '',
     costPerLiter: '',
@@ -80,20 +62,35 @@ const FuelLogPage = () => {
 
   // Load fuel logs
   useEffect(() => {
-    const loadLogs = async () => {
+    const loadData = async () => {
       try {
         setLoading(true)
-        // Driver-scoped endpoint: GET /api/fuel/my-logs
-        const logsRes = await fuelAPI.getMyLogs()
-        setMyVehicleLogs(logsRes.data.data || [])
-      } catch (error) {
-        console.error('Error loading fuel logs:', error)
+        const [logsRes, vehicleRes] = await Promise.allSettled([
+          fuelAPI.getMyLogs(),
+          vehicleAPI.getAssignedVehicle(),
+        ])
+        if (logsRes.status === 'fulfilled') setMyVehicleLogs(logsRes.value.data.data || [])
+        if (vehicleRes.status === 'fulfilled') {
+          const v = vehicleRes.value.data.data
+          setAssignedVehicle(v)
+          if (v?.registrationNo) {
+            const fuelType = v.fuelType
+              ? v.fuelType.charAt(0).toUpperCase() + v.fuelType.slice(1).toLowerCase()
+              : undefined
+            setFormData(p => ({
+              ...p,
+              vehicleRegNumber: v.registrationNo,
+              ...(fuelType && { fuelType }),
+            }))
+          }
+        }
+      } catch (err) {
+        console.error('Error loading fuel log data:', err)
       } finally {
         setLoading(false)
       }
     }
-    
-    loadLogs()
+    loadData()
   }, [user])
 
   // Handle form input change
@@ -125,7 +122,7 @@ const FuelLogPage = () => {
       
       // Reset form
       setFormData({
-        vehicleRegNumber: user?.vehicleRegNumber || '',
+        vehicleRegNumber: assignedVehicle?.registrationNo || '',
         fuelType: 'Diesel',
         liters: '',
         costPerLiter: '',
@@ -153,7 +150,7 @@ const FuelLogPage = () => {
 
   if (loading) {
     return (
-      <div className="app-shell fuel-dark-wrapper" style={{ background: D.bg }}>
+      <div className="app-shell" style={{ background: D.bg }}>
         <Sidebar />
         <div className="main-content" style={{ background: D.bg }}>
           <Topbar title="Fuel Log" subtitle="Home / Fuel Log" />
@@ -166,7 +163,7 @@ const FuelLogPage = () => {
   }
 
   return (
-    <div className="app-shell fuel-dark-wrapper" style={{ background: D.bg }}>
+    <div className="app-shell" style={{ background: D.bg }}>
       <Sidebar />
       <div className="main-content" style={{ background: D.bg }}>
         <Topbar title="Fuel Log" subtitle="Home / Fuel Log" />
@@ -184,7 +181,7 @@ const FuelLogPage = () => {
             border: `1px solid ${D.border}`
           }}>
             {/* decorative circles */}
-            {[['80%','−20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
+            {[['80%','âˆ’20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
               <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
             ))}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -261,17 +258,19 @@ const FuelLogPage = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 20, marginBottom: 24 }}>
                   <div>
                     <label style={labelStyle}>Vehicle Registration Number *</label>
-                    <input 
-                      type="text" 
-                      name="vehicleRegNumber" 
-                      value={formData.vehicleRegNumber} 
-                      onChange={handleInputChange}
-                      required 
-                      readOnly={!!user?.vehicleRegNumber}
-                      placeholder="e.g., WP-CAB-1234"
-                      style={{ ...inputStyle, background: user?.vehicleRegNumber ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)' }}
-                      onFocus={onFocus} onBlur={onBlur}
+                    <input
+                      type="text"
+                      name="vehicleRegNumber"
+                      value={formData.vehicleRegNumber}
+                      readOnly
+                      placeholder="No vehicle assigned"
+                      style={{ ...inputStyle, background: 'rgba(255,255,255,0.02)', cursor: 'not-allowed', color: assignedVehicle ? D.blue : D.textSub, fontWeight: assignedVehicle ? 700 : 400 }}
                     />
+                    {assignedVehicle && (
+                      <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: D.textSub }}>
+                        Auto-filled from your assigned vehicle
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -446,7 +445,7 @@ const FuelLogPage = () => {
                               {log.fuelEfficiency.toFixed(2)} km/L
                             </span>
                           ) : (
-                            <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>
+                            <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>â€”</span>
                           )}
                         </td>
                         <td style={{ padding: '14px 16px' }}>
@@ -474,29 +473,6 @@ const FuelLogPage = () => {
 
         </div>
       </div>
-      <style>{`
-        .fuel-dark-wrapper .topbar { background: #161b27 !important; border-bottom-color: rgba(255,255,255,0.07) !important; }
-        .fuel-dark-wrapper .topbar-title { color: #e2e8f0 !important; }
-        .fuel-dark-wrapper .topbar-breadcrumb { color: #475569 !important; }
-        .fuel-dark-wrapper .topbar-user { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.1) !important; color: #e2e8f0 !important; }
-        .fuel-dark-wrapper .topbar-user:hover { background: rgba(99,102,241,0.15) !important; border-color: rgba(99,102,241,0.4) !important; }
-        .fuel-dark-wrapper .topbar-name { color: #e2e8f0 !important; }
-        .fuel-dark-wrapper .sidebar { background: #111827 !important; border-right-color: rgba(255,255,255,0.07) !important; }
-        .fuel-dark-wrapper .sidebar-header { border-bottom-color: rgba(255,255,255,0.07) !important; }
-        .fuel-dark-wrapper .sidebar-title { color: #f1f5f9 !important; }
-        .fuel-dark-wrapper .sidebar-subtitle { color: #475569 !important; }
-        .fuel-dark-wrapper .nav-section-label { color: #334155 !important; }
-        .fuel-dark-wrapper .nav-item { color: #64748b !important; }
-        .fuel-dark-wrapper .nav-item:hover { background: rgba(255,255,255,0.05) !important; color: #cbd5e1 !important; }
-        .fuel-dark-wrapper .nav-item.active { background: rgba(99,102,241,0.18) !important; color: #a5b4fc !important; }
-        .fuel-dark-wrapper .sidebar-divider { background: rgba(255,255,255,0.07) !important; }
-        .fuel-dark-wrapper .sidebar-logout-btn { color: rgba(255,255,255,0.4) !important; }
-        .fuel-dark-wrapper .sidebar-logout-btn:hover { color: #f87171 !important; }
-        .fuel-dark-wrapper .sidebar-user-card { background: rgba(255,255,255,0.03) !important; }
-        .fuel-dark-wrapper .sidebar-footer { border-top-color: rgba(255,255,255,0.07) !important; }
-        
-        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; }
-      `}</style>
     </div>
   )
 }

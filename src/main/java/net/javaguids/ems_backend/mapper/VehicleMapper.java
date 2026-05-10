@@ -18,6 +18,8 @@ public class VehicleMapper {
                 vehicle.getYear(),
                 vehicle.getCurrentMileageKm(),
                 vehicle.getCreatedAt(),
+                vehicle.getUpdatedAt(),
+                vehicle.getUpdatedBy(),
                 driver != null ? driver.getId() : 0,
                 driver != null ? driver.getUserName() : "Not Assigned",
                 vehicle.getStatus(),
@@ -27,7 +29,10 @@ public class VehicleMapper {
 
     public static Vehicle mapToVehicle(VehicleDto dto) {
         Vehicle vehicle = new Vehicle();
-//        vehicle.setVehicleName(dto.getVehicleName());
+        // vehicle_name column is NOT NULL — derive it from manufacturer + model
+        String name = ((dto.getManufacturer() != null ? dto.getManufacturer() : "") + " "
+                     + (dto.getModel() != null ? dto.getModel() : "")).trim();
+        vehicle.setVehicleName(name.isEmpty() ? "Unknown" : name);
         vehicle.setRegistrationNo(dto.getRegistrationNo());
         vehicle.setManufacturer(dto.getManufacturer());
         vehicle.setModel(dto.getModel());

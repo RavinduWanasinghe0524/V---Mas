@@ -21,7 +21,9 @@ public class VehicleDto {
     private Integer year;
     private Integer currentMileageKm;
     private LocalDateTime createdAt;
-    private long driverId;
+    private LocalDateTime updatedAt;
+    private String updatedBy;
+    private Long driverId;
     private String driverName;
     private VehicleSatus status;
     private FuelTypes fuelType;
