@@ -13,7 +13,7 @@ const card = (D) => ({
   overflow: 'hidden',
 })
 
-/* â”€â”€ Input style (driver form) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Input style (driver form) -------------------------------- */
 const darkInput = (D) => ({
   width: '100%',
   padding: '10px 14px',
@@ -28,7 +28,7 @@ const darkInput = (D) => ({
   boxSizing: 'border-box',
 })
 
-/* â”€â”€ SVG Bar Chart (fixed 12-slot width â€” never resizes on period change) â”€â”€ */
+/* -- SVG Bar Chart (fixed 12-slot width - never resizes on period change) -- */
 const BarChart = ({ data, maxVal, highlightCount = 12, D }) => {
   if (!data.length) return (
     <div style={{ height: 192, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.textSub }}>
@@ -38,7 +38,7 @@ const BarChart = ({ data, maxVal, highlightCount = 12, D }) => {
   // Always render exactly 12 slots so the SVG size never changes.
   // Slots beyond `highlightCount` from the right are rendered at reduced opacity.
   const TOTAL = 12
-  const H = 160, W_BAR = 16, SLOT = 58   // fixed slot width â†’ total = 12 * 58 = 696
+  const H = 160, W_BAR = 16, SLOT = 58   // fixed slot width -> total = 12 * 58 = 696
   const TOTAL_W = TOTAL * SLOT
   // Pad data array to TOTAL slots on the left with empty months if needed
   const padded = Array.from({ length: TOTAL }, (_, i) => data[i] ?? { month: '', Diesel: 0, Petrol: 0 })
@@ -90,7 +90,7 @@ const BarChart = ({ data, maxVal, highlightCount = 12, D }) => {
   )
 }
 
-/* â”€â”€ SVG Line / Area Chart (efficiency trend) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- SVG Line / Area Chart (efficiency trend) ----------------- */
 const LineChart = ({ data, maxVal, minVal, D }) => {
   if (!data.length) return (
     <div style={{ height: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.textSub }}>No data</div>
@@ -127,7 +127,7 @@ const LineChart = ({ data, maxVal, minVal, D }) => {
   )
 }
 
-/* â”€â”€ Horizontal bar (vehicle stats) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Horizontal bar (vehicle stats) -------------------------- */
 const HBar = ({ label, value, max, color, sub, D }) => {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0
   return (
@@ -143,9 +143,9 @@ const HBar = ({ label, value, max, color, sub, D }) => {
   )
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* -
    MAIN COMPONENT
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+- */
 const FuelAnalysisPage = () => {
   const D = useD()
   const { user, isAdmin, isController, isDriver } = useAuth()
@@ -177,7 +177,7 @@ const FuelAnalysisPage = () => {
         setLoading(true)
 
         if (isAdmin || isController) {
-          // â”€â”€ Admin/Controller: compute everything locally from raw logs â”€â”€
+          // -- Admin/Controller: compute everything locally from raw logs --
           // This mirrors FuelManagementPage approach and avoids backend
           // analytics endpoints which have a NULL/false mismatch on is_deleted.
           const allLogsRes = await fuelAPI.getAllFuelLogs()
@@ -187,7 +187,7 @@ const FuelAnalysisPage = () => {
           // Sort for display table (newest first)
           setAllFuelLogs([...activeLogs].sort((a, b) => new Date(b.date) - new Date(a.date)))
 
-          // â”€â”€ Summary KPIs (all-time totals, same as FuelManagementPage) â”€â”€
+          // -- Summary KPIs (all-time totals, same as FuelManagementPage) --
           const curYear = new Date().getFullYear()
 
           const totalDiesel = activeLogs.filter(l => l.fuelType?.toLowerCase() === 'diesel').reduce((s, l) => s + (l.liters || 0), 0)
@@ -197,7 +197,7 @@ const FuelAnalysisPage = () => {
 
           setSummary({ totalDiesel, totalPetrol, totalVolume, totalCost, logCount: activeLogs.length })
 
-          // â”€â”€ Monthly Chart (current year) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // -- Monthly Chart (current year) ------------------------------
           const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
           const dieselArr = Array(12).fill(0)
           const petrolArr = Array(12).fill(0)
@@ -212,7 +212,7 @@ const FuelAnalysisPage = () => {
 
           setChartData({ months, data: { Diesel: dieselArr, Petrol: petrolArr } })
 
-          // â”€â”€ Per-vehicle stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // -- Per-vehicle stats -----------------------------------------
           const vehicleMap = {}
           activeLogs.forEach(l => {
             if (!vehicleMap[l.vehicleRegNumber]) {
@@ -241,7 +241,7 @@ const FuelAnalysisPage = () => {
           setVehicleStats(statsArr)
 
         } else if (isDriver) {
-          // â”€â”€ Driver: use own-scoped summary + chart + logs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // -- Driver: use own-scoped summary + chart + logs -------------
           const [summaryRes, chartRes, logsRes] = await Promise.all([
             fuelAPI.getSummary(), fuelAPI.getChartData(), fuelAPI.getMyLogs()
           ])
@@ -302,7 +302,7 @@ const FuelAnalysisPage = () => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ width: 50, height: 50, borderRadius: '50%', border: '4px solid rgba(99,102,241,0.2)', borderTopColor: '#a78bfa', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-            <p style={{ color: D.textSub, fontWeight: 600 }}>Loading fuel analyticsâ€¦</p>
+            <p style={{ color: D.textSub, fontWeight: 600 }}>Loading fuel analytics...</p>
           </div>
         </div>
       </div>
@@ -330,7 +330,7 @@ const FuelAnalysisPage = () => {
             </div>
           )}
 
-          {/* â”€â”€ Hero Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+          {/* -- Hero Banner --------------------------------------- */}
           <div style={{
             background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
             borderRadius: 20,
@@ -343,7 +343,7 @@ const FuelAnalysisPage = () => {
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16
           }}>
             {/* decorative circles */}
-            {[['80%','âˆ’20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
+            {[['80%','-20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
               <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
             ))}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -377,12 +377,12 @@ const FuelAnalysisPage = () => {
             )}
           </div>
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+          {/* -
               DASHBOARD
-          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          - */}
           {(!isDriver || activeTab === 'dashboard') && (
             <>
-              {/* â”€â”€ KPI cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              {/* -- KPI cards -------------------------------- */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 14, marginBottom: 20 }}>
                 {(isAdmin || isController ? [
                   { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: <Fuel size={20}/>, iconBg: D.indigoDim, iconColor: D.indigo },
@@ -413,7 +413,7 @@ const FuelAnalysisPage = () => {
               </div>
 
 
-              {/* â”€â”€ Charts row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              {/* -- Charts row --------------------------------- */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
 
                 {/* Monthly Consumption Bar Chart */}
@@ -465,7 +465,7 @@ const FuelAnalysisPage = () => {
                           <div style={{ width: 20, height: 2, background: D.teal, borderRadius: 999 }} />km/L per vehicle
                         </div>
                         <div style={{ marginLeft: 'auto', fontSize: '0.72rem', color: D.textSub }}>
-                          Avg: <span style={{ color: D.teal, fontWeight: 700 }}>{effTrend.length > 0 ? (effTrend.reduce((a, b) => a + b, 0) / effTrend.length).toFixed(2) : 'â€”'} km/L</span>
+                          Avg: <span style={{ color: D.teal, fontWeight: 700 }}>{effTrend.length > 0 ? (effTrend.reduce((a, b) => a + b, 0) / effTrend.length).toFixed(2) : '-'} km/L</span>
                         </div>
                       </div>
                     </>
@@ -473,7 +473,7 @@ const FuelAnalysisPage = () => {
                 </div>
               </div>
 
-              {/* â”€â”€ Vehicle Performance (horizontal bars) â”€â”€â”€â”€â”€â”€â”€ */}
+              {/* -- Vehicle Performance (horizontal bars) ------- */}
               {(isAdmin || isController) && vehicleStats.length > 0 && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
 
@@ -515,7 +515,7 @@ const FuelAnalysisPage = () => {
                 </div>
               )}
 
-              {/* â”€â”€ Driver: My Fuel History â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              {/* -- Driver: My Fuel History --------------------- */}
               {isDriver && (
                 <div style={{ ...card(D), marginBottom: 20 }}>
                   <div style={{ padding: '18px 22px 14px', borderBottom: `1px solid ${D.border}` }}>
@@ -560,7 +560,7 @@ const FuelAnalysisPage = () => {
                               <td style={{ padding: '10px 14px' }}>
                                 {log.fuelEfficiency
                                   ? <span style={{ fontWeight: 700, color: D.teal }}>{log.fuelEfficiency.toFixed(2)} km/L</span>
-                                  : <span style={{ color: D.textFaint }}>â€”</span>}
+                                  : <span style={{ color: D.textFaint }}>-</span>}
                               </td>
                             </tr>
                           ))}
@@ -571,12 +571,12 @@ const FuelAnalysisPage = () => {
                 </div>
               )}
 
-              {/* â”€â”€ Admin/Controller: All Fuel Logs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              {/* -- Admin/Controller: All Fuel Logs ------------ */}
               {(isAdmin || isController) && (
                 <div style={{ ...card(D) }}>
                   <div style={{ padding: '18px 22px 14px', borderBottom: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.92rem' }}>All Fuel Logs â€” Audit View</h3>
+                      <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.92rem' }}>All Fuel Logs - Audit View</h3>
                       <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>Complete log history with creator and editor info</p>
                     </div>
                     <span style={{ padding: '3px 11px', borderRadius: 20, background: D.indigoDim, color: D.indigo, fontSize: '0.72rem', fontWeight: 700, border: '1px solid rgba(129,140,248,0.25)' }}>
@@ -621,7 +621,7 @@ const FuelAnalysisPage = () => {
                               <td style={{ padding: '10px 14px', fontWeight: 700, color: D.text }}>Rs. {Math.round(log.totalCost).toLocaleString()}</td>
                               <td style={{ padding: '10px 14px', color: D.textSub }}>{log.mileage.toFixed(0)} km</td>
                               <td style={{ padding: '10px 14px' }}>
-                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: D.green }}>{log.uploadedBy || log.driverUsername || 'â€”'}</span>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: D.green }}>{log.uploadedBy || log.driverUsername || '-'}</span>
                               </td>
                               <td style={{ padding: '10px 14px' }}>
                                 {log.isUpdated && log.updatedBy ? (
@@ -629,7 +629,7 @@ const FuelAnalysisPage = () => {
                                     <span style={{ fontSize: '0.73rem', fontWeight: 700, color: D.purple, display: 'block' }}>{log.updatedBy}</span>
                                     {log.updatedAt && <span style={{ fontSize: '0.65rem', color: D.textSub }}>{new Date(log.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
                                   </div>
-                                ) : <span style={{ color: D.textFaint }}>â€”</span>}
+                                ) : <span style={{ color: D.textFaint }}>-</span>}
                               </td>
                               <td style={{ padding: '10px 14px' }}>
                                 {log.isUpdated ? (
@@ -649,9 +649,9 @@ const FuelAnalysisPage = () => {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+          {/* -
               DRIVER: ADD LOG FORM
-          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          - */}
           {isDriver && activeTab === 'add-log' && (
             <div style={{ ...card(D), padding: 0, maxWidth: 520 }}>
               <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -696,7 +696,7 @@ const FuelAnalysisPage = () => {
                 }}
                 onMouseEnter={e => { if (!submitting) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(99,102,241,0.5)' } }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 4px 16px rgba(99,102,241,0.4)' }}>
-                  {submitting ? <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Loader2 size={16} className="animate-spin" /> Addingâ€¦</span> : <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Plus size={16} /> Add Fuel Log</span>}
+                  {submitting ? <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Loader2 size={16} className="animate-spin" /> Adding...</span> : <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Plus size={16} /> Add Fuel Log</span>}
                 </button>
               </form>
             </div>
@@ -705,7 +705,7 @@ const FuelAnalysisPage = () => {
         </div>
       </div>
 
-      {/* â”€â”€ Dark theme overrides for sidebar/topbar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* -- Dark theme overrides for sidebar/topbar ----------- */}
       <style>{`
         .fuel-dark .topbar {
           background: #161b27 !important;
