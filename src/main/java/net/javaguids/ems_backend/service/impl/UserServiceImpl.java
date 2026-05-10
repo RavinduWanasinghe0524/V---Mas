@@ -12,6 +12,7 @@ import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.repository.UserRepository;
 import net.javaguids.ems_backend.security.JwtUtil;
 import net.javaguids.ems_backend.service.UserService;
+import net.javaguids.ems_backend.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -36,6 +37,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private NotificationService notificationService;
 
     // ── REGISTER ────────────────────────────────────────────────────
     // Self-registered accounts start as PENDING — no JWT issued.
@@ -149,6 +153,11 @@ public class UserServiceImpl implements UserService {
         user.setProfilePicture(userDto.getProfilePicture());
 
         User updatedUser = userRepository.save(Objects.requireNonNull(user));
+        notificationService.createNotification(
+                "USER-" + updatedUser.getUserName(),
+                "User profile for " + updatedUser.getUserName() + " was updated.",
+                "USER_UPDATE"
+        );
         return mapToDto(updatedUser);
     }
 
@@ -214,7 +223,13 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         user.setAccountStatus(AccountStatus.ACTIVE);
-        return mapToDto(userRepository.save(user));
+        User savedUser = userRepository.save(user);
+        notificationService.createNotification(
+                "USER-" + savedUser.getUserName(),
+                "User account for " + savedUser.getUserName() + " was approved.",
+                "USER_APPROVAL"
+        );
+        return mapToDto(savedUser);
     }
 
     // ── REJECT USER (soft — sets to INACTIVE) ────────────────────────
@@ -223,7 +238,13 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         user.setAccountStatus(AccountStatus.INACTIVE);
-        return mapToDto(userRepository.save(user));
+        User savedUser = userRepository.save(user);
+        notificationService.createNotification(
+                "USER-" + savedUser.getUserName(),
+                "User account for " + savedUser.getUserName() + " was rejected/deactivated.",
+                "USER_REJECTION"
+        );
+        return mapToDto(savedUser);
     }
 
     // ── MAPPER ───────────────────────────────────────────────────────

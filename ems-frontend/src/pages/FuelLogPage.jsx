@@ -181,7 +181,7 @@ const FuelLogPage = () => {
             border: `1px solid ${D.border}`
           }}>
             {/* decorative circles */}
-            {[['80%','âˆ’20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
+            {[['80%','-20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
               <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
             ))}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -445,7 +445,7 @@ const FuelLogPage = () => {
                               {log.fuelEfficiency.toFixed(2)} km/L
                             </span>
                           ) : (
-                            <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>â€”</span>
+                            <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>-</span>
                           )}
                         </td>
                         <td style={{ padding: '14px 16px' }}>
