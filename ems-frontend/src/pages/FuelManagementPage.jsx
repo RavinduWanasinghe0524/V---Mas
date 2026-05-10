@@ -7,7 +7,7 @@ import { fuelAPI, vehicleAPI, userAPI } from '../services/api'
 import { Fuel, CircleDollarSign, BarChart2, Car, Trash2, ClipboardList, Plus, Search, Edit2, AlertTriangle, Check, X, Loader2 } from 'lucide-react'
 
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* - */
 const FuelManagementPage = () => {
   const D = useD()
   const { user } = useAuth()
@@ -230,7 +230,7 @@ const FuelManagementPage = () => {
     return { label: 'Poor', bg: D.redDim, color: D.red, border: 'rgba(248,113,113,0.3)' }
   }
 
-  /* â”€â”€ Loading state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* -- Loading state ------------------------------------------- */
   if (loading) return (
     <div className="app-shell" style={{ background: D.bg }}>
       <Sidebar />
@@ -239,7 +239,7 @@ const FuelManagementPage = () => {
         <div className="page-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ width: 52, height: 52, borderRadius: '50%', border: '4px solid rgba(167,139,250,0.2)', borderTopColor: D.purple, animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-            <p style={{ color: D.textSub, fontWeight: 600 }}>Loading fuel dataâ€¦</p>
+            <p style={{ color: D.textSub, fontWeight: 600 }}>Loading fuel data...</p>
           </div>
         </div>
       </div>
@@ -248,7 +248,7 @@ const FuelManagementPage = () => {
 
   const deletedCount = allLogs.filter(l => l.isDeleted).length
 
-  /* â”€â”€ Main render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* -- Main render --------------------------------------------- */
   return (
     <div className="app-shell" style={{ background: D.bg }}>
       <Sidebar />
@@ -256,7 +256,7 @@ const FuelManagementPage = () => {
         <Topbar title="Fuel Management" subtitle="Home / Fuel Management" />
         <div className="page-body">
 
-          {/* â”€â”€ Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+          {/* -- Toast -------------------------------------------- */}
           {toast && (
             <div style={{
               position: 'fixed', top: 24, right: 28, zIndex: 9999,
@@ -274,7 +274,7 @@ const FuelManagementPage = () => {
             </div>
           )}
 
-          {/* â”€â”€ Hero Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+          {/* -- Hero Banner -------------------------------------- */}
           <div style={{
             background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
             borderRadius: 20,
@@ -286,7 +286,7 @@ const FuelManagementPage = () => {
             border: `1px solid ${D.border}`
           }}>
             {/* decorative circles */}
-            {[['80%', 'âˆ’20px', '180px', 'rgba(255,255,255,0.03)'], ['20%', '60%', '120px', 'rgba(255,255,255,0.04)'], ['55%', '80%', '90px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
+            {[['80%', '-20px', '180px', 'rgba(255,255,255,0.03)'], ['20%', '60%', '120px', 'rgba(255,255,255,0.04)'], ['55%', '80%', '90px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
               <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
             ))}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
@@ -314,7 +314,7 @@ const FuelManagementPage = () => {
             </div>
           </div>
 
-          {/* â”€â”€ Stat Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+          {/* -- Stat Cards --------------------------------------- */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 16, marginBottom: 28 }}>
             {[
               { label: 'Total Fuel', value: `${stats.totalFuel.toFixed(1)} L`, icon: <Fuel size={20} />, iconBg: D.goldDim, iconColor: D.gold, glow: 'rgba(251,191,36,0.15)' },
@@ -343,7 +343,7 @@ const FuelManagementPage = () => {
             ))}
           </div>
 
-          {/* â”€â”€ Tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+          {/* -- Tabs --------------------------------------------- */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 24, background: D.surfaceHi, borderRadius: 12, padding: 5, width: 'fit-content', border: `1px solid ${D.border}` }}>
             {[
               { id: 'all', label: 'All Logs', icon: <ClipboardList size={16} /> },
@@ -363,9 +363,9 @@ const FuelManagementPage = () => {
             ))}
           </div>
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+          {/* -
               ALL LOGS TAB
-          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          - */}
           {activeTab === 'all' && (
             <>
               {/* Filters */}
@@ -373,7 +373,7 @@ const FuelManagementPage = () => {
                 <div style={{ flex: 1, minWidth: 240, position: 'relative' }}>
                   <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: D.textSub, pointerEvents: 'none', display: 'flex', alignItems: 'center' }}><Search size={16} /></span>
                   <input
-                    type="text" placeholder="Search by vehicle regâ€¦"
+                    type="text" placeholder="Search by vehicle reg..."
                     value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
                     style={{ ...inputStyle, paddingLeft: 36 }}
                     onFocus={onFocus} onBlur={onBlur}
@@ -391,8 +391,8 @@ const FuelManagementPage = () => {
                   onFocus={onFocus} onBlur={onBlur}>
                   <option value="all" style={{ background: D.surfaceHi }}>All Efficiency</option>
                   <option value="excellent" style={{ background: D.surfaceHi }}>Excellent (&gt;10 km/L)</option>
-                  <option value="good" style={{ background: D.surfaceHi }}>Good (7â€“10)</option>
-                  <option value="average" style={{ background: D.surfaceHi }}>Average (5â€“7)</option>
+                  <option value="good" style={{ background: D.surfaceHi }}>Good (7-10)</option>
+                  <option value="average" style={{ background: D.surfaceHi }}>Average (5-7)</option>
                   <option value="poor" style={{ background: D.surfaceHi }}>Poor (&lt;5)</option>
                   <option value="na" style={{ background: D.surfaceHi }}>N/A</option>
                 </select>
@@ -465,7 +465,7 @@ const FuelManagementPage = () => {
                                 </div>
                               </td>
                               <td style={{ padding: '12px 14px', color: D.green, fontSize: '0.8rem', fontWeight: 700 }}>
-                                {log.uploadedBy || log.driverUsername || 'â€”'}
+                                {log.uploadedBy || log.driverUsername || '-'}
                               </td>
                               <td style={{ padding: '12px 14px' }}>
                                 {log.isUpdated ? (
@@ -506,14 +506,14 @@ const FuelManagementPage = () => {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+          {/* -
               DELETED LOGS TAB
-          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          - */}
           {activeTab === 'deleted' && (
             <div style={card}>
               <div style={{ padding: '18px 24px 14px', borderBottom: `1px solid rgba(248,113,113,0.3)`, background: 'rgba(248,113,113,0.05)' }}>
                 <h3 style={{ margin: 0, fontWeight: 700, color: D.red, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 8 }}><Trash2 size={16} /> Soft-Deleted Fuel Logs</h3>
-                <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: D.textSub }}>Retained for audit â€” {filteredLogs.length} record{filteredLogs.length !== 1 ? 's' : ''}</p>
+                <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: D.textSub }}>Retained for audit - {filteredLogs.length} record{filteredLogs.length !== 1 ? 's' : ''}</p>
               </div>
               <div style={{ overflowX: 'auto' }}>
                 {filteredLogs.length === 0 ? (
@@ -541,13 +541,13 @@ const FuelManagementPage = () => {
                           <td style={{ padding: '12px 14px', color: D.text }}>{log.liters.toFixed(2)} L</td>
                           <td style={{ padding: '12px 14px', fontWeight: 700, color: D.text }}>Rs. {log.totalCost.toLocaleString()}</td>
                           <td style={{ padding: '12px 14px', color: D.textSub }}>{new Date(log.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
-                          <td style={{ padding: '12px 14px', color: D.textSub, fontWeight: 600 }}>{log.uploadedBy || log.driverUsername || 'â€”'}</td>
+                          <td style={{ padding: '12px 14px', color: D.textSub, fontWeight: 600 }}>{log.uploadedBy || log.driverUsername || '-'}</td>
                           <td style={{ padding: '12px 14px' }}>
                             {log.deletedAt ? (
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700, background: D.redDim, color: D.red, border: '1px solid rgba(248,113,113,0.3)', whiteSpace: 'nowrap' }}>
                                 {new Date(log.deletedAt).toLocaleString()}
                               </span>
-                            ) : 'â€”'}
+                            ) : '-'}
                           </td>
                         </tr>
                       ))}
@@ -558,9 +558,9 @@ const FuelManagementPage = () => {
             </div>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+          {/* -
               ADD LOG TAB
-          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          - */}
           {activeTab === 'add' && (
             <div style={{ ...card, padding: 0 }}>
               {/* Form header */}
@@ -618,16 +618,16 @@ const FuelManagementPage = () => {
                     <label style={labelStyle}>Date <span style={{ color: D.red }}>*</span></label>
                     <input type="date" name="date" value={formData.date} onChange={handleInputChange} required style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur} />
                   </div>
-                  {/* Driver Username â€” full width */}
+                  {/* Driver Username - full width */}
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label style={labelStyle}>Driver Username <span style={{ color: D.textFaint, fontWeight: 400, textTransform: 'none', fontSize: '0.78rem' }}>(optional)</span></label>
-                    <input type="text" name="driverUsername" value={formData.driverUsername} onChange={handleInputChange} placeholder="e.g. driver1 â€” leave blank if unassigned" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                    <input type="text" name="driverUsername" value={formData.driverUsername} onChange={handleInputChange} placeholder="e.g. driver1 - leave blank if unassigned" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: 12 }}>
                   <button type="submit" disabled={submitting} style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: submitting ? 'rgba(99,102,241,0.4)' : 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: submitting ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, boxShadow: submitting ? 'none' : '0 4px 16px rgba(99,102,241,0.4)', transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }} onMouseEnter={e => { if (!submitting) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(99,102,241,0.5)' } }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 4px 16px rgba(99,102,241,0.4)' }}>
-                    {submitting ? <><Loader2 size={16} className="animate-spin" /> Addingâ€¦</> : <><Check size={16} /> Add Fuel Log</>}
+                    {submitting ? <><Loader2 size={16} className="animate-spin" /> Adding...</> : <><Check size={16} /> Add Fuel Log</>}
                   </button>
                   <button type="button" onClick={() => setActiveTab('all')} style={{ flex: 0.35, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}>
                     Cancel
@@ -637,9 +637,9 @@ const FuelManagementPage = () => {
             </div>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+          {/* -
               EDIT MODAL
-          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          - */}
           {editingLog && (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease' }}>
               <div style={{ background: D.surface, borderRadius: 20, padding: 0, maxWidth: 580, width: '92%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease' }}>
@@ -695,7 +695,7 @@ const FuelManagementPage = () => {
                   </div>
                   <div style={{ display: 'flex', gap: 12 }}>
                     <button onClick={handleSaveEdit} disabled={submitting} style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: submitting ? 'rgba(99,102,241,0.4)' : 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: submitting ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                      {submitting ? <><Loader2 size={16} className="animate-spin" /> Savingâ€¦</> : <><Check size={16} /> Save Changes</>}
+                      {submitting ? <><Loader2 size={16} className="animate-spin" /> Saving...</> : <><Check size={16} /> Save Changes</>}
                     </button>
                     <button onClick={handleCancelEdit} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>Cancel</button>
                   </div>
@@ -704,9 +704,9 @@ const FuelManagementPage = () => {
             </div>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+          {/* -
               DELETE MODAL
-          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          - */}
           {showDeleteModal && (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease' }}>
               <div style={{ background: D.surface, borderRadius: 20, padding: 36, maxWidth: 420, width: '92%', boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', textAlign: 'center' }}>
@@ -733,7 +733,7 @@ const FuelManagementPage = () => {
         </div>
       </div>
 
-      {/* â”€â”€ Dark theme overrides for sidebar/topbar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* -- Dark theme overrides for sidebar/topbar ----------- */}
       <style>{`
         .fuel-dark .topbar {
           background: #161b27 !important;
