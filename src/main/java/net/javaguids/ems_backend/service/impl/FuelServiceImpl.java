@@ -4,11 +4,10 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javaguids.ems_backend.dto.*;
 import net.javaguids.ems_backend.entity.FuelLog;
-import net.javaguids.ems_backend.entity.Notification;
 import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.repository.FuelLogRepository;
-import net.javaguids.ems_backend.repository.NotificationRepository;
 import net.javaguids.ems_backend.service.FuelService;
+import net.javaguids.ems_backend.service.NotificationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +23,7 @@ import java.util.stream.Collectors;
 public class FuelServiceImpl implements FuelService {
 
     private FuelLogRepository fuelLogRepository;
-    private NotificationRepository notificationRepository;
+    private NotificationService notificationService;
 
     // ==================== DRIVER-SCOPED METHODS ====================
 
@@ -109,6 +108,13 @@ public class FuelServiceImpl implements FuelService {
         fuelLog.setUpdatedBy(driverUsername);
 
         FuelLog updated = fuelLogRepository.save(fuelLog);
+        
+        notificationService.createNotification(
+                "VEH-" + fuelLog.getVehicleRegNumber(),
+                "Fuel log for vehicle " + fuelLog.getVehicleRegNumber() + " was updated by " + driverUsername,
+                "FUEL_UPDATE"
+        );
+        
         log.info("Fuel log {} updated by driver '{}'", id, driverUsername);
         return mapToDto(updated);
     }
@@ -292,6 +298,13 @@ public class FuelServiceImpl implements FuelService {
         fuelLog.setUpdatedBy(fuelLogDto.getUpdatedBy());
 
         FuelLog updated = fuelLogRepository.save(fuelLog);
+        
+        notificationService.createNotification(
+                "VEH-" + fuelLog.getVehicleRegNumber(),
+                "Fuel log for vehicle " + fuelLog.getVehicleRegNumber() + " was updated by Controller " + fuelLogDto.getUpdatedBy(),
+                "FUEL_UPDATE"
+        );
+        
         log.info("Fuel log {} updated by controller", id);
         return mapToDto(updated);
     }
@@ -391,13 +404,11 @@ public class FuelServiceImpl implements FuelService {
                 driverUsername
             );
 
-            Notification notification = new Notification(
+            notificationService.createNotification(
                 currentLog.getVehicleRegNumber(),
                 message,
                 "LOW_EFFICIENCY"
             );
-
-            notificationRepository.save(notification);
             log.warn("LOW EFFICIENCY NOTIFICATION CREATED: {}", message);
         }
     }

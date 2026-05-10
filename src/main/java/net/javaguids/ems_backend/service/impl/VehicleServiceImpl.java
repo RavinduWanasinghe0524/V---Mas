@@ -10,6 +10,7 @@ import net.javaguids.ems_backend.mapper.VehicleMapper;
 import net.javaguids.ems_backend.repository.UserRepository;
 import net.javaguids.ems_backend.repository.VehicleRepository;
 import net.javaguids.ems_backend.service.VehicleService;
+import net.javaguids.ems_backend.service.NotificationService;
 import org.apache.coyote.BadRequestException;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +24,7 @@ public class VehicleServiceImpl implements VehicleService {
 
     private final VehicleRepository vehicleRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Override
     public VehicleDto createVehicle(VehicleDto vehicleDto) {
@@ -70,6 +72,13 @@ public class VehicleServiceImpl implements VehicleService {
         vehicle.setUpdatedAt(LocalDateTime.now());
 
         Vehicle updated = vehicleRepository.save(vehicle);
+        
+        notificationService.createNotification(
+                "VEH-" + updated.getRegistrationNo(),
+                "Vehicle " + updated.getRegistrationNo() + " was updated by " + updatedBy,
+                "UPDATE"
+        );
+        
         return VehicleMapper.mapToVehicleDto(updated);
     }
 

@@ -116,4 +116,11 @@ export const serviceAPI = {
   getRecentServices:    ()               => api.get('/services/recent'),
 }
 
+export const notificationAPI = {
+  getUnread:            ()               => api.get('/notifications/unread'),
+  getAll:               ()               => api.get('/notifications'),
+  markAsRead:           (id)             => api.patch(`/notifications/${id}/read`),
+  markAllAsRead:        ()               => api.patch('/notifications/read-all'),
+}
+
 export default api
