@@ -1,8 +1,8 @@
 const fs = require('fs');
 const files = [
-  'ems-frontend/src/pages/FuelManagementPage.jsx',
-  'ems-frontend/src/pages/FuelAnalysisPage.jsx',
-  'ems-frontend/src/pages/FuelLogPage.jsx'
+  'src/pages/FuelManagementPage.jsx',
+  'src/pages/FuelAnalysisPage.jsx',
+  'src/pages/FuelLogPage.jsx'
 ];
 
 for (const file of files) {
