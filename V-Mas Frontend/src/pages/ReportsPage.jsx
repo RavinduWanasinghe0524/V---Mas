@@ -6,7 +6,7 @@ import {
   Car, Fuel, Wrench, Users, MapPin, DollarSign,
   FileText, Calendar, Download, ClipboardList, BarChart2, Loader2, Database
 } from 'lucide-react'
-import jsPDF from 'jspdf'
+import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
 import { vehicleAPI, fuelAPI, serviceAPI, userAPI } from '../services/api'
 
