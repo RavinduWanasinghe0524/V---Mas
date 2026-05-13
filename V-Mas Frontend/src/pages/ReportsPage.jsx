@@ -4,8 +4,11 @@ import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
 import {
   Car, Fuel, Wrench, Users, MapPin, DollarSign,
-  FileText, Calendar, Download, ClipboardList, BarChart2, Loader2
+  FileText, Calendar, Download, ClipboardList, BarChart2, Loader2, Database
 } from 'lucide-react'
+import jsPDF from 'jspdf'
+import 'jspdf-autotable'
+import { vehicleAPI, fuelAPI, serviceAPI, userAPI } from '../services/api'
 
 const recentReports = [
   { name: 'Vehicle Summary – Mar 2026',   generated: '2026-03-20', format: 'PDF',  size: '245 KB' },
@@ -24,6 +27,7 @@ const SectionHeader = ({ title, D }) => (
 const ReportsPage = () => {
   const D = useD()
   const reportTypes = [
+    { id: 'master-report',    icon: <Database size={24} strokeWidth={1.5} />,   title: 'Comprehensive Master Report',  desc: 'Complete export of all system data including vehicles, fuel, services, and users.',   category: 'System',      color: D.red,    bg: D.redDim    },
     { id: 'vehicle-summary',  icon: <Car size={24} strokeWidth={1.5} />,        title: 'Vehicle Summary Report',       desc: 'Overview of all fleet vehicles including status, mileage, and assignments.',          category: 'Fleet',       color: D.indigo, bg: D.indigoDim },
     { id: 'fuel-report',      icon: <Fuel size={24} strokeWidth={1.5} />,       title: 'Fuel Consumption Report',      desc: 'Detailed fuel usage breakdown per vehicle, driver, and time period.',                  category: 'Fuel',        color: D.gold,   bg: D.goldDim   },
     { id: 'service-report',   icon: <Wrench size={24} strokeWidth={1.5} />,     title: 'Service & Maintenance Report', desc: 'Summary of all service records, costs, and upcoming maintenance schedules.',           category: 'Maintenance', color: D.green,  bg: D.greenDim  },
@@ -33,9 +37,126 @@ const ReportsPage = () => {
   ]
   const [generating, setGenerating] = useState(null)
 
-  const handleGenerate = (id) => {
+  const handleGenerate = async (id) => {
     setGenerating(id)
-    setTimeout(() => setGenerating(null), 1800)
+    try {
+      const doc = new jsPDF()
+
+      const addHeader = (title) => {
+        doc.setFontSize(20)
+        doc.setTextColor(40, 40, 40)
+        doc.text(title, 14, 22)
+        doc.setFontSize(10)
+        doc.setTextColor(100)
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30)
+      }
+
+      if (id === 'vehicle-summary' || id === 'master-report') {
+        if (id === 'vehicle-summary') addHeader('Vehicle Summary Report')
+        if (id === 'master-report') {
+          doc.setFontSize(14)
+          doc.text('Vehicle Details', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
+        }
+        const { data } = await vehicleAPI.getAllVehicles()
+        const tableData = data.map(v => [
+          v.registrationNumber, v.brand || 'N/A', v.model || 'N/A', v.status || 'N/A', v.mileage || 0, v.fuelType || 'N/A', v.fuelCapacity || 0
+        ])
+        doc.autoTable({
+          startY: id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 45) : 40,
+          head: [['Reg No', 'Brand', 'Model', 'Status', 'Mileage', 'Fuel Type', 'Capacity']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: { fillColor: [67, 56, 202] }
+        })
+      }
+
+      if (id === 'fuel-report' || id === 'master-report') {
+        if (id === 'fuel-report') addHeader('Fuel Consumption Report')
+        if (id === 'master-report') {
+          doc.setFontSize(14)
+          doc.text('Fuel Records', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
+        }
+        const { data } = await fuelAPI.getAllFuelLogs()
+        const tableData = data.map(f => [
+          f.date ? new Date(f.date).toLocaleDateString() : 'N/A',
+          f.vehicleRegNo || 'N/A',
+          f.driverName || 'N/A',
+          f.fuelType || 'N/A',
+          f.liters || 0,
+          f.cost ? `$${f.cost.toFixed(2)}` : '$0.00'
+        ])
+        doc.autoTable({
+          startY: id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 45) : 40,
+          head: [['Date', 'Vehicle', 'Driver', 'Type', 'Liters', 'Cost']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: { fillColor: [217, 119, 6] }
+        })
+      }
+
+      if (id === 'service-report' || id === 'master-report') {
+        if (id === 'service-report') addHeader('Service & Maintenance Report')
+        if (id === 'master-report') {
+          doc.setFontSize(14)
+          doc.text('Service & Maintenance Records', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
+        }
+        const { data } = await serviceAPI.getAllServices()
+        const tableData = data.map(s => [
+          s.date ? new Date(s.date).toLocaleDateString() : 'N/A',
+          s.vehicleRegNo || 'N/A',
+          s.serviceType || 'N/A',
+          s.status || 'N/A',
+          s.cost ? `$${s.cost.toFixed(2)}` : '$0.00'
+        ])
+        doc.autoTable({
+          startY: id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 45) : 40,
+          head: [['Date', 'Vehicle Reg', 'Service Type', 'Status', 'Cost']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: { fillColor: [5, 150, 105] }
+        })
+      }
+
+      if (id === 'user-report' || id === 'master-report') {
+        if (id === 'user-report') addHeader('User Activity Report')
+        if (id === 'master-report') {
+          doc.setFontSize(14)
+          doc.text('User Directory', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
+        }
+        const { data } = await userAPI.getAllUsers()
+        const tableData = data.map(u => [
+          u.username || 'N/A',
+          u.email || 'N/A',
+          u.role || 'N/A',
+          u.status || 'Active'
+        ])
+        doc.autoTable({
+          startY: id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 45) : 40,
+          head: [['Username', 'Email', 'Role', 'Status']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: { fillColor: [37, 99, 235] }
+        })
+      }
+
+      if (id === 'location-report' || id === 'cost-report') {
+        addHeader(id === 'location-report' ? 'Location & Route Report' : 'Cost Analysis Report')
+        doc.setFontSize(12)
+        doc.text('This feature is currently under development.', 14, 40)
+      }
+
+      if (id === 'master-report') {
+        doc.setPage(1)
+        addHeader('Comprehensive Master Report')
+      }
+
+      doc.save(`${id}-${new Date().toISOString().split('T')[0]}.pdf`)
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+      alert('Failed to generate report. Make sure you have the required permissions.')
+    } finally {
+      setGenerating(null)
+    }
   }
 
   return (

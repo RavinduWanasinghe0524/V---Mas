@@ -7,12 +7,12 @@ import { useTheme } from '../context/ThemeContext'
 import { userAPI } from '../services/api'
 import { Users, Shield, Gamepad2, Car, CheckCircle, Ban, Wrench, Fuel, MapPin, BarChart3, UserCog, ClipboardList, Activity, AlertTriangle } from 'lucide-react'
 
-const StatCard = ({ icon, label, value, colorDim, colorHex, change }) => (
-  <div style={{
+const StatCard = ({ icon, label, value, colorDim, colorHex, change, onClick }) => (
+  <div onClick={onClick} style={{
     background: 'var(--surface)', borderRadius: 16,
     border: '1px solid var(--surface-border)',
     padding: '20px 22px', transition: 'all 0.25s ease',
-    boxShadow: 'var(--shadow-sm)', cursor: 'default',
+    boxShadow: 'var(--shadow-sm)', cursor: onClick ? 'pointer' : 'default',
   }}
     onMouseEnter={e => {
       e.currentTarget.style.transform = 'translateY(-3px)'
@@ -114,12 +114,12 @@ const AdminDashboard = ({ stats, loading, navigate, isDark }) => {
     <>
       <SectionHeader title="User Statistics" />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
-        <StatCard icon={<Users size={20} color={A.purple}/>} label="Total Users" value={stats.totalUsers} colorDim={A.purpleDim} colorHex={A.purple} change="Registered in system" />
-        <StatCard icon={<Shield size={20} color={A.indigo}/>} label="Admins" value={stats.admins} colorDim={A.indigoDim} colorHex={A.indigo} change="System administrators" />
-        <StatCard icon={<Gamepad2 size={20} color={A.blue}/>} label="Controllers" value={stats.controllers} colorDim={A.blueDim} colorHex={A.blue} change="Fleet controllers" />
-        <StatCard icon={<Car size={20} color={A.green}/>} label="Drivers" value={stats.drivers} colorDim={A.greenDim} colorHex={A.green} change="Vehicle operators" />
-        <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Active" value={stats.activeUsers} colorDim={A.greenDim} colorHex={A.green} change="Currently active accounts" />
-        <StatCard icon={<Ban size={20} color={A.red}/>} label="Inactive" value={stats.inactiveUsers} colorDim={A.redDim} colorHex={A.red} change="Disabled accounts" />
+        <StatCard icon={<Users size={20} color={A.purple}/>} label="Total Users" value={stats.totalUsers} colorDim={A.purpleDim} colorHex={A.purple} change="Registered in system" onClick={() => navigate('/users')} />
+        <StatCard icon={<Shield size={20} color={A.indigo}/>} label="Admins" value={stats.admins} colorDim={A.indigoDim} colorHex={A.indigo} change="System administrators" onClick={() => navigate('/users')} />
+        <StatCard icon={<Gamepad2 size={20} color={A.blue}/>} label="Controllers" value={stats.controllers} colorDim={A.blueDim} colorHex={A.blue} change="Fleet controllers" onClick={() => navigate('/users')} />
+        <StatCard icon={<Car size={20} color={A.green}/>} label="Drivers" value={stats.drivers} colorDim={A.greenDim} colorHex={A.green} change="Vehicle operators" onClick={() => navigate('/users')} />
+        <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Active" value={stats.activeUsers} colorDim={A.greenDim} colorHex={A.green} change="Currently active accounts" onClick={() => navigate('/users')} />
+        <StatCard icon={<Ban size={20} color={A.red}/>} label="Inactive" value={stats.inactiveUsers} colorDim={A.redDim} colorHex={A.red} change="Disabled accounts" onClick={() => navigate('/users')} />
       </div>
 
       <SectionHeader title="Quick Actions" />
@@ -141,19 +141,19 @@ const ControllerDashboard = ({ navigate, isDark }) => {
     <>
       <SectionHeader title="Fleet Overview" />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
-        <StatCard icon={<Car size={20} color={A.purple}/>} label="Total Vehicles" value="24" colorDim={A.purpleDim} colorHex={A.purple} change="Under your management" />
-        <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Active" value="18" colorDim={A.greenDim} colorHex={A.green} change="Currently in use" />
-        <StatCard icon={<Wrench size={20} color={A.gold}/>} label="Maintenance" value="4" colorDim={A.goldDim} colorHex={A.gold} change="Being serviced" />
-        <StatCard icon={<Activity size={20} color={A.blue}/>} label="Available" value="2" colorDim={A.blueDim} colorHex={A.blue} change="Ready to assign" />
+        <StatCard icon={<Car size={20} color={A.purple}/>} label="Total Vehicles" value="24" colorDim={A.purpleDim} colorHex={A.purple} change="Under your management" onClick={() => navigate('/vehicles')} />
+        <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Active" value="18" colorDim={A.greenDim} colorHex={A.green} change="Currently in use" onClick={() => navigate('/vehicles')} />
+        <StatCard icon={<Wrench size={20} color={A.gold}/>} label="Maintenance" value="4" colorDim={A.goldDim} colorHex={A.gold} change="Being serviced" onClick={() => navigate('/service')} />
+        <StatCard icon={<Activity size={20} color={A.blue}/>} label="Available" value="2" colorDim={A.blueDim} colorHex={A.blue} change="Ready to assign" onClick={() => navigate('/vehicles')} />
       </div>
       <SectionHeader title="Controller Tools" />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
-        <FeatureCard icon={<Car size={24}/>} title="Vehicle Management" desc="Monitor, track, and manage all fleet vehicles." disabled />
-        <FeatureCard icon={<UserCog size={24}/>} title="Driver Assignment" desc="Assign and manage drivers to vehicles and routes." disabled />
+        <FeatureCard icon={<Car size={24}/>} title="Vehicle Management" desc="Monitor, track, and manage all fleet vehicles." onClick={() => navigate('/vehicles')} />
+        <FeatureCard icon={<UserCog size={24}/>} title="Driver Assignment" desc="Assign and manage drivers to vehicles and routes." onClick={() => navigate('/users')} />
         <FeatureCard icon={<MapPin size={24}/>} title="Live Tracking" desc="Real-time GPS tracking and vehicle monitoring." onClick={() => navigate('/location')} />
         <FeatureCard icon={<Wrench size={24}/>} title="Maintenance Schedule" desc="Schedule and track vehicle service appointments." onClick={() => navigate('/service')} />
-        <FeatureCard icon={<Fuel size={24}/>} title="Fuel Management" desc="Record and track fuel consumption and costs." onClick={() => navigate('/fuel')} />
-        <FeatureCard icon={<AlertTriangle size={24}/>} title="Alerts & Incidents" desc="Monitor vehicle alerts and emergency incidents." disabled />
+        <FeatureCard icon={<Fuel size={24}/>} title="Fuel Management" desc="Record and track fuel consumption and costs." onClick={() => navigate('/fuel-management')} />
+        <FeatureCard icon={<AlertTriangle size={24}/>} title="Alerts & Incidents" desc="Monitor vehicle alerts and emergency incidents." onClick={() => navigate('/reports')} />
       </div>
     </>
   )
@@ -165,19 +165,19 @@ const DriverDashboard = ({ navigate, isDark }) => {
     <>
       <SectionHeader title="My Overview" />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
-        <StatCard icon={<Car size={20} color={A.purple}/>} label="Assigned Vehicle" value="1" colorDim={A.purpleDim} colorHex={A.purple} change="VH-2024-087" />
+        <StatCard icon={<Car size={20} color={A.purple}/>} label="Assigned Vehicle" value="1" colorDim={A.purpleDim} colorHex={A.purple} change="VH-2024-087" onClick={() => navigate('/vehicles')} />
         <StatCard icon={<ClipboardList size={20} color={A.blue}/>} label="Today's Tasks" value="3" colorDim={A.blueDim} colorHex={A.blue} change="Pending deliveries" />
         <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Completed" value="12" colorDim={A.greenDim} colorHex={A.green} change="This week" />
         <StatCard icon={<Activity size={20} color={A.green}/>} label="Status" value="Active" colorDim={A.greenDim} colorHex={A.green} change="Ready to drive" />
       </div>
       <SectionHeader title="Driver Tools" />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
-        <FeatureCard icon={<Car size={24}/>} title="My Vehicle" desc="View status and information about your assigned vehicle." disabled />
+        <FeatureCard icon={<Car size={24}/>} title="My Vehicle" desc="View status and information about your assigned vehicle." onClick={() => navigate('/vehicles')} />
         <FeatureCard icon={<ClipboardList size={24}/>} title="Task List" desc="View and manage your assigned tasks and schedules." disabled />
         <FeatureCard icon={<MapPin size={24}/>} title="Location" desc="View your current location relative to fleet bounds." onClick={() => navigate('/location')} />
         <FeatureCard icon={<Fuel size={24}/>} title="Fuel Log" desc="Record fuel consumption and view usage history." onClick={() => navigate('/fuel-log')} />
         <FeatureCard icon={<Wrench size={24}/>} title="Service History" desc="View maintenance history for your vehicle." onClick={() => navigate('/service')} />
-        <FeatureCard icon={<BarChart3 size={24}/>} title="My Performance" desc="View driving stats, performance metrics, and history." disabled />
+        <FeatureCard icon={<BarChart3 size={24}/>} title="My Performance" desc="View driving stats, performance metrics, and history." onClick={() => navigate('/profile')} />
       </div>
     </>
   )
