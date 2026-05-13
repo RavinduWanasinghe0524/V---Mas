@@ -29,8 +29,8 @@ const navItems = {
   CONTROLLER: [
     { label: 'Dashboard',        icon: <LayoutDashboard size={20} strokeWidth={1.5} />, to: '/dashboard' },
     { label: 'Vehicles',         icon: <Truck size={20} strokeWidth={1.5} />,         to: '/vehicles' },
-    { label: 'Driver Assignment', icon: <UserCheck size={20} strokeWidth={1.5} />,    to: '/assignments', disabled: true },
-    { label: 'Live Tracking',    icon: <MapPin size={20} strokeWidth={1.5} />,         to: '/tracking',   disabled: true },
+    { label: 'Driver Assignment', icon: <UserCheck size={20} strokeWidth={1.5} />,    to: '/users' },
+    { label: 'Live Tracking',    icon: <MapPin size={20} strokeWidth={1.5} />,         to: '/location' },
     { label: 'Fuel Management',  icon: <Fuel size={20} strokeWidth={1.5} />,          to: '/fuel-management' },
     { label: 'Service',          icon: <Wrench size={20} strokeWidth={1.5} />,        to: '/service' },
     { label: 'Users',            icon: <Users size={20} strokeWidth={1.5} />,         to: '/users' },

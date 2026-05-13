@@ -50,7 +50,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // ── Public ──────────────────────────────────────────────
                         .requestMatchers("/api/auth/**").permitAll()
-
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         // ── Service records — CRUD for ADMIN/CONTROLLER, read for DRIVER ──
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
                                 "/api/services", "/api/services/**").hasAnyRole("ADMIN", "CONTROLLER", "DRIVER")
