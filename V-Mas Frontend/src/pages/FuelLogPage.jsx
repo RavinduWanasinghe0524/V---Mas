@@ -57,6 +57,7 @@ const FuelLogPage = () => {
     mileage: '',
     date: new Date().toISOString().split('T')[0]
   })
+  const [previousMileage, setPreviousMileage] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [showForm, setShowForm] = useState(false)
 
@@ -69,7 +70,18 @@ const FuelLogPage = () => {
           fuelAPI.getMyLogs(),
           vehicleAPI.getAssignedVehicle(),
         ])
-        if (logsRes.status === 'fulfilled') setMyVehicleLogs(logsRes.value.data.data || [])
+        if (logsRes.status === 'fulfilled') {
+          const logs = logsRes.value.data.data || []
+          // Sort newest-first so logs[0] is always the most recent entry
+          const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date))
+          setMyVehicleLogs(sorted)
+          // Pre-fill mileage from the most recent log
+          if (sorted.length > 0) {
+            const lastMil = sorted[0].mileage
+            setPreviousMileage(lastMil)
+            setFormData(p => ({ ...p, mileage: String(lastMil) }))
+          }
+        }
         if (vehicleRes.status === 'fulfilled') {
           const v = vehicleRes.value.data.data
           setAssignedVehicle(v)
@@ -99,9 +111,28 @@ const FuelLogPage = () => {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
+  // Mileage validation error
+  const [mileageError, setMileageError] = useState('')
+
+  const handleMileageChange = (e) => {
+    const val = e.target.value
+    setFormData(prev => ({ ...prev, mileage: val }))
+    if (previousMileage != null && val !== '' && parseFloat(val) < previousMileage) {
+      setMileageError(`Must be ≥ previous reading (${previousMileage.toFixed(1)} km)`)
+    } else {
+      setMileageError('')
+    }
+  }
+
   // Handle form submit
   const handleAddFuelLog = async (e) => {
     e.preventDefault()
+
+    if (previousMileage != null && parseFloat(formData.mileage) < previousMileage) {
+      setMileageError(`Must be ≥ previous reading (${previousMileage.toFixed(1)} km)`)
+      return
+    }
+
     setSubmitting(true)
     
     try {
@@ -118,15 +149,21 @@ const FuelLogPage = () => {
       
       // Reload driver's own logs via the correct endpoint
       const logsRes = await fuelAPI.getMyLogs()
-      setMyVehicleLogs(logsRes.data.data || [])
-      
-      // Reset form
+      // Sort newest-first so the latest mileage is always at index 0
+      const updatedLogs = [...(logsRes.data.data || [])].sort((a, b) => new Date(b.date) - new Date(a.date))
+      setMyVehicleLogs(updatedLogs)
+
+      // Update previous mileage hint & pre-fill for next entry
+      const newLastMil = updatedLogs.length > 0 ? updatedLogs[0].mileage : null
+      setPreviousMileage(newLastMil)
+
+      // Reset form — pre-fill mileage with latest reading
       setFormData({
         vehicleRegNumber: assignedVehicle?.registrationNo || '',
         fuelType: 'Diesel',
         liters: '',
         costPerLiter: '',
-        mileage: '',
+        mileage: newLastMil != null ? String(newLastMil) : '',
         date: new Date().toISOString().split('T')[0]
       })
       setShowForm(false)
@@ -322,12 +359,29 @@ const FuelLogPage = () => {
                       type="number" 
                       name="mileage" 
                       value={formData.mileage} 
-                      onChange={handleInputChange}
-                      step="0.1" min="0" required
+                      onChange={handleMileageChange}
+                      step="0.1"
+                      min={previousMileage != null ? previousMileage : 0}
+                      required
                       placeholder="e.g., 15250.5"
-                      style={inputStyle}
+                      style={{
+                        ...inputStyle,
+                        ...(mileageError ? { borderColor: '#f87171', boxShadow: '0 0 0 3px rgba(248,113,113,0.2)' } : {})
+                      }}
                       onFocus={onFocus} onBlur={onBlur}
                     />
+                    {mileageError ? (
+                      <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: '#f87171', fontWeight: 600 }}>
+                        ⚠ {mileageError}
+                      </p>
+                    ) : previousMileage != null ? (
+                      <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: D.textSub }}>
+                        Previous reading: <span style={{ color: D.indigo, fontWeight: 700 }}>{previousMileage.toFixed(1)} km</span>
+                        {formData.mileage && parseFloat(formData.mileage) > previousMileage && (
+                          <span style={{ color: D.green, marginLeft: 6 }}>+{(parseFloat(formData.mileage) - previousMileage).toFixed(1)} km driven</span>
+                        )}
+                      </p>
+                    ) : null}
                   </div>
 
                   <div>
