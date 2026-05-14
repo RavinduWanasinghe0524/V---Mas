@@ -83,6 +83,9 @@ const FuelManagementPage = () => {
     totalLogs: 0, totalFuel: 0, totalCost: 0, avgEfficiency: 0, vehicleCount: 0,
   })
 
+  // Track previous mileage hint for the Add form
+  const [previousMileage, setPreviousMileage] = useState(null)
+
   useEffect(() => { loadAllLogs() }, [])
   useEffect(() => {
     vehicleAPI.getAllVehicles().then(r => setVehicles(r.data.data || [])).catch(() => {})
@@ -145,7 +148,7 @@ const FuelManagementPage = () => {
     else setFormData(p => ({ ...p, [name]: value }))
   }
 
-  // When a vehicle is selected in the Add form, auto-fill the assigned driver
+  // When a vehicle is selected in the Add form, auto-fill the assigned driver and last mileage
   const handleVehicleSelect = e => {
     const regNo = e.target.value
     const selected = vehicles.find(v => v.registrationNo === regNo)
@@ -153,10 +156,19 @@ const FuelManagementPage = () => {
     const fuelType = selected?.fuelType
       ? selected.fuelType.charAt(0).toUpperCase() + selected.fuelType.slice(1).toLowerCase()
       : undefined
+
+    // Find the most recent log for this vehicle to pre-fill mileage
+    const vehicleLogs = allLogs
+      .filter(l => !l.isDeleted && l.vehicleRegNumber === regNo)
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+    const lastMil = vehicleLogs.length > 0 ? vehicleLogs[0].mileage : null
+    setPreviousMileage(lastMil)
+
     setFormData(p => ({
       ...p,
       vehicleRegNumber: regNo,
       ...(fuelType && { fuelType }),
+      mileage: lastMil != null ? String(lastMil) : '',
       driverUsername: selected?.driverName && selected.driverName !== 'Not Assigned' ? selected.driverName : p.driverUsername,
     }))
   }
@@ -175,6 +187,7 @@ const FuelManagementPage = () => {
         driverUsername: formData.driverUsername || undefined,
       })
       setFormData({ vehicleRegNumber: '', fuelType: 'Diesel', liters: '', costPerLiter: '', mileage: '', date: new Date().toISOString().split('T')[0], driverUsername: '' })
+      setPreviousMileage(null)
       setActiveTab('all')
       await loadAllLogs()
       showToast('Fuel log added successfully!')
@@ -612,6 +625,14 @@ const FuelManagementPage = () => {
                   <div>
                     <label style={labelStyle}>Current Mileage (km) <span style={{ color: D.red }}>*</span></label>
                     <input type="number" name="mileage" value={formData.mileage} onChange={handleInputChange} step="0.1" min="0" required placeholder="e.g. 15250.5" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                    {previousMileage != null && (
+                      <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: D.textSub }}>
+                        Previous reading: <span style={{ color: D.purple, fontWeight: 700 }}>{previousMileage.toFixed(1)} km</span>
+                        {formData.mileage && parseFloat(formData.mileage) > previousMileage && (
+                          <span style={{ color: D.green, marginLeft: 6 }}>+{(parseFloat(formData.mileage) - previousMileage).toFixed(1)} km driven</span>
+                        )}
+                      </p>
+                    )}
                   </div>
                   {/* Date */}
                   <div>

@@ -57,6 +57,7 @@ const FuelLogPage = () => {
     mileage: '',
     date: new Date().toISOString().split('T')[0]
   })
+  const [previousMileage, setPreviousMileage] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [showForm, setShowForm] = useState(false)
 
@@ -69,7 +70,16 @@ const FuelLogPage = () => {
           fuelAPI.getMyLogs(),
           vehicleAPI.getAssignedVehicle(),
         ])
-        if (logsRes.status === 'fulfilled') setMyVehicleLogs(logsRes.value.data.data || [])
+        if (logsRes.status === 'fulfilled') {
+          const logs = logsRes.value.data.data || []
+          setMyVehicleLogs(logs)
+          // Pre-fill mileage from the most recent log
+          if (logs.length > 0) {
+            const lastMil = logs[0].mileage
+            setPreviousMileage(lastMil)
+            setFormData(p => ({ ...p, mileage: String(lastMil) }))
+          }
+        }
         if (vehicleRes.status === 'fulfilled') {
           const v = vehicleRes.value.data.data
           setAssignedVehicle(v)
@@ -118,15 +128,20 @@ const FuelLogPage = () => {
       
       // Reload driver's own logs via the correct endpoint
       const logsRes = await fuelAPI.getMyLogs()
-      setMyVehicleLogs(logsRes.data.data || [])
-      
-      // Reset form
+      const updatedLogs = logsRes.data.data || []
+      setMyVehicleLogs(updatedLogs)
+
+      // Update previous mileage hint & pre-fill for next entry
+      const newLastMil = updatedLogs.length > 0 ? updatedLogs[0].mileage : null
+      setPreviousMileage(newLastMil)
+
+      // Reset form — pre-fill mileage with latest reading
       setFormData({
         vehicleRegNumber: assignedVehicle?.registrationNo || '',
         fuelType: 'Diesel',
         liters: '',
         costPerLiter: '',
-        mileage: '',
+        mileage: newLastMil != null ? String(newLastMil) : '',
         date: new Date().toISOString().split('T')[0]
       })
       setShowForm(false)
@@ -328,6 +343,14 @@ const FuelLogPage = () => {
                       style={inputStyle}
                       onFocus={onFocus} onBlur={onBlur}
                     />
+                    {previousMileage != null && (
+                      <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: D.textSub }}>
+                        Previous reading: <span style={{ color: D.indigo, fontWeight: 700 }}>{previousMileage.toFixed(1)} km</span>
+                        {formData.mileage && parseFloat(formData.mileage) > previousMileage && (
+                          <span style={{ color: D.green, marginLeft: 6 }}>+{(parseFloat(formData.mileage) - previousMileage).toFixed(1)} km driven</span>
+                        )}
+                      </p>
+                    )}
                   </div>
 
                   <div>
