@@ -103,6 +103,9 @@ export const fuelAPI = {
   controllerSearchById: (id)             => api.get(`/fuel/controller/search/${id}`),
   controllerUpdateLog:  (id, data)       => api.put(`/fuel/controller/${id}`, data),
   controllerDeleteLog:  (id)             => api.delete(`/fuel/controller/${id}`),
+
+  // ── Efficiency Report ───────────────────────────────────────────────────
+  getFuelEfficiencyReport: ()            => api.get('/fuel/efficiency'),
 }
 
 export const serviceAPI = {

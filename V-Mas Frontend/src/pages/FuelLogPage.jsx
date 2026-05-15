@@ -4,6 +4,7 @@ import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { fuelAPI, vehicleAPI } from '../services/api'
+import { addDriverNotification } from '../components/Topbar'
 import { Fuel, CircleDollarSign, BarChart2, Car, Check, X, Plus, Loader2 } from 'lucide-react'
 
 
@@ -167,8 +168,12 @@ const FuelLogPage = () => {
         date: new Date().toISOString().split('T')[0]
       })
       setShowForm(false)
-      
-      alert('Fuel log added successfully!')
+
+      // Notify the driver via the bell
+      addDriverNotification(
+        `⛽ Fuel log added — ${payload.liters} L @ Rs.${payload.costPerLiter}/L for ${payload.vehicleRegNumber} (${payload.mileage} km on ${payload.date})`,
+        'FUEL_ADD'
+      )
     } catch (error) {
       console.error('Error adding fuel log:', error)
       alert('Failed to add fuel log: ' + (error.response?.data?.message || error.message))

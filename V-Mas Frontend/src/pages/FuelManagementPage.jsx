@@ -4,6 +4,7 @@ import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { fuelAPI, vehicleAPI, userAPI } from '../services/api'
+import { addControllerNotification } from '../components/Topbar'
 import { Fuel, CircleDollarSign, BarChart2, Car, Trash2, ClipboardList, Plus, Search, Edit2, AlertTriangle, Check, X, Loader2 } from 'lucide-react'
 
 
@@ -211,6 +212,10 @@ const FuelManagementPage = () => {
       setActiveTab('all')
       await loadAllLogs()
       showToast('Fuel log added successfully!')
+      addControllerNotification(
+        `Fuel log added for vehicle ${formData.vehicleRegNumber} — ${formData.liters} L @ Rs.${formData.costPerLiter}/L (${formData.mileage} km)`,
+        'FUEL_ADD'
+      )
     } catch (err) {
       showToast('Failed to add fuel log: ' + (err.response?.data?.message || err.message), 'error')
     } finally { setSubmitting(false) }
@@ -235,6 +240,10 @@ const FuelManagementPage = () => {
       setEditingLog(null)
       await loadAllLogs()
       showToast('Fuel log updated successfully!')
+      addControllerNotification(
+        `Fuel log #${editingLog.id} updated for vehicle ${editingLog.vehicleRegNumber} — ${editingLog.liters} L, mileage ${editingLog.mileage} km`,
+        'FUEL_EDIT'
+      )
     } catch (err) {
       showToast('Failed to update: ' + (err.response?.data?.message || err.message), 'error')
     } finally { setSubmitting(false) }
@@ -249,6 +258,10 @@ const FuelManagementPage = () => {
       setShowDeleteModal(false); setDeletingLog(null)
       await loadAllLogs()
       showToast('Fuel log deleted.')
+      addControllerNotification(
+        `Fuel log for vehicle ${deletingLog?.vehicleRegNumber} was deleted (soft-delete, retained for audit)`,
+        'FUEL_DELETE'
+      )
     } catch (err) {
       showToast('Failed to delete: ' + (err.response?.data?.message || err.message), 'error')
       setShowDeleteModal(false); setDeletingLog(null)
