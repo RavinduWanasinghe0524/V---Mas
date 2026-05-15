@@ -3,6 +3,8 @@ package net.javaguids.ems_backend.service.impl;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javaguids.ems_backend.dto.*;
+import net.javaguids.ems_backend.dto.FuelEfficiencyDto.FillUpRecord;
+import net.javaguids.ems_backend.dto.FuelEfficiencyDto.VehicleEfficiencyRecord;
 import net.javaguids.ems_backend.entity.FuelLog;
 import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.repository.FuelLogRepository;
@@ -320,6 +322,111 @@ public class FuelServiceImpl implements FuelService {
         fuelLog.setDeletedAt(LocalDateTime.now());
         fuelLogRepository.save(fuelLog);
         log.info("Fuel log {} soft-deleted by controller", id);
+    }
+
+    // ==================== EFFICIENCY REPORT ====================
+
+    @Override
+    public FuelEfficiencyDto getFuelEfficiencyReport() {
+        log.info("Building fuel efficiency report for all vehicles");
+
+        List<String> vehicleRegNumbers = fuelLogRepository.findAllDistinctActiveVehicleRegNumbers();
+        List<VehicleEfficiencyRecord> vehicleRecords = new ArrayList<>();
+
+        double fleetTotalEfficiency = 0.0;
+        int fleetValidCount = 0;
+        int goodCount = 0, moderateCount = 0, lowCount = 0;
+
+        for (String reg : vehicleRegNumbers) {
+            // Fetch logs oldest-first so we can iterate sequentially
+            List<FuelLog> logs = fuelLogRepository.findByVehicleRegNumberOrderByDateAscIdAsc(reg);
+            if (logs.isEmpty()) continue;
+
+            List<FillUpRecord> fillUps = new ArrayList<>();
+            double totalLiters = 0.0;
+            double totalCost = 0.0;
+            double totalKmDriven = 0.0;
+            double sumEfficiency = 0.0;
+            int efficiencyCount = 0;
+            Double latestEfficiency = null;
+
+            for (int i = 0; i < logs.size(); i++) {
+                FuelLog log_ = logs.get(i);
+                Double kmDriven = null;
+                Double efficiency = null;
+
+                if (i > 0) {
+                    FuelLog prev = logs.get(i - 1);
+                    if (log_.getMileage() != null && prev.getMileage() != null
+                            && log_.getMileage() > prev.getMileage()
+                            && log_.getLiters() != null && log_.getLiters() > 0) {
+                        kmDriven = log_.getMileage() - prev.getMileage();
+                        efficiency = Math.round((kmDriven / log_.getLiters()) * 100.0) / 100.0;
+                        sumEfficiency += efficiency;
+                        efficiencyCount++;
+                        latestEfficiency = efficiency; // keeps updating → final value is the latest
+                        totalKmDriven += kmDriven;
+                    }
+                }
+
+                double logLiters = log_.getLiters() != null ? log_.getLiters() : 0.0;
+                double logCost   = log_.getTotalCost() != null ? log_.getTotalCost() : 0.0;
+                totalLiters += logLiters;
+                totalCost   += logCost;
+
+                fillUps.add(new FillUpRecord(
+                    log_.getDate(),
+                    log_.getMileage(),
+                    logLiters,
+                    logCost,
+                    efficiency,
+                    kmDriven
+                ));
+            }
+
+            Double averageEfficiency = efficiencyCount > 0
+                    ? Math.round((sumEfficiency / efficiencyCount) * 100.0) / 100.0
+                    : null;
+
+            Double costPerKm = (totalKmDriven > 0 && totalCost > 0)
+                    ? Math.round((totalCost / totalKmDriven) * 100.0) / 100.0
+                    : null;
+
+            String status = determineEfficiencyStatus(averageEfficiency);
+
+            // Fleet-wide aggregation
+            if (averageEfficiency != null) {
+                fleetTotalEfficiency += averageEfficiency;
+                fleetValidCount++;
+                if ("Good".equals(status))               goodCount++;
+                else if ("Moderate".equals(status))      moderateCount++;
+                else if ("Low Efficiency".equals(status)) lowCount++;
+            }
+
+            vehicleRecords.add(new VehicleEfficiencyRecord(
+                reg, latestEfficiency, averageEfficiency, status,
+                Math.round(totalLiters * 100.0) / 100.0,
+                Math.round(totalCost * 100.0) / 100.0,
+                costPerKm,
+                fillUps
+            ));
+        }
+
+        Double fleetAverage = fleetValidCount > 0
+                ? Math.round((fleetTotalEfficiency / fleetValidCount) * 100.0) / 100.0
+                : null;
+
+        log.info("Efficiency report: {} vehicles, fleet avg={} km/L, good={}, moderate={}, low={}",
+                 vehicleRecords.size(), fleetAverage, goodCount, moderateCount, lowCount);
+
+        return new FuelEfficiencyDto(
+                fleetAverage,
+                vehicleRecords.size(),
+                goodCount,
+                moderateCount,
+                lowCount,
+                vehicleRecords
+        );
     }
 
     // ==================== PRIVATE HELPER METHODS ====================

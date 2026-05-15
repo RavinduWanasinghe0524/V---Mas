@@ -43,4 +43,10 @@ public interface FuelService {
 
     /** Controller/admin deletes any fuel log by ID */
     void deleteFuelLog(Long id);
+
+    /**
+     * Compute the full fuel-efficiency report for all vehicles.
+     * Returns per-vehicle, per-fill-up km/L data plus fleet-wide summary stats.
+     */
+    FuelEfficiencyDto getFuelEfficiencyReport();
 }
