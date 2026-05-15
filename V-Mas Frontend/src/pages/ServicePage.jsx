@@ -412,6 +412,8 @@ const ServicePage = () => {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState('grid')
 
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null })
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingServiceId, setEditingServiceId] = useState(null)
@@ -420,15 +422,21 @@ const ServicePage = () => {
   const [formData, setFormData] = useState(initialForm)
   const [editFormData, setEditFormData] = useState(initialForm)
   const [formLoading, setFormLoading] = useState(false)
+  const [toastMessage, setToastMessage] = useState(null)
+
+  const showToast = (msg, type) => {
+    setToastMessage({ msg, type })
+    setTimeout(() => setToastMessage(null), 3000)
+  }
 
   useEffect(() => {
-    if (isAddModalOpen || isEditModalOpen) {
+    if (isAddModalOpen || isEditModalOpen || deleteModal.isOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
     }
     return () => { document.body.style.overflow = '' }
-  }, [isAddModalOpen, isEditModalOpen])
+  }, [isAddModalOpen, isEditModalOpen, deleteModal.isOpen])
 
   const validate = (data) => {
     const e = {}
@@ -464,7 +472,11 @@ const ServicePage = () => {
     setFormLoading(true)
     setSubmitError(null)
     try {
-      await serviceAPI.createService(formData)
+      const payload = {
+        ...formData,
+        nextServiceMileageKm: formData.nextServiceMileageKm ? Number(formData.nextServiceMileageKm) : null
+      }
+      await serviceAPI.createService(payload)
       setIsAddModalOpen(false)
       loadData()
     } catch (err) {
@@ -487,6 +499,7 @@ const ServicePage = () => {
       serviceCost: record.serviceCost || '',
       technicianWorkshop: record.technicianWorkshop || '',
       nextServiceDue: record.nextServiceDue ? record.nextServiceDue.substring(0, 10) : '',
+      nextServiceMileageKm: record.nextServiceMileageKm || '',
       description: record.description || '',
     })
     setErrors({})
@@ -508,7 +521,11 @@ const ServicePage = () => {
     setFormLoading(true)
     setSubmitError(null)
     try {
-      await serviceAPI.updateService(editingServiceId, editFormData)
+      const payload = {
+        ...editFormData,
+        nextServiceMileageKm: editFormData.nextServiceMileageKm ? Number(editFormData.nextServiceMileageKm) : null
+      }
+      await serviceAPI.updateService(editingServiceId, payload)
       setIsEditModalOpen(false)
       loadData()
     } catch (err) {
@@ -536,14 +553,22 @@ const ServicePage = () => {
 
   useEffect(() => { loadData() }, [loadData])
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this service record?')) return
+  const confirmDelete = (id) => {
+    setDeleteModal({ isOpen: true, id })
+  }
+
+  const executeDelete = async () => {
+    const id = deleteModal.id;
+    if (!id) return;
     try {
       await serviceAPI.deleteService(id)
       loadData()
+      setDeleteModal({ isOpen: false, id: null })
+      showToast('Service record deleted successfully.', 'success')
     } catch (err) {
       console.error('Error deleting', err)
-      alert('Failed to delete record.')
+      setDeleteModal({ isOpen: false, id: null })
+      showToast('Failed to delete record.', 'error')
     }
   }
 
@@ -849,7 +874,7 @@ const ServicePage = () => {
                   index={i}
                   isDriver={isDriver}
                   onEdit={openEditModal}
-                  onDelete={handleDelete}
+                  onDelete={confirmDelete}
                   D={D}
                 />
               ))
@@ -861,7 +886,7 @@ const ServicePage = () => {
                   index={i}
                   isDriver={isDriver}
                   onEdit={openEditModal}
-                  onDelete={handleDelete}
+                  onDelete={confirmDelete}
                   D={D}
                 />
               ))
@@ -959,12 +984,16 @@ const ServicePage = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 28 }}>
                 <div>
-                  <label style={fieldLabel}>Next Service Due</label>
+                  <label style={fieldLabel}>Next Service Due (Date)</label>
                   <input type="date" name="nextServiceDue" value={formData.nextServiceDue} onChange={handleAddChange} style={fieldInput(false)} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
                 </div>
                 <div>
+                  <label style={fieldLabel}>Next Service Due (Mileage)</label>
+                  <input type="number" name="nextServiceMileageKm" value={formData.nextServiceMileageKm} onChange={handleAddChange} placeholder="e.g. 50000" style={fieldInput(false)} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
                   <label style={fieldLabel}>Description / Notes</label>
-                  <textarea name="description" value={formData.description} onChange={handleAddChange} rows={3} placeholder="Any additional notes…" style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                  <textarea name="description" value={formData.description} onChange={handleAddChange} rows={2} placeholder="Any additional notes…" style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
                 </div>
               </div>
 
@@ -1062,12 +1091,16 @@ const ServicePage = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 28 }}>
                 <div>
-                  <label style={fieldLabel}>Next Service Due</label>
+                  <label style={fieldLabel}>Next Service Due (Date)</label>
                   <input type="date" name="nextServiceDue" value={editFormData.nextServiceDue} onChange={handleEditChange} style={fieldInput(false)} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
                 </div>
                 <div>
+                  <label style={fieldLabel}>Next Service Due (Mileage)</label>
+                  <input type="number" name="nextServiceMileageKm" value={editFormData.nextServiceMileageKm} onChange={handleEditChange} placeholder="e.g. 50000" style={fieldInput(false)} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
                   <label style={fieldLabel}>Description / Notes</label>
-                  <textarea name="description" value={editFormData.description} onChange={handleEditChange} rows={3} placeholder="Any additional notes…" style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                  <textarea name="description" value={editFormData.description} onChange={handleEditChange} rows={2} placeholder="Any additional notes…" style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
                 </div>
               </div>
 
@@ -1081,6 +1114,49 @@ const ServicePage = () => {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* ── Delete Confirmation Modal ──────────────────────────────────────── */}
+      {deleteModal.isOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease' }}>
+          <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 400, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden', padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: D.redDim, color: D.red, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.1rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Delete Record?</h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: D.textSub }}>This action cannot be undone. Are you sure you want to delete this service record?</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => setDeleteModal({ isOpen: false, id: null })} style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
+                Cancel
+              </button>
+              <button onClick={executeDelete} style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: D.red, color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 12px rgba(239,68,68,0.3)' }}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Toast Message ──────────────────────────────────────── */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          background: toastMessage.type === 'success' ? D.surface : D.redDim,
+          border: `1px solid ${toastMessage.type === 'success' ? '#10b981' : 'rgba(248,113,113,0.3)'}`,
+          color: toastMessage.type === 'success' ? '#10b981' : D.red,
+          padding: '12px 20px', borderRadius: 12,
+          display: 'flex', alignItems: 'center', gap: 10,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+          animation: 'fadeUp 0.3s ease',
+          fontWeight: 600, fontSize: '0.9rem'
+        }}>
+          {toastMessage.type === 'success' ? <CheckCircle size={20} /> : <AlertTriangle size={20} />}
+          {toastMessage.msg}
         </div>
       )}
 

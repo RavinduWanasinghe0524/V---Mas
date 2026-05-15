@@ -4,7 +4,7 @@ import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
 import {
   Car, Fuel, Wrench, Users, MapPin, DollarSign,
-  FileText, Calendar, Download, ClipboardList, BarChart2, Loader2, Database
+  FileText, Calendar, Download, ClipboardList, BarChart2, Loader2, Database, TrendingUp
 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
@@ -27,13 +27,14 @@ const SectionHeader = ({ title, D }) => (
 const ReportsPage = () => {
   const D = useD()
   const reportTypes = [
-    { id: 'master-report',    icon: <Database size={24} strokeWidth={1.5} />,   title: 'Comprehensive Master Report',  desc: 'Complete export of all system data including vehicles, fuel, services, and users.',   category: 'System',      color: D.red,    bg: D.redDim    },
-    { id: 'vehicle-summary',  icon: <Car size={24} strokeWidth={1.5} />,        title: 'Vehicle Summary Report',       desc: 'Overview of all fleet vehicles including status, mileage, and assignments.',          category: 'Fleet',       color: D.indigo, bg: D.indigoDim },
-    { id: 'fuel-report',      icon: <Fuel size={24} strokeWidth={1.5} />,       title: 'Fuel Consumption Report',      desc: 'Detailed fuel usage breakdown per vehicle, driver, and time period.',                  category: 'Fuel',        color: D.gold,   bg: D.goldDim   },
-    { id: 'service-report',   icon: <Wrench size={24} strokeWidth={1.5} />,     title: 'Service & Maintenance Report', desc: 'Summary of all service records, costs, and upcoming maintenance schedules.',           category: 'Maintenance', color: D.green,  bg: D.greenDim  },
-    { id: 'user-report',      icon: <Users size={24} strokeWidth={1.5} />,      title: 'User Activity Report',         desc: 'User registration, role distribution, login history, and account statuses.',           category: 'Users',       color: D.blue,   bg: D.blueDim   },
-    { id: 'location-report',  icon: <MapPin size={24} strokeWidth={1.5} />,     title: 'Location & Route Report',      desc: 'Vehicle location history, routes taken, and distance covered per vehicle.',            category: 'Fleet',       color: D.purple, bg: D.purpleDim },
-    { id: 'cost-report',      icon: <DollarSign size={24} strokeWidth={1.5} />, title: 'Cost Analysis Report',         desc: 'Full cost breakdown including fuel, maintenance, and operational expenses.',            category: 'Finance',     color: D.indigo, bg: D.indigoDim },
+    { id: 'master-report',      icon: <Database size={24} strokeWidth={1.5} />,    title: 'Comprehensive Master Report',   desc: 'Complete export of all system data including vehicles, fuel, services, and users.',    category: 'System',      color: D.red,    bg: D.redDim    },
+    { id: 'vehicle-summary',    icon: <Car size={24} strokeWidth={1.5} />,         title: 'Vehicle Summary Report',        desc: 'Overview of all fleet vehicles including status, mileage, and assignments.',           category: 'Fleet',       color: D.indigo, bg: D.indigoDim },
+    { id: 'fuel-report',        icon: <Fuel size={24} strokeWidth={1.5} />,        title: 'Fuel Consumption Report',       desc: 'Detailed fuel usage breakdown per vehicle, driver, and time period.',                   category: 'Fuel',        color: D.gold,   bg: D.goldDim   },
+    { id: 'fuel-efficiency',    icon: <TrendingUp size={24} strokeWidth={1.5} />,  title: 'Fuel Efficiency Report',        desc: 'Computed km/L efficiency per vehicle by comparing fill-up records with distance covered.', category: 'Fuel',     color: D.green,  bg: D.greenDim  },
+    { id: 'service-report',     icon: <Wrench size={24} strokeWidth={1.5} />,      title: 'Service & Maintenance Report',  desc: 'Summary of all service records, costs, and upcoming maintenance schedules.',            category: 'Maintenance', color: D.green,  bg: D.greenDim  },
+    { id: 'user-report',        icon: <Users size={24} strokeWidth={1.5} />,       title: 'User Activity Report',          desc: 'User registration, role distribution, login history, and account statuses.',            category: 'Users',       color: D.blue,   bg: D.blueDim   },
+    { id: 'location-report',    icon: <MapPin size={24} strokeWidth={1.5} />,      title: 'Location & Route Report',       desc: 'Vehicle location history, routes taken, and distance covered per vehicle.',             category: 'Fleet',       color: D.purple, bg: D.purpleDim },
+    { id: 'cost-report',        icon: <DollarSign size={24} strokeWidth={1.5} />,  title: 'Cost Analysis Report',          desc: 'Full cost breakdown including fuel, maintenance, and operational expenses.',             category: 'Finance',     color: D.indigo, bg: D.indigoDim },
   ]
   const [generating, setGenerating] = useState(null)
 
@@ -136,6 +137,71 @@ const ReportsPage = () => {
           body: tableData,
           theme: 'grid',
           headStyles: { fillColor: [37, 99, 235] }
+        })
+      }
+
+      if (id === 'fuel-efficiency') {
+        addHeader('Fuel Efficiency Report')
+        const { data: res } = await fuelAPI.getFuelEfficiencyReport()
+        const report = res.data || res
+
+        // ── Fleet Summary block ───────────────────────────────────────────
+        let y = 38
+        doc.setFontSize(11)
+        doc.setTextColor(60, 60, 60)
+        doc.text('Fleet Summary', 14, y); y += 7
+
+        const summaryItems = [
+          ['Fleet Average Efficiency', report.fleetAverageEfficiency != null ? `${report.fleetAverageEfficiency} km/L` : 'Insufficient Data'],
+          ['Total Vehicles',           String(report.totalVehicles ?? 0)],
+          ['Good Efficiency (≥10 km/L)', String(report.goodEfficiencyCount ?? 0)],
+          ['Moderate (5–9.99 km/L)',   String(report.moderateEfficiencyCount ?? 0)],
+          ['Low Efficiency (<5 km/L)', String(report.lowEfficiencyCount ?? 0)],
+        ]
+        doc.autoTable({
+          startY: y,
+          head: [['Metric', 'Value']],
+          body: summaryItems,
+          theme: 'grid',
+          headStyles: { fillColor: [5, 150, 105] },
+          columnStyles: { 0: { fontStyle: 'bold', cellWidth: 90 }, 1: { cellWidth: 60 } },
+          margin: { left: 14, right: 14 },
+        })
+
+        // ── Per-vehicle table ────────────────────────────────────────────
+        const afterSummary = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : y + 40
+        doc.setFontSize(11)
+        doc.setTextColor(60, 60, 60)
+        doc.text('Per-Vehicle Efficiency Breakdown', 14, afterSummary)
+
+        const vehicles = report.vehicles || []
+        const vehicleRows = vehicles.map(v => [
+          v.vehicleRegNumber || 'N/A',
+          v.latestEfficiency    != null ? `${v.latestEfficiency} km/L`    : 'N/A',
+          v.averageEfficiency   != null ? `${v.averageEfficiency} km/L`   : 'N/A',
+          v.efficiencyStatus    || 'N/A',
+          v.totalLiters         != null ? `${v.totalLiters} L`            : 'N/A',
+          v.totalCost           != null ? `Rs. ${v.totalCost.toLocaleString()}` : 'N/A',
+          v.costPerKm           != null ? `Rs. ${v.costPerKm}/km`         : 'N/A',
+          v.fillUps             != null ? String(v.fillUps.length)         : '0',
+        ])
+
+        doc.autoTable({
+          startY: afterSummary + 5,
+          head: [['Reg No', 'Latest km/L', 'Avg km/L', 'Status', 'Total Liters', 'Total Cost', 'Cost/km', 'Fill-ups']],
+          body: vehicleRows,
+          theme: 'striped',
+          headStyles: { fillColor: [5, 150, 105], fontSize: 8 },
+          bodyStyles: { fontSize: 8 },
+          margin: { left: 14, right: 14 },
+          didParseCell: (data) => {
+            if (data.section === 'body' && data.column.index === 3) {
+              const status = data.cell.raw
+              if (status === 'Low Efficiency') data.cell.styles.textColor = [220, 38, 38]
+              else if (status === 'Moderate')  data.cell.styles.textColor = [180, 120, 0]
+              else if (status === 'Good')      data.cell.styles.textColor = [5, 150, 105]
+            }
+          }
         })
       }
 

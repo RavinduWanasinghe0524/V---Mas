@@ -103,6 +103,9 @@ export const fuelAPI = {
   controllerSearchById: (id)             => api.get(`/fuel/controller/search/${id}`),
   controllerUpdateLog:  (id, data)       => api.put(`/fuel/controller/${id}`, data),
   controllerDeleteLog:  (id)             => api.delete(`/fuel/controller/${id}`),
+
+  // ── Efficiency Report ───────────────────────────────────────────────────
+  getFuelEfficiencyReport: ()            => api.get('/fuel/efficiency'),
 }
 
 export const serviceAPI = {
@@ -121,6 +124,10 @@ export const notificationAPI = {
   getAll:               ()               => api.get('/notifications'),
   markAsRead:           (id)             => api.patch(`/notifications/${id}/read`),
   markAllAsRead:        ()               => api.patch('/notifications/read-all'),
+}
+
+export const alertAPI = {
+  getDashboardAlerts:   ()               => api.get('/alerts/dashboard'),
 }
 
 export default api

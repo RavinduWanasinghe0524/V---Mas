@@ -4,6 +4,7 @@ import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { fuelAPI, vehicleAPI, userAPI } from '../services/api'
+import { addControllerNotification } from '../services/notificationService'
 import { Fuel, CircleDollarSign, BarChart2, Car, Trash2, ClipboardList, Plus, Search, Edit2, AlertTriangle, Check, X, Loader2 } from 'lucide-react'
 
 
@@ -83,6 +84,9 @@ const FuelManagementPage = () => {
     totalLogs: 0, totalFuel: 0, totalCost: 0, avgEfficiency: 0, vehicleCount: 0,
   })
 
+  // Track previous mileage hint for the Add form
+  const [previousMileage, setPreviousMileage] = useState(null)
+
   useEffect(() => { loadAllLogs() }, [])
   useEffect(() => {
     vehicleAPI.getAllVehicles().then(r => setVehicles(r.data.data || [])).catch(() => {})
@@ -99,7 +103,8 @@ const FuelManagementPage = () => {
     try {
       setLoading(true)
       const res = await fuelAPI.getAllFuelLogs()
-      const logs = res.data.data || []
+      // Sort newest-first so per-vehicle last-mileage lookups are reliable
+      const logs = [...(res.data.data || [])].sort((a, b) => new Date(b.date) - new Date(a.date))
       const activeLogs = logs.filter(l => !l.isDeleted)
       const vehicleCount = [...new Set(activeLogs.map(l => l.vehicleRegNumber))].length
       setAllLogs(logs)
@@ -145,7 +150,20 @@ const FuelManagementPage = () => {
     else setFormData(p => ({ ...p, [name]: value }))
   }
 
-  // When a vehicle is selected in the Add form, auto-fill the assigned driver
+  // Mileage validation for the Add form
+  const [mileageError, setMileageError] = useState('')
+
+  const handleMileageChange = e => {
+    const val = e.target.value
+    setFormData(p => ({ ...p, mileage: val }))
+    if (previousMileage != null && val !== '' && parseFloat(val) < previousMileage) {
+      setMileageError(`Must be ≥ previous reading (${previousMileage.toFixed(1)} km)`)
+    } else {
+      setMileageError('')
+    }
+  }
+
+  // When a vehicle is selected in the Add form, auto-fill the assigned driver and last mileage
   const handleVehicleSelect = e => {
     const regNo = e.target.value
     const selected = vehicles.find(v => v.registrationNo === regNo)
@@ -153,16 +171,30 @@ const FuelManagementPage = () => {
     const fuelType = selected?.fuelType
       ? selected.fuelType.charAt(0).toUpperCase() + selected.fuelType.slice(1).toLowerCase()
       : undefined
+
+    // Find the most recent log for this vehicle to pre-fill mileage
+    // allLogs is already sorted newest-first so the first match is the latest
+    const lastLog = allLogs.find(l => !l.isDeleted && l.vehicleRegNumber === regNo)
+    const lastMil = lastLog ? lastLog.mileage : null
+    setPreviousMileage(lastMil)
+
     setFormData(p => ({
       ...p,
       vehicleRegNumber: regNo,
       ...(fuelType && { fuelType }),
+      mileage: lastMil != null ? String(lastMil) : '',
       driverUsername: selected?.driverName && selected.driverName !== 'Not Assigned' ? selected.driverName : p.driverUsername,
     }))
   }
 
   const handleAddFuelLog = async e => {
     e.preventDefault()
+
+    if (previousMileage != null && parseFloat(formData.mileage) < previousMileage) {
+      setMileageError(`Must be ≥ previous reading (${previousMileage.toFixed(1)} km)`)
+      return
+    }
+
     setSubmitting(true)
     try {
       await fuelAPI.controllerAddLog({
@@ -175,9 +207,15 @@ const FuelManagementPage = () => {
         driverUsername: formData.driverUsername || undefined,
       })
       setFormData({ vehicleRegNumber: '', fuelType: 'Diesel', liters: '', costPerLiter: '', mileage: '', date: new Date().toISOString().split('T')[0], driverUsername: '' })
+      setPreviousMileage(null)
+      setMileageError('')
       setActiveTab('all')
       await loadAllLogs()
       showToast('Fuel log added successfully!')
+      addControllerNotification(
+        `Fuel log added for vehicle ${formData.vehicleRegNumber} — ${formData.liters} L @ Rs.${formData.costPerLiter}/L (${formData.mileage} km)`,
+        'FUEL_ADD'
+      )
     } catch (err) {
       showToast('Failed to add fuel log: ' + (err.response?.data?.message || err.message), 'error')
     } finally { setSubmitting(false) }
@@ -202,6 +240,10 @@ const FuelManagementPage = () => {
       setEditingLog(null)
       await loadAllLogs()
       showToast('Fuel log updated successfully!')
+      addControllerNotification(
+        `Fuel log #${editingLog.id} updated for vehicle ${editingLog.vehicleRegNumber} — ${editingLog.liters} L, mileage ${editingLog.mileage} km`,
+        'FUEL_EDIT'
+      )
     } catch (err) {
       showToast('Failed to update: ' + (err.response?.data?.message || err.message), 'error')
     } finally { setSubmitting(false) }
@@ -216,6 +258,10 @@ const FuelManagementPage = () => {
       setShowDeleteModal(false); setDeletingLog(null)
       await loadAllLogs()
       showToast('Fuel log deleted.')
+      addControllerNotification(
+        `Fuel log for vehicle ${deletingLog?.vehicleRegNumber} was deleted (soft-delete, retained for audit)`,
+        'FUEL_DELETE'
+      )
     } catch (err) {
       showToast('Failed to delete: ' + (err.response?.data?.message || err.message), 'error')
       setShowDeleteModal(false); setDeletingLog(null)
@@ -611,7 +657,26 @@ const FuelManagementPage = () => {
                   {/* Mileage */}
                   <div>
                     <label style={labelStyle}>Current Mileage (km) <span style={{ color: D.red }}>*</span></label>
-                    <input type="number" name="mileage" value={formData.mileage} onChange={handleInputChange} step="0.1" min="0" required placeholder="e.g. 15250.5" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                    <input type="number" name="mileage" value={formData.mileage} onChange={handleMileageChange}
+                      step="0.1" min={previousMileage != null ? previousMileage : 0} required
+                      placeholder="e.g. 15250.5"
+                      style={{
+                        ...inputStyle,
+                        ...(mileageError ? { borderColor: '#f87171', boxShadow: '0 0 0 3px rgba(248,113,113,0.2)' } : {})
+                      }}
+                      onFocus={onFocus} onBlur={onBlur} />
+                    {mileageError ? (
+                      <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: '#f87171', fontWeight: 600 }}>
+                        ⚠ {mileageError}
+                      </p>
+                    ) : previousMileage != null ? (
+                      <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: D.textSub }}>
+                        Previous reading: <span style={{ color: D.purple, fontWeight: 700 }}>{previousMileage.toFixed(1)} km</span>
+                        {formData.mileage && parseFloat(formData.mileage) > previousMileage && (
+                          <span style={{ color: D.green, marginLeft: 6 }}>+{(parseFloat(formData.mileage) - previousMileage).toFixed(1)} km driven</span>
+                        )}
+                      </p>
+                    ) : null}
                   </div>
                   {/* Date */}
                   <div>

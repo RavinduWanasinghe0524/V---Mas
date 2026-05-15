@@ -16,6 +16,7 @@ public class ServiceRecordMapper {
         dto.setServiceCost(record.getServiceCost());
         dto.setTechnicianWorkshop(record.getTechnicianWorkshop());
         dto.setNextServiceDue(record.getNextServiceDue());
+        dto.setNextServiceMileageKm(record.getNextServiceMileageKm());
         dto.setDescription(record.getDescription());
         dto.setCreatedAt(record.getCreatedAt());
         return dto;
@@ -31,6 +32,7 @@ public class ServiceRecordMapper {
         record.setServiceCost(dto.getServiceCost());
         record.setTechnicianWorkshop(dto.getTechnicianWorkshop());
         record.setNextServiceDue(dto.getNextServiceDue());
+        record.setNextServiceMileageKm(dto.getNextServiceMileageKm());
         record.setDescription(dto.getDescription());
         return record;
     }
