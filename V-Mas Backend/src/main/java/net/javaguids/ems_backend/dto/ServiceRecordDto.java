@@ -31,6 +31,7 @@ public class ServiceRecordDto {
     private String technicianWorkshop;
 
     private LocalDate nextServiceDue;   // optional
+    private Integer nextServiceMileageKm; // optional
     private String description;         // optional
 
     private LocalDateTime createdAt;

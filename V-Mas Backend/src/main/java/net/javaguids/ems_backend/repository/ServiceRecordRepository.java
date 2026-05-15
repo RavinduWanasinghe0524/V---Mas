@@ -23,4 +23,18 @@ public interface ServiceRecordRepository
 
     @org.springframework.data.jpa.repository.Query("SELECT sr.serviceType, COUNT(sr) FROM ServiceRecord sr GROUP BY sr.serviceType")
     List<Object[]> countServicesByType();
+
+    /**
+     * Finds the latest service record for each vehicle that has a nextServiceDue set.
+     * Used for dashboard service-due alert checking.
+     */
+    @org.springframework.data.jpa.repository.Query(
+        "SELECT sr FROM ServiceRecord sr " +
+        "WHERE (sr.nextServiceDue IS NOT NULL OR sr.nextServiceMileageKm IS NOT NULL) " +
+        "AND sr.id = (SELECT MAX(sr2.id) FROM ServiceRecord sr2 " +
+        "             WHERE sr2.vehicleRegNumber = sr.vehicleRegNumber " +
+        "             AND (sr2.nextServiceDue IS NOT NULL OR sr2.nextServiceMileageKm IS NOT NULL))"
+    )
+    List<ServiceRecord> findLatestServiceRecordWithDueDatePerVehicle();
 }
+

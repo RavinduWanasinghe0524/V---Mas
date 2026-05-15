@@ -159,6 +159,77 @@ const ControllerDashboard = ({ navigate, isDark }) => {
   )
 }
 
+const AlertSection = ({ alerts, navigate, isDark }) => {
+  const A = useAccents(isDark)
+  if (!alerts || alerts.length === 0) return null
+
+  return (
+    <div style={{ marginBottom: 32 }}>
+      <SectionHeader title="System Alerts" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {alerts.map((alert, idx) => (
+          <div 
+            key={idx}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 16,
+              padding: '16px 20px',
+              borderRadius: 12,
+              background: alert.severity === 'OVERDUE' ? 'var(--error-bg)' : 'var(--warning-bg)',
+              border: `1px solid ${alert.severity === 'OVERDUE' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`,
+              boxShadow: 'var(--shadow-sm)',
+              animation: alert.severity === 'OVERDUE' ? 'pulse-border 2s infinite' : 'none'
+            }}
+          >
+            <div style={{ 
+              width: 40, height: 40, borderRadius: 10, 
+              background: alert.severity === 'OVERDUE' ? '#ef4444' : '#f59e0b',
+              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+            }}>
+              <AlertTriangle size={20} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>{alert.title}</h4>
+                <span style={{ 
+                  fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, 
+                  background: alert.severity === 'OVERDUE' ? '#ef4444' : '#f59e0b', 
+                  color: '#fff', textTransform: 'uppercase' 
+                }}>
+                  {alert.severity}
+                </span>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                <strong>{alert.vehicleRegNumber}</strong>: {alert.message}
+              </p>
+            </div>
+            <button 
+              onClick={() => navigate(alert.type === 'SERVICE_DUE' ? '/service' : '/vehicles')}
+              style={{
+                padding: '6px 14px', borderRadius: 8, border: 'none',
+                background: 'rgba(255,255,255,0.1)', color: 'var(--text-primary)',
+                fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+            >
+              View Details
+            </button>
+          </div>
+        ))}
+      </div>
+      <style>{`
+        @keyframes pulse-border {
+          0% { border-color: rgba(239,68,68,0.2); }
+          50% { border-color: rgba(239,68,68,0.6); }
+          100% { border-color: rgba(239,68,68,0.2); }
+        }
+      `}</style>
+    </div>
+  )
+}
+
 const DriverDashboard = ({ navigate, isDark }) => {
   const A = useAccents(isDark)
   return (
@@ -189,22 +260,35 @@ const DashboardPage = () => {
   const navigate = useNavigate()
   const isDark = theme === 'blue'
   const [stats, setStats] = useState({ totalUsers: 0, admins: 0, controllers: 0, drivers: 0, activeUsers: 0, inactiveUsers: 0 })
+  const [alerts, setAlerts] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadStats = async () => {
+    const loadDashboardData = async () => {
       try {
-        if (isAdmin) {
-          const response = await userAPI.getAllUsers()
-          const users = response.data.data || []
-          setStats({
-            totalUsers: users.length,
-            admins: users.filter(u => u.role === 'ADMIN').length,
-            controllers: users.filter(u => u.role === 'CONTROLLER').length,
-            drivers: users.filter(u => u.role === 'DRIVER').length,
-            activeUsers: users.filter(u => u.accountStatus === 'ACTIVE').length,
-            inactiveUsers: users.filter(u => u.accountStatus === 'INACTIVE').length,
-          })
+        if (isAdmin || user?.role === 'CONTROLLER') {
+          // Fetch stats for Admin
+          if (isAdmin) {
+            const response = await userAPI.getAllUsers()
+            const users = response.data.data || []
+            setStats({
+              totalUsers: users.length,
+              admins: users.filter(u => u.role === 'ADMIN').length,
+              controllers: users.filter(u => u.role === 'CONTROLLER').length,
+              drivers: users.filter(u => u.role === 'DRIVER').length,
+              activeUsers: users.filter(u => u.accountStatus === 'ACTIVE').length,
+              inactiveUsers: users.filter(u => u.accountStatus === 'INACTIVE').length,
+            })
+          }
+
+          // Fetch alerts for Admin and Controller
+          try {
+            const { alertAPI } = await import('../services/api')
+            const alertRes = await alertAPI.getDashboardAlerts()
+            setAlerts(alertRes.data.data.alerts || [])
+          } catch (err) {
+            console.error('Error loading alerts:', err)
+          }
         }
       } catch (err) {
         console.error('Error loading stats:', err)
@@ -212,8 +296,8 @@ const DashboardPage = () => {
         setLoading(false)
       }
     }
-    loadStats()
-  }, [isAdmin])
+    loadDashboardData()
+  }, [isAdmin, user?.role])
 
   const roleLabel = { ADMIN: 'Administrator', CONTROLLER: 'Fleet Controller', DRIVER: 'Vehicle Driver' }
   const roleEmoji = { ADMIN: <Shield size={32} color="#fff"/>, CONTROLLER: <Gamepad2 size={32} color="#fff"/>, DRIVER: <Car size={32} color="#fff"/> }
@@ -250,6 +334,11 @@ const DashboardPage = () => {
               </div>
             </div>
           </div>
+
+          {/* Alerts Section - Show for Admin and Controller */}
+          {(isAdmin || user?.role === 'CONTROLLER') && (
+            <AlertSection alerts={alerts} navigate={navigate} isDark={isDark} />
+          )}
 
           {/* Role-based content */}
           {user?.role === 'ADMIN' && <AdminDashboard stats={stats} loading={loading} navigate={navigate} isDark={isDark} />}

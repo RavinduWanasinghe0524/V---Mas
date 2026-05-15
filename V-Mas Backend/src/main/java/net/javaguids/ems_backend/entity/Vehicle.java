@@ -6,6 +6,7 @@ import net.javaguids.ems_backend.enums.FuelTypes;
 import net.javaguids.ems_backend.enums.VehicleSatus;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -60,4 +61,12 @@ public class Vehicle {
 
     @Column(name = "fuel_type")
     private FuelTypes fuelType;
+
+    /** Optional — vehicle insurance expiry date, used for dashboard alerts */
+    @Column(name = "insurance_expiry_date", nullable = true)
+    private LocalDate insuranceExpiryDate;
+
+    /** Optional — vehicle license/road-tax expiry date, used for dashboard alerts */
+    @Column(name = "license_expiry_date", nullable = true)
+    private LocalDate licenseExpiryDate;
 }
