@@ -126,4 +126,8 @@ export const notificationAPI = {
   markAllAsRead:        ()               => api.patch('/notifications/read-all'),
 }
 
+export const alertAPI = {
+  getDashboardAlerts:   ()               => api.get('/alerts/dashboard'),
+}
+
 export default api

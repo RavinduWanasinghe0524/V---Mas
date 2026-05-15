@@ -51,6 +51,10 @@ public class ServiceRecord {
     @Column(name = "next_service_due")
     private LocalDate nextServiceDue;
 
+    /** Optional — next scheduled service mileage */
+    @Column(name = "next_service_mileage_km")
+    private Integer nextServiceMileageKm;
+
     /** Optional — additional notes */
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;

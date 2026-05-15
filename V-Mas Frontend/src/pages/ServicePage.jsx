@@ -472,7 +472,11 @@ const ServicePage = () => {
     setFormLoading(true)
     setSubmitError(null)
     try {
-      await serviceAPI.createService(formData)
+      const payload = {
+        ...formData,
+        nextServiceMileageKm: formData.nextServiceMileageKm ? Number(formData.nextServiceMileageKm) : null
+      }
+      await serviceAPI.createService(payload)
       setIsAddModalOpen(false)
       loadData()
     } catch (err) {
@@ -495,6 +499,7 @@ const ServicePage = () => {
       serviceCost: record.serviceCost || '',
       technicianWorkshop: record.technicianWorkshop || '',
       nextServiceDue: record.nextServiceDue ? record.nextServiceDue.substring(0, 10) : '',
+      nextServiceMileageKm: record.nextServiceMileageKm || '',
       description: record.description || '',
     })
     setErrors({})
@@ -516,7 +521,11 @@ const ServicePage = () => {
     setFormLoading(true)
     setSubmitError(null)
     try {
-      await serviceAPI.updateService(editingServiceId, editFormData)
+      const payload = {
+        ...editFormData,
+        nextServiceMileageKm: editFormData.nextServiceMileageKm ? Number(editFormData.nextServiceMileageKm) : null
+      }
+      await serviceAPI.updateService(editingServiceId, payload)
       setIsEditModalOpen(false)
       loadData()
     } catch (err) {
@@ -975,12 +984,16 @@ const ServicePage = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 28 }}>
                 <div>
-                  <label style={fieldLabel}>Next Service Due</label>
+                  <label style={fieldLabel}>Next Service Due (Date)</label>
                   <input type="date" name="nextServiceDue" value={formData.nextServiceDue} onChange={handleAddChange} style={fieldInput(false)} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
                 </div>
                 <div>
+                  <label style={fieldLabel}>Next Service Due (Mileage)</label>
+                  <input type="number" name="nextServiceMileageKm" value={formData.nextServiceMileageKm} onChange={handleAddChange} placeholder="e.g. 50000" style={fieldInput(false)} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
                   <label style={fieldLabel}>Description / Notes</label>
-                  <textarea name="description" value={formData.description} onChange={handleAddChange} rows={3} placeholder="Any additional notes…" style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                  <textarea name="description" value={formData.description} onChange={handleAddChange} rows={2} placeholder="Any additional notes…" style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
                 </div>
               </div>
 
@@ -1078,12 +1091,16 @@ const ServicePage = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 28 }}>
                 <div>
-                  <label style={fieldLabel}>Next Service Due</label>
+                  <label style={fieldLabel}>Next Service Due (Date)</label>
                   <input type="date" name="nextServiceDue" value={editFormData.nextServiceDue} onChange={handleEditChange} style={fieldInput(false)} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
                 </div>
                 <div>
+                  <label style={fieldLabel}>Next Service Due (Mileage)</label>
+                  <input type="number" name="nextServiceMileageKm" value={editFormData.nextServiceMileageKm} onChange={handleEditChange} placeholder="e.g. 50000" style={fieldInput(false)} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
                   <label style={fieldLabel}>Description / Notes</label>
-                  <textarea name="description" value={editFormData.description} onChange={handleEditChange} rows={3} placeholder="Any additional notes…" style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                  <textarea name="description" value={editFormData.description} onChange={handleEditChange} rows={2} placeholder="Any additional notes…" style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
                 </div>
               </div>
 
