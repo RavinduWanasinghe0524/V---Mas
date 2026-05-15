@@ -43,7 +43,7 @@ public class SchemaMigrationConfig {
     private void dropLegacyVehicleIdColumn() {
         try {
             // Check if the stale column still exists before attempting to drop it
-            int count = jdbcTemplate.queryForObject(
+            Integer count = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM information_schema.COLUMNS " +
                     "WHERE TABLE_SCHEMA = DATABASE() " +
                     "  AND TABLE_NAME   = 'service_records' " +

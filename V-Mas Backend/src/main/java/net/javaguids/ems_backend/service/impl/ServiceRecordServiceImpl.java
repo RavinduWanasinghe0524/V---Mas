@@ -12,10 +12,19 @@ import net.javaguids.ems_backend.repository.ServiceRecordRepository;
 import net.javaguids.ems_backend.service.ServiceRecordService;
 import net.javaguids.ems_backend.service.NotificationService;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,6 +39,13 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
         validateServiceTypeDetail(dto.getServiceType(), dto.getServiceTypeDetail());
 
         ServiceRecord record = ServiceRecordMapper.mapToServiceRecord(dto);
+
+        // Auto-set the creator from the currently authenticated user
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated()) {
+            record.setCreatedBy(auth.getName());
+        }
+
         ServiceRecord saved = serviceRecordRepository.save(java.util.Objects.requireNonNull(record));
         return ServiceRecordMapper.mapToServiceRecordDto(saved);
     }
@@ -130,6 +146,36 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
                 && (serviceTypeDetail == null || serviceTypeDetail.isBlank())) {
             throw new RuntimeException(
                     "Service type detail is required when service type is 'OTHER'.");
+        }
+    }
+
+    /**
+     * Stores the uploaded bill attachment file to disk and persists the path on the record.
+     * Files are saved under uploads/service-attachments/{recordId}/{uuid}_{originalFilename}
+     */
+    @Override
+    public ServiceRecordDto uploadAttachment(Long id, MultipartFile file) {
+        ServiceRecord record = serviceRecordRepository.findById(java.util.Objects.requireNonNull(id))
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Service record not found with id: " + id));
+
+        try {
+            // Build a stable directory per record
+            String uploadDir = "uploads/service-attachments/" + id;
+            Path uploadPath = Paths.get(uploadDir);
+            Files.createDirectories(uploadPath);
+
+            // Use a UUID prefix to avoid filename collisions
+            String filename = UUID.randomUUID() + "_" + file.getOriginalFilename();
+            Path filePath = uploadPath.resolve(filename);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            record.setAttachmentPath(uploadDir + "/" + filename);
+            ServiceRecord updated = serviceRecordRepository.save(record);
+            return ServiceRecordMapper.mapToServiceRecordDto(updated);
+
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store attachment: " + e.getMessage(), e);
         }
     }
 

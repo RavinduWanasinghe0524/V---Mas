@@ -2,6 +2,7 @@ package net.javaguids.ems_backend.service;
 
 import net.javaguids.ems_backend.dto.ServiceFilterRequest;
 import net.javaguids.ems_backend.dto.ServiceRecordDto;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -26,4 +27,7 @@ public interface ServiceRecordService {
     List<ServiceRecordDto> getUpcomingServices();
 
     List<ServiceRecordDto> getRecentServices();
+
+    /** Saves a bill attachment file for the given service record */
+    ServiceRecordDto uploadAttachment(Long id, MultipartFile file);
 }
