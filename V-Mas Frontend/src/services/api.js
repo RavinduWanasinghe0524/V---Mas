@@ -117,6 +117,13 @@ export const serviceAPI = {
   getServiceStats:      ()               => api.get('/services/stats'),
   getUpcomingServices:  ()               => api.get('/services/upcoming'),
   getRecentServices:    ()               => api.get('/services/recent'),
+  uploadAttachment:     (id, file)       => {
+    const form = new FormData()
+    form.append('file', file)
+    return api.post(`/services/${id}/attachment`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }
 
 export const notificationAPI = {

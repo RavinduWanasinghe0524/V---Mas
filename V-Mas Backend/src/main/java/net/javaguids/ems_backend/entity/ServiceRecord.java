@@ -59,6 +59,14 @@ public class ServiceRecord {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
+    /** Username of the person who created this record — auto-set by the service layer */
+    @Column(name = "created_by", length = 100, updatable = false)
+    private String createdBy;
+
+    /** Optional — stored file path / URL of the uploaded bill attachment */
+    @Column(name = "attachment_path", length = 500)
+    private String attachmentPath;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

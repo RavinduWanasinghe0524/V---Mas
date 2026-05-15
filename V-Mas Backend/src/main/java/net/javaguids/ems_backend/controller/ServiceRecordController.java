@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import net.javaguids.ems_backend.dto.ServiceRecordStatsDto;
 
 import java.util.List;
@@ -99,5 +100,15 @@ public class ServiceRecordController {
     public ResponseEntity<ApiResponse<List<ServiceRecordDto>>> getRecentServices() {
         List<ServiceRecordDto> records = serviceRecordService.getRecentServices();
         return ApiResponseUtil.success("Recent services fetched successfully", records, HttpStatus.OK);
+    }
+
+    // POST /api/services/{id}/attachment — Upload a bill or document for a service record
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @PostMapping(value = "/{id}/attachment", consumes = "multipart/form-data")
+    public ResponseEntity<ApiResponse<ServiceRecordDto>> uploadAttachment(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+        ServiceRecordDto updated = serviceRecordService.uploadAttachment(id, file);
+        return ApiResponseUtil.success("Attachment uploaded successfully", updated, HttpStatus.OK);
     }
 }

@@ -5,7 +5,7 @@ import Topbar from '../components/Topbar'
 import { serviceAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
-import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle } from 'lucide-react'
+import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle, Paperclip, User, Eye } from 'lucide-react'
 
 const SERVICE_TYPES = [
   { value: 'OIL_CHANGE', label: 'Oil Change' },
@@ -71,7 +71,7 @@ const ProgressBar = ({ value, max, color, D }) => {
 }
 
 /* ── Service List Card (Old Style) ──────────────────────────────── */
-const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete, D }) => {
+const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete, onView, D }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
@@ -81,6 +81,7 @@ const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete, D }) => {
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onClick={() => onView(record)}
       style={{
         background: hovered ? D.surfaceHi : D.surface,
         border: `1px solid ${hovered ? D.borderHi : D.border}`,
@@ -90,7 +91,7 @@ const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete, D }) => {
         alignItems: 'center',
         gap: 18,
         transition: 'all 0.2s ease',
-        cursor: 'default',
+        cursor: 'pointer',
         transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
         boxShadow: hovered ? '0 8px 32px rgba(0,0,0,0.12)' : 'none',
         animation: `fadeUp 0.3s ease ${index * 0.05}s both`,
@@ -147,6 +148,23 @@ const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete, D }) => {
               <Wrench size={14} /> {record.technicianWorkshop}
             </span>
           )}
+          {/* ── Who added + when ── */}
+          {record.createdBy && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', color: D.textSub }}>
+              <User size={12} /> {record.createdBy}
+            </span>
+          )}
+          {record.createdAt && (
+            <span style={{ fontSize: '0.72rem', color: D.textSub }}>
+              {new Date(record.createdAt).toLocaleDateString()}
+            </span>
+          )}
+          {/* ── Attachment chip ── */}
+          {record.attachmentPath && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)' }}>
+              <Paperclip size={11} /> Bill attached
+            </span>
+          )}
         </div>
 
         {record.description && (
@@ -168,11 +186,11 @@ const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete, D }) => {
         )}
       </div>
 
-      {/* Actions */}
+      {/* Actions — stop propagation so clicking buttons doesn't also open the detail modal */}
       {!isDriver && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
           <button
-            onClick={() => onEdit(record.id)}
+            onClick={e => { e.stopPropagation(); onEdit(record.id) }}
             style={{
               padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 600,
               background: D.indigoDim, color: D.indigo,
@@ -185,7 +203,7 @@ const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete, D }) => {
             <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Edit2 size={12} /> Edit</span>
           </button>
           <button
-            onClick={() => onDelete(record.id)}
+            onClick={e => { e.stopPropagation(); onDelete(record.id) }}
             style={{
               padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 600,
               background: D.redDim, color: D.red,
@@ -204,7 +222,7 @@ const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete, D }) => {
 }
 
 /* ── Service Grid Card (New Style) ──────────────────────────────── */
-const ServiceGridCard = ({ record, index, isDriver, onEdit, onDelete, D }) => {
+const ServiceGridCard = ({ record, index, isDriver, onEdit, onDelete, onView, D }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
@@ -213,6 +231,7 @@ const ServiceGridCard = ({ record, index, isDriver, onEdit, onDelete, D }) => {
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onClick={() => onView(record)}
       style={{
         background: D.surface,
         border: `1px solid ${hovered ? D.borderHi : D.border}`,
@@ -224,6 +243,7 @@ const ServiceGridCard = ({ record, index, isDriver, onEdit, onDelete, D }) => {
         transition: 'all 0.2s ease',
         animation: `fadeUp 0.3s ease ${index * 0.05}s both`,
         boxShadow: hovered ? '0 8px 24px rgba(0,0,0,0.1)' : 'none',
+        cursor: 'pointer',
       }}
     >
       {/* Header */}
@@ -286,11 +306,30 @@ const ServiceGridCard = ({ record, index, isDriver, onEdit, onDelete, D }) => {
         </div>
       </div>
 
-      {/* Actions */}
+      {/* ── Created by / at + attachment ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', paddingTop: 8, borderTop: `1px solid ${D.border}` }}>
+        {record.createdBy && (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', color: D.textSub }}>
+            <User size={11} /> {record.createdBy}
+          </span>
+        )}
+        {record.createdAt && (
+          <span style={{ fontSize: '0.7rem', color: D.textSub }}>
+            · {new Date(record.createdAt).toLocaleDateString()}
+          </span>
+        )}
+        {record.attachmentPath && (
+          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)' }}>
+            <Paperclip size={11} /> Bill attached
+          </span>
+        )}
+      </div>
+
+      {/* Actions — stop propagation so clicking buttons doesn't also open the detail modal */}
       {!isDriver && (
         <div style={{ display: 'flex', gap: 8, marginTop: 12, borderTop: `1px solid ${D.border}`, paddingTop: 12 }}>
           <button
-            onClick={() => onEdit(record.id)}
+            onClick={e => { e.stopPropagation(); onEdit(record.id) }}
             style={{
               flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600,
               background: D.indigoDim, color: D.indigo, border: `1px solid ${D.borderHi}`, cursor: 'pointer', transition: 'all 0.15s'
@@ -301,7 +340,7 @@ const ServiceGridCard = ({ record, index, isDriver, onEdit, onDelete, D }) => {
             Edit
           </button>
           <button
-            onClick={() => onDelete(record.id)}
+            onClick={e => { e.stopPropagation(); onDelete(record.id) }}
             style={{
               flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600,
               background: D.redDim, color: D.red, border: `1px solid rgba(239,68,68,0.2)`, cursor: 'pointer', transition: 'all 0.15s'
@@ -413,6 +452,7 @@ const ServicePage = () => {
   const [viewMode, setViewMode] = useState('grid')
 
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null })
+  const [detailModal, setDetailModal] = useState({ isOpen: false, record: null })
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -423,6 +463,9 @@ const ServicePage = () => {
   const [editFormData, setEditFormData] = useState(initialForm)
   const [formLoading, setFormLoading] = useState(false)
   const [toastMessage, setToastMessage] = useState(null)
+  // Attachment file state
+  const [addAttachmentFile, setAddAttachmentFile] = useState(null)
+  const [editAttachmentFile, setEditAttachmentFile] = useState(null)
 
   const showToast = (msg, type) => {
     setToastMessage({ msg, type })
@@ -430,13 +473,13 @@ const ServicePage = () => {
   }
 
   useEffect(() => {
-    if (isAddModalOpen || isEditModalOpen || deleteModal.isOpen) {
+    if (isAddModalOpen || isEditModalOpen || deleteModal.isOpen || detailModal.isOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
     }
     return () => { document.body.style.overflow = '' }
-  }, [isAddModalOpen, isEditModalOpen, deleteModal.isOpen])
+  }, [isAddModalOpen, isEditModalOpen, deleteModal.isOpen, detailModal.isOpen])
 
   const validate = (data) => {
     const e = {}
@@ -455,6 +498,7 @@ const ServicePage = () => {
     setFormData(initialForm)
     setErrors({})
     setSubmitError(null)
+    setAddAttachmentFile(null)
     setIsAddModalOpen(true)
   }
   const closeAddModal = () => setIsAddModalOpen(false)
@@ -476,7 +520,16 @@ const ServicePage = () => {
         ...formData,
         nextServiceMileageKm: formData.nextServiceMileageKm ? Number(formData.nextServiceMileageKm) : null
       }
-      await serviceAPI.createService(payload)
+      const res = await serviceAPI.createService(payload)
+      // If a file was selected, upload it immediately after record creation
+      if (addAttachmentFile && res.data?.data?.id) {
+        try {
+          await serviceAPI.uploadAttachment(res.data.data.id, addAttachmentFile)
+        } catch {
+          // Non-fatal — record is saved, just the attachment failed
+          showToast('Record saved but attachment upload failed.', 'error')
+        }
+      }
       setIsAddModalOpen(false)
       loadData()
     } catch (err) {
@@ -504,6 +557,7 @@ const ServicePage = () => {
     })
     setErrors({})
     setSubmitError(null)
+    setEditAttachmentFile(null)
     setIsEditModalOpen(true)
   }
   const closeEditModal = () => setIsEditModalOpen(false)
@@ -526,6 +580,14 @@ const ServicePage = () => {
         nextServiceMileageKm: editFormData.nextServiceMileageKm ? Number(editFormData.nextServiceMileageKm) : null
       }
       await serviceAPI.updateService(editingServiceId, payload)
+      // Upload new attachment if selected
+      if (editAttachmentFile) {
+        try {
+          await serviceAPI.uploadAttachment(editingServiceId, editAttachmentFile)
+        } catch {
+          showToast('Record saved but attachment upload failed.', 'error')
+        }
+      }
       setIsEditModalOpen(false)
       loadData()
     } catch (err) {
@@ -875,6 +937,7 @@ const ServicePage = () => {
                   isDriver={isDriver}
                   onEdit={openEditModal}
                   onDelete={confirmDelete}
+                  onView={r => setDetailModal({ isOpen: true, record: r })}
                   D={D}
                 />
               ))
@@ -887,6 +950,7 @@ const ServicePage = () => {
                   isDriver={isDriver}
                   onEdit={openEditModal}
                   onDelete={confirmDelete}
+                  onView={r => setDetailModal({ isOpen: true, record: r })}
                   D={D}
                 />
               ))
@@ -902,6 +966,134 @@ const ServicePage = () => {
 
         </div>
       </div>
+
+      {/* ── Detail Modal ───────────────────────────────────────────── */}
+      {detailModal.isOpen && detailModal.record && (() => {
+        const r = detailModal.record
+        const status = getStatus(r)
+        const sc = STATUS_CONFIG[status]
+        const icon = SERVICE_TYPE_ICONS[r.serviceType] || <Wrench size={24} />
+        const closeDetail = () => setDetailModal({ isOpen: false, record: null })
+        return (
+          <div
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease', padding: '16px' }}
+            onClick={closeDetail}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{ background: D.surface, borderRadius: 20, width: '100%', maxWidth: 660, boxShadow: '0 28px 70px rgba(0,0,0,0.5)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+            >
+              {/* Header — indigo gradient */}
+              <div style={{ background: 'linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#4338ca 100%)', padding: '22px 28px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 14, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+                    {icon}
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#fff', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                        {r.serviceType?.replace(/_/g, ' ') || 'Service'}
+                      </h2>
+                      <span style={{ padding: '3px 10px', borderRadius: 999, fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
+                        {sc.label}
+                      </span>
+                    </div>
+                    <div style={{ color: '#a5b4fc', fontSize: '0.85rem', marginTop: 4 }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Car size={13} /> {r.vehicleRegNumber || '—'}</span>
+                      {r.serviceTypeDetail && <span style={{ marginLeft: 10, opacity: 0.8 }}>· {r.serviceTypeDetail}</span>}
+                    </div>
+                  </div>
+                </div>
+                <button onClick={closeDetail} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, cursor: 'pointer', color: '#fff', padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div style={{ padding: '24px 28px', overflowY: 'auto', flex: 1 }}>
+                {/* Service Details */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Service Details</span>
+                  <div style={{ flex: 1, height: 1, background: D.border }} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px 24px', marginBottom: 24 }}>
+                  {[
+                    ['Service Date', r.serviceDate ? new Date(r.serviceDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null],
+                    ['Current Mileage', r.currentMileageKm ? `${Number(r.currentMileageKm).toLocaleString()} km` : null],
+                    ['Service Cost', r.serviceCost ? `Rs. ${Number(r.serviceCost).toLocaleString()}` : null],
+                    ['Technician / Workshop', r.technicianWorkshop],
+                    r.nextServiceDue ? ['Next Service Due', new Date(r.nextServiceDue).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })] : null,
+                    r.nextServiceMileageKm ? ['Next Service Mileage', `${Number(r.nextServiceMileageKm).toLocaleString()} km`] : null,
+                  ].filter(Boolean).map(([label, value]) => (
+                    <div key={label}>
+                      <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: D.textSub, marginBottom: 4 }}>{label}</div>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 600, color: value ? D.text : D.textSub }}>{value || '—'}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Description */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Description</span>
+                  <div style={{ flex: 1, height: 1, background: D.border }} />
+                </div>
+                <p style={{ margin: '0 0 24px', fontSize: '0.88rem', color: r.description ? D.text : D.textSub, lineHeight: 1.6, fontStyle: r.description ? 'normal' : 'italic', background: D.surfaceHi, padding: '12px 16px', borderRadius: 10, border: `1px solid ${D.border}` }}>
+                  {r.description || 'No description provided.'}
+                </p>
+
+                {/* Record Info */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Record Info</span>
+                  <div style={{ flex: 1, height: 1, background: D.border }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+                  {r.createdBy && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: D.textSub }}>
+                      <User size={14} /> Added by <strong style={{ color: D.text, marginLeft: 3 }}>{r.createdBy}</strong>
+                    </span>
+                  )}
+                  {r.createdAt && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: D.textSub }}>
+                      <Calendar size={14} /> {new Date(r.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
+                  {r.attachmentPath && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: '#10b981', background: 'rgba(16,185,129,0.08)', padding: '4px 12px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)' }}>
+                      <Paperclip size={14} /> Bill Attached
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div style={{ padding: '16px 28px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 10, background: D.surfaceHi, flexShrink: 0 }}>
+                {!isDriver && (
+                  <>
+                    <button
+                      onClick={() => { closeDetail(); openEditModal(r.id) }}
+                      style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(99,102,241,0.35)' }}
+                    >
+                      <Edit2 size={15} /> Edit Record
+                    </button>
+                    <button
+                      onClick={() => { closeDetail(); confirmDelete(r.id) }}
+                      style={{ flex: 0.6, padding: '10px 0', borderRadius: 10, border: `1px solid rgba(239,68,68,0.3)`, background: D.redDim, color: D.red, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
+                    >
+                      <Trash2 size={15} /> Delete
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={closeDetail}
+                  style={{ flex: 0.5, padding: '10px 0', borderRadius: 10, border: `1px solid ${D.border}`, background: 'transparent', color: D.textSub, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700 }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── Add Modal ──────────────────────────────────────────────── */}
       {isAddModalOpen && (
@@ -994,6 +1186,34 @@ const ServicePage = () => {
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={fieldLabel}>Description / Notes</label>
                   <textarea name="description" value={formData.description} onChange={handleAddChange} rows={2} placeholder="Any additional notes…" style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                </div>
+                {/* ── Bill Attachment (optional) ── */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={fieldLabel}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Paperclip size={13} /> Bill / Receipt Attachment <span style={{ color: D.textSub, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
+                    </span>
+                  </label>
+                  <label style={{
+                    display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+                    border: `1.5px dashed ${addAttachmentFile ? '#10b981' : D.inputBorder}`,
+                    borderRadius: 8, padding: '10px 14px',
+                    background: addAttachmentFile ? 'rgba(16,185,129,0.06)' : D.inputBg,
+                    transition: 'all 0.15s',
+                  }}>
+                    <Paperclip size={16} color={addAttachmentFile ? '#10b981' : D.textSub} />
+                    <span style={{ fontSize: '0.82rem', color: addAttachmentFile ? '#10b981' : D.textSub, flex: 1 }}>
+                      {addAttachmentFile ? addAttachmentFile.name : 'Click to attach a bill, invoice or photo (PDF, JPG, PNG — max 10MB)'}
+                    </span>
+                    {addAttachmentFile && (
+                      <button type="button" onClick={e => { e.preventDefault(); setAddAttachmentFile(null) }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, padding: 0, display: 'flex', alignItems: 'center' }}>
+                        <X size={15} />
+                      </button>
+                    )}
+                    <input type="file" accept="image/*,.pdf" style={{ display: 'none' }}
+                      onChange={e => setAddAttachmentFile(e.target.files[0] || null)} />
+                  </label>
                 </div>
               </div>
 
@@ -1101,6 +1321,34 @@ const ServicePage = () => {
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={fieldLabel}>Description / Notes</label>
                   <textarea name="description" value={editFormData.description} onChange={handleEditChange} rows={2} placeholder="Any additional notes…" style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                </div>
+                {/* ── Bill Attachment (optional) ── */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={fieldLabel}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Paperclip size={13} /> Bill / Receipt Attachment <span style={{ color: D.textSub, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
+                    </span>
+                  </label>
+                  <label style={{
+                    display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+                    border: `1.5px dashed ${editAttachmentFile ? '#10b981' : D.inputBorder}`,
+                    borderRadius: 8, padding: '10px 14px',
+                    background: editAttachmentFile ? 'rgba(16,185,129,0.06)' : D.inputBg,
+                    transition: 'all 0.15s',
+                  }}>
+                    <Paperclip size={16} color={editAttachmentFile ? '#10b981' : D.textSub} />
+                    <span style={{ fontSize: '0.82rem', color: editAttachmentFile ? '#10b981' : D.textSub, flex: 1 }}>
+                      {editAttachmentFile ? editAttachmentFile.name : 'Click to replace or add a bill, invoice or photo (PDF, JPG, PNG — max 10MB)'}
+                    </span>
+                    {editAttachmentFile && (
+                      <button type="button" onClick={e => { e.preventDefault(); setEditAttachmentFile(null) }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, padding: 0, display: 'flex', alignItems: 'center' }}>
+                        <X size={15} />
+                      </button>
+                    )}
+                    <input type="file" accept="image/*,.pdf" style={{ display: 'none' }}
+                      onChange={e => setEditAttachmentFile(e.target.files[0] || null)} />
+                  </label>
                 </div>
               </div>
 
