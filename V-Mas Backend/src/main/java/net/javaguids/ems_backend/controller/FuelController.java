@@ -205,4 +205,19 @@ public class FuelController {
         FuelLogDto fuelLog = fuelService.getFuelLogById(id);
         return ApiResponseUtil.success("Fuel log retrieved successfully", fuelLog, HttpStatus.OK);
     }
+
+    /**
+     * GET /api/fuel/efficiency
+     * Returns a full fuel-efficiency report for all vehicles.
+     * Includes per-vehicle, per-fill-up km/L data and fleet-wide summary stats.
+     * Accessible by CONTROLLER and ADMIN roles.
+     */
+    @PreAuthorize("hasAnyRole('CONTROLLER', 'ADMIN')")
+    @GetMapping("/efficiency")
+    public ResponseEntity<ApiResponse<FuelEfficiencyDto>> getFuelEfficiencyReport() {
+        log.info("GET /api/fuel/efficiency - Generating fuel efficiency report");
+        FuelEfficiencyDto report = fuelService.getFuelEfficiencyReport();
+        return ApiResponseUtil.success("Fuel efficiency report generated successfully", report, HttpStatus.OK);
+    }
 }
+

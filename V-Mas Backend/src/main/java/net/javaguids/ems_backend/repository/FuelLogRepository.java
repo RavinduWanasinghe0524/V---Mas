@@ -25,6 +25,21 @@ public interface FuelLogRepository extends JpaRepository<FuelLog, Long> {
     @Query("SELECT DISTINCT f.vehicleRegNumber FROM FuelLog f")
     List<String> findAllDistinctVehicleRegNumbers();
 
+    /**
+     * All non-deleted fuel logs for a vehicle, oldest-first (ascending).
+     * Used for sequential km/L efficiency calculation across fill-ups.
+     */
+    @Query("SELECT f FROM FuelLog f WHERE f.vehicleRegNumber = :vehicleRegNumber " +
+           "AND (f.isDeleted = false OR f.isDeleted IS NULL) " +
+           "ORDER BY f.date ASC, f.id ASC")
+    List<FuelLog> findByVehicleRegNumberOrderByDateAscIdAsc(@Param("vehicleRegNumber") String vehicleRegNumber);
+
+    /**
+     * Distinct vehicle reg numbers that have at least one non-deleted log.
+     */
+    @Query("SELECT DISTINCT f.vehicleRegNumber FROM FuelLog f WHERE f.isDeleted = false OR f.isDeleted IS NULL")
+    List<String> findAllDistinctActiveVehicleRegNumbers();
+
     @Query("SELECT MONTH(f.date) as month, f.fuelType, SUM(f.liters) as totalLiters " +
            "FROM FuelLog f WHERE YEAR(f.date) = :year AND (f.isDeleted = false OR f.isDeleted IS NULL) " +
            "GROUP BY MONTH(f.date), f.fuelType " +
