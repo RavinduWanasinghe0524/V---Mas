@@ -232,9 +232,10 @@ public class FuelServiceImpl implements FuelService {
 
     @Override
     public List<FuelLogDto> getAllFuelLogs() {
-        log.info("Controller fetching all fuel logs (including soft-deleted)");
+        log.info("Controller fetching all active fuel logs");
         return fuelLogRepository.findAll()
                 .stream()
+                .filter(f -> f.getIsDeleted() == null || !f.getIsDeleted())
                 .sorted(Comparator.comparing(FuelLog::getDate).reversed())
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
@@ -322,6 +323,28 @@ public class FuelServiceImpl implements FuelService {
         fuelLog.setDeletedAt(LocalDateTime.now());
         fuelLogRepository.save(fuelLog);
         log.info("Fuel log {} soft-deleted by controller", id);
+    }
+
+    @Override
+    @Transactional
+    public FuelLogDto restoreFuelLog(Long id) {
+        log.info("Controller restoring fuel log id: {}", id);
+        FuelLog fuelLog = fuelLogRepository.findById(java.util.Objects.requireNonNull(id))
+                .orElseThrow(() -> new ResourceNotFoundException("FuelLog not found with id: " + id));
+        fuelLog.setIsDeleted(false);
+        fuelLog.setDeletedAt(null);
+        FuelLog restored = fuelLogRepository.save(fuelLog);
+        log.info("Fuel log {} restored successfully", id);
+        return mapToDto(restored);
+    }
+
+    @Override
+    public List<FuelLogDto> getDeletedFuelLogs() {
+        log.info("Fetching all soft-deleted fuel logs");
+        return fuelLogRepository.findAllDeleted()
+                .stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
 
     // ==================== EFFICIENCY REPORT ====================
