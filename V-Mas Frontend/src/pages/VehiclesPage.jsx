@@ -76,7 +76,9 @@ const VehiclesPage = () => {
     year: '',
     fuelType: '',
     driverId: '',
-    currentMileageKm: ''
+    currentMileageKm: '',
+    insuranceExpiryDate: '',
+    licenseExpiryDate: ''
   })
   const [editFormData, setEditFormData] = useState({
     model: '',
@@ -85,7 +87,9 @@ const VehiclesPage = () => {
     year: '',
     fuelType: '',
     driverId: '',
-    currentMileageKm: ''
+    currentMileageKm: '',
+    insuranceExpiryDate: '',
+    licenseExpiryDate: ''
   })
 
   useEffect(() => {
@@ -137,7 +141,9 @@ const VehiclesPage = () => {
       year: '',
       fuelType: '',
       driverId: '',
-      currentMileageKm: ''
+      currentMileageKm: '',
+      insuranceExpiryDate: '',
+      licenseExpiryDate: ''
     })
   }
 
@@ -150,6 +156,8 @@ const VehiclesPage = () => {
         ...rest,
         year: rest.year ? Number(rest.year) : undefined,
         currentMileageKm: rest.currentMileageKm ? Number(rest.currentMileageKm) : undefined,
+        insuranceExpiryDate: rest.insuranceExpiryDate || null,
+        licenseExpiryDate: rest.licenseExpiryDate || null,
       }
       const saveRes = await vehicleAPI.registerVehicle(vehiclePayload)
       const saved = saveRes.data.data
@@ -179,7 +187,9 @@ const VehiclesPage = () => {
       year: vehicle.year || '',
       fuelType: vehicle.fuelType?.toUpperCase() || '',
       driverId: vehicle.driverId || '',
-      currentMileageKm: vehicle.currentMileageKm || ''
+      currentMileageKm: vehicle.currentMileageKm || '',
+      insuranceExpiryDate: vehicle.insuranceExpiryDate || '',
+      licenseExpiryDate: vehicle.licenseExpiryDate || ''
     })
     setIsEditModalOpen(true)
   }
@@ -194,7 +204,9 @@ const VehiclesPage = () => {
       year: '',
       fuelType: '',
       driverId: '',
-      currentMileageKm: ''
+      currentMileageKm: '',
+      insuranceExpiryDate: '',
+      licenseExpiryDate: ''
     })
   }
 
@@ -211,7 +223,9 @@ const VehiclesPage = () => {
         manufacturer: editFormData.manufacturer,
         year: editFormData.year,
         fuelType: editFormData.fuelType.toUpperCase(),
-        currentMileageKm: editFormData.currentMileageKm
+        currentMileageKm: editFormData.currentMileageKm,
+        insuranceExpiryDate: editFormData.insuranceExpiryDate || null,
+        licenseExpiryDate: editFormData.licenseExpiryDate || null
       })
       // Assign / re-assign driver if changed
       if (editFormData.driverId) {
@@ -556,6 +570,14 @@ const VehiclesPage = () => {
                       {drivers.map(d => <option key={d.id} value={d.id} style={{ background: D.surfaceHi }}>{d.userName}</option>)}
                     </select>
                   </div>
+                  <div>
+                    <label style={labelStyle}>Insurance Expiry</label>
+                    <input type="date" name="insuranceExpiryDate" value={formData.insuranceExpiryDate} onChange={handleChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>License Expiry</label>
+                    <input type="date" name="licenseExpiryDate" value={formData.licenseExpiryDate} onChange={handleChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                  </div>
                 </div>
                 {addError && (
                   <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 8, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', color: D.red, fontSize: '0.83rem', fontWeight: 600 }}>
@@ -630,6 +652,14 @@ const VehiclesPage = () => {
                       <option value="" style={{ background: D.surfaceHi }}>Unassigned</option>
                       {drivers.map(d => <option key={d.id} value={d.id} style={{ background: D.surfaceHi }}>{d.userName}</option>)}
                     </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Insurance Expiry</label>
+                    <input type="date" name="insuranceExpiryDate" value={editFormData.insuranceExpiryDate} onChange={handleEditChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>License Expiry</label>
+                    <input type="date" name="licenseExpiryDate" value={editFormData.licenseExpiryDate} onChange={handleEditChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 12 }}>

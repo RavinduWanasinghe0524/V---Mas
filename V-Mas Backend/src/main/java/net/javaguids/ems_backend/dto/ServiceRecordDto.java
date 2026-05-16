@@ -31,7 +31,16 @@ public class ServiceRecordDto {
     private String technicianWorkshop;
 
     private LocalDate nextServiceDue;   // optional
+    private Integer nextServiceMileageKm; // optional
     private String description;         // optional
+    private String attachmentPath;      // optional — path/URL of bill attachment
 
+    /** Auto-populated by backend — username of whoever created this record */
+    private String createdBy;
     private LocalDateTime createdAt;
+
+    // ── Soft-delete fields ────────────────────────────────────────────────
+    private boolean deleted;
+    private String deletedBy;
+    private LocalDateTime deletedAt;
 }

@@ -23,7 +23,9 @@ public class VehicleMapper {
                 driver != null ? driver.getId() : 0,
                 driver != null ? driver.getUserName() : "Not Assigned",
                 vehicle.getStatus(),
-                vehicle.getFuelType()
+                vehicle.getFuelType(),
+                vehicle.getInsuranceExpiryDate(),
+                vehicle.getLicenseExpiryDate()
         );
     }
 
@@ -41,6 +43,8 @@ public class VehicleMapper {
         vehicle.setChassisNo(dto.getChassisNumber());
         vehicle.setStatus(dto.getStatus());
         vehicle.setFuelType(dto.getFuelType());
+        vehicle.setInsuranceExpiryDate(dto.getInsuranceExpiryDate());
+        vehicle.setLicenseExpiryDate(dto.getLicenseExpiryDate());
         return vehicle;
     }
 }

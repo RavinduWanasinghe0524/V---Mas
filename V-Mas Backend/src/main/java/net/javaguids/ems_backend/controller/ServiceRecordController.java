@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import net.javaguids.ems_backend.dto.ServiceRecordAuditDto;
 import net.javaguids.ems_backend.dto.ServiceRecordStatsDto;
 
 import java.util.List;
@@ -99,5 +101,38 @@ public class ServiceRecordController {
     public ResponseEntity<ApiResponse<List<ServiceRecordDto>>> getRecentServices() {
         List<ServiceRecordDto> records = serviceRecordService.getRecentServices();
         return ApiResponseUtil.success("Recent services fetched successfully", records, HttpStatus.OK);
+    }
+
+    // POST /api/services/{id}/attachment — Upload a bill or document for a service record
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @PostMapping(value = "/{id}/attachment", consumes = "multipart/form-data")
+    public ResponseEntity<ApiResponse<ServiceRecordDto>> uploadAttachment(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+        ServiceRecordDto updated = serviceRecordService.uploadAttachment(id, file);
+        return ApiResponseUtil.success("Attachment uploaded successfully", updated, HttpStatus.OK);
+    }
+
+    // GET /api/services/deleted — Get all soft-deleted service records (Admin & Controller only)
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @GetMapping("/deleted")
+    public ResponseEntity<ApiResponse<List<ServiceRecordDto>>> getDeletedServiceRecords() {
+        List<ServiceRecordDto> records = serviceRecordService.getDeletedServiceRecords();
+        return ApiResponseUtil.success("Deleted service records fetched successfully", records, HttpStatus.OK);
+    }
+
+    // PATCH /api/services/{id}/restore — Restore a soft-deleted record back to active (Admin & Controller only)
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @PatchMapping("/{id}/restore")
+    public ResponseEntity<ApiResponse<ServiceRecordDto>> restoreServiceRecord(@PathVariable Long id) {
+        ServiceRecordDto restored = serviceRecordService.restoreServiceRecord(id);
+        return ApiResponseUtil.success("Service record restored successfully", restored, HttpStatus.OK);
+    }
+
+    // GET /api/services/{id}/history — Get the full edit audit trail for a service record
+    @GetMapping("/{id}/history")
+    public ResponseEntity<ApiResponse<List<ServiceRecordAuditDto>>> getServiceHistory(@PathVariable Long id) {
+        List<ServiceRecordAuditDto> history = serviceRecordService.getServiceHistory(id);
+        return ApiResponseUtil.success("Service record history fetched successfully", history, HttpStatus.OK);
     }
 }

@@ -4,7 +4,7 @@ import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { fuelAPI, vehicleAPI } from '../services/api'
-import { addDriverNotification } from '../components/Topbar'
+import { addDriverNotification } from '../services/notificationService'
 import { Fuel, CircleDollarSign, BarChart2, Car, Check, X, Plus, Loader2 } from 'lucide-react'
 
 

@@ -51,11 +51,37 @@ public class ServiceRecord {
     @Column(name = "next_service_due")
     private LocalDate nextServiceDue;
 
+    /** Optional — next scheduled service mileage */
+    @Column(name = "next_service_mileage_km")
+    private Integer nextServiceMileageKm;
+
     /** Optional — additional notes */
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
+    /** Username of the person who created this record — auto-set by the service layer */
+    @Column(name = "created_by", length = 100, updatable = false)
+    private String createdBy;
+
+    /** Optional — stored file path / URL of the uploaded bill attachment */
+    @Column(name = "attachment_path", length = 500)
+    private String attachmentPath;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    // ── Soft-delete fields ────────────────────────────────────────────────
+
+    /** True when the record has been soft-deleted (not physically removed). */
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean deleted = false;
+
+    /** Username of the person who performed the soft-delete. */
+    @Column(name = "deleted_by", length = 100)
+    private String deletedBy;
+
+    /** Timestamp of when the soft-delete was performed. */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

@@ -16,8 +16,14 @@ public class ServiceRecordMapper {
         dto.setServiceCost(record.getServiceCost());
         dto.setTechnicianWorkshop(record.getTechnicianWorkshop());
         dto.setNextServiceDue(record.getNextServiceDue());
+        dto.setNextServiceMileageKm(record.getNextServiceMileageKm());
         dto.setDescription(record.getDescription());
+        dto.setCreatedBy(record.getCreatedBy());
+        dto.setAttachmentPath(record.getAttachmentPath());
         dto.setCreatedAt(record.getCreatedAt());
+        dto.setDeleted(record.isDeleted());
+        dto.setDeletedBy(record.getDeletedBy());
+        dto.setDeletedAt(record.getDeletedAt());
         return dto;
     }
 
@@ -31,7 +37,10 @@ public class ServiceRecordMapper {
         record.setServiceCost(dto.getServiceCost());
         record.setTechnicianWorkshop(dto.getTechnicianWorkshop());
         record.setNextServiceDue(dto.getNextServiceDue());
+        record.setNextServiceMileageKm(dto.getNextServiceMileageKm());
         record.setDescription(dto.getDescription());
+        // attachmentPath is managed separately via the upload endpoint
+        // createdBy is injected by the service layer, not from the DTO
         return record;
     }
 }
