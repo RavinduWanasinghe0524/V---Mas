@@ -1,13 +1,18 @@
 package net.javaguids.ems_backend.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.criteria.Predicate;
 import lombok.AllArgsConstructor;
 import net.javaguids.ems_backend.dto.ServiceFilterRequest;
+import net.javaguids.ems_backend.dto.ServiceRecordAuditDto;
 import net.javaguids.ems_backend.dto.ServiceRecordDto;
 import net.javaguids.ems_backend.entity.ServiceRecord;
+import net.javaguids.ems_backend.entity.ServiceRecordAudit;
 import net.javaguids.ems_backend.enums.ServiceType;
 import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.mapper.ServiceRecordMapper;
+import net.javaguids.ems_backend.repository.ServiceRecordAuditRepository;
 import net.javaguids.ems_backend.repository.ServiceRecordRepository;
 import net.javaguids.ems_backend.service.ServiceRecordService;
 import net.javaguids.ems_backend.service.NotificationService;
@@ -23,7 +28,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -32,7 +40,9 @@ import java.util.stream.Collectors;
 public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     private final ServiceRecordRepository serviceRecordRepository;
+    private final ServiceRecordAuditRepository auditRepository;
     private final NotificationService notificationService;
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Override
     public ServiceRecordDto createServiceRecord(ServiceRecordDto dto) {
@@ -60,8 +70,10 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     @Override
     public List<ServiceRecordDto> getAllServiceRecords() {
+        // Only return active (non-deleted) records
         return serviceRecordRepository.findAll()
                 .stream()
+                .filter(r -> !r.isDeleted())
                 .map(ServiceRecordMapper::mapToServiceRecordDto)
                 .collect(Collectors.toList());
     }
@@ -74,6 +86,31 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
 
         validateServiceTypeDetail(dto.getServiceType(), dto.getServiceTypeDetail());
 
+        // ── Build field-level diff before applying changes ──────────────────────────────
+        List<Map<String, String>> changes = new ArrayList<>();
+
+        auditField(changes, "Vehicle Reg. No.",
+                record.getVehicleRegNumber(), dto.getVehicleRegNumber());
+        auditField(changes, "Service Type",
+                enumLabel(record.getServiceType()), enumLabel(dto.getServiceType()));
+        auditField(changes, "Service Type Detail",
+                record.getServiceTypeDetail(), dto.getServiceTypeDetail());
+        auditField(changes, "Service Date",
+                str(record.getServiceDate()), str(dto.getServiceDate()));
+        auditField(changes, "Mileage (km)",
+                str(record.getCurrentMileageKm()), str(dto.getCurrentMileageKm()));
+        auditField(changes, "Service Cost (Rs.)",
+                str(record.getServiceCost()), str(dto.getServiceCost()));
+        auditField(changes, "Technician / Workshop",
+                record.getTechnicianWorkshop(), dto.getTechnicianWorkshop());
+        auditField(changes, "Next Service Due",
+                str(record.getNextServiceDue()), str(dto.getNextServiceDue()));
+        auditField(changes, "Next Service Mileage (km)",
+                str(record.getNextServiceMileageKm()), str(dto.getNextServiceMileageKm()));
+        auditField(changes, "Description",
+                record.getDescription(), dto.getDescription());
+
+        // Apply the updates to the record
         record.setVehicleRegNumber(dto.getVehicleRegNumber());
         record.setServiceType(dto.getServiceType());
         record.setServiceTypeDetail(dto.getServiceTypeDetail());
@@ -82,16 +119,34 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
         record.setServiceCost(dto.getServiceCost());
         record.setTechnicianWorkshop(dto.getTechnicianWorkshop());
         record.setNextServiceDue(dto.getNextServiceDue());
+        record.setNextServiceMileageKm(dto.getNextServiceMileageKm());
         record.setDescription(dto.getDescription());
 
         ServiceRecord updated = serviceRecordRepository.save(record);
-        
+
+        // ── Persist audit entry if anything actually changed ──────────────────────────────
+        if (!changes.isEmpty()) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String editor = (auth != null && auth.isAuthenticated()) ? auth.getName() : "unknown";
+            try {
+                ServiceRecordAudit audit = new ServiceRecordAudit();
+                audit.setServiceRecordId(id);
+                audit.setChangedBy(editor);
+                audit.setChangedAt(java.time.LocalDateTime.now());
+                audit.setChangedFields(OBJECT_MAPPER.writeValueAsString(changes));
+                auditRepository.save(audit);
+            } catch (JsonProcessingException e) {
+                // Non-fatal: log but do not fail the update
+                System.err.println("[ServiceRecord] Failed to serialize audit fields: " + e.getMessage());
+            }
+        }
+
         notificationService.createNotification(
                 "VEH-" + updated.getVehicleRegNumber(),
                 "Service record for vehicle " + updated.getVehicleRegNumber() + " was updated.",
                 "SERVICE_UPDATE"
         );
-        
+
         return ServiceRecordMapper.mapToServiceRecordDto(updated);
     }
 
@@ -100,13 +155,22 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
         ServiceRecord record = serviceRecordRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Service record not found with id: " + id));
-        serviceRecordRepository.delete(java.util.Objects.requireNonNull(record));
+
+        // Soft-delete: mark the record as deleted, capture who and when
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        record.setDeleted(true);
+        record.setDeletedBy(auth != null && auth.isAuthenticated() ? auth.getName() : "unknown");
+        record.setDeletedAt(java.time.LocalDateTime.now());
+        serviceRecordRepository.save(record);
     }
 
     @Override
     public List<ServiceRecordDto> filterServiceRecords(ServiceFilterRequest filter) {
         Specification<ServiceRecord> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+
+            // Always exclude soft-deleted records from filter results
+            predicates.add(cb.equal(root.get("deleted"), false));
 
             if (filter.getVehicleRegNumber() != null) {
                 predicates.add(cb.equal(root.get("vehicleRegNumber"), filter.getVehicleRegNumber()));
@@ -132,7 +196,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     @Override
     public List<ServiceRecordDto> getServiceRecordsByVehicle(String vehicleRegNumber) {
-        return serviceRecordRepository.findByVehicleRegNumber(vehicleRegNumber)
+        return serviceRecordRepository.findByVehicleRegNumberAndDeletedFalse(vehicleRegNumber)
                 .stream()
                 .map(ServiceRecordMapper::mapToServiceRecordDto)
                 .collect(Collectors.toList());
@@ -204,7 +268,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
     public List<ServiceRecordDto> getUpcomingServices() {
         java.time.LocalDate today = java.time.LocalDate.now();
         java.time.LocalDate thirtyDaysFromNow = today.plusDays(30);
-        return serviceRecordRepository.findByNextServiceDueBetweenOrderByNextServiceDueAsc(today, thirtyDaysFromNow)
+        return serviceRecordRepository.findByNextServiceDueBetweenAndDeletedFalseOrderByNextServiceDueAsc(today, thirtyDaysFromNow)
                 .stream()
                 .map(ServiceRecordMapper::mapToServiceRecordDto)
                 .collect(Collectors.toList());
@@ -212,9 +276,78 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     @Override
     public List<ServiceRecordDto> getRecentServices() {
-        return serviceRecordRepository.findTop5ByOrderByServiceDateDesc()
+        return serviceRecordRepository.findTop5ByDeletedFalseOrderByServiceDateDesc()
                 .stream()
                 .map(ServiceRecordMapper::mapToServiceRecordDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ServiceRecordDto> getDeletedServiceRecords() {
+        return serviceRecordRepository.findAllDeleted()
+                .stream()
+                .map(ServiceRecordMapper::mapToServiceRecordDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public ServiceRecordDto restoreServiceRecord(Long id) {
+        ServiceRecord record = serviceRecordRepository.findById(java.util.Objects.requireNonNull(id))
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Service record not found with id: " + id));
+
+        if (!record.isDeleted()) {
+            throw new RuntimeException("Service record with id " + id + " is not deleted.");
+        }
+
+        // Clear soft-delete fields to restore the record
+        record.setDeleted(false);
+        record.setDeletedBy(null);
+        record.setDeletedAt(null);
+
+        ServiceRecord restored = serviceRecordRepository.save(record);
+        return ServiceRecordMapper.mapToServiceRecordDto(restored);
+    }
+
+    @Override
+    public List<ServiceRecordAuditDto> getServiceHistory(Long id) {
+        return auditRepository.findByServiceRecordIdOrderByChangedAtDesc(id)
+                .stream()
+                .map(a -> new ServiceRecordAuditDto(
+                        a.getId(),
+                        a.getServiceRecordId(),
+                        a.getChangedBy(),
+                        a.getChangedAt(),
+                        a.getChangedFields()
+                ))
+                .collect(Collectors.toList());
+    }
+
+    // ── Private helpers ─────────────────────────────────────────────────────
+
+    /**
+     * Compares old and new values; if different, adds a change map to the list.
+     */
+    private void auditField(List<Map<String, String>> changes, String fieldName,
+                            String oldVal, String newVal) {
+        String o = oldVal == null ? "" : oldVal.trim();
+        String n = newVal == null ? "" : newVal.trim();
+        if (!Objects.equals(o, n)) {
+            Map<String, String> entry = new LinkedHashMap<>();
+            entry.put("field", fieldName);
+            entry.put("from", o.isEmpty() ? "—" : o);
+            entry.put("to",   n.isEmpty() ? "—" : n);
+            changes.add(entry);
+        }
+    }
+
+    /** Null-safe toString for any value. */
+    private String str(Object val) {
+        return val == null ? null : val.toString();
+    }
+
+    /** Converts ServiceType enum to a human-readable label. */
+    private String enumLabel(ServiceType type) {
+        return type == null ? null : type.name().replace('_', ' ');
     }
 }

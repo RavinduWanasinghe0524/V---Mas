@@ -5,7 +5,7 @@ import Topbar from '../components/Topbar'
 import { serviceAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
-import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle, Paperclip, User, Eye } from 'lucide-react'
+import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle, Paperclip, User, Eye, Archive, Clock } from 'lucide-react'
 
 const SERVICE_TYPES = [
   { value: 'OIL_CHANGE', label: 'Oil Change' },
@@ -454,6 +454,17 @@ const ServicePage = () => {
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null })
   const [detailModal, setDetailModal] = useState({ isOpen: false, record: null })
 
+  // ── Deleted records drawer ─────────────────────────────────────────────
+  const [deletedDrawer, setDeletedDrawer] = useState(false)
+  const [deletedRecords, setDeletedRecords] = useState([])
+  const [deletedLoading, setDeletedLoading] = useState(false)
+  const [deletedDetail, setDeletedDetail] = useState(null)  // record shown in inner detail
+  const [restoringId, setRestoringId] = useState(null)     // tracks which record is being restored
+
+  // ── Audit history for detail modal ─────────────────────────────────────
+  const [serviceHistory, setServiceHistory] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingServiceId, setEditingServiceId] = useState(null)
@@ -480,6 +491,18 @@ const ServicePage = () => {
     }
     return () => { document.body.style.overflow = '' }
   }, [isAddModalOpen, isEditModalOpen, deleteModal.isOpen, detailModal.isOpen])
+
+  // Fetch audit history whenever detail modal opens for a record
+  useEffect(() => {
+    if (detailModal.isOpen && detailModal.record?.id) {
+      setServiceHistory([])
+      setHistoryLoading(true)
+      serviceAPI.getServiceHistory(detailModal.record.id)
+        .then(res => setServiceHistory(res.data.data || []))
+        .catch(() => setServiceHistory([]))
+        .finally(() => setHistoryLoading(false))
+    }
+  }, [detailModal.isOpen, detailModal.record?.id])
 
   const validate = (data) => {
     const e = {}
@@ -613,7 +636,40 @@ const ServicePage = () => {
     }
   }, [])
 
+  const loadDeletedData = useCallback(async () => {
+    setDeletedLoading(true)
+    try {
+      const res = await serviceAPI.getDeletedServices()
+      setDeletedRecords(res.data.data || [])
+    } catch (err) {
+      console.error('Error loading deleted records', err)
+    } finally {
+      setDeletedLoading(false)
+    }
+  }, [])
+
   useEffect(() => { loadData() }, [loadData])
+
+  // Load deleted records when drawer opens
+  useEffect(() => {
+    if (deletedDrawer) loadDeletedData()
+  }, [deletedDrawer, loadDeletedData])
+
+  const restoreRecord = async (id) => {
+    setRestoringId(id)
+    try {
+      await serviceAPI.restoreService(id)
+      // Refresh both lists so everything stays in sync
+      await Promise.all([loadData(), loadDeletedData()])
+      setDeletedDetail(null)  // go back to list so user sees the record is gone
+      showToast('Service record restored successfully.', 'success')
+    } catch (err) {
+      console.error('Error restoring record', err)
+      showToast('Failed to restore record.', 'error')
+    } finally {
+      setRestoringId(null)
+    }
+  }
 
   const confirmDelete = (id) => {
     setDeleteModal({ isOpen: true, id })
@@ -861,6 +917,27 @@ const ServicePage = () => {
               })}
             </div>
             <div style={{ flex: 1 }} />
+            {/* ── Deleted Records Button ──────────────────── */}
+            {!isDriver && (
+              <button
+                id="view-deleted-records-btn"
+                onClick={() => setDeletedDrawer(true)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                  padding: '7px 16px', borderRadius: 10,
+                  fontSize: '0.78rem', fontWeight: 700,
+                  background: 'rgba(239,68,68,0.08)',
+                  color: '#ef4444',
+                  border: '1px solid rgba(239,68,68,0.25)',
+                  cursor: 'pointer', transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.16)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
+              >
+                <Archive size={14} />
+                Deleted Records
+              </button>
+            )}
             <div style={{ position: 'relative' }}>
               <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: D.textSub, display: 'flex', alignItems: 'center' }}><Search size={16} /></span>
               <input
@@ -967,7 +1044,389 @@ const ServicePage = () => {
         </div>
       </div>
 
+      {/* ── Deleted Records Drawer ─────────────────────────────────── */}
+      {deletedDrawer && (
+        <div
+          onClick={() => { setDeletedDrawer(false); setDeletedDetail(null) }}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(6px)', zIndex: 1200,
+            animation: 'fadeIn 0.18s ease',
+          }}
+        >
+          {/* Drawer panel */}
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'fixed', top: 0, right: 0, bottom: 0,
+              width: '100%', maxWidth: 700,
+              background: D.bg, display: 'flex', flexDirection: 'column',
+              boxShadow: '-20px 0 60px rgba(0,0,0,0.4)',
+              animation: 'slideInRight 0.28s cubic-bezier(0.22,1,0.36,1)',
+              borderLeft: `1px solid ${D.border}`,
+            }}
+          >
+            {/* Drawer Header */}
+            <div style={{
+              background: 'linear-gradient(135deg,#7f1d1d 0%,#991b1b 45%,#dc2626 100%)',
+              padding: '22px 28px', display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between', flexShrink: 0, gap: 16,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 12,
+                  background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+                }}>
+                  <Archive size={24} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#fff', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                    Deleted Records
+                  </h2>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)' }}>
+                    Soft-deleted records are stored securely — not permanently removed
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setDeletedDrawer(false); setDeletedDetail(null) }}
+                style={{
+                  background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8, cursor: 'pointer', color: '#fff',
+                  padding: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Count badge */}
+            {!deletedLoading && (
+              <div style={{
+                padding: '14px 28px', background: D.surface,
+                borderBottom: `1px solid ${D.border}`,
+                display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
+              }}>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '4px 14px', borderRadius: 999,
+                  background: 'rgba(239,68,68,0.1)', color: '#ef4444',
+                  border: '1px solid rgba(239,68,68,0.2)',
+                  fontSize: '0.78rem', fontWeight: 700,
+                }}>
+                  <Trash2 size={12} />
+                  {deletedRecords.length} record{deletedRecords.length !== 1 ? 's' : ''} deleted
+                </span>
+                <span style={{ fontSize: '0.75rem', color: D.textSub }}>
+                  These records are preserved for audit purposes
+                </span>
+              </div>
+            )}
+
+            {/* Content */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {deletedLoading ? (
+                [1,2,3].map(i => (
+                  <div key={i} style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 12, height: 90, animation: 'pulse 1.5s ease infinite' }} />
+                ))
+              ) : deletedRecords.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 20px', color: D.textSub }}>
+                  <div style={{ opacity: 0.4, display: 'flex', justifyContent: 'center', marginBottom: 14 }}><Archive size={44} /></div>
+                  <p style={{ fontSize: '0.95rem', fontWeight: 500 }}>No deleted records found.</p>
+                  <p style={{ fontSize: '0.8rem', marginTop: 4 }}>Deleted service records will appear here.</p>
+                </div>
+              ) : deletedDetail ? (
+                /* ── Inner Detail View ───────────────────────────────── */
+                (() => {
+                  const r = deletedDetail
+                  const icon = SERVICE_TYPE_ICONS[r.serviceType] || <Wrench size={20} />
+                  return (
+                    <div style={{ animation: 'fadeIn 0.15s ease' }}>
+                      {/* Action row: Back + Restore */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                        <button
+                          onClick={() => setDeletedDetail(null)}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '8px 16px', borderRadius: 8,
+                            background: D.surface, border: `1px solid ${D.border}`,
+                            color: D.textSub, cursor: 'pointer', fontSize: '0.78rem',
+                            fontWeight: 600,
+                          }}
+                        >
+                          ← Back to list
+                        </button>
+
+                        {/* Restore button */}
+                        <button
+                          id={`restore-btn-${r.id}`}
+                          onClick={() => restoreRecord(r.id)}
+                          disabled={restoringId === r.id}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 7,
+                            padding: '8px 20px', borderRadius: 8,
+                            background: restoringId === r.id ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.12)',
+                            color: '#10b981',
+                            border: '1px solid rgba(16,185,129,0.3)',
+                            cursor: restoringId === r.id ? 'not-allowed' : 'pointer',
+                            fontSize: '0.82rem', fontWeight: 700,
+                            transition: 'all 0.15s',
+                            opacity: restoringId === r.id ? 0.7 : 1,
+                          }}
+                          onMouseEnter={e => { if (restoringId !== r.id) { e.currentTarget.style.background = '#10b981'; e.currentTarget.style.color = '#fff' } }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.12)'; e.currentTarget.style.color = '#10b981' }}
+                        >
+                          {restoringId === r.id ? (
+                            <>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                              Restoring…
+                            </>
+                          ) : (
+                            <>
+                              <RotateCcw size={14} /> Restore Record
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Record header card */}
+                      <div style={{
+                        background: 'linear-gradient(135deg,rgba(127,29,29,0.15) 0%,rgba(239,68,68,0.08) 100%)',
+                        border: '1px solid rgba(239,68,68,0.2)',
+                        borderRadius: 14, padding: '20px 22px', marginBottom: 16,
+                        display: 'flex', alignItems: 'center', gap: 16,
+                      }}>
+                        <div style={{
+                          width: 52, height: 52, borderRadius: 12, flexShrink: 0,
+                          background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.25)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444',
+                        }}>
+                          {icon}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 800, fontSize: '1.05rem', color: D.text }}>
+                            {r.serviceType?.replace(/_/g, ' ') || 'Service'}
+                          </div>
+                          <div style={{ fontSize: '0.8rem', color: D.textSub, marginTop: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Car size={12} /> {r.vehicleRegNumber || '—'}
+                            {r.serviceTypeDetail && <span>· {r.serviceTypeDetail}</span>}
+                          </div>
+                        </div>
+                        <span style={{
+                          padding: '4px 12px', borderRadius: 999, fontSize: '0.68rem', fontWeight: 700,
+                          background: 'rgba(239,68,68,0.12)', color: '#ef4444',
+                          border: '1px solid rgba(239,68,68,0.25)', letterSpacing: '0.05em',
+                          textTransform: 'uppercase', flexShrink: 0,
+                        }}>DELETED</span>
+                      </div>
+
+                      {/* Deletion info — prominent red banner */}
+                      <div style={{
+                        background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+                        borderRadius: 12, padding: '16px 20px', marginBottom: 16,
+                      }}>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#ef4444', marginBottom: 10 }}>
+                          🗑 Deletion Information
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px' }}>
+                          <div>
+                            <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: D.textSub, marginBottom: 4 }}>Deleted By</div>
+                            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 5 }}>
+                              <User size={14} /> {r.deletedBy || '—'}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: D.textSub, marginBottom: 4 }}>Deleted At</div>
+                            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 5 }}>
+                              <Clock size={14} />
+                              {r.deletedAt ? new Date(r.deletedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Service Details */}
+                      <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+                        Service Details <div style={{ flex: 1, height: 1, background: D.border }} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px 20px', marginBottom: 16 }}>
+                        {[
+                          ['Service Date', r.serviceDate ? new Date(r.serviceDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null],
+                          ['Mileage', r.currentMileageKm ? `${Number(r.currentMileageKm).toLocaleString()} km` : null],
+                          ['Cost', r.serviceCost ? `Rs. ${Number(r.serviceCost).toLocaleString()}` : null],
+                          ['Technician / Workshop', r.technicianWorkshop],
+                          r.nextServiceDue ? ['Next Service Due', new Date(r.nextServiceDue).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })] : null,
+                          r.nextServiceMileageKm ? ['Next Service Mileage', `${Number(r.nextServiceMileageKm).toLocaleString()} km`] : null,
+                        ].filter(Boolean).map(([label, value]) => (
+                          <div key={label}>
+                            <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: D.textSub, marginBottom: 4 }}>{label}</div>
+                            <div style={{ fontSize: '0.88rem', fontWeight: 600, color: value ? D.text : D.textSub }}>{value || '—'}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Description */}
+                      <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+                        Description <div style={{ flex: 1, height: 1, background: D.border }} />
+                      </div>
+                      <p style={{ margin: '0 0 16px', fontSize: '0.85rem', color: r.description ? D.text : D.textSub, lineHeight: 1.6, fontStyle: r.description ? 'normal' : 'italic', background: D.surfaceHi, padding: '12px 14px', borderRadius: 10, border: `1px solid ${D.border}` }}>
+                        {r.description || 'No description provided.'}
+                      </p>
+
+                      {/* Original record info */}
+                      <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+                        Original Record Info <div style={{ flex: 1, height: 1, background: D.border }} />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', paddingBottom: 8 }}>
+                        {r.createdBy && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.8rem', color: D.textSub }}>
+                            <User size={13} /> Created by <strong style={{ color: D.text, marginLeft: 2 }}>{r.createdBy}</strong>
+                          </span>
+                        )}
+                        {r.createdAt && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.8rem', color: D.textSub }}>
+                            <Calendar size={13} />
+                            {new Date(r.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                        {r.attachmentPath && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#10b981', background: 'rgba(16,185,129,0.08)', padding: '3px 10px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)' }}>
+                            <Paperclip size={12} /> Bill Attached
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()
+              ) : (
+                /* ── Deleted Records List ────────────────────────────── */
+                deletedRecords.map((r, i) => {
+                  const icon = SERVICE_TYPE_ICONS[r.serviceType] || <Wrench size={18} />
+                  return (
+                    <div
+                      key={r.id}
+                      onClick={() => setDeletedDetail(r)}
+                      style={{
+                        background: D.surface,
+                        border: '1px solid rgba(239,68,68,0.15)',
+                        borderRadius: 12,
+                        padding: '16px 20px',
+                        cursor: 'pointer',
+                        transition: 'all 0.18s ease',
+                        animation: `fadeUp 0.25s ease ${i * 0.04}s both`,
+                        display: 'flex', alignItems: 'flex-start', gap: 14,
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.background = D.surfaceHi
+                        e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)'
+                        e.currentTarget.style.transform = 'translateY(-1px)'
+                        e.currentTarget.style.boxShadow = '0 6px 24px rgba(239,68,68,0.1)'
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = D.surface
+                        e.currentTarget.style.borderColor = 'rgba(239,68,68,0.15)'
+                        e.currentTarget.style.transform = 'translateY(0)'
+                        e.currentTarget.style.boxShadow = 'none'
+                      }}
+                    >
+                      {/* Icon */}
+                      <div style={{
+                        width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                        background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444',
+                      }}>
+                        {icon}
+                      </div>
+
+                      {/* Info */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {/* Service type + vehicle */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.9rem', color: D.text }}>
+                            {r.serviceType?.replace(/_/g, ' ') || 'Service'}
+                          </span>
+                          <span style={{
+                            fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.06em',
+                            textTransform: 'uppercase', padding: '2px 8px', borderRadius: 999,
+                            background: 'rgba(239,68,68,0.1)', color: '#ef4444',
+                            border: '1px solid rgba(239,68,68,0.2)',
+                          }}>DELETED</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: D.blue, fontWeight: 600 }}>
+                            <Car size={12} /> {r.vehicleRegNumber || '—'}
+                          </span>
+                          {r.serviceDate && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: D.textSub }}>
+                              <Calendar size={12} /> {r.serviceDate.substring(0,10)}
+                            </span>
+                          )}
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: D.text }}>
+                            Rs. {Number(r.serviceCost || 0).toLocaleString()}
+                          </span>
+                        </div>
+                        {/* Deletion info inline */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 7, flexWrap: 'wrap' }}>
+                          {r.deletedBy && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', color: '#ef4444' }}>
+                              <User size={11} /> Deleted by <strong style={{ marginLeft: 2 }}>{r.deletedBy}</strong>
+                            </span>
+                          )}
+                          {r.deletedAt && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', color: '#ef4444' }}>
+                              <Clock size={11} />
+                              {new Date(r.deletedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Right side: restore button + view arrow */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
+                        {/* Restore button — stops propagation so it doesn't open detail view */}
+                        <button
+                          id={`restore-list-btn-${r.id}`}
+                          onClick={e => { e.stopPropagation(); restoreRecord(r.id) }}
+                          disabled={restoringId === r.id}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 5,
+                            padding: '5px 12px', borderRadius: 7,
+                            background: 'rgba(16,185,129,0.1)',
+                            color: '#10b981',
+                            border: '1px solid rgba(16,185,129,0.25)',
+                            cursor: restoringId === r.id ? 'not-allowed' : 'pointer',
+                            fontSize: '0.72rem', fontWeight: 700,
+                            whiteSpace: 'nowrap',
+                            opacity: restoringId === r.id ? 0.6 : 1,
+                            transition: 'all 0.15s',
+                          }}
+                          onMouseEnter={e => { if (restoringId !== r.id) { e.currentTarget.style.background = '#10b981'; e.currentTarget.style.color = '#fff' } }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.1)'; e.currentTarget.style.color = '#10b981' }}
+                        >
+                          {restoringId === r.id ? (
+                            <>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                              Restoring…
+                            </>
+                          ) : (
+                            <><RotateCcw size={11} /> Restore</>
+                          )}
+                        </button>
+                        {/* View detail hint */}
+                        <span style={{ color: D.textSub, fontSize: '0.75rem' }}>View ›</span>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Detail Modal ───────────────────────────────────────────── */}
+
       {detailModal.isOpen && detailModal.record && (() => {
         const r = detailModal.record
         const status = getStatus(r)
@@ -1041,26 +1500,105 @@ const ServicePage = () => {
                   {r.description || 'No description provided.'}
                 </p>
 
-                {/* Record Info */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Record Info</span>
+                {/* ── Record Activity & Change History ───────────────── */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Record Activity</span>
                   <div style={{ flex: 1, height: 1, background: D.border }} />
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
-                  {r.createdBy && (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: D.textSub }}>
-                      <User size={14} /> Added by <strong style={{ color: D.text, marginLeft: 3 }}>{r.createdBy}</strong>
-                    </span>
-                  )}
-                  {r.createdAt && (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: D.textSub }}>
-                      <Calendar size={14} /> {new Date(r.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  )}
                   {r.attachmentPath && (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: '#10b981', background: 'rgba(16,185,129,0.08)', padding: '4px 12px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)' }}>
-                      <Paperclip size={14} /> Bill Attached
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: '#10b981', background: 'rgba(16,185,129,0.08)', padding: '3px 10px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)' }}>
+                      <Paperclip size={12} /> Bill Attached
                     </span>
+                  )}
+                </div>
+
+                {/* Timeline */}
+                <div style={{ position: 'relative', paddingLeft: 28 }}>
+                  {/* Vertical line */}
+                  <div style={{ position: 'absolute', left: 9, top: 8, bottom: 8, width: 2, background: D.border, borderRadius: 2 }} />
+
+                  {/* Creation entry — always first */}
+                  <div style={{ position: 'relative', marginBottom: 18 }}>
+                    <div style={{ position: 'absolute', left: -28, top: 6, width: 18, height: 18, borderRadius: '50%', background: 'linear-gradient(135deg,#10b981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 3px ' + D.bg }}>
+                      <User size={9} color="#fff" />
+                    </div>
+                    <div style={{ background: D.surfaceHi, border: `1px solid ${D.border}`, borderRadius: 10, padding: '12px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Created</span>
+                        {r.createdBy && (
+                          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.text }}>by {r.createdBy}</span>
+                        )}
+                        {r.createdAt && (
+                          <span style={{ fontSize: '0.75rem', color: D.textSub, marginLeft: 'auto' }}>
+                            {new Date(r.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: D.textSub, marginTop: 4 }}>
+                        Service record was added to the system.
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Audit/edit history entries */}
+                  {historyLoading ? (
+                    <div style={{ position: 'relative', marginBottom: 18 }}>
+                      <div style={{ position: 'absolute', left: -28, top: 6, width: 18, height: 18, borderRadius: '50%', background: D.border }} />
+                      <div style={{ background: D.surfaceHi, borderRadius: 10, height: 56, animation: 'pulse 1.5s ease infinite' }} />
+                    </div>
+                  ) : serviceHistory.length === 0 ? (
+                    <div style={{ position: 'relative', marginBottom: 8 }}>
+                      <div style={{ position: 'absolute', left: -28, top: 6, width: 18, height: 18, borderRadius: '50%', background: D.border, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: D.textSub }} />
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: D.textSub, fontStyle: 'italic', paddingTop: 4 }}>
+                        No edits have been made to this record.
+                      </div>
+                    </div>
+                  ) : (
+                    // Render each edit from newest → oldest
+                    serviceHistory.map((entry, idx) => {
+                      let fields = []
+                      try { fields = JSON.parse(entry.changedFields || '[]') } catch {}
+                      return (
+                        <div key={entry.id} style={{ position: 'relative', marginBottom: idx < serviceHistory.length - 1 ? 14 : 4 }}>
+                          {/* Timeline dot */}
+                          <div style={{ position: 'absolute', left: -28, top: 6, width: 18, height: 18, borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 3px ' + D.bg }}>
+                            <Edit2 size={8} color="#fff" />
+                          </div>
+
+                          <div style={{ background: D.surfaceHi, border: `1px solid ${D.border}`, borderRadius: 10, padding: '12px 16px', borderLeft: '3px solid #6366f1' }}>
+                            {/* Edit header */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Edited</span>
+                              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.text }}>by {entry.changedBy || '—'}</span>
+                              <span style={{ fontSize: '0.75rem', color: D.textSub, marginLeft: 'auto' }}>
+                                {entry.changedAt ? new Date(entry.changedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                              </span>
+                            </div>
+
+                            {/* Field-level changes */}
+                            {fields.length > 0 ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                {fields.map((f, fi) => (
+                                  <div key={fi} style={{ display: 'grid', gridTemplateColumns: '140px 1fr 18px 1fr', alignItems: 'center', gap: 6, fontSize: '0.75rem' }}>
+                                    <span style={{ fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.65rem' }}>{f.field}</span>
+                                    <span style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444', padding: '2px 8px', borderRadius: 5, border: '1px solid rgba(239,68,68,0.15)', fontWeight: 600, textDecoration: 'line-through', textDecorationColor: 'rgba(239,68,68,0.4)' }}>
+                                      {f.from}
+                                    </span>
+                                    <span style={{ textAlign: 'center', color: D.textSub, fontWeight: 700 }}>→</span>
+                                    <span style={{ background: 'rgba(16,185,129,0.08)', color: '#10b981', padding: '2px 8px', borderRadius: 5, border: '1px solid rgba(16,185,129,0.15)', fontWeight: 600 }}>
+                                      {f.to}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: '0.78rem', color: D.textSub, fontStyle: 'italic' }}>Details not available.</span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })
                   )}
                 </div>
               </div>

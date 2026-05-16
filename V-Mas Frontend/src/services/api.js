@@ -110,10 +110,13 @@ export const fuelAPI = {
 
 export const serviceAPI = {
   getAllServices:       ()               => api.get('/services'),
+  getDeletedServices:   ()               => api.get('/services/deleted'),
   getServiceById:       (id)             => api.get(`/services/${id}`),
   createService:        (data)           => api.post('/services', data),
   updateService:        (id, data)       => api.put(`/services/${id}`, data),
   deleteService:        (id)             => api.delete(`/services/${id}`),
+  restoreService:       (id)             => api.patch(`/services/${id}/restore`),
+  getServiceHistory:    (id)             => api.get(`/services/${id}/history`),
   getServiceStats:      ()               => api.get('/services/stats'),
   getUpcomingServices:  ()               => api.get('/services/upcoming'),
   getRecentServices:    ()               => api.get('/services/recent'),
