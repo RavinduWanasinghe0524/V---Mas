@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.util.List;
+
 /**
  * SchemaMigrationConfig
  *
@@ -54,17 +56,27 @@ public class SchemaMigrationConfig {
             if (count != null && count > 0) {
                 log.warn("[Migration] Stale 'vehicle_id' column detected in service_records — removing it now...");
 
-                // Drop FK constraint first (name may vary, so we ignore errors)
-                try {
-                    jdbcTemplate.execute(
-                            "ALTER TABLE service_records DROP FOREIGN KEY fk_service_vehicle"
-                    );
-                    log.info("[Migration] Dropped foreign key fk_service_vehicle");
-                } catch (Exception ignored) {
-                    // FK may not exist or may have a different name — that's fine
-                    log.info("[Migration] No FK named fk_service_vehicle found (already removed or never existed)");
+                // 1. Find the actual Foreign Key name(s) for this column
+                List<String> foreignKeyNames = jdbcTemplate.queryForList(
+                        "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE " +
+                        "WHERE TABLE_SCHEMA = DATABASE() " +
+                        "  AND TABLE_NAME = 'service_records' " +
+                        "  AND COLUMN_NAME = 'vehicle_id' " +
+                        "  AND REFERENCED_TABLE_NAME IS NOT NULL",
+                        String.class
+                );
+
+                // 2. Drop each found Foreign Key
+                for (String fkName : foreignKeyNames) {
+                    try {
+                        jdbcTemplate.execute("ALTER TABLE service_records DROP FOREIGN KEY " + fkName);
+                        log.info("[Migration] Dropped foreign key: {}", fkName);
+                    } catch (Exception fkEx) {
+                        log.warn("[Migration] Failed to drop foreign key {}: {}", fkName, fkEx.getMessage());
+                    }
                 }
 
+                // 3. Finally drop the column
                 jdbcTemplate.execute("ALTER TABLE service_records DROP COLUMN vehicle_id");
                 log.info("[Migration] Successfully removed stale 'vehicle_id' column from service_records.");
             } else {
