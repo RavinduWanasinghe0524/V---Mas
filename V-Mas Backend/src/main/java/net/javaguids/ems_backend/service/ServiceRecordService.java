@@ -30,4 +30,13 @@ public interface ServiceRecordService {
 
     /** Saves a bill attachment file for the given service record */
     ServiceRecordDto uploadAttachment(Long id, MultipartFile file);
+
+    /** Returns all soft-deleted service records (for the recycle-bin view) */
+    List<ServiceRecordDto> getDeletedServiceRecords();
+
+    /** Restores a soft-deleted service record back to active state */
+    ServiceRecordDto restoreServiceRecord(Long id);
+
+    /** Returns the full edit history (audit trail) for a specific service record */
+    List<net.javaguids.ems_backend.dto.ServiceRecordAuditDto> getServiceHistory(Long id);
 }

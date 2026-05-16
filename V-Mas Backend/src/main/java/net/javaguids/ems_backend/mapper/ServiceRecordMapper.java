@@ -21,6 +21,9 @@ public class ServiceRecordMapper {
         dto.setCreatedBy(record.getCreatedBy());
         dto.setAttachmentPath(record.getAttachmentPath());
         dto.setCreatedAt(record.getCreatedAt());
+        dto.setDeleted(record.isDeleted());
+        dto.setDeletedBy(record.getDeletedBy());
+        dto.setDeletedAt(record.getDeletedAt());
         return dto;
     }
 

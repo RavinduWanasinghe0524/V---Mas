@@ -38,4 +38,9 @@ public class ServiceRecordDto {
     /** Auto-populated by backend — username of whoever created this record */
     private String createdBy;
     private LocalDateTime createdAt;
+
+    // ── Soft-delete fields ────────────────────────────────────────────────
+    private boolean deleted;
+    private String deletedBy;
+    private LocalDateTime deletedAt;
 }
