@@ -11,7 +11,8 @@ import java.util.Optional;
 
 public interface FuelLogRepository extends JpaRepository<FuelLog, Long> {
 
-    List<FuelLog> findByVehicleRegNumberOrderByDateDesc(String vehicleRegNumber);
+    @Query("SELECT f FROM FuelLog f WHERE f.vehicleRegNumber = :vehicleRegNumber AND (f.isDeleted = false OR f.isDeleted IS NULL) ORDER BY f.date DESC, f.id DESC")
+    List<FuelLog> findByVehicleRegNumberOrderByDateDesc(@Param("vehicleRegNumber") String vehicleRegNumber);
 
     @Query("SELECT COALESCE(SUM(f.liters), 0.0) FROM FuelLog f WHERE LOWER(TRIM(f.fuelType)) = LOWER(:fuelType) AND MONTH(f.date) = :month AND YEAR(f.date) = :year AND (f.isDeleted = false OR f.isDeleted IS NULL)")
     Double getTotalLitersByFuelType(@Param("fuelType") String fuelType, @Param("month") int month, @Param("year") int year);
@@ -19,10 +20,10 @@ public interface FuelLogRepository extends JpaRepository<FuelLog, Long> {
     @Query("SELECT COALESCE(SUM(f.totalCost), 0.0) FROM FuelLog f WHERE MONTH(f.date) = :month AND YEAR(f.date) = :year AND (f.isDeleted = false OR f.isDeleted IS NULL)")
     Double getTotalCostForMonth(@Param("month") int month, @Param("year") int year);
 
-    @Query("SELECT f FROM FuelLog f WHERE f.vehicleRegNumber = :vehicleRegNumber AND f.date < :currentDate ORDER BY f.date DESC, f.id DESC")
+    @Query("SELECT f FROM FuelLog f WHERE f.vehicleRegNumber = :vehicleRegNumber AND f.date < :currentDate AND (f.isDeleted = false OR f.isDeleted IS NULL) ORDER BY f.date DESC, f.id DESC")
     List<FuelLog> findPreviousLog(@Param("vehicleRegNumber") String vehicleRegNumber, @Param("currentDate") LocalDate currentDate);
 
-    @Query("SELECT DISTINCT f.vehicleRegNumber FROM FuelLog f")
+    @Query("SELECT DISTINCT f.vehicleRegNumber FROM FuelLog f WHERE (f.isDeleted = false OR f.isDeleted IS NULL)")
     List<String> findAllDistinctVehicleRegNumbers();
 
     /**
@@ -55,13 +56,16 @@ public interface FuelLogRepository extends JpaRepository<FuelLog, Long> {
      * Returns logs belonging to this driver PLUS legacy logs (driverUsername IS NULL).
      * This ensures every driver can see their own logs and any old data before the migration.
      */
-    @Query("SELECT f FROM FuelLog f WHERE f.driverUsername = :driverUsername OR f.driverUsername IS NULL ORDER BY f.date DESC, f.id DESC")
+    @Query("SELECT f FROM FuelLog f WHERE (f.driverUsername = :driverUsername OR f.driverUsername IS NULL) AND (f.isDeleted = false OR f.isDeleted IS NULL) ORDER BY f.date DESC, f.id DESC")
     List<FuelLog> findByDriverUsernameOrLegacy(@Param("driverUsername") String driverUsername);
+
+    @Query("SELECT f FROM FuelLog f WHERE f.isDeleted = true ORDER BY f.deletedAt DESC")
+    List<FuelLog> findAllDeleted();
 
     /**
      * Returns a single log that belongs to this driver OR is a legacy log.
      */
-    @Query("SELECT f FROM FuelLog f WHERE f.id = :id AND (f.driverUsername = :driverUsername OR f.driverUsername IS NULL)")
+    @Query("SELECT f FROM FuelLog f WHERE f.id = :id AND (f.driverUsername = :driverUsername OR f.driverUsername IS NULL) AND (f.isDeleted = false OR f.isDeleted IS NULL)")
     Optional<FuelLog> findByIdAndDriverUsernameOrLegacy(@Param("id") Long id, @Param("driverUsername") String driverUsername);
 
     /**
@@ -69,6 +73,7 @@ public interface FuelLogRepository extends JpaRepository<FuelLog, Long> {
      */
     @Query("SELECT f FROM FuelLog f WHERE f.vehicleRegNumber = :vehicleRegNumber AND f.date < :currentDate " +
            "AND (f.driverUsername = :driverUsername OR f.driverUsername IS NULL) " +
+           "AND (f.isDeleted = false OR f.isDeleted IS NULL) " +
            "ORDER BY f.date DESC, f.id DESC")
     List<FuelLog> findPreviousLogByDriver(@Param("driverUsername") String driverUsername,
                                           @Param("vehicleRegNumber") String vehicleRegNumber,
