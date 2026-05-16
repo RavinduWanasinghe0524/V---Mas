@@ -49,4 +49,10 @@ public interface FuelService {
      * Returns per-vehicle, per-fill-up km/L data plus fleet-wide summary stats.
      */
     FuelEfficiencyDto getFuelEfficiencyReport();
+
+    /** Get all soft-deleted fuel logs (controller/admin) */
+    List<FuelLogDto> getDeletedFuelLogs();
+
+    /** Restore a soft-deleted fuel log (controller/admin) */
+    FuelLogDto restoreFuelLog(Long id);
 }

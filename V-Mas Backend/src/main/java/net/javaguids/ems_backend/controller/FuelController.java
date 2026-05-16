@@ -219,5 +219,29 @@ public class FuelController {
         FuelEfficiencyDto report = fuelService.getFuelEfficiencyReport();
         return ApiResponseUtil.success("Fuel efficiency report generated successfully", report, HttpStatus.OK);
     }
+
+    /**
+     * GET /api/fuel/controller/deleted
+     * Controller/Admin fetches all soft-deleted fuel logs.
+     */
+    @PreAuthorize("hasAnyRole('CONTROLLER', 'ADMIN')")
+    @GetMapping("/controller/deleted")
+    public ResponseEntity<ApiResponse<List<FuelLogDto>>> getDeletedFuelLogs() {
+        log.info("GET /api/fuel/controller/deleted - Controller fetching deleted fuel logs");
+        List<FuelLogDto> logs = fuelService.getDeletedFuelLogs();
+        return ApiResponseUtil.success("Deleted fuel logs retrieved successfully", logs, HttpStatus.OK);
+    }
+
+    /**
+     * PATCH /api/fuel/controller/restore/{id}
+     * Controller/Admin restores a soft-deleted fuel log.
+     */
+    @PreAuthorize("hasAnyRole('CONTROLLER', 'ADMIN')")
+    @PatchMapping("/controller/restore/{id}")
+    public ResponseEntity<ApiResponse<FuelLogDto>> restoreFuelLog(@PathVariable Long id) {
+        log.info("PATCH /api/fuel/controller/restore/{} - Controller restoring fuel log", id);
+        FuelLogDto restored = fuelService.restoreFuelLog(id);
+        return ApiResponseUtil.success("Fuel log restored successfully", restored, HttpStatus.OK);
+    }
 }
 
