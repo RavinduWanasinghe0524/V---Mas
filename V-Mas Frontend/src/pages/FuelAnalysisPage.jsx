@@ -151,7 +151,7 @@ const FuelAnalysisPage = () => {
   const D = useD()
   const { user, isAdmin, isController, isDriver } = useAuth()
   const [period, setPeriod] = useState('6M')
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const [showAddModal, setShowAddModal] = useState(false)
 
   const [summary, setSummary] = useState({ totalDiesel: 0, totalPetrol: 0, totalVolume: 0, totalCost: 0, logCount: 0 })
   const [chartData, setChartData] = useState({ months: [], data: { Diesel: [], Petrol: [] } })
@@ -270,7 +270,7 @@ const FuelAnalysisPage = () => {
       const [sR, cR, lR] = await Promise.all([fuelAPI.getSummary(), fuelAPI.getChartData(), fuelAPI.getMyLogs()])
       setSummary(sR.data.data); setChartData(cR.data.data); setMyVehicleLogs(lR.data.data || [])
       setFormData({ vehicleRegNumber: '', fuelType: 'Diesel', liters: '', costPerLiter: '', mileage: '', date: new Date().toISOString().split('T')[0] })
-      setActiveTab('dashboard'); showToast('Fuel log added!')
+      setShowAddModal(false); showToast('Fuel log added!')
     } catch (err) { showToast('Failed: ' + (err.response?.data?.message || err.message), 'error') }
     finally { setSubmitting(false) }
   }
@@ -356,28 +356,26 @@ const FuelAnalysisPage = () => {
               </div>
             </div>
             {isDriver && (
-              <div style={{ position: 'relative', zIndex: 2, display: 'flex', gap: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: 6, border: '1px solid rgba(255,255,255,0.2)' }}>
-                {[{ id: 'dashboard', icon: <LayoutDashboard size={18}/>, label: 'Dashboard' }, { id: 'add-log', icon: <Fuel size={18}/>, label: 'Add Log' }].map(t => (
-                  <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
-                    padding: '10px 20px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                    fontWeight: 700, fontSize: '0.85rem', transition: 'all 0.2s ease',
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    background: activeTab === t.id ? '#fff' : 'transparent',
-                    color: activeTab === t.id ? '#312e81' : '#fff',
-                    boxShadow: activeTab === t.id ? '0 4px 12px rgba(0,0,0,0.15)' : 'none',
-                  }}>
-                    {t.icon} {t.label}
-                  </button>
-                ))}
-              </div>
+              <button 
+                onClick={() => setShowAddModal(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '12px 24px', borderRadius: 16, border: 'none', background: '#fff',
+                  color: '#312e81', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap',
+                  boxShadow: '0 8px 30px rgba(0,0,0,0.25)', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', zIndex: 2
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}
+              >
+                <Plus size={20} strokeWidth={3}/> Add Fuel Log
+              </button>
             )}
           </div>
 
           {/* -
               DASHBOARD
           - */}
-          {(!isDriver || activeTab === 'dashboard') && (
-            <>
+          <>
               {/* -- KPI cards -------------------------------- */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
                 {(isAdmin || isController ? [
@@ -676,58 +674,71 @@ const FuelAnalysisPage = () => {
                 </div>
               )}
             </>
-          )}
 
           {/* -
-              DRIVER: ADD LOG FORM
+              DRIVER: ADD LOG MODAL
           - */}
-          {isDriver && activeTab === 'add-log' && (
-            <div style={{ ...card(D), padding: 0, maxWidth: 520 }}>
-              <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 38, height: 38, borderRadius: 10, background: D.purpleDim, border: '1px solid rgba(167,139,250,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.purple }}><Fuel size={18} /></div>
-                <div>
-                  <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.92rem' }}>Add Fuel Log</h3>
-                  <p style={{ margin: 0, fontSize: '0.75rem', color: D.textSub }}>Record a new fuel fill-up for your vehicle</p>
-                </div>
-              </div>
-              <form onSubmit={handleAddFuelLog} style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {[
-                  { label: 'Vehicle Reg. Number', name: 'vehicleRegNumber', type: 'text', placeholder: 'e.g. WP-1234' },
-                  { label: 'Date', name: 'date', type: 'date' },
-                  { label: 'Liters', name: 'liters', type: 'number', placeholder: 'e.g. 40.5', step: '0.01' },
-                  { label: 'Cost per Liter (Rs.)', name: 'costPerLiter', type: 'number', placeholder: 'e.g. 340', step: '0.01' },
-                  { label: 'Current Mileage (km)', name: 'mileage', type: 'number', placeholder: 'e.g. 12500', step: '0.1' },
-                ].map(f => (
-                  <div key={f.name}>
-                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: D.textSub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.label}</label>
-                    <input type={f.type} name={f.name} value={formData[f.name]} onChange={handleInputChange}
-                      placeholder={f.placeholder} required step={f.step}
-                      style={darkInput(D)}
-                      onFocus={e => { e.target.style.borderColor = 'rgba(167,139,250,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(167,139,250,0.1)' }}
-                      onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none' }} />
+          {isDriver && showAddModal && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={() => { if (!submitting) setShowAddModal(false) }}>
+              <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+                <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                    <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
+                      <Plus size={24} />
+                    </div>
+                    <div>
+                      <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>Record Fuel Entry</h2>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#a5b4fc', fontWeight: 600, opacity: 0.9 }}>Enter the latest fill-up data for analysis</p>
+                    </div>
                   </div>
-                ))}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: D.textSub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fuel Type</label>
-                  <select name="fuelType" value={formData.fuelType} onChange={handleInputChange}
-                    style={{ ...darkInput(D), cursor: 'pointer' }}>
-                    <option value="Diesel" style={{ background: '#1e2535' }}>Diesel</option>
-                    <option value="Petrol" style={{ background: '#1e2535' }}>Petrol</option>
-                  </select>
+                  <button onClick={() => setShowAddModal(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
                 </div>
-                <button type="submit" disabled={submitting} style={{
-                  marginTop: 6, padding: '11px 24px', borderRadius: 10, border: 'none',
-                  background: submitting ? 'rgba(99,102,241,0.4)' : 'linear-gradient(135deg,#6366f1,#4f46e5)',
-                  color: '#fff', cursor: submitting ? 'not-allowed' : 'pointer',
-                  fontSize: '0.9rem', fontWeight: 700, fontFamily: 'inherit',
-                  boxShadow: submitting ? 'none' : '0 4px 16px rgba(99,102,241,0.4)',
-                  transition: 'all 0.2s ease',
-                }}
-                onMouseEnter={e => { if (!submitting) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(99,102,241,0.5)' } }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 4px 16px rgba(99,102,241,0.4)' }}>
-                  {submitting ? <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Loader2 size={16} className="animate-spin" /> Adding...</span> : <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Plus size={16} /> Add Fuel Log</span>}
-                </button>
-              </form>
+
+                <form onSubmit={handleAddFuelLog} style={{ padding: '36px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 40 }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Vehicle Identification <span style={{ color: D.red }}>*</span></label>
+                      <input type="text" name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={handleInputChange} required placeholder="e.g. WP-1234" style={{ width: '100%', padding: '14px 18px', borderRadius: 16, border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem', color: D.text, background: D.inputBg, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }} />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Transaction Date <span style={{ color: D.red }}>*</span></label>
+                      <input type="date" name="date" value={formData.date} onChange={handleInputChange} required style={{ width: '100%', padding: '14px 18px', borderRadius: 16, border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem', color: D.text, background: D.inputBg, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }} />
+                    </div>
+                    
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Fuel Grade <span style={{ color: D.red }}>*</span></label>
+                      <select name="fuelType" value={formData.fuelType} onChange={handleInputChange} required style={{ width: '100%', padding: '14px 18px', borderRadius: 16, border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem', color: D.text, background: D.inputBg, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }}>
+                        <option value="Diesel">Diesel</option>
+                        <option value="Petrol">Petrol</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Volume Dispensed (L) <span style={{ color: D.red }}>*</span></label>
+                      <input type="number" name="liters" value={formData.liters} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={{ width: '100%', padding: '14px 18px', borderRadius: 16, border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem', color: D.text, background: D.inputBg, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }} />
+                    </div>
+                    
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Unit Price (LKR/L) <span style={{ color: D.red }}>*</span></label>
+                      <input type="number" name="costPerLiter" value={formData.costPerLiter} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={{ width: '100%', padding: '14px 18px', borderRadius: 16, border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem', color: D.text, background: D.inputBg, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }} />
+                    </div>
+                    
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Odometer Reading (km) <span style={{ color: D.red }}>*</span></label>
+                      <input type="number" name="mileage" value={formData.mileage} onChange={handleInputChange} step="0.1" required placeholder="0.0" style={{ width: '100%', padding: '14px 18px', borderRadius: 16, border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem', color: D.text, background: D.inputBg, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 20 }}>
+                    <button type="submit" disabled={submitting} style={{ flex: 2, padding: '16px', borderRadius: 18, border: 'none', background: submitting ? 'rgba(99,102,241,0.5)' : 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff', fontSize: '1.05rem', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: submitting ? 'none' : '0 10px 25px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }} onMouseEnter={e => { if(!submitting) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 15px 35px rgba(99,102,241,0.5)' } }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 10px 25px rgba(99,102,241,0.4)' }}>
+                      {submitting ? <Loader2 size={22} className="animate-spin" /> : <Check size={22} />}
+                      {submitting ? 'Processing Entry...' : 'Complete Fuel Entry'}
+                    </button>
+                    <button type="button" disabled={submitting} onClick={() => setShowAddModal(false)} style={{ flex: 1, padding: '16px', borderRadius: 18, border: `1px solid ${D.border}`, background: D.surfaceHi, color: D.textSub, fontSize: '1.05rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = D.border} onMouseLeave={e => e.currentTarget.style.background = D.surfaceHi}>Discard</button>
+                  </div>
+                </form>
+              </div>
             </div>
           )}
 

@@ -60,7 +60,7 @@ const FuelLogPage = () => {
   })
   const [previousMileage, setPreviousMileage] = useState(null)
   const [submitting, setSubmitting] = useState(false)
-  const [showForm, setShowForm] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
 
   // Load fuel logs
   useEffect(() => {
@@ -167,7 +167,7 @@ const FuelLogPage = () => {
         mileage: newLastMil != null ? String(newLastMil) : '',
         date: new Date().toISOString().split('T')[0]
       })
-      setShowForm(false)
+      setShowAddModal(false)
 
       // Notify the driver via the bell
       addDriverNotification(
@@ -264,156 +264,21 @@ const FuelLogPage = () => {
           {/* Add Fuel Log Button */}
           <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'flex-end' }}>
             <button 
-              onClick={() => setShowForm(!showForm)}
+              onClick={() => setShowAddModal(true)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '9px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                color: '#fff', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-                boxShadow: '0 4px 14px rgba(99,102,241,0.4)', transition: 'all 0.2s ease'
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '12px 24px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                color: '#fff', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap',
+                boxShadow: '0 8px 24px rgba(99,102,241,0.3)', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
               }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(99,102,241,0.5)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.4)' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(99,102,241,0.4)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.3)' }}
             >
-              {showForm ? <><X size={16}/> Cancel</> : <><Plus size={16}/> Add New Fuel Log</>}
+              <Plus size={20} strokeWidth={3}/> Add New Fuel Log
             </button>
           </div>
 
-          {/* Add Fuel Log Form */}
-          {showForm && (
-            <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, boxShadow: '0 8px 32px rgba(0,0,0,0.3)', padding: 28, marginBottom: 24, animation: 'fadeUp 0.2s ease' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: D.indigoDim, color: D.indigo, border: `1px solid ${D.indigo}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Fuel size={20} />
-                </div>
-                <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.1rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Add Fuel Log Entry</h3>
-              </div>
-              
-              <form onSubmit={handleAddFuelLog}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 20, marginBottom: 24 }}>
-                  <div>
-                    <label style={labelStyle}>Vehicle Registration Number *</label>
-                    <input
-                      type="text"
-                      name="vehicleRegNumber"
-                      value={formData.vehicleRegNumber}
-                      readOnly
-                      placeholder="No vehicle assigned"
-                      style={{ ...inputStyle, background: 'rgba(255,255,255,0.02)', cursor: 'not-allowed', color: assignedVehicle ? D.blue : D.textSub, fontWeight: assignedVehicle ? 700 : 400 }}
-                    />
-                    {assignedVehicle && (
-                      <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: D.textSub }}>
-                        Auto-filled from your assigned vehicle
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label style={labelStyle}>Fuel Type *</label>
-                    <select 
-                      name="fuelType" 
-                      value={formData.fuelType} 
-                      onChange={handleInputChange}
-                      required
-                      style={{ ...inputStyle, cursor: 'pointer' }}
-                      onFocus={onFocus} onBlur={onBlur}
-                    >
-                      <option value="Diesel" style={{ background: D.surfaceHi }}>Diesel</option>
-                      <option value="Petrol" style={{ background: D.surfaceHi }}>Petrol</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={labelStyle}>Liters *</label>
-                    <input 
-                      type="number" 
-                      name="liters" 
-                      value={formData.liters} 
-                      onChange={handleInputChange}
-                      step="0.01" min="0" required
-                      placeholder="e.g., 45.5"
-                      style={inputStyle}
-                      onFocus={onFocus} onBlur={onBlur}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={labelStyle}>Cost per Liter (LKR) *</label>
-                    <input 
-                      type="number" 
-                      name="costPerLiter" 
-                      value={formData.costPerLiter} 
-                      onChange={handleInputChange}
-                      step="0.01" min="0" required
-                      placeholder="e.g., 380.00"
-                      style={inputStyle}
-                      onFocus={onFocus} onBlur={onBlur}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={labelStyle}>Current Mileage (km) *</label>
-                    <input 
-                      type="number" 
-                      name="mileage" 
-                      value={formData.mileage} 
-                      onChange={handleMileageChange}
-                      step="0.1"
-                      min={previousMileage != null ? previousMileage : 0}
-                      required
-                      placeholder="e.g., 15250.5"
-                      style={{
-                        ...inputStyle,
-                        ...(mileageError ? { borderColor: '#f87171', boxShadow: '0 0 0 3px rgba(248,113,113,0.2)' } : {})
-                      }}
-                      onFocus={onFocus} onBlur={onBlur}
-                    />
-                    {mileageError ? (
-                      <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: '#f87171', fontWeight: 600 }}>
-                        ⚠ {mileageError}
-                      </p>
-                    ) : previousMileage != null ? (
-                      <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: D.textSub }}>
-                        Previous reading: <span style={{ color: D.indigo, fontWeight: 700 }}>{previousMileage.toFixed(1)} km</span>
-                        {formData.mileage && parseFloat(formData.mileage) > previousMileage && (
-                          <span style={{ color: D.green, marginLeft: 6 }}>+{(parseFloat(formData.mileage) - previousMileage).toFixed(1)} km driven</span>
-                        )}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div>
-                    <label style={labelStyle}>Date *</label>
-                    <input 
-                      type="date" 
-                      name="date" 
-                      value={formData.date} 
-                      onChange={handleInputChange}
-                      required
-                      style={{ ...inputStyle, cursor: 'pointer' }}
-                      onFocus={onFocus} onBlur={onBlur}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <button 
-                    type="submit" 
-                    disabled={submitting}
-                    style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: submitting ? 'rgba(99,102,241,0.4)' : 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: submitting ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, boxShadow: submitting ? 'none' : '0 4px 16px rgba(99,102,241,0.4)', transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                  >
-                    {submitting ? <><Loader2 size={16} className="animate-spin"/> Submitting...</> : <><Check size={16}/> Add Fuel Log</>}
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => setShowForm(false)}
-                    style={{ flex: 0.3, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
+          {/* ADD FUEL LOG MODAL (Moved to bottom of file) */}
 
           {/* Fuel Logs Table */}
           <div style={{ background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.25)' }}>
@@ -436,7 +301,7 @@ const FuelLogPage = () => {
                   <h4 style={{ margin: '0 0 8px', fontWeight: 800, color: D.text, fontSize: '1.2rem' }}>No Fuel Logs Yet</h4>
                   <p style={{ margin: '10px 0 20px', color: D.textSub, fontSize: '1rem', fontWeight: 500 }}>Start tracking your vehicle's fuel consumption by adding your first log entry.</p>
                   <button 
-                    onClick={() => setShowForm(true)}
+                    onClick={() => setShowAddModal(true)}
                     style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff', fontSize: '0.95rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 8px 24px rgba(99,102,241,0.3)' }}
                   >
                     + Add Your First Fuel Log
@@ -504,6 +369,92 @@ const FuelLogPage = () => {
 
         </div>
       </div>
+
+      {/* ── ADD FUEL LOG MODAL ────────────────────────────────────── */}
+      {showAddModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={() => { if (!submitting) setShowAddModal(false) }}>
+          <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+            <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
+                  <Plus size={24} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>Record Fuel Entry</h2>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#a5b4fc', fontWeight: 600, opacity: 0.9 }}>Enter the latest fill-up data for analysis</p>
+                </div>
+              </div>
+              <button onClick={() => setShowAddModal(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
+            </div>
+
+            <form onSubmit={handleAddFuelLog} style={{ padding: '36px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 40 }}>
+                <div>
+                  <label style={labelStyle}>Vehicle Identification <span style={{ color: D.red }}>*</span></label>
+                  <input
+                    type="text"
+                    name="vehicleRegNumber"
+                    value={formData.vehicleRegNumber}
+                    readOnly
+                    placeholder="No vehicle assigned"
+                    style={{ ...inputStyle, background: 'rgba(255,255,255,0.02)', cursor: 'not-allowed', color: assignedVehicle ? D.blue : D.textSub, fontWeight: assignedVehicle ? 700 : 400 }}
+                  />
+                  {assignedVehicle && (
+                    <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.textSub, fontWeight: 600 }}>Auto-filled from assigned vehicle</p>
+                  )}
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Transaction Date <span style={{ color: D.red }}>*</span></label>
+                  <input type="date" name="date" value={formData.date} onChange={handleInputChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                </div>
+                
+                <div>
+                  <label style={labelStyle}>Fuel Grade <span style={{ color: D.red }}>*</span></label>
+                  <select name="fuelType" value={formData.fuelType} onChange={handleInputChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
+                    <option value="Diesel">Diesel</option>
+                    <option value="Petrol">Petrol</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label style={labelStyle}>Volume Dispensed (L) <span style={{ color: D.red }}>*</span></label>
+                  <input type="number" name="liters" value={formData.liters} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                </div>
+                
+                <div>
+                  <label style={labelStyle}>Unit Price (LKR/L) <span style={{ color: D.red }}>*</span></label>
+                  <input type="number" name="costPerLiter" value={formData.costPerLiter} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                </div>
+                
+                <div>
+                  <label style={labelStyle}>Odometer Reading (km) <span style={{ color: D.red }}>*</span></label>
+                  <input type="number" name="mileage" value={formData.mileage} onChange={handleMileageChange} step="0.1" required placeholder="0.0" style={{ ...inputStyle, ...(mileageError ? { borderColor: D.red, boxShadow: `0 0 0 4px ${D.red}20` } : {}) }} onFocus={onFocus} onBlur={onBlur} />
+                  {mileageError ? (
+                     <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.red, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>⚠ {mileageError}</p>
+                  ) : previousMileage != null && (
+                     <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.textFaint, fontWeight: 600 }}>Last reading: <span style={{ color: D.purple }}>{previousMileage.toLocaleString()} km</span></p>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 20 }}>
+                <button type="submit" disabled={submitting} style={{ flex: 2, padding: '16px', borderRadius: 18, border: 'none', background: submitting ? 'rgba(99,102,241,0.5)' : 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff', fontSize: '1.05rem', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: submitting ? 'none' : '0 10px 25px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }} onMouseEnter={e => { if(!submitting) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 15px 35px rgba(99,102,241,0.5)' } }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 10px 25px rgba(99,102,241,0.4)' }}>
+                  {submitting ? <Loader2 size={22} className="animate-spin" /> : <Check size={22} />}
+                  {submitting ? 'Processing Entry...' : 'Complete Fuel Entry'}
+                </button>
+                <button type="button" disabled={submitting} onClick={() => setShowAddModal(false)} style={{ flex: 1, padding: '16px', borderRadius: 18, border: `1px solid ${D.border}`, background: D.surfaceHi, color: D.textSub, fontSize: '1.05rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = D.border} onMouseLeave={e => e.currentTarget.style.background = D.surfaceHi}>Discard</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
     </div>
   )
 }
