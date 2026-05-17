@@ -39,4 +39,18 @@ public interface ServiceRecordService {
 
     /** Returns the full edit history (audit trail) for a specific service record */
     List<net.javaguids.ems_backend.dto.ServiceRecordAuditDto> getServiceHistory(Long id);
+
+    // ── Driver-scoped queries ────────────────────────────────────────────────
+
+    /**
+     * Returns all active service records for the vehicle assigned to the given driver.
+     * Returns an empty list if the driver has no vehicle assigned.
+     */
+    List<ServiceRecordDto> getServiceRecordsForDriver(String driverUsername);
+
+    /**
+     * Returns service stats (total count, cost, type breakdown) scoped to the
+     * vehicle assigned to the given driver.
+     */
+    net.javaguids.ems_backend.dto.ServiceRecordStatsDto getServiceStatsForDriver(String driverUsername);
 }
