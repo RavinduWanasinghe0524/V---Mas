@@ -9,6 +9,9 @@ import net.javaguids.ems_backend.util.ApiResponseUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import net.javaguids.ems_backend.dto.ServiceRecordAuditDto;
@@ -24,8 +27,8 @@ public class ServiceRecordController {
 
     private final ServiceRecordService serviceRecordService;
 
-    // POST /api/services — Add new service record
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    // POST /api/services — Add new service record (ADMIN, CONTROLLER, or DRIVER for their own vehicle)
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER', 'DRIVER')")
     @PostMapping
     public ResponseEntity<ApiResponse<ServiceRecordDto>> createServiceRecord(
             @RequestBody ServiceRecordDto serviceRecordDto) {
@@ -33,10 +36,15 @@ public class ServiceRecordController {
         return ApiResponseUtil.success("Service record created successfully", saved, HttpStatus.CREATED);
     }
 
-    // GET /api/services — Get all service records
+    // GET /api/services — Get all service records (DRIVER receives only their vehicle's records)
     @GetMapping
-    public ResponseEntity<ApiResponse<List<ServiceRecordDto>>> getAllServiceRecords() {
-        List<ServiceRecordDto> records = serviceRecordService.getAllServiceRecords();
+    public ResponseEntity<ApiResponse<List<ServiceRecordDto>>> getAllServiceRecords(
+            Authentication authentication) {
+        boolean isDriver = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_DRIVER"));
+        List<ServiceRecordDto> records = isDriver
+                ? serviceRecordService.getServiceRecordsForDriver(authentication.getName())
+                : serviceRecordService.getAllServiceRecords();
         return ApiResponseUtil.success("Service records fetched successfully", records, HttpStatus.OK);
     }
 
@@ -47,8 +55,8 @@ public class ServiceRecordController {
         return ApiResponseUtil.success("Service record fetched successfully", record, HttpStatus.OK);
     }
 
-    // PUT /api/services/{id} — Update service record
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    // PUT /api/services/{id} — Update service record (DRIVER may edit only their own records)
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER', 'DRIVER')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ServiceRecordDto>> updateServiceRecord(
             @PathVariable Long id,
@@ -82,10 +90,14 @@ public class ServiceRecordController {
         return ApiResponseUtil.success("Service records for vehicle fetched successfully", records, HttpStatus.OK);
     }
 
-    // GET /api/services/stats — Get summary statistics of service records
+    // GET /api/services/stats — Get summary statistics (DRIVER receives stats for their vehicle only)
     @GetMapping("/stats")
-    public ResponseEntity<ApiResponse<ServiceRecordStatsDto>> getServiceStats() {
-        ServiceRecordStatsDto stats = serviceRecordService.getServiceStats();
+    public ResponseEntity<ApiResponse<ServiceRecordStatsDto>> getServiceStats(Authentication authentication) {
+        boolean isDriver = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_DRIVER"));
+        ServiceRecordStatsDto stats = isDriver
+                ? serviceRecordService.getServiceStatsForDriver(authentication.getName())
+                : serviceRecordService.getServiceStats();
         return ApiResponseUtil.success("Service stats fetched successfully", stats, HttpStatus.OK);
     }
 
