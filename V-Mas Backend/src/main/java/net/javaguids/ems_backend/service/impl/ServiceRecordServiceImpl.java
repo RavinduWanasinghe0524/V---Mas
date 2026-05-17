@@ -11,10 +11,13 @@ import net.javaguids.ems_backend.entity.ServiceRecord;
 import net.javaguids.ems_backend.entity.ServiceRecordAudit;
 import net.javaguids.ems_backend.enums.ServiceType;
 import net.javaguids.ems_backend.exception.ResourceNotFoundException;
+import net.javaguids.ems_backend.entity.Vehicle;
 import net.javaguids.ems_backend.mapper.ServiceRecordMapper;
 import net.javaguids.ems_backend.repository.ServiceRecordAuditRepository;
 import net.javaguids.ems_backend.repository.ServiceRecordRepository;
+import net.javaguids.ems_backend.repository.VehicleRepository;
 import net.javaguids.ems_backend.service.ServiceRecordService;
+import org.springframework.security.access.AccessDeniedException;
 import net.javaguids.ems_backend.service.NotificationService;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
@@ -41,6 +44,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     private final ServiceRecordRepository serviceRecordRepository;
     private final ServiceRecordAuditRepository auditRepository;
+    private final VehicleRepository vehicleRepository;
     private final NotificationService notificationService;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -48,12 +52,28 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
     public ServiceRecordDto createServiceRecord(ServiceRecordDto dto) {
         validateServiceTypeDetail(dto.getServiceType(), dto.getServiceTypeDetail());
 
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = (auth != null && auth.isAuthenticated()) ? auth.getName() : null;
+
+        // ── Driver ownership guard: vehicle reg must match the driver's assigned vehicle ──
+        boolean isDriver = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_DRIVER"));
+        if (isDriver) {
+            Vehicle assignedVehicle = vehicleRepository.findByAssigneeUsername(currentUsername)
+                    .orElseThrow(() -> new AccessDeniedException(
+                            "No vehicle is assigned to you. You cannot add a service record."));
+            if (!assignedVehicle.getRegistrationNo().equals(dto.getVehicleRegNumber())) {
+                throw new AccessDeniedException(
+                        "You can only add service records for your assigned vehicle: "
+                                + assignedVehicle.getRegistrationNo());
+            }
+        }
+
         ServiceRecord record = ServiceRecordMapper.mapToServiceRecord(dto);
 
         // Auto-set the creator from the currently authenticated user
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated()) {
-            record.setCreatedBy(auth.getName());
+        if (currentUsername != null) {
+            record.setCreatedBy(currentUsername);
         }
 
         ServiceRecord saved = serviceRecordRepository.save(java.util.Objects.requireNonNull(record));
@@ -83,6 +103,26 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
         ServiceRecord record = serviceRecordRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Service record not found with id: " + id));
+
+        // ── Driver ownership guard: drivers may only edit records they personally created ──
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isDriver = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_DRIVER"));
+        if (isDriver) {
+            String currentUsername = auth.getName();
+            if (!currentUsername.equals(record.getCreatedBy())) {
+                throw new AccessDeniedException(
+                        "You can only edit service records that you created.");
+            }
+            // Also ensure the vehicle reg number stays locked to their assigned vehicle
+            Vehicle assignedVehicle = vehicleRepository.findByAssigneeUsername(currentUsername)
+                    .orElseThrow(() -> new AccessDeniedException(
+                            "No vehicle is assigned to you."));
+            if (!assignedVehicle.getRegistrationNo().equals(dto.getVehicleRegNumber())) {
+                throw new AccessDeniedException(
+                        "You cannot change the vehicle registration number.");
+            }
+        }
 
         validateServiceTypeDetail(dto.getServiceType(), dto.getServiceTypeDetail());
 
@@ -126,7 +166,6 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
 
         // ── Persist audit entry if anything actually changed ──────────────────────────────
         if (!changes.isEmpty()) {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             String editor = (auth != null && auth.isAuthenticated()) ? auth.getName() : "unknown";
             try {
                 ServiceRecordAudit audit = new ServiceRecordAudit();
@@ -307,6 +346,40 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
 
         ServiceRecord restored = serviceRecordRepository.save(record);
         return ServiceRecordMapper.mapToServiceRecordDto(restored);
+    }
+
+    // ── Driver-scoped implementations ────────────────────────────────────────────
+
+    @Override
+    public List<ServiceRecordDto> getServiceRecordsForDriver(String driverUsername) {
+        return vehicleRepository.findByAssigneeUsername(driverUsername)
+                .map(vehicle -> serviceRecordRepository
+                        .findByVehicleRegNumberAndDeletedFalse(vehicle.getRegistrationNo())
+                        .stream()
+                        .map(ServiceRecordMapper::mapToServiceRecordDto)
+                        .collect(Collectors.toList()))
+                .orElse(java.util.Collections.emptyList());
+    }
+
+    @Override
+    public net.javaguids.ems_backend.dto.ServiceRecordStatsDto getServiceStatsForDriver(String driverUsername) {
+        return vehicleRepository.findByAssigneeUsername(driverUsername)
+                .map(vehicle -> {
+                    List<ServiceRecord> records = serviceRecordRepository
+                            .findByVehicleRegNumberAndDeletedFalse(vehicle.getRegistrationNo());
+                    long totalRecords = records.size();
+                    java.math.BigDecimal totalCost = records.stream()
+                            .map(ServiceRecord::getServiceCost)
+                            .filter(Objects::nonNull)
+                            .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+                    java.util.Map<String, Long> byType = records.stream()
+                            .filter(r -> r.getServiceType() != null)
+                            .collect(Collectors.groupingBy(
+                                    r -> r.getServiceType().name(), Collectors.counting()));
+                    return new net.javaguids.ems_backend.dto.ServiceRecordStatsDto(totalRecords, totalCost, byType);
+                })
+                .orElse(new net.javaguids.ems_backend.dto.ServiceRecordStatsDto(
+                        0L, java.math.BigDecimal.ZERO, java.util.Collections.emptyMap()));
     }
 
     @Override

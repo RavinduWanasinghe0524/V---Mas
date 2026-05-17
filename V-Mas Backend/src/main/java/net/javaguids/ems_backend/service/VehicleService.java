@@ -20,4 +20,7 @@ public interface VehicleService {
     VehicleDto getAssignedVehicle(String username);
 
     VehicleDto assignDriver(Long vehicleId, Long driverId) throws BadRequestException;
+
+    /** Removes any driver currently assigned to the given vehicle. */
+    VehicleDto unassignDriver(Long vehicleId);
 }

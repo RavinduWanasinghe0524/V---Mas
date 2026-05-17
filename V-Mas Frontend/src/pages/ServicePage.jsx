@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
-import { serviceAPI } from '../services/api'
+import { serviceAPI, vehicleAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
 import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle, Paperclip, User, Eye, Archive, Clock } from 'lucide-react'
@@ -71,11 +71,14 @@ const ProgressBar = ({ value, max, color, D }) => {
 }
 
 /* ── Service List Card (Old Style) ──────────────────────────────── */
-const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete, onView, D }) => {
+const ServiceListCard = ({ record, index, isDriver, currentUsername, onEdit, onDelete, onView, D }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
   const icon = SERVICE_TYPE_ICONS[record.serviceType] || <Wrench size={22} />
+
+  // Drivers may edit only records they personally created
+  const canEdit = !isDriver || record.createdBy === currentUsername
 
   return (
     <div
@@ -187,7 +190,7 @@ const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete, onView, D 
       </div>
 
       {/* Actions — stop propagation so clicking buttons doesn't also open the detail modal */}
-      {!isDriver && (
+      {canEdit && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
           <button
             onClick={e => { e.stopPropagation(); onEdit(record.id) }}
@@ -202,19 +205,21 @@ const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete, onView, D 
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Edit2 size={12} /> Edit</span>
           </button>
-          <button
-            onClick={e => { e.stopPropagation(); onDelete(record.id) }}
-            style={{
-              padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 600,
-              background: D.redDim, color: D.red,
-              border: `1px solid rgba(239,68,68,0.25)`, cursor: 'pointer',
-              transition: 'all 0.15s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
-            onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Trash2 size={12} /> Delete</span>
-          </button>
+          {!isDriver && (
+            <button
+              onClick={e => { e.stopPropagation(); onDelete(record.id) }}
+              style={{
+                padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 600,
+                background: D.redDim, color: D.red,
+                border: `1px solid rgba(239,68,68,0.25)`, cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+              onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Trash2 size={12} /> Delete</span>
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -222,10 +227,13 @@ const ServiceListCard = ({ record, index, isDriver, onEdit, onDelete, onView, D 
 }
 
 /* ── Service Grid Card (New Style) ──────────────────────────────── */
-const ServiceGridCard = ({ record, index, isDriver, onEdit, onDelete, onView, D }) => {
+const ServiceGridCard = ({ record, index, isDriver, currentUsername, onEdit, onDelete, onView, D }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
+
+  // Drivers may edit only records they personally created
+  const canEdit = !isDriver || record.createdBy === currentUsername
 
   return (
     <div
@@ -326,7 +334,7 @@ const ServiceGridCard = ({ record, index, isDriver, onEdit, onDelete, onView, D 
       </div>
 
       {/* Actions — stop propagation so clicking buttons doesn't also open the detail modal */}
-      {!isDriver && (
+      {canEdit && (
         <div style={{ display: 'flex', gap: 8, marginTop: 12, borderTop: `1px solid ${D.border}`, paddingTop: 12 }}>
           <button
             onClick={e => { e.stopPropagation(); onEdit(record.id) }}
@@ -339,17 +347,19 @@ const ServiceGridCard = ({ record, index, isDriver, onEdit, onDelete, onView, D 
           >
             Edit
           </button>
-          <button
-            onClick={e => { e.stopPropagation(); onDelete(record.id) }}
-            style={{
-              flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600,
-              background: D.redDim, color: D.red, border: `1px solid rgba(239,68,68,0.2)`, cursor: 'pointer', transition: 'all 0.15s'
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
-            onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
-          >
-            Delete
-          </button>
+          {!isDriver && (
+            <button
+              onClick={e => { e.stopPropagation(); onDelete(record.id) }}
+              style={{
+                flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600,
+                background: D.redDim, color: D.red, border: `1px solid rgba(239,68,68,0.2)`, cursor: 'pointer', transition: 'all 0.15s'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+              onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
+            >
+              Delete
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -451,6 +461,9 @@ const ServicePage = () => {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState('grid')
 
+  // ── Driver vehicle scope ───────────────────────────────────────────────
+  const [assignedVehicle, setAssignedVehicle] = useState(null)
+
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null })
   const [detailModal, setDetailModal] = useState({ isOpen: false, record: null })
 
@@ -518,7 +531,11 @@ const ServicePage = () => {
   }
 
   const openAddModal = () => {
-    setFormData(initialForm)
+    // For drivers: pre-fill the vehicle reg number from their assigned vehicle
+    setFormData({
+      ...initialForm,
+      vehicleRegNumber: isDriver && assignedVehicle ? assignedVehicle.registrationNo : '',
+    })
     setErrors({})
     setSubmitError(null)
     setAddAttachmentFile(null)
@@ -623,18 +640,19 @@ const ServicePage = () => {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const [servRes, statsRes] = await Promise.all([
-        serviceAPI.getAllServices(),
-        serviceAPI.getServiceStats(),
-      ])
+      // For drivers: also fetch assigned vehicle so we can pre-fill / lock the reg number
+      const requests = [serviceAPI.getAllServices(), serviceAPI.getServiceStats()]
+      if (isDriver) requests.push(vehicleAPI.getAssignedVehicle())
+      const [servRes, statsRes, vehicleRes] = await Promise.all(requests)
       setServices(servRes.data.data || [])
       setStats(statsRes.data.data)
+      if (vehicleRes) setAssignedVehicle(vehicleRes.data.data || null)
     } catch (err) {
       console.error('Error loading service data', err)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [isDriver])
 
   const loadDeletedData = useCallback(async () => {
     setDeletedLoading(true)
@@ -816,23 +834,21 @@ const ServicePage = () => {
                   }}>Calendar</button>
               </div>
 
-              {/* Add button — Admin & Controller */}
-              {!isDriver && (
-                <button
-                  id="add-service-btn"
-                  onClick={openAddModal}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 8,
-                    padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
-                    background: '#ffffff', color: '#4338ca', border: 'none', cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(0,0,0,0.1)', transition: 'all 0.2s ease',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.transform = 'translateY(0)' }}
-                >
-                  <Calendar size={18} /> Schedule
-                </button>
-              )}
+              {/* Add button — all roles; drivers add for their own vehicle */}
+              <button
+                id="add-service-btn"
+                onClick={openAddModal}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
+                  background: '#ffffff', color: '#4338ca', border: 'none', cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.1)', transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.transform = 'translateY(0)' }}
+              >
+                <Calendar size={18} /> {isDriver ? 'Add Service' : 'Schedule'}
+              </button>
             </div>
           </div>
 
@@ -982,19 +998,17 @@ const ServicePage = () => {
               }}>
                 <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center', opacity: 0.5, color: D.textSub }}><Search size={48} /></div>
                 <p style={{ color: D.textSub, fontSize: '0.95rem', fontWeight: 500 }}>No service records found.</p>
-                {!isDriver && (
-                  <button
-                    onClick={openAddModal}
-                    style={{
-                      marginTop: 16, padding: '9px 22px', borderRadius: 10,
-                      background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
-                      color: '#fff', border: 'none', cursor: 'pointer',
-                      fontSize: '0.85rem', fontWeight: 700,
-                    }}
-                  >
-                    + Add First Record
-                  </button>
-                )}
+                <button
+                  onClick={openAddModal}
+                  style={{
+                    marginTop: 16, padding: '9px 22px', borderRadius: 10,
+                    background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                    color: '#fff', border: 'none', cursor: 'pointer',
+                    fontSize: '0.85rem', fontWeight: 700,
+                  }}
+                >
+                  + Add First Record
+                </button>
               </div>
             ) : viewMode === 'calendar' ? (
               <ServiceCalendar
@@ -1012,6 +1026,7 @@ const ServicePage = () => {
                   record={record}
                   index={i}
                   isDriver={isDriver}
+                  currentUsername={user?.userName}
                   onEdit={openEditModal}
                   onDelete={confirmDelete}
                   onView={r => setDetailModal({ isOpen: true, record: r })}
@@ -1025,6 +1040,7 @@ const ServicePage = () => {
                   record={record}
                   index={i}
                   isDriver={isDriver}
+                  currentUsername={user?.userName}
                   onEdit={openEditModal}
                   onDelete={confirmDelete}
                   onView={r => setDetailModal({ isOpen: true, record: r })}
@@ -1605,6 +1621,7 @@ const ServicePage = () => {
 
               {/* Footer */}
               <div style={{ padding: '16px 28px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 10, background: D.surfaceHi, flexShrink: 0 }}>
+                {/* Admin/Controller: always show Edit + Delete */}
                 {!isDriver && (
                   <>
                     <button
@@ -1620,6 +1637,15 @@ const ServicePage = () => {
                       <Trash2 size={15} /> Delete
                     </button>
                   </>
+                )}
+                {/* Driver: only show Edit if they created this record */}
+                {isDriver && r.createdBy === user?.userName && (
+                  <button
+                    onClick={() => { closeDetail(); openEditModal(r.id) }}
+                    style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(99,102,241,0.35)' }}
+                  >
+                    <Edit2 size={15} /> Edit Record
+                  </button>
                 )}
                 <button
                   onClick={closeDetail}
@@ -1665,7 +1691,16 @@ const ServicePage = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
                 <div>
                   <label style={fieldLabel}>Vehicle (License Plate) <span style={{ color: D.red }}>*</span></label>
-                  <input type="text" name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={handleAddChange} placeholder="e.g. KA-01-AB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
+                  {isDriver ? (
+                    /* Driver: show locked chip — cannot change their vehicle */
+                    <div style={{ ...fieldInput(false), display: 'flex', alignItems: 'center', gap: 8, opacity: 0.8, cursor: 'not-allowed', userSelect: 'none' }}>
+                      <Car size={14} style={{ color: D.textSub, flexShrink: 0 }} />
+                      <span style={{ fontWeight: 700 }}>{formData.vehicleRegNumber || '—'}</span>
+                      <span style={{ marginLeft: 'auto', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: D.textSub }}>Locked</span>
+                    </div>
+                  ) : (
+                    <input type="text" name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={handleAddChange} placeholder="e.g. KA-01-AB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
+                  )}
                   {errors.vehicleRegNumber && <p style={fieldError}>{errors.vehicleRegNumber}</p>}
                 </div>
                 <div>
@@ -1800,7 +1835,16 @@ const ServicePage = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
                 <div>
                   <label style={fieldLabel}>Vehicle (License Plate) <span style={{ color: D.red }}>*</span></label>
-                  <input type="text" name="vehicleRegNumber" value={editFormData.vehicleRegNumber} onChange={handleEditChange} placeholder="e.g. KA-01-AB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
+                  {isDriver ? (
+                    /* Driver: show locked chip — cannot change their vehicle */
+                    <div style={{ ...fieldInput(false), display: 'flex', alignItems: 'center', gap: 8, opacity: 0.8, cursor: 'not-allowed', userSelect: 'none' }}>
+                      <Car size={14} style={{ color: D.textSub, flexShrink: 0 }} />
+                      <span style={{ fontWeight: 700 }}>{editFormData.vehicleRegNumber || '—'}</span>
+                      <span style={{ marginLeft: 'auto', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: D.textSub }}>Locked</span>
+                    </div>
+                  ) : (
+                    <input type="text" name="vehicleRegNumber" value={editFormData.vehicleRegNumber} onChange={handleEditChange} placeholder="e.g. KA-01-AB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
+                  )}
                   {errors.vehicleRegNumber && <p style={fieldError}>{errors.vehicleRegNumber}</p>}
                 </div>
                 <div>
