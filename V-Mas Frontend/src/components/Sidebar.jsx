@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import logo from '../assets/logo.png'
 import { useAuth } from '../context/AuthContext'
@@ -18,31 +19,30 @@ const getInitials = (name) => {
 const navItems = {
   ADMIN: [
     { label: 'Dashboard',     icon: <LayoutDashboard size={20} strokeWidth={1.5} />, to: '/dashboard'     },
-    { label: 'Vehicles',      icon: <Truck size={20} strokeWidth={1.5} />, to: '/vehicles'      },
-    { label: 'Service',       icon: <Wrench size={20} strokeWidth={1.5} />, to: '/service'       },
-    { label: 'Users',         icon: <Users size={20} strokeWidth={1.5} />, to: '/users'         },
-    { label: 'Fuel Analysis', icon: <Fuel size={20} strokeWidth={1.5} />, to: '/fuel-analysis' },
-    { label: 'Location',      icon: <MapPin size={20} strokeWidth={1.5} />, to: '/location'      },
-    { label: 'Reports',       icon: <BarChart2 size={20} strokeWidth={1.5} />, to: '/reports'       },
-    { label: 'My Profile',    icon: <User size={20} strokeWidth={1.5} />, to: '/profile'       },
+    { label: 'Vehicles',      icon: <Truck size={20} strokeWidth={1.5} />,           to: '/vehicles'      },
+    { label: 'Service',       icon: <Wrench size={20} strokeWidth={1.5} />,          to: '/service'       },
+    { label: 'Users',         icon: <Users size={20} strokeWidth={1.5} />,           to: '/users'         },
+    { label: 'Fuel Analysis', icon: <Fuel size={20} strokeWidth={1.5} />,            to: '/fuel-analysis' },
+    { label: 'Location',      icon: <MapPin size={20} strokeWidth={1.5} />,          to: '/location'      },
+    { label: 'Reports',       icon: <BarChart2 size={20} strokeWidth={1.5} />,       to: '/reports'       },
+    { label: 'My Profile',    icon: <User size={20} strokeWidth={1.5} />,            to: '/profile'       },
   ],
   CONTROLLER: [
-    { label: 'Dashboard',        icon: <LayoutDashboard size={20} strokeWidth={1.5} />, to: '/dashboard' },
-    { label: 'Vehicles',         icon: <Truck size={20} strokeWidth={1.5} />,         to: '/vehicles' },
-    { label: 'Driver Assignment', icon: <UserCheck size={20} strokeWidth={1.5} />,    to: '/users' },
-    { label: 'Live Tracking',    icon: <MapPin size={20} strokeWidth={1.5} />,         to: '/location' },
-    { label: 'Fuel Management',  icon: <Fuel size={20} strokeWidth={1.5} />,          to: '/fuel-management' },
-    { label: 'Service',          icon: <Wrench size={20} strokeWidth={1.5} />,        to: '/service' },
-    { label: 'Users',            icon: <Users size={20} strokeWidth={1.5} />,         to: '/users' },
-    { label: 'My Profile',       icon: <User size={20} strokeWidth={1.5} />,          to: '/profile' },
+    { label: 'Dashboard',       icon: <LayoutDashboard size={20} strokeWidth={1.5} />, to: '/dashboard'       },
+    { label: 'Vehicles',        icon: <Truck size={20} strokeWidth={1.5} />,           to: '/vehicles'        },
+    { label: 'Users',           icon: <Users size={20} strokeWidth={1.5} />,           to: '/users'           },
+    { label: 'Live Tracking',   icon: <MapPin size={20} strokeWidth={1.5} />,          to: '/location'        },
+    { label: 'Fuel Management', icon: <Fuel size={20} strokeWidth={1.5} />,             to: '/fuel-management' },
+    { label: 'Service',         icon: <Wrench size={20} strokeWidth={1.5} />,           to: '/service'         },
+    { label: 'My Profile',      icon: <User size={20} strokeWidth={1.5} />,             to: '/profile'         },
   ],
   DRIVER: [
     { label: 'Dashboard',       icon: <LayoutDashboard size={20} strokeWidth={1.5} />, to: '/dashboard' },
-    { label: 'My Vehicle',      icon: <Truck size={20} strokeWidth={1.5} />,           to: '/vehicles' },
+    { label: 'My Vehicle',      icon: <Truck size={20} strokeWidth={1.5} />,           to: '/vehicles'  },
     { label: 'Task List',       icon: <ClipboardList size={20} strokeWidth={1.5} />,  to: '/tasks',    disabled: true },
-    { label: 'Fuel Log',        icon: <Fuel size={20} strokeWidth={1.5} />,            to: '/fuel-log' },
-    { label: 'Service History', icon: <Wrench size={20} strokeWidth={1.5} />,         to: '/service' },
-    { label: 'My Profile',      icon: <User size={20} strokeWidth={1.5} />,            to: '/profile' },
+    { label: 'Fuel Log',        icon: <Fuel size={20} strokeWidth={1.5} />,            to: '/fuel-log'  },
+    { label: 'Service History', icon: <Wrench size={20} strokeWidth={1.5} />,         to: '/service'   },
+    { label: 'My Profile',      icon: <User size={20} strokeWidth={1.5} />,            to: '/profile'   },
   ],
 }
 
@@ -53,9 +53,102 @@ const Sidebar = () => {
   const isDark = theme === 'blue'
   const items = navItems[user?.role] || navItems.DRIVER
 
+  // All collapsible groups start open by default
+  const [expanded, setExpanded] = useState(() => {
+    const init = {}
+    items.forEach(item => { if (item.children) init[item.label] = true })
+    return init
+  })
+
+  const toggleExpand = (label) =>
+    setExpanded(prev => ({ ...prev, [label]: !prev[label] }))
+
   const handleLogout = async () => {
     await logout()
     navigate('/login')
+  }
+
+  const renderItem = (item) => {
+    // ── Coming-soon (disabled) item ──────────────────────────────────────────
+    if (item.disabled) {
+      return (
+        <div
+          key={item.label}
+          className="nav-item"
+          style={{ opacity: 0.45, cursor: 'not-allowed', pointerEvents: 'none' }}
+        >
+          <span className="nav-icon">{item.icon}</span>
+          {item.label}
+          <span style={{
+            marginLeft: 'auto', fontSize: '0.62rem', fontWeight: 700,
+            background: isDark ? 'rgba(251,191,36,0.15)' : '#fef3c7',
+            color: isDark ? '#fbbf24' : '#92400e',
+            padding: '2px 6px', borderRadius: 999, textTransform: 'uppercase', letterSpacing: '0.04em',
+          }}>Soon</span>
+        </div>
+      )
+    }
+
+    // ── Parent with nested children (collapsible group) ──────────────────────
+    if (item.children) {
+      const isOpen = expanded[item.label]
+      return (
+        <div key={item.label}>
+          {/* Parent row — clicking toggles the group */}
+          <div
+            className="nav-item nav-parent"
+            onClick={() => toggleExpand(item.label)}
+            style={{ cursor: 'pointer', userSelect: 'none' }}
+          >
+            <span className="nav-icon">{item.icon}</span>
+            {item.label}
+            {/* Animated chevron */}
+            <span style={{
+              marginLeft: 'auto',
+              display: 'inline-flex', alignItems: 'center',
+              transition: 'transform 0.22s ease',
+              transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+              color: 'var(--text-light)',
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </span>
+          </div>
+
+          {/* Children — animated slide-down */}
+          <div style={{
+            overflow: 'hidden',
+            maxHeight: isOpen ? `${item.children.length * 52}px` : '0',
+            transition: 'max-height 0.25s ease',
+          }}>
+            {item.children.map(child => (
+              <NavLink
+                key={child.label}
+                to={child.to}
+                className={({ isActive }) => `nav-item nav-child${isActive ? ' active' : ''}`}
+              >
+                <span className="nav-icon" style={{ fontSize: '0.88em' }}>{child.icon}</span>
+                {child.label}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      )
+    }
+
+    // ── Plain nav link ───────────────────────────────────────────────────────
+    return (
+      <NavLink
+        key={item.label}
+        to={item.to}
+        className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+      >
+        <span className="nav-icon">{item.icon}</span>
+        {item.label}
+      </NavLink>
+    )
   }
 
   return (
@@ -84,33 +177,7 @@ const Sidebar = () => {
       <nav className="sidebar-nav">
         <div className="nav-section">
           <div className="nav-section-label">Navigation</div>
-          {items.map((item) =>
-            item.disabled ? (
-              <div
-                key={item.to}
-                className="nav-item"
-                style={{ opacity: 0.45, cursor: 'not-allowed', pointerEvents: 'none' }}
-              >
-                <span className="nav-icon">{item.icon}</span>
-                {item.label}
-                <span style={{
-                  marginLeft: 'auto', fontSize: '0.62rem', fontWeight: 700,
-                  background: isDark ? 'rgba(251,191,36,0.15)' : '#fef3c7',
-                  color: isDark ? '#fbbf24' : '#92400e',
-                  padding: '2px 6px', borderRadius: 999, textTransform: 'uppercase', letterSpacing: '0.04em',
-                }}>Soon</span>
-              </div>
-            ) : (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-              >
-                <span className="nav-icon">{item.icon}</span>
-                {item.label}
-              </NavLink>
-            )
-          )}
+          {items.map(renderItem)}
         </div>
       </nav>
 
@@ -184,6 +251,24 @@ const Sidebar = () => {
           color: #ffffff !important;
         }
         .nav-item.active .nav-icon { color: #ffffff !important; }
+
+        /* Child items are indented and slightly smaller */
+        .nav-child {
+          padding-left: 44px !important;
+          font-size: 0.855rem !important;
+          margin: 2px 0 !important;
+        }
+        .nav-child:hover {
+          background: var(--primary-muted) !important;
+          color: var(--text-primary) !important;
+        }
+        .nav-child.active {
+          background: rgba(37,99,235,0.15) !important;
+          color: #2563eb !important;
+          font-weight: 700 !important;
+          border-left: 3px solid #2563eb;
+          padding-left: 41px !important;
+        }
       `}</style>
     </aside>
   )

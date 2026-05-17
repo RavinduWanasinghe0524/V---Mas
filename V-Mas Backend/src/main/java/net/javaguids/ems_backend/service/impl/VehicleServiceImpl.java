@@ -114,4 +114,13 @@ public class VehicleServiceImpl implements VehicleService {
         Vehicle updatedVehicle = vehicleRepository.save(vehicle);
         return VehicleMapper.mapToVehicleDto(updatedVehicle);
     }
+
+    @Override
+    public VehicleDto unassignDriver(Long vehicleId) {
+        Vehicle vehicle = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new ResourceNotFoundException("No such vehicle found"));
+        vehicle.setDriver(null);
+        Vehicle saved = vehicleRepository.save(vehicle);
+        return VehicleMapper.mapToVehicleDto(saved);
+    }
 }

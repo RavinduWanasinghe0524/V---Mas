@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
 import { userAPI } from '../services/api'
 import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck } from 'lucide-react'
+import DriverAssignmentTab from './DriverAssignmentTab'
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(99,102,241,0.5)'
@@ -52,6 +53,7 @@ const UsersPage = () => {
     color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.02em',
   }
   const { isAdmin, isController } = useAuth()
+  const [activeTab, setActiveTab] = useState('users')
 
   const [users,        setUsers]        = useState([])
   const [pendingUsers, setPendingUsers] = useState([])
@@ -67,7 +69,7 @@ const UsersPage = () => {
 
   useEffect(() => {
     if (isAdmin || isController) {
-      if (isAdmin) loadUsers()
+      loadUsers()
       loadPending()
     }
   }, [isAdmin, isController])
@@ -214,19 +216,37 @@ const UsersPage = () => {
                     User Management
                   </h1>
                   <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
-                    {isAdmin ? 'Manage system users, roles, and access approvals' : 'Review and process pending driver account requests'}
+                    Manage system users, roles, and access approvals
                   </p>
                 </div>
               </div>
-              {isAdmin && (
-                <button onClick={handleCreate} style={{
-                  position: 'relative', padding: '10px 22px', borderRadius: 10, border: 'none', background: '#fff', color: '#4338ca', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s', boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
-                }}
-                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 6px 20px rgba(0,0,0,0.3)' }}
-                onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 4px 14px rgba(0,0,0,0.2)' }}>
-                  <Users size={16} /> Add User
+              <button onClick={handleCreate} style={{
+                position: 'relative', padding: '10px 22px', borderRadius: 10, border: 'none', background: '#fff', color: '#4338ca', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s', boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 6px 20px rgba(0,0,0,0.3)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 4px 14px rgba(0,0,0,0.2)' }}>
+                <Users size={16} /> Add User
+              </button>
+            </div>
+
+            {/* Tab Bar */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+              {[
+                { key: 'users',      label: 'All Users',        icon: <Users size={15}/> },
+                { key: 'assignment', label: 'Driver Assignment', icon: <UserCheck size={15}/> },
+              ].map(tab => (
+                <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  padding: '9px 20px', borderRadius: 10, fontWeight: 700, fontSize: '0.85rem',
+                  border: activeTab === tab.key ? 'none' : `1px solid ${D.border}`,
+                  background: activeTab === tab.key ? 'linear-gradient(135deg,#6366f1,#4f46e5)' : D.surface,
+                  color: activeTab === tab.key ? '#fff' : D.textSub,
+                  cursor: 'pointer', transition: 'all 0.15s',
+                  boxShadow: activeTab === tab.key ? '0 4px 14px rgba(99,102,241,0.35)' : 'none',
+                }}>
+                  {tab.icon} {tab.label}
                 </button>
-              )}
+              ))}
             </div>
 
             {/* Messages */}
@@ -241,67 +261,69 @@ const UsersPage = () => {
               </div>
             )}
 
-            {/* Pending Approvals Section */}
-            <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, marginBottom: 32, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
-              <div style={{ padding: '18px 24px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: D.goldDim, border: `1px solid ${D.gold}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.gold }}>
-                    <Clock size={18} />
-                  </div>
-                  <div>
-                    <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem' }}>Pending Approvals</h3>
-                  </div>
-                  {!pendingLoad && pendingUsers.length > 0 && (
-                    <span style={{ background: D.gold, color: '#000', padding: '2px 8px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 800 }}>{pendingUsers.length}</span>
-                  )}
-                </div>
-                <button onClick={loadPending} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 4 }} title="Refresh pending list">
-                  <RefreshCw size={16} />
-                </button>
+            {/* Driver Assignment Tab */}
+            {activeTab === 'assignment' && (
+              <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
+                <DriverAssignmentTab />
               </div>
+            )}
 
-              <div style={{ padding: '24px' }}>
-                {pendingLoad ? (
-                  <div style={{ textAlign: 'center', color: D.textSub, padding: 20 }}>Loading pending accounts...</div>
-                ) : pendingUsers.length === 0 ? (
-                  <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>
-                    <UserCheck size={36} style={{ marginBottom: 12, opacity: 0.3 }} />
-                    <p style={{ margin: 0, fontWeight: 700, color: D.text }}>No accounts awaiting approval</p>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>New self-registered accounts will appear here.</p>
+            {activeTab === 'users' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+              {/* Pending Approvals */}
+              <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
+                <div style={{ padding: '18px 24px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: D.goldDim, border: `1px solid ${D.gold}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.gold }}>
+                      <Clock size={18} />
+                    </div>
+                    <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem' }}>Pending Approvals</h3>
+                    {!pendingLoad && pendingUsers.length > 0 && (
+                      <span style={{ background: D.gold, color: '#000', padding: '2px 8px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 800 }}>{pendingUsers.length}</span>
+                    )}
                   </div>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-                    {pendingUsers.map(u => (
-                      <div key={u.id} style={{ background: D.bg, border: `1px solid ${D.borderHi}`, borderRadius: 14, padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                          <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=fff&bold=true`} alt={u.userName} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
-                          <div>
-                            <p style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem' }}>{u.userName}</p>
-                            <p style={{ margin: '2px 0 6px', fontSize: '0.75rem', color: D.textSub }}>{u.email}</p>
-                            <RoleBadge role={u.role} D={D} />
+                  <button onClick={loadPending} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 4 }}><RefreshCw size={16} /></button>
+                </div>
+                <div style={{ padding: '24px' }}>
+                  {pendingLoad ? (
+                    <div style={{ textAlign: 'center', color: D.textSub, padding: 20 }}>Loading...</div>
+                  ) : pendingUsers.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>
+                      <UserCheck size={36} style={{ marginBottom: 12, opacity: 0.3 }} />
+                      <p style={{ margin: 0, fontWeight: 700, color: D.text }}>No accounts awaiting approval</p>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>New self-registered accounts will appear here.</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+                      {pendingUsers.map(u => (
+                        <div key={u.id} style={{ background: D.bg, border: `1px solid ${D.borderHi}`, borderRadius: 14, padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                            <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=fff&bold=true`} alt={u.userName} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
+                            <div>
+                              <p style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem' }}>{u.userName}</p>
+                              <p style={{ margin: '2px 0 6px', fontSize: '0.75rem', color: D.textSub }}>{u.email}</p>
+                              <RoleBadge role={u.role} D={D} />
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button onClick={() => handleApprove(u.id, u.userName)} style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', background: D.greenDim, color: D.green, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                              onMouseEnter={e => e.currentTarget.style.background='rgba(74,222,128,0.25)'} onMouseLeave={e => e.currentTarget.style.background=D.greenDim}>
+                              <Check size={14} /> Approve
+                            </button>
+                            <button onClick={() => handleReject(u.id, u.userName)} style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', background: D.redDim, color: D.red, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                              onMouseEnter={e => e.currentTarget.style.background='rgba(248,113,113,0.25)'} onMouseLeave={e => e.currentTarget.style.background=D.redDim}>
+                              <X size={14} /> Reject
+                            </button>
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <button onClick={() => handleApprove(u.id, u.userName)} style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', background: D.greenDim, color: D.green, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.15s' }}
-                            onMouseEnter={e => e.currentTarget.style.background='rgba(74,222,128,0.25)'}
-                            onMouseLeave={e => e.currentTarget.style.background=D.greenDim}>
-                            <Check size={14} /> Approve
-                          </button>
-                          <button onClick={() => handleReject(u.id, u.userName)} style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', background: D.redDim, color: D.red, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.15s' }}
-                            onMouseEnter={e => e.currentTarget.style.background='rgba(248,113,113,0.25)'}
-                            onMouseLeave={e => e.currentTarget.style.background=D.redDim}>
-                            <X size={14} /> Reject
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* All Users Section (Admin Only) */}
-            {isAdmin && (
+              {/* All Users Table */}
               <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
                 <div style={{ padding: '18px 24px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -359,16 +381,18 @@ const UsersPage = () => {
                                     <button onClick={() => handleReject(u.id, u.userName)} style={{ padding: '5px 8px', borderRadius: 8, border: 'none', background: D.red, color: '#fff', cursor: 'pointer' }}><X size={14} /></button>
                                   </>
                                 )}
-                                <button onClick={() => handleEdit(u)} style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
-                                  onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor='rgba(99,102,241,0.4)'; e.currentTarget.style.color='#a5b4fc' }}
-                                  onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor=D.border; e.currentTarget.style.color=D.text }}>
-                                  Edit
-                                </button>
-                                <button onClick={() => handleDelete(u.id)} style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
-                                  onMouseEnter={e => { e.currentTarget.style.background='rgba(248,113,113,0.2)' }}
-                                  onMouseLeave={e => { e.currentTarget.style.background='rgba(248,113,113,0.1)' }}>
-                                  Delete
-                                </button>
+                                  <>
+                                    <button onClick={() => handleEdit(u)} style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
+                                      onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.color='#a5b4fc' }}
+                                      onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.color=D.text }}>
+                                      Edit
+                                    </button>
+                                    <button onClick={() => handleDelete(u.id)} style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700 }}
+                                      onMouseEnter={e => e.currentTarget.style.background='rgba(248,113,113,0.2)'}
+                                      onMouseLeave={e => e.currentTarget.style.background='rgba(248,113,113,0.1)'}>
+                                      Delete
+                                    </button>
+                                  </>
                               </div>
                             </td>
                           </tr>
@@ -377,6 +401,8 @@ const UsersPage = () => {
                     </table>
                   )}
                 </div>
+              </div>
+
               </div>
             )}
           </div>
@@ -417,10 +443,10 @@ const UsersPage = () => {
                   </div>
                   <div>
                     <label style={labelStyle}>Role</label>
-                    <select name="role" value={formData.role} onChange={handleChange} disabled={isController} style={{ ...inputStyle, cursor: isController ? 'not-allowed' : 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
+                    <select name="role" value={formData.role} onChange={handleChange} style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
                       <option value="DRIVER" style={{ background: D.surfaceHi }}>Driver</option>
-                      {isAdmin && <option value="CONTROLLER" style={{ background: D.surfaceHi }}>Controller</option>}
-                      {isAdmin && <option value="ADMIN" style={{ background: D.surfaceHi }}>Admin</option>}
+                      <option value="CONTROLLER" style={{ background: D.surfaceHi }}>Controller</option>
+                      <option value="ADMIN" style={{ background: D.surfaceHi }}>Admin</option>
                     </select>
                   </div>
                   <div>
