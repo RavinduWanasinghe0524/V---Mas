@@ -4,12 +4,13 @@ import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { fuelAPI } from '../services/api'
-import { Fuel, CircleDollarSign, BarChart2, Check, X, TrendingUp, Edit2, Loader2, Plus, LayoutDashboard } from 'lucide-react'
+import { Fuel, CircleDollarSign, BarChart2, Check, X, TrendingUp, Edit2, Loader2, Plus, LayoutDashboard, Calendar, User } from 'lucide-react'
 
 const card = (D) => ({
   background: D.surface,
+  borderRadius: 24,
   border: `1px solid ${D.border}`,
-  borderRadius: 14,
+  boxShadow: '0 4px 24px rgba(0,0,0,0.25)',
   overflow: 'hidden',
 })
 
@@ -333,42 +334,37 @@ const FuelAnalysisPage = () => {
           {/* -- Hero Banner --------------------------------------- */}
           <div style={{
             background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
-            borderRadius: 20,
-            padding: '32px 36px',
-            marginBottom: 28,
-            position: 'relative',
-            overflow: 'hidden',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-            border: `1px solid rgba(255,255,255,0.07)`,
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16
+            borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
+            boxShadow: '0 16px 48px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 30
           }}>
-            {/* decorative circles */}
-            {[['80%','-20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
-              <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
-            ))}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', color: '#fff', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            {/* decoration */}
+            <div style={{ position: 'absolute', top: '-40%', right: '-10%', width: 400, height: 400, background: 'radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: '-20%', left: '10%', width: 250, height: 250, background: 'radial-gradient(circle, rgba(165,180,252,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            
+            <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: 18 }}>
+              <div style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(12px)', borderRadius: 20, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
                 <Fuel size={32} strokeWidth={1.5} />
               </div>
               <div>
-                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                   Fuel Analysis
                 </h1>
-                <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
+                <p style={{ margin: '6px 0 0', color: '#a5b4fc', fontSize: '1rem', fontWeight: 500, opacity: 0.9 }}>
                   {isDriver ? 'Track your vehicle fuel consumption.' : 'Fleet-wide consumption trends, cost breakdowns & efficiency tracking.'}
                 </p>
               </div>
             </div>
             {isDriver && (
-              <div style={{ display: 'flex', gap: 5, background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 4, border: `1px solid ${D.border}` }}>
-                {[{ id: 'dashboard', icon: <LayoutDashboard size={16}/>, label: 'Dashboard' }, { id: 'add-log', icon: <Fuel size={16}/>, label: 'Add Log' }].map(t => (
+              <div style={{ position: 'relative', zIndex: 2, display: 'flex', gap: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: 6, border: '1px solid rgba(255,255,255,0.2)' }}>
+                {[{ id: 'dashboard', icon: <LayoutDashboard size={18}/>, label: 'Dashboard' }, { id: 'add-log', icon: <Fuel size={18}/>, label: 'Add Log' }].map(t => (
                   <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
-                    padding: '7px 18px', borderRadius: 7, border: 'none', cursor: 'pointer',
-                    fontWeight: 600, fontSize: '0.82rem', transition: 'all 0.15s ease',
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    background: activeTab === t.id ? 'rgba(99,102,241,0.3)' : 'transparent',
-                    color: activeTab === t.id ? '#a78bfa' : D.textSub,
-                    boxShadow: activeTab === t.id ? '0 2px 12px rgba(99,102,241,0.3)' : 'none',
+                    padding: '10px 20px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                    fontWeight: 700, fontSize: '0.85rem', transition: 'all 0.2s ease',
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    background: activeTab === t.id ? '#fff' : 'transparent',
+                    color: activeTab === t.id ? '#312e81' : '#fff',
+                    boxShadow: activeTab === t.id ? '0 4px 12px rgba(0,0,0,0.15)' : 'none',
                   }}>
                     {t.icon} {t.label}
                   </button>
@@ -383,31 +379,30 @@ const FuelAnalysisPage = () => {
           {(!isDriver || activeTab === 'dashboard') && (
             <>
               {/* -- KPI cards -------------------------------- */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 14, marginBottom: 20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
                 {(isAdmin || isController ? [
-                  { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: <Fuel size={20}/>, iconBg: D.indigoDim, iconColor: D.indigo },
-                  { label: 'Total Petrol', value: `${Math.round(summary.totalPetrol).toLocaleString()} L`, icon: <Fuel size={20}/>, iconBg: D.goldDim, iconColor: D.gold },
-                  { label: 'Total Volume', value: `${Math.round(summary.totalVolume).toLocaleString()} L`, icon: <BarChart2 size={20}/>, iconBg: D.tealDim, iconColor: D.teal },
-                  { label: 'Total Cost (LKR)', value: `Rs. ${Math.round(summary.totalCost).toLocaleString()}`, icon: <CircleDollarSign size={20}/>, iconBg: D.greenDim, iconColor: D.green },
-                  { label: 'Active Logs', value: summary.logCount, icon: <BarChart2 size={20}/>, iconBg: D.purpleDim, iconColor: D.purple },
+                  { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.indigoDim, iconColor: D.indigo },
+                  { label: 'Total Petrol', value: `${Math.round(summary.totalPetrol).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.goldDim, iconColor: D.gold },
+                  { label: 'Total Volume', value: `${Math.round(summary.totalVolume).toLocaleString()} L`, icon: <BarChart2 size={24}/>, iconBg: D.tealDim, iconColor: D.teal },
+                  { label: 'Total Cost', value: `Rs. ${Math.round(summary.totalCost).toLocaleString()}`, icon: <CircleDollarSign size={24}/>, iconBg: D.greenDim, iconColor: D.green },
+                  { label: 'Active Logs', value: summary.logCount, icon: <BarChart2 size={24}/>, iconBg: D.purpleDim, iconColor: D.purple },
                 ] : [
-                  { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: <Fuel size={20}/>, iconBg: D.indigoDim, iconColor: D.indigo },
-                  { label: 'Total Petrol', value: `${Math.round(summary.totalPetrol).toLocaleString()} L`, icon: <Fuel size={20}/>, iconBg: D.goldDim, iconColor: D.gold },
-                  { label: 'Total Volume', value: `${Math.round(summary.totalVolume).toLocaleString()} L`, icon: <BarChart2 size={20}/>, iconBg: D.tealDim, iconColor: D.teal },
-                  { label: 'Total Cost (LKR)', value: `Rs. ${Math.round(summary.totalCost).toLocaleString()}`, icon: <CircleDollarSign size={20}/>, iconBg: D.greenDim, iconColor: D.green },
+                  { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.indigoDim, iconColor: D.indigo },
+                  { label: 'Total Petrol', value: `${Math.round(summary.totalPetrol).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.goldDim, iconColor: D.gold },
+                  { label: 'Total Volume', value: `${Math.round(summary.totalVolume).toLocaleString()} L`, icon: <BarChart2 size={24}/>, iconBg: D.tealDim, iconColor: D.teal },
+                  { label: 'Total Cost', value: `Rs. ${Math.round(summary.totalCost).toLocaleString()}`, icon: <CircleDollarSign size={24}/>, iconBg: D.greenDim, iconColor: D.green },
                 ]).map(s => (
                   <div key={s.label} style={{
-                    ...card(D), padding: '20px 22px', transition: 'all 0.25s ease', cursor: 'default',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = D.borderHi; e.currentTarget.style.transform = 'translateY(-2px)' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.transform = 'translateY(0)' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
-                      <div style={{ width: 38, height: 38, borderRadius: 10, background: s.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', border: `1px solid ${s.iconColor}30`, color: s.iconColor }}>
-                        {s.icon}
-                      </div>
+                    ...card(D), padding: '28px', display: 'flex', alignItems: 'center', gap: 24,
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', cursor: 'default'
+                  }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.borderColor = s.iconColor + '50'; e.currentTarget.style.boxShadow = `0 16px 32px ${s.iconColor}20` }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)' }}>
+                    <div style={{ width: 60, height: 60, borderRadius: 18, background: s.iconBg, color: s.iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${s.iconColor}30`, flexShrink: 0 }}>
+                      {s.icon}
                     </div>
-                    <p style={{ margin: '0 0 6px', fontSize: '1.65rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif", lineHeight: 1 }}>{s.value}</p>
-                    <p style={{ margin: 0, fontSize: '0.72rem', fontWeight: 600, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</p>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{s.label}</div>
+                      <div style={{ fontSize: '1.6rem', fontWeight: 900, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.1 }}>{s.value}</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -517,55 +512,76 @@ const FuelAnalysisPage = () => {
 
               {/* -- Driver: My Fuel History --------------------- */}
               {isDriver && (
-                <div style={{ ...card(D), marginBottom: 20 }}>
-                  <div style={{ padding: '18px 22px 14px', borderBottom: `1px solid ${D.border}` }}>
-                    <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.92rem' }}>My Fuel History</h3>
-                    <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>Recent fuel logs for your vehicle</p>
+                <div style={{ ...card(D), padding: 0, marginBottom: 20 }}>
+                  <div style={{ padding: '28px 32px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }}>
+                    <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '1.1rem' }}>My Fuel History</h3>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.85rem', color: D.textSub }}>Recent fuel logs for your vehicle</p>
                   </div>
-                  <div style={{ maxHeight: 380, overflowY: 'auto' }}>
+                  <div style={{ maxHeight: 460, overflowY: 'auto', padding: '24px 32px 40px' }}>
                     {myVehicleLogs.length === 0 ? (
-                      <div style={{ padding: 50, textAlign: 'center', color: D.textSub }}>
-                        <div style={{ marginBottom: 10, opacity: 0.3, display: 'flex', justifyContent: 'center' }}><Fuel size={48} /></div>
-                        <p style={{ fontWeight: 600, marginBottom: 4 }}>No fuel logs yet</p>
-                        <p style={{ fontSize: '0.82rem' }}>Switch to "Add Log" tab to add your first entry.</p>
+                      <div style={{ padding: '80px 0', textAlign: 'center' }}>
+                        <div style={{ background: D.surfaceHi, width: 90, height: 90, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: D.textSub, border: `1px solid ${D.border}` }}>
+                          <Fuel size={36} opacity={0.3} />
+                        </div>
+                        <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.2rem' }}>No fuel logs yet</h3>
+                        <p style={{ margin: '10px 0 0', color: D.textSub, fontSize: '1rem', fontWeight: 500 }}>Switch to "Add Log" tab to add your first entry.</p>
                       </div>
                     ) : (
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-                        <thead>
-                          <tr style={{ background: D.surfaceHi }}>
-                            {['Date', 'Fuel Type', 'Liters', 'Cost/L', 'Total', 'Mileage', 'Efficiency'].map(h => (
-                              <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: D.textSub, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: `1px solid ${D.border}` }}>{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {myVehicleLogs.map((log, i) => (
-                            <tr key={log.id}
-                              style={{ borderBottom: `1px solid ${D.border}`, background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)', transition: 'background 0.12s' }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(129,140,248,0.07)'}
-                              onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'}>
-                              <td style={{ padding: '10px 14px', color: D.textSub }}>{new Date(log.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
-                              <td style={{ padding: '10px 14px' }}>
-                                <span style={{ padding: '2px 9px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700,
-                                  background: log.fuelType === 'Diesel' ? D.indigoDim : D.goldDim,
-                                  color: log.fuelType === 'Diesel' ? D.indigo : D.gold,
-                                  border: `1px solid ${log.fuelType === 'Diesel' ? 'rgba(129,140,248,0.3)' : 'rgba(251,191,36,0.3)'}` }}>
-                                  {log.fuelType}
-                                </span>
-                              </td>
-                              <td style={{ padding: '10px 14px', color: D.text, fontWeight: 600 }}>{log.liters} L</td>
-                              <td style={{ padding: '10px 14px', color: D.textSub }}>Rs. {log.costPerLiter.toFixed(2)}</td>
-                              <td style={{ padding: '10px 14px', fontWeight: 700, color: D.text }}>Rs. {log.totalCost.toFixed(2)}</td>
-                              <td style={{ padding: '10px 14px', color: D.textSub }}>{log.mileage.toFixed(1)} km</td>
-                              <td style={{ padding: '10px 14px' }}>
-                                {log.fuelEfficiency
-                                  ? <span style={{ fontWeight: 700, color: D.teal }}>{log.fuelEfficiency.toFixed(2)} km/L</span>
-                                  : <span style={{ color: D.textFaint }}>-</span>}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
+                        {myVehicleLogs.map((log, i) => {
+                          const badge = log.fuelEfficiency ? (
+                            log.fuelEfficiency > 10 ? { label: 'Excellent', bg: D.greenDim, color: D.green, border: 'rgba(74,222,128,0.3)' } :
+                            log.fuelEfficiency > 7 ? { label: 'Good', bg: D.blueDim, color: D.blue, border: 'rgba(96,165,250,0.3)' } :
+                            log.fuelEfficiency > 5 ? { label: 'Average', bg: D.goldDim, color: D.gold, border: 'rgba(251,191,36,0.3)' } :
+                            { label: 'Poor', bg: D.redDim, color: D.red, border: 'rgba(248,113,113,0.3)' }
+                          ) : { label: 'N/A', bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border };
+                          
+                          return (
+                            <div key={log.id} style={{
+                              background: D.surface, borderRadius: 20, border: `1px solid ${D.border}`,
+                              padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 24,
+                              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`,
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                            }} onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateX(6px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }} onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)' }}>
+                              
+                              <div style={{ width: 140, flexShrink: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '1rem', color: D.text, fontWeight: 800 }}>
+                                  <Calendar size={18} color={D.textSub} strokeWidth={2.5} /> {new Date(log.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                                  <span style={{ fontSize: '0.75rem', color: log.fuelType === 'Diesel' ? D.indigo : D.gold, fontWeight: 800, textTransform: 'uppercase', background: log.fuelType === 'Diesel' ? D.indigoDim : D.goldDim, padding: '3px 10px', borderRadius: 6, border: `1px solid ${log.fuelType === 'Diesel' ? D.indigo : D.gold}30` }}>{log.fuelType}</span>
+                                </div>
+                              </div>
+                              
+                              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 48 }}>
+                                <div>
+                                  <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Volume</div>
+                                  <div style={{ fontSize: '1rem', fontWeight: 800, color: D.text }}>{log.liters.toFixed(1)} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>L</span></div>
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Cost/L</div>
+                                  <div style={{ fontSize: '1rem', fontWeight: 800, color: D.textSub }}>Rs. {log.costPerLiter.toFixed(2)}</div>
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Total Cost</div>
+                                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: D.green }}>Rs. {log.totalCost.toLocaleString()}</div>
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Mileage</div>
+                                  <div style={{ fontSize: '1rem', fontWeight: 800, color: D.text }}>{log.mileage.toLocaleString()} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>km</span></div>
+                                </div>
+                              </div>
+                              
+                              <div style={{ width: 140, textAlign: 'right' }}>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderRadius: 12, background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`, boxShadow: `0 4px 12px ${badge.color}15` }}>
+                                  <span style={{ fontSize: '0.78rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{badge.label}</span>
+                                  {log.fuelEfficiency && <span style={{ fontWeight: 950, fontSize: '1rem' }}>{log.fuelEfficiency.toFixed(1)}</span>}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -573,75 +589,88 @@ const FuelAnalysisPage = () => {
 
               {/* -- Admin/Controller: All Fuel Logs ------------ */}
               {(isAdmin || isController) && (
-                <div style={{ ...card(D) }}>
-                  <div style={{ padding: '18px 22px 14px', borderBottom: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ ...card(D), padding: 0 }}>
+                  <div style={{ padding: '28px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: D.surfaceHi }}>
                     <div>
-                      <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.92rem' }}>All Fuel Logs - Audit View</h3>
-                      <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>Complete log history with creator and editor info</p>
+                      <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '1.1rem' }}>All Fuel Logs - Audit View</h3>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.85rem', color: D.textSub }}>Complete log history with creator and editor info</p>
                     </div>
-                    <span style={{ padding: '3px 11px', borderRadius: 20, background: D.indigoDim, color: D.indigo, fontSize: '0.72rem', fontWeight: 700, border: '1px solid rgba(129,140,248,0.25)' }}>
-                      {allFuelLogs.length} records
-                    </span>
+                    <div style={{ fontSize: '0.9rem', color: D.textSub, fontWeight: 700, background: D.surface, padding: '8px 16px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                      <span style={{ color: D.purple }}>{allFuelLogs.length}</span> Records
+                    </div>
                   </div>
-                  <div style={{ maxHeight: 460, overflowY: 'auto' }}>
+                  <div style={{ maxHeight: 600, overflowY: 'auto', padding: '24px 32px 40px' }}>
                     {allFuelLogs.length === 0 ? (
-                      <div style={{ padding: 50, textAlign: 'center', color: D.textSub }}>
-                        <div style={{ marginBottom: 10, opacity: 0.3, display: 'flex', justifyContent: 'center' }}><Fuel size={48} /></div>
-                        <p style={{ fontWeight: 600 }}>No fuel logs yet</p>
+                      <div style={{ padding: '80px 0', textAlign: 'center' }}>
+                        <div style={{ background: D.surfaceHi, width: 90, height: 90, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: D.textSub, border: `1px solid ${D.border}` }}>
+                          <Fuel size={36} opacity={0.3} />
+                        </div>
+                        <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.2rem' }}>No fuel logs</h3>
                       </div>
                     ) : (
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
-                        <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
-                          <tr style={{ background: D.surfaceHi }}>
-                            {['Vehicle', 'Date', 'Type', 'Liters', 'Cost', 'Mileage', 'Created By', 'Updated By', 'Status'].map(h => (
-                              <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: D.textSub, fontSize: '0.67rem', textTransform: 'uppercase', letterSpacing: '0.07em', whiteSpace: 'nowrap', borderBottom: `1px solid ${D.border}` }}>{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {allFuelLogs.map((log, i) => (
-                            <tr key={log.id}
-                              style={{ borderBottom: `1px solid ${D.border}`, background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)', transition: 'background 0.12s' }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(129,140,248,0.07)'}
-                              onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'}>
-                              <td style={{ padding: '10px 14px' }}>
-                                <span style={{ fontWeight: 700, color: D.blue, background: D.blueDim, padding: '2px 9px', borderRadius: 6, fontSize: '0.75rem' }}>{log.vehicleRegNumber}</span>
-                              </td>
-                              <td style={{ padding: '10px 14px', color: D.textSub, whiteSpace: 'nowrap' }}>
-                                {new Date(log.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                              </td>
-                              <td style={{ padding: '10px 14px' }}>
-                                <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: '0.68rem', fontWeight: 700,
-                                  background: log.fuelType === 'Diesel' ? D.indigoDim : D.goldDim,
-                                  color: log.fuelType === 'Diesel' ? D.indigo : D.gold }}>
-                                  {log.fuelType}
-                                </span>
-                              </td>
-                              <td style={{ padding: '10px 14px', color: D.text, fontWeight: 600 }}>{log.liters.toFixed(1)} L</td>
-                              <td style={{ padding: '10px 14px', fontWeight: 700, color: D.text }}>Rs. {Math.round(log.totalCost).toLocaleString()}</td>
-                              <td style={{ padding: '10px 14px', color: D.textSub }}>{log.mileage.toFixed(0)} km</td>
-                              <td style={{ padding: '10px 14px' }}>
-                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: D.green }}>{log.uploadedBy || log.driverUsername || '-'}</span>
-                              </td>
-                              <td style={{ padding: '10px 14px' }}>
-                                {log.isUpdated && log.updatedBy ? (
-                                  <div>
-                                    <span style={{ fontSize: '0.73rem', fontWeight: 700, color: D.purple, display: 'block' }}>{log.updatedBy}</span>
-                                    {log.updatedAt && <span style={{ fontSize: '0.65rem', color: D.textSub }}>{new Date(log.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
-                                  </div>
-                                ) : <span style={{ color: D.textFaint }}>-</span>}
-                              </td>
-                              <td style={{ padding: '10px 14px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
+                        {allFuelLogs.map((log, i) => {
+                          const badge = log.fuelEfficiency ? (
+                            log.fuelEfficiency > 10 ? { label: 'Excellent', bg: D.greenDim, color: D.green, border: 'rgba(74,222,128,0.3)' } :
+                            log.fuelEfficiency > 7 ? { label: 'Good', bg: D.blueDim, color: D.blue, border: 'rgba(96,165,250,0.3)' } :
+                            log.fuelEfficiency > 5 ? { label: 'Average', bg: D.goldDim, color: D.gold, border: 'rgba(251,191,36,0.3)' } :
+                            { label: 'Poor', bg: D.redDim, color: D.red, border: 'rgba(248,113,113,0.3)' }
+                          ) : { label: 'N/A', bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border };
+                          
+                          return (
+                            <div key={log.id} style={{
+                              background: D.surface, borderRadius: 20, border: `1px solid ${D.border}`,
+                              padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 24,
+                              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`,
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                            }} onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateX(6px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }} onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)' }}>
+                              
+                              <div style={{ width: 130, flexShrink: 0 }}>
+                                <div style={{ fontSize: '1.05rem', fontWeight: 950, color: D.blue, letterSpacing: '0.02em' }}>{log.vehicleRegNumber}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                                   <span style={{ fontSize: '0.72rem', color: log.fuelType === 'Diesel' ? D.indigo : D.gold, fontWeight: 800, textTransform: 'uppercase', background: log.fuelType === 'Diesel' ? D.indigoDim : D.goldDim, padding: '2px 8px', borderRadius: 6, border: `1px solid ${log.fuelType === 'Diesel' ? D.indigo : D.gold}30` }}>{log.fuelType}</span>
+                                </div>
+                              </div>
+                              
+                              <div style={{ width: 150, flexShrink: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem', color: D.text, fontWeight: 700 }}>
+                                  <Calendar size={16} color={D.textSub} strokeWidth={2.5} /> {new Date(log.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: D.textSub, marginTop: 6, fontWeight: 600 }}>
+                                  <User size={14} opacity={0.7} /> {log.uploadedBy || log.driverUsername || '-'}
+                                </div>
+                              </div>
+
+                              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 40 }}>
+                                <div>
+                                  <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Volume</div>
+                                  <div style={{ fontSize: '1rem', fontWeight: 800, color: D.text }}>{log.liters.toFixed(1)} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>L</span></div>
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Mileage</div>
+                                  <div style={{ fontSize: '1rem', fontWeight: 800, color: D.text }}>{log.mileage.toLocaleString()} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>km</span></div>
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Total Cost</div>
+                                  <div style={{ fontSize: '1rem', fontWeight: 800, color: D.green }}>Rs. {Math.round(log.totalCost).toLocaleString()}</div>
+                                </div>
+                              </div>
+                              
+                              <div style={{ width: 140, flexShrink: 0, padding: '0 16px', borderLeft: `1px solid ${D.border}` }}>
+                                <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Audit Status</div>
                                 {log.isUpdated ? (
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700, background: D.purpleDim, color: D.purple, border: '1px solid rgba(167,139,250,0.3)' }}><Edit2 size={10}/> Edited</span>
+                                  <div>
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 800, color: D.purple, marginBottom: 2 }}><Edit2 size={12}/> Edited</div>
+                                    <div style={{ fontSize: '0.7rem', color: D.textSub }}>By {log.updatedBy}</div>
+                                  </div>
                                 ) : (
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700, background: D.greenDim, color: D.green, border: '1px solid rgba(74,222,128,0.3)' }}><Check size={10}/> Original</span>
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 800, color: D.green }}><Check size={12}/> Original</div>
                                 )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
                     )}
                   </div>
                 </div>
