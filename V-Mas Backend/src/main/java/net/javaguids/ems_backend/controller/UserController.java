@@ -122,7 +122,7 @@ public class UserController {
     // ── Admin: Full user list ────────────────────────────────────────
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     public ResponseEntity<ApiResponse<List<UserDto>>> getAllUsers() {
         log.info("Get all users request received");
         List<UserDto> users = userService.getAllUsers();
@@ -134,7 +134,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<Object>> getUserById(@PathVariable Long id) {
         log.info("Get user by ID request received for ID: {}", id);
         User currentUser = getCurrentUser();
-        if (!isAdmin() && !currentUser.getId().equals(id)) {
+        if (!isAdmin() && !isController() && !currentUser.getId().equals(id)) {
             log.warn("Access denied: User {} attempted to access user {}", currentUser.getId(), id);
             return ApiResponseUtil.error("You don't have permission to access this resource", HttpStatus.FORBIDDEN);
         }
@@ -143,21 +143,35 @@ public class UserController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<UserDto>> createUser(@RequestBody RegisterRequest request) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    public ResponseEntity<ApiResponse<Object>> createUser(@RequestBody RegisterRequest request) {
         log.info("Create user request received for username: {}", request.getUserName());
+        if (!isAdmin() && isController()) {
+            if (!Role.DRIVER.equals(request.getRole())) {
+                return ApiResponseUtil.error("Controllers can only create driver accounts", HttpStatus.FORBIDDEN);
+            }
+        }
         UserDto user = userService.createUser(request);
         log.info("User created successfully: {}", request.getUserName());
-        return ApiResponseUtil.success("User created successfully", user, HttpStatus.CREATED);
+        return ApiResponseUtil.<Object>success("User created successfully", user, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<Object>> updateUser(@PathVariable Long id, @RequestBody UserDto userDto) {
         log.info("Update user request received for ID: {}", id);
         User currentUser = getCurrentUser();
-        if (!isAdmin() && !currentUser.getId().equals(id)) {
+        if (!isAdmin() && !isController() && !currentUser.getId().equals(id)) {
             log.warn("Access denied: User {} attempted to update user {}", currentUser.getId(), id);
             return ApiResponseUtil.error("You don't have permission to access this resource", HttpStatus.FORBIDDEN);
+        }
+        if (!isAdmin() && isController() && !currentUser.getId().equals(id)) {
+            UserDto targetUser = userService.getUserById(id);
+            if (!Role.DRIVER.equals(targetUser.getRole())) {
+                return ApiResponseUtil.error("Controllers can only modify driver accounts", HttpStatus.FORBIDDEN);
+            }
+            if (!Role.DRIVER.equals(userDto.getRole())) {
+                return ApiResponseUtil.error("Controllers cannot elevate privileges", HttpStatus.FORBIDDEN);
+            }
         }
         UserDto updatedUser = userService.updateUser(id, userDto);
         log.info("User updated successfully with ID: {}", id);
@@ -165,9 +179,15 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     public ResponseEntity<ApiResponse<Object>> deleteUser(@PathVariable Long id) {
         log.info("Delete user request received for ID: {}", id);
+        if (!isAdmin() && isController()) {
+            UserDto targetUser = userService.getUserById(id);
+            if (!Role.DRIVER.equals(targetUser.getRole())) {
+                return ApiResponseUtil.error("Controllers can only delete driver accounts", HttpStatus.FORBIDDEN);
+            }
+        }
         userService.deleteUser(id);
         log.info("User deleted successfully with ID: {}", id);
         return ApiResponseUtil.success("User deleted successfully", null, HttpStatus.OK);
