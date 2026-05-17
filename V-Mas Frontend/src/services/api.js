@@ -129,6 +129,7 @@ export const serviceAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
+  getServicesByVehicle: (regNo)          => api.get(`/services/vehicle/${encodeURIComponent(regNo)}`),
 }
 
 export const notificationAPI = {
