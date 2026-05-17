@@ -77,11 +77,19 @@ public class VehicleController {
         return ApiResponseUtil.success("Vehicle fetched successfully", assignedVehicle, HttpStatus.OK);
     }
 
-    // GET /api/vehicles/{vehicleId}/assign/{driverId} - Assign driver to a vehicle
+    // PATCH /api/vehicles/{vehicleId}/driver/{driverId} - Assign driver to a vehicle
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     @PatchMapping("/{vehicleId}/driver/{driverId}")
     public ResponseEntity<ApiResponse<VehicleDto>> assignDriver(@PathVariable Long vehicleId, @PathVariable Long driverId) throws BadRequestException {
         VehicleDto assignedVehicle = vehicleService.assignDriver(vehicleId, driverId);
         return ApiResponseUtil.success("Driver assigned successfully", assignedVehicle, HttpStatus.OK);
+    }
+
+    // PATCH /api/vehicles/{vehicleId}/unassign - Remove driver from a vehicle
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @PatchMapping("/{vehicleId}/unassign")
+    public ResponseEntity<ApiResponse<VehicleDto>> unassignDriver(@PathVariable Long vehicleId) {
+        VehicleDto updated = vehicleService.unassignDriver(vehicleId);
+        return ApiResponseUtil.success("Driver unassigned successfully", updated, HttpStatus.OK);
     }
 }
