@@ -134,6 +134,7 @@ export const serviceAPI = {
 }
 
 export const notificationAPI = {
+  create:               (data)           => api.post('/notifications', data),
   getUnread:            ()               => api.get('/notifications/unread'),
   getAll:               ()               => api.get('/notifications'),
   markAsRead:           (id)             => api.patch(`/notifications/${id}/read`),

@@ -150,6 +150,13 @@ const VehiclesPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setAddError('')
+
+    const regRegex = /^([A-Z]{2}-[A-Z]{2,3}-\d{4}|[A-Z]{2,3}-\d{4}|\d{2,3}-\d{4})$/;
+    if (!regRegex.test(formData.registrationNo)) {
+      setAddError('Invalid registration format. Use WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, or ABC-1234')
+      return;
+    }
+
     try {
       const { driverId, ...rest } = formData
       const vehiclePayload = {
@@ -216,6 +223,13 @@ const VehiclesPage = () => {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault()
+
+    const regRegex = /^([A-Z]{2}-[A-Z]{2,3}-\d{4}|[A-Z]{2,3}-\d{4}|\d{2,3}-\d{4})$/;
+    if (!regRegex.test(editFormData.registrationNo)) {
+      alert('Invalid registration format. Use WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, or ABC-1234')
+      return;
+    }
+
     try {
       await vehicleAPI.updateVehicle(editingVehicle.id, {
         model: editFormData.model,
@@ -543,7 +557,8 @@ const VehiclesPage = () => {
                   </div>
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label style={labelStyle}>Registration Number <span style={{ color: D.red }}>*</span></label>
-                    <input type="text" name="registrationNo" value={formData.registrationNo} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. WP-CAB-1234" />
+                    <input type="text" name="registrationNo" value={formData.registrationNo} onChange={(e) => setFormData({ ...formData, registrationNo: e.target.value.toUpperCase() })} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. WP-CAB-1234, 24-2345, 112-2345" />
+                    <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Format: WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, ABC-1234</p>
                   </div>
                   <div>
                     <label style={labelStyle}>Year <span style={{ color: D.red }}>*</span></label>
@@ -626,7 +641,8 @@ const VehiclesPage = () => {
                   </div>
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label style={labelStyle}>Registration Number</label>
-                    <input type="text" name="registrationNo" value={editFormData.registrationNo} onChange={handleEditChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                    <input type="text" name="registrationNo" value={editFormData.registrationNo} onChange={(e) => setEditFormData({ ...editFormData, registrationNo: e.target.value.toUpperCase() })} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                    <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Format: WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, ABC-1234</p>
                   </div>
                   <div>
                     <label style={labelStyle}>Year</label>
