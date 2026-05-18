@@ -55,9 +55,11 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
                                 "/api/services", "/api/services/**").hasAnyRole("ADMIN", "CONTROLLER", "DRIVER")
                         .requestMatchers(org.springframework.http.HttpMethod.POST,
-                                "/api/services", "/api/services/filter").hasAnyRole("ADMIN", "CONTROLLER")
+                                "/api/services").hasAnyRole("ADMIN", "CONTROLLER", "DRIVER")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST,
+                                "/api/services/filter").hasAnyRole("ADMIN", "CONTROLLER")
                         .requestMatchers(org.springframework.http.HttpMethod.PUT,
-                                "/api/services/**").hasAnyRole("ADMIN", "CONTROLLER")
+                                "/api/services/**").hasAnyRole("ADMIN", "CONTROLLER", "DRIVER")
                         .requestMatchers(org.springframework.http.HttpMethod.DELETE,
                                 "/api/services/**").hasAnyRole("ADMIN", "CONTROLLER")
 

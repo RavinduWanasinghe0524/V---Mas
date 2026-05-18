@@ -69,6 +69,23 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
             }
         }
 
+        // ── Ensure vehicle exists and update its mileage ──
+        Vehicle vehicle = vehicleRepository.findByRegistrationNo(dto.getVehicleRegNumber())
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle with registration number '" + dto.getVehicleRegNumber() + "' not found."));
+
+        if (dto.getCurrentMileageKm() != null) {
+            try {
+                Integer dtoMil = dto.getCurrentMileageKm();
+                Integer vehicleMil = vehicle.getCurrentMileageKm() != null ? vehicle.getCurrentMileageKm() : 0;
+                if (dtoMil < vehicleMil) {
+                    throw new RuntimeException("Current mileage cannot be less than the vehicle's last recorded mileage (" + vehicleMil + " km).");
+                } else if (dtoMil > vehicleMil) {
+                    vehicle.setCurrentMileageKm(dtoMil);
+                    vehicleRepository.save(vehicle);
+                }
+            } catch (Exception ignored) {}
+        }
+
         ServiceRecord record = ServiceRecordMapper.mapToServiceRecord(dto);
 
         // Auto-set the creator from the currently authenticated user
@@ -125,6 +142,24 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
         }
 
         validateServiceTypeDetail(dto.getServiceType(), dto.getServiceTypeDetail());
+
+        // ── Ensure vehicle exists and update its mileage ──
+        Vehicle vehicle = vehicleRepository.findByRegistrationNo(dto.getVehicleRegNumber())
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle with registration number '" + dto.getVehicleRegNumber() + "' not found."));
+
+        if (dto.getCurrentMileageKm() != null) {
+            try {
+                Integer dtoMil = dto.getCurrentMileageKm();
+                Integer vehicleMil = vehicle.getCurrentMileageKm() != null ? vehicle.getCurrentMileageKm() : 0;
+                
+                if (dtoMil < vehicleMil) {
+                    throw new RuntimeException("Current mileage cannot be less than the vehicle's last recorded mileage (" + vehicleMil + " km).");
+                } else if (dtoMil > vehicleMil) {
+                    vehicle.setCurrentMileageKm(dtoMil);
+                    vehicleRepository.save(vehicle);
+                }
+            } catch (Exception ignored) {}
+        }
 
         // ── Build field-level diff before applying changes ──────────────────────────────
         List<Map<String, String>> changes = new ArrayList<>();
