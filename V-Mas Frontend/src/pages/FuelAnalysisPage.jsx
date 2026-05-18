@@ -182,11 +182,23 @@ const FuelAnalysisPage = () => {
           // This mirrors FuelManagementPage approach and avoids backend
           // analytics endpoints which have a NULL/false mismatch on is_deleted.
           const allLogsRes = await fuelAPI.getAllFuelLogs()
-          const rawLogs = allLogsRes.data.data || []
+          let rawLogs = allLogsRes.data.data || []
+          
+          if (isAdmin) {
+            try {
+              const deletedRes = await fuelAPI.getDeletedLogs()
+              const deletedLogs = deletedRes.data.data || []
+              rawLogs = [...rawLogs, ...deletedLogs]
+            } catch (err) {
+              console.error("Failed to fetch deleted logs:", err)
+            }
+          }
+          
           const activeLogs = rawLogs.filter(l => !l.isDeleted)
 
           // Sort for display table (newest first)
-          setAllFuelLogs([...activeLogs].sort((a, b) => new Date(b.date) - new Date(a.date)))
+          const tableLogs = isAdmin ? rawLogs : activeLogs
+          setAllFuelLogs([...tableLogs].sort((a, b) => new Date(b.date) - new Date(a.date)))
 
           // -- Summary KPIs (all-time totals, same as FuelManagementPage) --
           const curYear = new Date().getFullYear()
@@ -377,7 +389,7 @@ const FuelAnalysisPage = () => {
           - */}
           <>
               {/* -- KPI cards -------------------------------- */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: (isAdmin || isController) ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
                 {(isAdmin || isController ? [
                   { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.indigoDim, iconColor: D.indigo },
                   { label: 'Total Petrol', value: `${Math.round(summary.totalPetrol).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.goldDim, iconColor: D.gold },
@@ -656,7 +668,12 @@ const FuelAnalysisPage = () => {
                               
                               <div style={{ width: 140, flexShrink: 0, padding: '0 16px', borderLeft: `1px solid ${D.border}` }}>
                                 <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Audit Status</div>
-                                {log.isUpdated ? (
+                                {log.isDeleted ? (
+                                  <div>
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 800, color: D.red, marginBottom: 2 }}><X size={12}/> Deleted</div>
+                                    <div style={{ fontSize: '0.7rem', color: D.textSub }}>By {log.deletedBy || '-'}</div>
+                                  </div>
+                                ) : log.isUpdated ? (
                                   <div>
                                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 800, color: D.purple, marginBottom: 2 }}><Edit2 size={12}/> Edited</div>
                                     <div style={{ fontSize: '0.7rem', color: D.textSub }}>By {log.updatedBy}</div>
