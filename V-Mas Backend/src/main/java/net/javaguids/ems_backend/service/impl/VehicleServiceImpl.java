@@ -87,40 +87,4 @@ public class VehicleServiceImpl implements VehicleService {
         Vehicle vehicle = vehicleRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
         vehicleRepository.delete(vehicle);
     }
-
-    @Override
-    public VehicleDto getAssignedVehicle(String username) {
-        Vehicle vehicle = vehicleRepository.findByAssigneeUsername(username).orElseThrow(() -> new ResourceNotFoundException("No vehicles assigned."));
-        return VehicleMapper.mapToVehicleDto(vehicle);
-    }
-
-    @Override
-    public VehicleDto assignDriver(Long vehicleId, Long driverId) throws BadRequestException {
-        // fetch driver
-        User driver = userRepository.findById(driverId).orElseThrow(() -> new ResourceNotFoundException("No such driver found."));
-        if (!driver.getRole().equals(Role.DRIVER)) throw new BadRequestException("Please select valid Driver");
-
-        //fetch vehicle
-        Vehicle vehicle = vehicleRepository.findById(vehicleId).orElseThrow(() -> new ResourceNotFoundException("No such vehicle found"));
-
-        // check availability if not unassign
-        vehicleRepository.findByAssignee(driverId).ifPresent((foundVehicle) -> {
-            foundVehicle.setDriver(null);
-            vehicleRepository.save(foundVehicle);
-        });
-
-        // assign driver to vehicle
-        vehicle.setDriver(driver);
-        Vehicle updatedVehicle = vehicleRepository.save(vehicle);
-        return VehicleMapper.mapToVehicleDto(updatedVehicle);
-    }
-
-    @Override
-    public VehicleDto unassignDriver(Long vehicleId) {
-        Vehicle vehicle = vehicleRepository.findById(vehicleId)
-                .orElseThrow(() -> new ResourceNotFoundException("No such vehicle found"));
-        vehicle.setDriver(null);
-        Vehicle saved = vehicleRepository.save(vehicle);
-        return VehicleMapper.mapToVehicleDto(saved);
-    }
 }

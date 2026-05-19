@@ -65,8 +65,7 @@ const VehiclesPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [editingVehicle, setEditingVehicle] = useState(null)
   const [deletingVehicle, setDeletingVehicle] = useState(null)
-  const [drivers, setDrivers] = useState([])
-  const [assignedVehicle, setAssignedVehicle] = useState(null)
+
   const [addError, setAddError] = useState('')
   const [vehicles, setVehicles] = useState([])
   const [formData, setFormData] = useState({
@@ -104,21 +103,8 @@ const VehiclesPage = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        if (isDriver) {
-          try {
-            const res = await vehicleAPI.getAssignedVehicle()
-            setAssignedVehicle(res.data.data || null)
-          } catch {
-            setAssignedVehicle(null)
-          }
-        } else {
-          const [vehicleRes, driverRes] = await Promise.all([
-            vehicleAPI.getAllVehicles(),
-            userAPI.getAllDrivers(),
-          ])
-          setVehicles(vehicleRes.data.data || [])
-          setDrivers(driverRes.data.data || [])
-        }
+        const vehicleRes = await vehicleAPI.getAllVehicles()
+        setVehicles(vehicleRes.data.data || [])
       } catch (err) {
         console.error('Error loading data:', err)
       } finally {
@@ -293,76 +279,7 @@ const VehiclesPage = () => {
     INACTIVE: vehicles.filter(v => v.status === 'INACTIVE').length,
   }
 
-  // ── Driver: My Vehicle view ────────────────────────────────────────────
-  if (isDriver) {
-    const v = assignedVehicle
-    const statusColors = {
-      ACTIVE:    { bg: D.greenDim,  color: D.green,  border: `${D.green}50`  },
-      AVAILABLE: { bg: D.blueDim,   color: D.blue,   border: `${D.blue}50`   },
-      SERVICE:   { bg: D.orangeDim, color: D.orange, border: `${D.orange}50` },
-      INACTIVE:  { bg: D.redDim,    color: D.red,    border: `${D.red}50`    },
-    }
-    const sc = v ? (statusColors[v.status] || {}) : {}
-    return (
-      <div className="app-shell" style={{ background: D.bg }}>
-        <Sidebar />
-        <div className="main-content" style={{ background: D.bg }}>
-          <Topbar title="My Vehicle" subtitle="Home / My Vehicle" />
-          <div className="page-body">
-            {/* Hero */}
-            <div style={{ background: 'linear-gradient(135deg,#1e1b4b 0%,#312e81 45%,#4338ca 100%)', borderRadius: 20, padding: '32px 36px', marginBottom: 28, position: 'relative', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', border: `1px solid ${D.border}` }}>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  <Car size={32} strokeWidth={1.5} />
-                </div>
-                <div>
-                  <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>My Assigned Vehicle</h1>
-                  <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>Details of the vehicle currently assigned to you.</p>
-                </div>
-              </div>
-            </div>
 
-            {loading ? (
-              <div style={{ textAlign: 'center', padding: '60px 0', color: D.textSub }}>Loading…</div>
-            ) : !v ? (
-              <div style={{ background: D.surface, borderRadius: 20, border: `1px solid ${D.border}`, padding: '60px 32px', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
-                <div style={{ marginBottom: 16, opacity: 0.3, display: 'flex', justifyContent: 'center' }}><Car size={56} /></div>
-                <p style={{ fontWeight: 700, fontSize: '1.1rem', color: D.text, margin: '0 0 8px' }}>No Vehicle Assigned</p>
-                <p style={{ margin: 0, fontSize: '0.9rem', color: D.textSub }}>You haven't been assigned a vehicle yet. Contact your administrator.</p>
-              </div>
-            ) : (
-              <div style={{ background: D.surface, borderRadius: 20, border: `1px solid ${D.border}`, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
-                {/* Card Header */}
-                <div style={{ padding: '20px 28px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <p style={{ margin: 0, fontSize: '0.72rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Registration No.</p>
-                    <p style={{ margin: '4px 0 0', fontSize: '1.5rem', fontWeight: 800, color: D.blue, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>{v.registrationNo}</p>
-                  </div>
-                  <span style={{ background: sc.bg, color: sc.color, padding: '6px 14px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', border: `1px solid ${sc.border}` }}>{v.status}</span>
-                </div>
-                {/* Details Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 1, background: D.border }}>
-                  {[
-                    ['Make & Model', `${v.manufacturer ?? '—'} ${v.model ?? '—'}`],
-                    ['Year', v.year ?? '—'],
-                    ['Fuel Type', v.fuelType ?? '—'],
-                    ['Current Mileage', v.currentMileageKm ? `${v.currentMileageKm.toLocaleString()} km` : '—'],
-                    ['Chassis No.', v.chassisNumber ?? '—'],
-                    ['Added On', v.createdAt ? new Date(v.createdAt).toLocaleDateString() : '—'],
-                  ].map(([label, val]) => (
-                    <div key={label} style={{ background: D.surface, padding: '20px 24px' }}>
-                      <p style={{ margin: 0, fontSize: '0.72rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{label}</p>
-                      <p style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: D.text }}>{val}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <>
@@ -441,18 +358,20 @@ const VehiclesPage = () => {
                   </button>
                 ))}
               </div>
-              <button
-                onClick={openModal}
-                style={{
-                  padding: '9px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                  color: '#fff', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-                  boxShadow: '0 4px 14px rgba(99,102,241,0.4)', transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(99,102,241,0.5)' }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.4)' }}
-              >
-                + Add Vehicle
-              </button>
+              {!isDriver && (
+                <button
+                  onClick={openModal}
+                  style={{
+                    padding: '9px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                    color: '#fff', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                    boxShadow: '0 4px 14px rgba(99,102,241,0.4)', transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(99,102,241,0.5)' }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.4)' }}
+                >
+                  + Add Vehicle
+                </button>
+              )}
             </div>
 
             {/* Table */}
@@ -461,7 +380,7 @@ const VehiclesPage = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead style={{ background: D.surfaceHi }}>
                     <tr>
-                      {['Reg. No.', 'Make / Model', 'Year', 'Fuel Type', 'Driver', 'Mileage (km)', 'Status', ...(isAdmin ? ['Last Modified'] : []), 'Actions'].map(h => (
+                      {['Reg. No.', 'Make / Model', 'Year', 'Fuel Type', 'Mileage (km)', 'Status', ...(isAdmin ? ['Last Modified'] : []), ...(!isDriver ? ['Actions'] : [])].map(h => (
                         <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: D.textSub, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${D.border}`, whiteSpace: 'nowrap' }}>{h}</th>
                       ))}
                     </tr>
@@ -485,7 +404,7 @@ const VehiclesPage = () => {
                           <td style={{ padding: '14px 16px', color: D.text, fontWeight: 600 }}>{v.manufacturer ?? 'N/A'} {v.model ?? 'N/A'}</td>
                           <td style={{ padding: '14px 16px', color: D.textSub }}>{v.year ?? 'N/A'}</td>
                           <td style={{ padding: '14px 16px', color: D.textSub }}>{v.fuelType ?? 'N/A'}</td>
-                          <td style={{ padding: '14px 16px', color: D.text }}>{v.driverName ?? '—'}</td>
+
                           <td style={{ padding: '14px 16px', color: D.textSub }}>{v.currentMileageKm ? `${v.currentMileageKm} km` : 'N/A'}</td>
                           <td style={{ padding: '14px 16px' }}>
                             <span style={{ background: s.bg, color: s.color, padding: '4px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', border: `1px solid ${s.border}` }}>
@@ -506,20 +425,22 @@ const VehiclesPage = () => {
                               )}
                             </td>
                           )}
-                          <td style={{ padding: '14px 16px' }}>
-                            <div style={{ display: 'flex', gap: 6 }}>
-                              <button onClick={() => openEditModal(v)} style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
-                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; e.currentTarget.style.color = '#a5b4fc' }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
-                                <Edit2 size={14} style={{ marginRight: 6 }} /> Edit
-                              </button>
-                              <button onClick={() => openDeleteModal(v)} style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
-                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.2)' }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)' }}>
-                                <Trash2 size={14} style={{ marginRight: 6 }} /> Delete
-                              </button>
-                            </div>
-                          </td>
+                          {!isDriver && (
+                            <td style={{ padding: '14px 16px' }}>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <button onClick={() => openEditModal(v)} style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; e.currentTarget.style.color = '#a5b4fc' }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
+                                  <Edit2 size={14} style={{ marginRight: 6 }} /> Edit
+                                </button>
+                                <button onClick={() => openDeleteModal(v)} style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.2)' }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)' }}>
+                                  <Trash2 size={14} style={{ marginRight: 6 }} /> Delete
+                                </button>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       )
                     })}
@@ -578,13 +499,7 @@ const VehiclesPage = () => {
                     <label style={labelStyle}>Current Mileage (km) <span style={{ color: D.red }}>*</span></label>
                     <input type="number" name="currentMileageKm" value={formData.currentMileageKm} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 15000" />
                   </div>
-                  <div>
-                    <label style={labelStyle}>Assign Driver <span style={{ color: D.textFaint, fontWeight: 400, textTransform: 'none' }}>(optional)</span></label>
-                    <select name="driverId" value={formData.driverId} onChange={handleChange} style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
-                      <option value="" style={{ background: D.surfaceHi }}>Unassigned</option>
-                      {drivers.map(d => <option key={d.id} value={d.id} style={{ background: D.surfaceHi }}>{d.userName}</option>)}
-                    </select>
-                  </div>
+
                   <div>
                     <label style={labelStyle}>Insurance Expiry</label>
                     <input type="date" name="insuranceExpiryDate" value={formData.insuranceExpiryDate} onChange={handleChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
@@ -662,13 +577,7 @@ const VehiclesPage = () => {
                     <label style={labelStyle}>Current Mileage (km)</label>
                     <input type="number" name="currentMileageKm" value={editFormData.currentMileageKm} onChange={handleEditChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                   </div>
-                  <div>
-                    <label style={labelStyle}>Assign Driver</label>
-                    <select name="driverId" value={editFormData.driverId} onChange={handleEditChange} style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
-                      <option value="" style={{ background: D.surfaceHi }}>Unassigned</option>
-                      {drivers.map(d => <option key={d.id} value={d.id} style={{ background: D.surfaceHi }}>{d.userName}</option>)}
-                    </select>
-                  </div>
+
                   <div>
                     <label style={labelStyle}>Insurance Expiry</label>
                     <input type="date" name="insuranceExpiryDate" value={editFormData.insuranceExpiryDate} onChange={handleEditChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />

@@ -48,7 +48,7 @@ const FuelLogPage = () => {
   // State for fuel logs
   const [myVehicleLogs, setMyVehicleLogs] = useState([])
   const [loading, setLoading] = useState(true)
-  const [assignedVehicle, setAssignedVehicle] = useState(null)
+  const [allVehicles, setAllVehicles] = useState([])
 
   const [formData, setFormData] = useState({
     vehicleRegNumber: '',
@@ -69,33 +69,21 @@ const FuelLogPage = () => {
         setLoading(true)
         const [logsRes, vehicleRes] = await Promise.allSettled([
           fuelAPI.getMyLogs(),
-          vehicleAPI.getAssignedVehicle(),
+          vehicleAPI.getAllVehicles(),
         ])
+        
+        let loadedLogs = []
         if (logsRes.status === 'fulfilled') {
           const logs = logsRes.value.data.data || []
           // Sort newest-first so logs[0] is always the most recent entry
           const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date))
           setMyVehicleLogs(sorted)
-          // Pre-fill mileage from the most recent log
-          if (sorted.length > 0) {
-            const lastMil = sorted[0].mileage
-            setPreviousMileage(lastMil)
-            setFormData(p => ({ ...p, mileage: String(lastMil) }))
-          }
+          loadedLogs = sorted
         }
+        
         if (vehicleRes.status === 'fulfilled') {
-          const v = vehicleRes.value.data.data
-          setAssignedVehicle(v)
-          if (v?.registrationNo) {
-            const fuelType = v.fuelType
-              ? v.fuelType.charAt(0).toUpperCase() + v.fuelType.slice(1).toLowerCase()
-              : undefined
-            setFormData(p => ({
-              ...p,
-              vehicleRegNumber: v.registrationNo,
-              ...(fuelType && { fuelType }),
-            }))
-          }
+          const vList = vehicleRes.value.data.data || []
+          setAllVehicles(vList)
         }
       } catch (err) {
         console.error('Error loading fuel log data:', err)
@@ -109,7 +97,27 @@ const FuelLogPage = () => {
   // Handle form input change
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value }
+      if (name === 'vehicleRegNumber') {
+        const selectedVehicle = allVehicles.find(v => v.registrationNo === value)
+        if (selectedVehicle?.fuelType) {
+          updated.fuelType = selectedVehicle.fuelType.charAt(0).toUpperCase() + selectedVehicle.fuelType.slice(1).toLowerCase()
+        }
+        const vehicleLogs = myVehicleLogs.filter(log => log.vehicleRegNumber === value)
+        if (vehicleLogs.length > 0) {
+          const lastMil = vehicleLogs[0].mileage
+          setPreviousMileage(lastMil)
+          updated.mileage = String(lastMil)
+          setMileageError('')
+        } else {
+          setPreviousMileage(null)
+          updated.mileage = ''
+          setMileageError('')
+        }
+      }
+      return updated
+    })
   }
 
   // Mileage validation error
@@ -160,7 +168,7 @@ const FuelLogPage = () => {
 
       // Reset form — pre-fill mileage with latest reading
       setFormData({
-        vehicleRegNumber: assignedVehicle?.registrationNo || '',
+        vehicleRegNumber: formData.vehicleRegNumber,
         fuelType: 'Diesel',
         liters: '',
         costPerLiter: '',
@@ -393,15 +401,17 @@ const FuelLogPage = () => {
                   <label style={labelStyle}>Vehicle Identification <span style={{ color: D.red }}>*</span></label>
                   <input
                     type="text"
+                    list="vehiclesListFuel"
                     name="vehicleRegNumber"
                     value={formData.vehicleRegNumber}
-                    readOnly
-                    placeholder="No vehicle assigned"
-                    style={{ ...inputStyle, background: 'rgba(255,255,255,0.02)', cursor: 'not-allowed', color: assignedVehicle ? D.blue : D.textSub, fontWeight: assignedVehicle ? 700 : 400 }}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="e.g. WP-CAB-1234"
+                    style={{ ...inputStyle }}
                   />
-                  {assignedVehicle && (
-                    <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.textSub, fontWeight: 600 }}>Auto-filled from assigned vehicle</p>
-                  )}
+                  <datalist id="vehiclesListFuel">
+                    {allVehicles.map(v => <option key={v.id} value={v.registrationNo} />)}
+                  </datalist>
                 </div>
 
                 <div>

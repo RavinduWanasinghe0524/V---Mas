@@ -458,12 +458,13 @@ const ServicePage = () => {
   const [services, setServices] = useState([])
   const [stats, setStats] = useState(null)
   const [filter, setFilter] = useState('ALL')
+  const [vehicleFilter, setVehicleFilter] = useState('ALL')
+  const [vehicleDropdownOpen, setVehicleDropdownOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState('grid')
 
-  // ── Driver vehicle scope ───────────────────────────────────────────────
-  const [assignedVehicle, setAssignedVehicle] = useState(null)
+  // ── Vehicle scope ───────────────────────────────────────────────
   const [allVehicles, setAllVehicles] = useState([])
   const [previousMileage, setPreviousMileage] = useState(null)
 
@@ -525,9 +526,7 @@ const ServicePage = () => {
     if (!data.vehicleRegNumber?.trim()) {
       e.vehicleRegNumber = 'Required'
     } else {
-      const isRegValid = isDriver 
-        ? (assignedVehicle && data.vehicleRegNumber === assignedVehicle.registrationNo)
-        : allVehicles.some(v => v.registrationNo === data.vehicleRegNumber)
+      const isRegValid = allVehicles.some(v => v.registrationNo === data.vehicleRegNumber)
       if (!isRegValid) {
         e.vehicleRegNumber = 'Please select a valid registered vehicle'
       }
@@ -540,8 +539,46 @@ const ServicePage = () => {
     
     if (!data.currentMileageKm) {
       e.currentMileageKm = 'Required'
-    } else if (previousMileage != null && Number(data.currentMileageKm) < previousMileage) {
-      e.currentMileageKm = `Must be ≥ previous reading (${previousMileage} km)`
+    } else {
+      const originalRecord = isEdit ? services.find(s => s.id === editingServiceId) : null
+      const isMileageChanged = !originalRecord || Number(data.currentMileageKm) !== Number(originalRecord.currentMileageKm)
+
+      if (isMileageChanged) {
+        const regNo = data.vehicleRegNumber
+        const recordDate = data.serviceDate ? new Date(data.serviceDate) : new Date()
+
+        // Find service records for this vehicle with an earlier or equal date
+        const earlierServices = services.filter(s => 
+          s.vehicleRegNumber === regNo && 
+          (!originalRecord || s.id !== originalRecord.id) &&
+          s.currentMileageKm && 
+          s.serviceDate &&
+          new Date(s.serviceDate) <= recordDate
+        )
+
+        // Find the maximum mileage among older services
+        const maxEarlierMileage = earlierServices.reduce((max, s) => Math.max(max, Number(s.currentMileageKm)), 0)
+
+        // Find service records for this vehicle with a later date
+        const laterServices = services.filter(s =>
+          s.vehicleRegNumber === regNo &&
+          (!originalRecord || s.id !== originalRecord.id) &&
+          s.currentMileageKm &&
+          s.serviceDate &&
+          new Date(s.serviceDate) > recordDate
+        )
+
+        // Find the minimum mileage among newer services
+        const minLaterMileage = laterServices.reduce((min, s) => Math.min(min, Number(s.currentMileageKm)), Infinity)
+
+        const inputMil = Number(data.currentMileageKm)
+
+        if (inputMil < maxEarlierMileage) {
+          e.currentMileageKm = `Must be ≥ previous reading (${maxEarlierMileage} km) from earlier records`
+        } else if (minLaterMileage !== Infinity && inputMil > minLaterMileage) {
+          e.currentMileageKm = `Must be ≤ subsequent reading (${minLaterMileage} km) from newer records`
+        }
+      }
     }
     
     if (!data.serviceCost) e.serviceCost = 'Required'
@@ -559,7 +596,7 @@ const ServicePage = () => {
     if (errors.vehicleRegNumber) setErrors(prev => ({ ...prev, vehicleRegNumber: undefined }))
 
     // calculate base mileage from vehicle entity
-    const vehicleObj = isDriver ? assignedVehicle : allVehicles.find(v => v.registrationNo === regNo)
+    const vehicleObj = allVehicles.find(v => v.registrationNo === regNo)
     const baseMil = vehicleObj && vehicleObj.currentMileageKm ? Number(vehicleObj.currentMileageKm) : 0
 
     // find latest service for this vehicle
@@ -567,8 +604,22 @@ const ServicePage = () => {
     vehicleServices.sort((a, b) => Number(b.currentMileageKm) - Number(a.currentMileageKm))
     const lastServiceMil = vehicleServices.length > 0 ? Number(vehicleServices[0].currentMileageKm) : 0
 
-    const lastMil = Math.max(baseMil, lastServiceMil)
-    setPreviousMileage(lastMil > 0 ? lastMil : null)
+    if (isEdit) {
+      const recordDate = editFormData.serviceDate ? new Date(editFormData.serviceDate) : new Date()
+      const earlierServices = services.filter(s => 
+        s.vehicleRegNumber === regNo && 
+        s.id !== editingServiceId && 
+        s.currentMileageKm && 
+        s.serviceDate &&
+        new Date(s.serviceDate) <= recordDate
+      )
+      earlierServices.sort((a, b) => Number(b.currentMileageKm) - Number(a.currentMileageKm))
+      const lastMil = earlierServices.length > 0 ? Number(earlierServices[0].currentMileageKm) : 0
+      setPreviousMileage(lastMil > 0 ? lastMil : null)
+    } else {
+      const lastMil = Math.max(baseMil, lastServiceMil)
+      setPreviousMileage(lastMil > 0 ? lastMil : null)
+    }
   }
 
   const handleMileageChange = (e, isEdit = false) => {
@@ -582,8 +633,7 @@ const ServicePage = () => {
   }
 
   const openAddModal = () => {
-    // For drivers: pre-fill the vehicle reg number from their assigned vehicle
-    const regNo = isDriver && assignedVehicle ? assignedVehicle.registrationNo : ''
+    const regNo = ''
     setFormData({
       ...initialForm,
       vehicleRegNumber: regNo,
@@ -592,8 +642,9 @@ const ServicePage = () => {
     setSubmitError(null)
     setAddAttachmentFile(null)
     
-    if (isDriver && assignedVehicle) {
-      const baseMil = Number(assignedVehicle.currentMileageKm || 0)
+    if (regNo) {
+      const vehicleObj = allVehicles.find(v => v.registrationNo === regNo)
+      const baseMil = Number(vehicleObj?.currentMileageKm || 0)
       const vehicleServices = services.filter(s => s.vehicleRegNumber === regNo && s.currentMileageKm)
       vehicleServices.sort((a, b) => Number(b.currentMileageKm) - Number(a.currentMileageKm))
       const lastServiceMil = vehicleServices.length > 0 ? Number(vehicleServices[0].currentMileageKm) : 0
@@ -677,12 +728,16 @@ const ServicePage = () => {
     setEditAttachmentFile(null)
 
     const regNo = record.vehicleRegNumber || ''
-    const vehicleObj = isDriver ? assignedVehicle : allVehicles.find(v => v.registrationNo === regNo)
-    const baseMil = vehicleObj && vehicleObj.currentMileageKm ? Number(vehicleObj.currentMileageKm) : 0
-    const vehicleServices = services.filter(s => s.vehicleRegNumber === regNo && s.id !== id && s.currentMileageKm)
-    vehicleServices.sort((a, b) => Number(b.currentMileageKm) - Number(a.currentMileageKm))
-    const lastServiceMil = vehicleServices.length > 0 ? Number(vehicleServices[0].currentMileageKm) : 0
-    const lastMil = Math.max(baseMil, lastServiceMil)
+    const recordDate = record.serviceDate ? new Date(record.serviceDate) : new Date()
+    const earlierServices = services.filter(s => 
+      s.vehicleRegNumber === regNo && 
+      s.id !== id && 
+      s.currentMileageKm && 
+      s.serviceDate &&
+      new Date(s.serviceDate) <= recordDate
+    )
+    earlierServices.sort((a, b) => Number(b.currentMileageKm) - Number(a.currentMileageKm))
+    const lastMil = earlierServices.length > 0 ? Number(earlierServices[0].currentMileageKm) : 0
     setPreviousMileage(lastMil > 0 ? lastMil : null)
 
     setIsEditModalOpen(true)
@@ -715,6 +770,7 @@ const ServicePage = () => {
           showToast('Record saved but attachment upload failed.', 'error')
         }
       }
+      showToast('Service record updated successfully!', 'success')
       setIsEditModalOpen(false)
       loadData()
     } catch (err) {
@@ -727,16 +783,12 @@ const ServicePage = () => {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      // For drivers: also fetch assigned vehicle so we can pre-fill / lock the reg number
-      const requests = [serviceAPI.getAllServices(), serviceAPI.getServiceStats()]
-      if (isDriver) requests.push(vehicleAPI.getAssignedVehicle())
-      else requests.push(vehicleAPI.getAllVehicles())
-      
+      // Fetch all vehicles for dropdown selection for all roles
+      const requests = [serviceAPI.getAllServices(), serviceAPI.getServiceStats(), vehicleAPI.getAllVehicles()]
       const [servRes, statsRes, vehicleRes] = await Promise.all(requests)
       setServices(servRes.data.data || [])
       setStats(statsRes.data.data)
-      if (isDriver && vehicleRes) setAssignedVehicle(vehicleRes.data.data || null)
-      else if (!isDriver && vehicleRes) setAllVehicles(vehicleRes.data.data || [])
+      if (vehicleRes) setAllVehicles(vehicleRes.data.data || [])
     } catch (err) {
       console.error('Error loading service data', err)
     } finally {
@@ -806,14 +858,55 @@ const ServicePage = () => {
   /* Filtered and sorted list */
   const filtered = services.filter(s => {
     if (filter !== 'ALL' && getStatus(s) !== filter) return false
+    if (vehicleFilter !== 'ALL' && s.vehicleRegNumber !== vehicleFilter) return false
     if (search) {
       const q = search.toLowerCase()
-      return (
-        s.vehicleRegNumber?.toLowerCase().includes(q) ||
-        s.serviceType?.toLowerCase().includes(q) ||
-        s.technicianWorkshop?.toLowerCase().includes(q) ||
-        s.description?.toLowerCase().includes(q)
+      
+      const regMatch = s.vehicleRegNumber?.toLowerCase().includes(q)
+      const workshopMatch = s.technicianWorkshop?.toLowerCase().includes(q)
+      const descMatch = s.description?.toLowerCase().includes(q)
+      const typeDetailMatch = s.serviceTypeDetail?.toLowerCase().includes(q)
+      
+      // Service Type Label matching
+      const typeObj = SERVICE_TYPES.find(t => t.value === s.serviceType)
+      const typeLabel = typeObj ? typeObj.label.toLowerCase() : s.serviceType?.toLowerCase() || ''
+      const typeMatch = typeLabel.includes(q)
+      
+      // Date matching (supports 2026-05-12, "12 May 2026", "12 May", etc.)
+      let dateMatch = false
+      if (s.serviceDate) {
+        const dateStr = s.serviceDate.toLowerCase()
+        const parsedDate = new Date(s.serviceDate)
+        const formattedDate = parsedDate.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric'
+        }).toLowerCase()
+        const formattedDateShort = parsedDate.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        }).toLowerCase()
+        
+        dateMatch = dateStr.includes(q) || formattedDate.includes(q) || formattedDateShort.includes(q)
+      }
+
+      // Cost matching (e.g. searching 4500 or 4,500)
+      const costMatch = s.serviceCost != null && (
+        String(s.serviceCost).includes(q) || 
+        Number(s.serviceCost).toLocaleString().includes(q)
       )
+
+      // Mileage matching (e.g. searching 500 or 12000)
+      const mileageMatch = s.currentMileageKm != null && (
+        String(s.currentMileageKm).includes(q) || 
+        Number(s.currentMileageKm).toLocaleString().includes(q)
+      )
+
+      // Creator (username) matching (e.g. searching "admin" or "driver1")
+      const creatorMatch = s.createdBy?.toLowerCase().includes(q)
+
+      return regMatch || workshopMatch || descMatch || typeDetailMatch || typeMatch || dateMatch || costMatch || mileageMatch || creatorMatch
     }
     return true
   }).sort((a, b) => {
@@ -886,7 +979,7 @@ const ServicePage = () => {
                   {isDriver ? 'Service History' : 'Service Management'}
                 </h1>
                 <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
-                  {isDriver ? 'View your vehicle service and maintenance history.' : 'Schedule and track vehicle maintenance records.'}
+                  {isDriver ? 'View your vehicle service and maintenance history.' : 'Add and track vehicle maintenance records.'}
                 </p>
               </div>
             </div>
@@ -937,7 +1030,7 @@ const ServicePage = () => {
                 onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.transform = 'translateY(-1px)' }}
                 onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.transform = 'translateY(0)' }}
               >
-                <Calendar size={18} /> {isDriver ? 'Add Service' : 'Schedule'}
+                <Calendar size={18} /> Add New Service
               </button>
             </div>
           </div>
@@ -1021,6 +1114,133 @@ const ServicePage = () => {
                   </button>
                 )
               })}
+              <div style={{ position: 'relative', zIndex: 50 }}>
+                <button
+                  onClick={() => setVehicleDropdownOpen(!vehicleDropdownOpen)}
+                  style={{
+                    padding: '6px 14px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 700,
+                    border: vehicleFilter !== 'ALL' ? 'none' : `1px solid ${D.border}`,
+                    background: vehicleFilter !== 'ALL' ? `linear-gradient(135deg, #3b82f6, #6366f1)` : 'transparent',
+                    color: vehicleFilter !== 'ALL' ? '#fff' : D.textSub,
+                    cursor: 'pointer', transition: 'all 0.15s ease',
+                    boxShadow: vehicleFilter !== 'ALL' ? '0 2px 12px rgba(99,102,241,0.4)' : 'none',
+                    display: 'flex', alignItems: 'center', gap: 6
+                  }}
+                >
+                  <span>{vehicleFilter === 'ALL' ? 'Vehicle: All' : `Vehicle: ${vehicleFilter}`}</span>
+                  <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>▼</span>
+                </button>
+
+                {vehicleDropdownOpen && (
+                  <>
+                    <div 
+                      onClick={() => setVehicleDropdownOpen(false)} 
+                      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 }} 
+                    />
+                    <div style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      left: 0,
+                      width: 280,
+                      background: D.surface,
+                      border: `1px solid ${D.border}`,
+                      borderRadius: 12,
+                      boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                      zIndex: 999,
+                      padding: 8,
+                      maxHeight: 320,
+                      overflowY: 'auto',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4
+                    }}>
+                      {/* Option: All Vehicles */}
+                      <div
+                        onClick={() => {
+                          setVehicleFilter('ALL')
+                          setVehicleDropdownOpen(false)
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                          padding: '10px 12px',
+                          borderRadius: 8,
+                          cursor: 'pointer',
+                          background: vehicleFilter === 'ALL' ? D.indigoDim : 'transparent',
+                          transition: 'background 0.2s',
+                          border: `1px solid ${vehicleFilter === 'ALL' ? D.borderHi : 'transparent'}`
+                        }}
+                        onMouseEnter={e => {
+                          if (vehicleFilter !== 'ALL') e.currentTarget.style.background = D.surfaceHi
+                        }}
+                        onMouseLeave={e => {
+                          if (vehicleFilter !== 'ALL') e.currentTarget.style.background = 'transparent'
+                        }}
+                      >
+                        <div style={{
+                          width: 32, height: 32, borderRadius: 8,
+                          background: D.indigoDim,
+                          color: D.indigo,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          <Car size={16} />
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: '0.85rem', color: D.text }}>All Vehicles</div>
+                          <div style={{ fontSize: '0.7rem', color: D.textSub }}>Show records for all fleet</div>
+                        </div>
+                      </div>
+
+                      {/* Map through all vehicles */}
+                      {allVehicles.map(v => {
+                        const isSelected = vehicleFilter === v.registrationNo
+                        return (
+                          <div
+                            key={v.id}
+                            onClick={() => {
+                              setVehicleFilter(v.registrationNo)
+                              setVehicleDropdownOpen(false)
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 12,
+                              padding: '10px 12px',
+                              borderRadius: 8,
+                              cursor: 'pointer',
+                              background: isSelected ? D.indigoDim : 'transparent',
+                              transition: 'background 0.2s',
+                              border: `1px solid ${isSelected ? D.borderHi : 'transparent'}`
+                            }}
+                            onMouseEnter={e => {
+                              if (!isSelected) e.currentTarget.style.background = D.surfaceHi
+                            }}
+                            onMouseLeave={e => {
+                              if (!isSelected) e.currentTarget.style.background = 'transparent'
+                            }}
+                          >
+                            <div style={{
+                              width: 32, height: 32, borderRadius: 8,
+                              background: D.indigoDim,
+                              color: D.indigo,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              <Car size={16} />
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: '0.85rem', color: D.text }}>{v.registrationNo}</div>
+                              <div style={{ fontSize: '0.7rem', color: D.textSub }}>{v.manufacturer} {v.model}</div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
             <div style={{ flex: 1 }} />
             {/* ── Deleted Records Button ──────────────────── */}
@@ -1050,7 +1270,7 @@ const ServicePage = () => {
                 id="service-search"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search vehicles, drivers..."
+                placeholder="Search by vehicle, type, date, workshop, cost, mileage, user..."
                 style={{
                   padding: '8px 14px 8px 32px',
                   borderRadius: 10, fontSize: '0.82rem',
@@ -1781,21 +2001,10 @@ const ServicePage = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
                 <div>
                   <label style={fieldLabel}>Vehicle (License Plate) <span style={{ color: D.red }}>*</span></label>
-                  {isDriver ? (
-                    /* Driver: show locked chip — cannot change their vehicle */
-                    <div style={{ ...fieldInput(false), display: 'flex', alignItems: 'center', gap: 8, opacity: 0.8, cursor: 'not-allowed', userSelect: 'none' }}>
-                      <Car size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                      <span style={{ fontWeight: 700 }}>{formData.vehicleRegNumber || '—'}</span>
-                      <span style={{ marginLeft: 'auto', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: D.textSub }}>Locked</span>
-                    </div>
-                  ) : (
-                    <>
-                      <input type="text" list="vehiclesListAdd" name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={e => handleVehicleSelect(e, false)} placeholder="e.g. WP-CAB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
-                      <datalist id="vehiclesListAdd">
-                        {allVehicles.map(v => <option key={v.id} value={v.registrationNo} />)}
-                      </datalist>
-                    </>
-                  )}
+                  <input type="text" list="vehiclesListAdd" name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={e => handleVehicleSelect(e, false)} placeholder="e.g. WP-CAB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
+                  <datalist id="vehiclesListAdd">
+                    {allVehicles.map(v => <option key={v.id} value={v.registrationNo} />)}
+                  </datalist>
                   {errors.vehicleRegNumber && <p style={fieldError}>{errors.vehicleRegNumber}</p>}
                 </div>
                 <div>
@@ -1934,21 +2143,10 @@ const ServicePage = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
                 <div>
                   <label style={fieldLabel}>Vehicle (License Plate) <span style={{ color: D.red }}>*</span></label>
-                  {isDriver ? (
-                    /* Driver: show locked chip — cannot change their vehicle */
-                    <div style={{ ...fieldInput(false), display: 'flex', alignItems: 'center', gap: 8, opacity: 0.8, cursor: 'not-allowed', userSelect: 'none' }}>
-                      <Car size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                      <span style={{ fontWeight: 700 }}>{editFormData.vehicleRegNumber || '—'}</span>
-                      <span style={{ marginLeft: 'auto', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: D.textSub }}>Locked</span>
-                    </div>
-                  ) : (
-                    <>
-                      <input type="text" list="vehiclesListEdit" name="vehicleRegNumber" value={editFormData.vehicleRegNumber} onChange={e => handleVehicleSelect(e, true)} placeholder="e.g. WP-CAB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
-                      <datalist id="vehiclesListEdit">
-                        {allVehicles.map(v => <option key={v.id} value={v.registrationNo} />)}
-                      </datalist>
-                    </>
-                  )}
+                  <input type="text" list="vehiclesListEdit" name="vehicleRegNumber" value={editFormData.vehicleRegNumber} onChange={e => handleVehicleSelect(e, true)} placeholder="e.g. WP-CAB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
+                  <datalist id="vehiclesListEdit">
+                    {allVehicles.map(v => <option key={v.id} value={v.registrationNo} />)}
+                  </datalist>
                   {errors.vehicleRegNumber && <p style={fieldError}>{errors.vehicleRegNumber}</p>}
                 </div>
                 <div>

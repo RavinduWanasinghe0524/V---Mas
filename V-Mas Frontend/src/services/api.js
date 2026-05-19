@@ -79,9 +79,7 @@ export const vehicleAPI = {
   updateVehicle:    (id, data)          => api.put(`/vehicles/${id}`, data),
   deleteVehicle:    (id)                => api.delete(`/vehicles/${id}`),
   registerVehicle:  (data)              => api.post('/vehicles', data),
-  assignDriver:     (vehicleId, driverId) => api.patch(`/vehicles/${vehicleId}/driver/${driverId}`),
-  unassignDriver:   (vehicleId)           => api.patch(`/vehicles/${vehicleId}/unassign`),
-  getAssignedVehicle: ()               => api.get('/vehicles/assigned'),
+
 }
 
 export const fuelAPI = {
