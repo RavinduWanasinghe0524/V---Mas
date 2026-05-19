@@ -23,8 +23,7 @@ public class VehicleDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String updatedBy;
-    private Long driverId;
-    private String driverName;
+
     private VehicleSatus status;
     private FuelTypes fuelType;
     private java.time.LocalDate insuranceExpiryDate;
