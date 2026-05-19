@@ -16,11 +16,4 @@ public interface VehicleService {
     VehicleDto updateVehicle(Long id, VehicleDto vehicleDto, String updatedBy);
 
     void deleteVehicle(Long id);
-
-    VehicleDto getAssignedVehicle(String username);
-
-    VehicleDto assignDriver(Long vehicleId, Long driverId) throws BadRequestException;
-
-    /** Removes any driver currently assigned to the given vehicle. */
-    VehicleDto unassignDriver(Long vehicleId);
 }
