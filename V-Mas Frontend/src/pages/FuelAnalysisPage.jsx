@@ -418,11 +418,11 @@ const FuelAnalysisPage = () => {
               {/* -- KPI cards -------------------------------- */}
               <div style={{ display: 'grid', gridTemplateColumns: (isAdmin || isController) ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
                 {(isAdmin || isController ? [
-                  { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.indigoDim, iconColor: D.indigo },
-                  { label: 'Total Petrol', value: `${Math.round(summary.totalPetrol).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.goldDim, iconColor: D.gold },
-                  { label: 'Total Volume', value: `${Math.round(summary.totalVolume).toLocaleString()} L`, icon: <BarChart2 size={24}/>, iconBg: D.tealDim, iconColor: D.teal },
-                  { label: 'Total Cost', value: `Rs. ${Math.round(summary.totalCost).toLocaleString()}`, icon: <CircleDollarSign size={24}/>, iconBg: D.greenDim, iconColor: D.green },
-                  { label: 'Active Logs', value: summary.logCount, icon: <BarChart2 size={24}/>, iconBg: D.purpleDim, iconColor: D.purple },
+                  { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.indigoDim, iconColor: D.indigo, filterFuel: 'Diesel', filterStatus: 'all' },
+                  { label: 'Total Petrol', value: `${Math.round(summary.totalPetrol).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.goldDim, iconColor: D.gold, filterFuel: 'Petrol', filterStatus: 'all' },
+                  { label: 'Total Volume', value: `${Math.round(summary.totalVolume).toLocaleString()} L`, icon: <BarChart2 size={24}/>, iconBg: D.tealDim, iconColor: D.teal, filterFuel: 'all', filterStatus: 'all' },
+                  { label: 'Total Cost', value: `Rs. ${Math.round(summary.totalCost).toLocaleString()}`, icon: <CircleDollarSign size={24}/>, iconBg: D.greenDim, iconColor: D.green, filterFuel: 'all', filterStatus: 'all' },
+                  { label: 'Active Logs', value: summary.logCount, icon: <BarChart2 size={24}/>, iconBg: D.purpleDim, iconColor: D.purple, filterFuel: 'all', filterStatus: 'all' },
                 ] : [
                   { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.indigoDim, iconColor: D.indigo },
                   { label: 'Total Petrol', value: `${Math.round(summary.totalPetrol).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.goldDim, iconColor: D.gold },
@@ -431,8 +431,17 @@ const FuelAnalysisPage = () => {
                 ]).map(s => (
                   <div key={s.label} style={{
                     ...card(D), padding: '28px', display: 'flex', alignItems: 'center', gap: 24,
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', cursor: 'default'
-                  }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.borderColor = s.iconColor + '50'; e.currentTarget.style.boxShadow = `0 16px 32px ${s.iconColor}20` }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)' }}>
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', cursor: (isAdmin || isController) ? 'pointer' : 'default'
+                  }} 
+                  onClick={() => {
+                     if (isAdmin || isController) {
+                         if (s.filterFuel) setFilterFuelType(s.filterFuel);
+                         if (s.filterStatus) setFilterAuditStatus(s.filterStatus);
+                         setActiveTab('audit');
+                         document.getElementById('audit-view')?.scrollIntoView({ behavior: 'smooth' });
+                     }
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.borderColor = s.iconColor + '50'; e.currentTarget.style.boxShadow = `0 16px 32px ${s.iconColor}20` }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)' }}>
                     <div style={{ width: 60, height: 60, borderRadius: 18, background: s.iconBg, color: s.iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${s.iconColor}30`, flexShrink: 0 }}>
                       {s.icon}
                     </div>
@@ -626,7 +635,7 @@ const FuelAnalysisPage = () => {
 
               {/* -- Admin/Controller: All Fuel Logs ------------ */}
               {(isAdmin || isController) && (
-                <div style={{ ...card(D), padding: 0 }}>
+                <div id="audit-view" style={{ ...card(D), padding: 0 }}>
                   <div style={{ padding: '28px 32px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
                       <div>
