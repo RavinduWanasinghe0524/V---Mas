@@ -7,7 +7,7 @@ import net.javaguids.ems_backend.entity.Vehicle;
 public class VehicleMapper {
 
     public static VehicleDto mapToVehicleDto(Vehicle vehicle) {
-        User driver = vehicle.getDriver();
+
         return new VehicleDto(
                 vehicle.getId(),
 //                vehicle.getVehicleName(),
@@ -20,8 +20,7 @@ public class VehicleMapper {
                 vehicle.getCreatedAt(),
                 vehicle.getUpdatedAt(),
                 vehicle.getUpdatedBy(),
-                driver != null ? driver.getId() : 0,
-                driver != null ? driver.getUserName() : "Not Assigned",
+
                 vehicle.getStatus(),
                 vehicle.getFuelType(),
                 vehicle.getInsuranceExpiryDate(),

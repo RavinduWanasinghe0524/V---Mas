@@ -36,15 +36,10 @@ public class ServiceRecordController {
         return ApiResponseUtil.success("Service record created successfully", saved, HttpStatus.CREATED);
     }
 
-    // GET /api/services — Get all service records (DRIVER receives only their vehicle's records)
+    // GET /api/services — Get all service records (DRIVER can view all previous service records)
     @GetMapping
-    public ResponseEntity<ApiResponse<List<ServiceRecordDto>>> getAllServiceRecords(
-            Authentication authentication) {
-        boolean isDriver = authentication != null && authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_DRIVER"));
-        List<ServiceRecordDto> records = isDriver
-                ? serviceRecordService.getServiceRecordsForDriver(authentication.getName())
-                : serviceRecordService.getAllServiceRecords();
+    public ResponseEntity<ApiResponse<List<ServiceRecordDto>>> getAllServiceRecords() {
+        List<ServiceRecordDto> records = serviceRecordService.getAllServiceRecords();
         return ApiResponseUtil.success("Service records fetched successfully", records, HttpStatus.OK);
     }
 
