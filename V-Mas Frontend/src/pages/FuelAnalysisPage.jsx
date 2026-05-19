@@ -4,7 +4,7 @@ import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { fuelAPI } from '../services/api'
-import { Fuel, CircleDollarSign, BarChart2, Check, X, TrendingUp, Edit2, Loader2, Plus, LayoutDashboard, Calendar, User } from 'lucide-react'
+import { Fuel, CircleDollarSign, BarChart2, Check, X, TrendingUp, Edit2, Loader2, Plus, LayoutDashboard, Calendar, User, Search, Filter } from 'lucide-react'
 
 const card = (D) => ({
   background: D.surface,
@@ -158,6 +158,11 @@ const FuelAnalysisPage = () => {
   const [vehicleStats, setVehicleStats] = useState([])
   const [myVehicleLogs, setMyVehicleLogs] = useState([])
   const [allFuelLogs, setAllFuelLogs] = useState([])
+  const [deletedFuelLogs, setDeletedFuelLogs] = useState([])
+  const [activeTab, setActiveTab] = useState('audit')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterFuelType, setFilterFuelType] = useState('all')
+  const [filterAuditStatus, setFilterAuditStatus] = useState('all')
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState(null)
 
@@ -183,6 +188,16 @@ const FuelAnalysisPage = () => {
           // analytics endpoints which have a NULL/false mismatch on is_deleted.
           const allLogsRes = await fuelAPI.getAllFuelLogs()
           const rawLogs = allLogsRes.data.data || []
+          
+          if (isAdmin) {
+            try {
+              const deletedRes = await fuelAPI.getDeletedLogs()
+              setDeletedFuelLogs((deletedRes.data.data || []).sort((a, b) => new Date(b.date) - new Date(a.date)))
+            } catch (err) {
+              console.error("Failed to fetch deleted logs:", err)
+            }
+          }
+          
           const activeLogs = rawLogs.filter(l => !l.isDeleted)
 
           // Sort for display table (newest first)
@@ -274,6 +289,30 @@ const FuelAnalysisPage = () => {
     } catch (err) { showToast('Failed: ' + (err.response?.data?.message || err.message), 'error') }
     finally { setSubmitting(false) }
   }
+
+  const getFilteredLogs = () => {
+    let baseLogs = []
+    if (isAdmin && activeTab === 'deleted') {
+      baseLogs = deletedFuelLogs
+    } else {
+      baseLogs = allFuelLogs
+    }
+
+    return baseLogs.filter(log => {
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase()
+        const matchVehicle = log.vehicleRegNumber && log.vehicleRegNumber.toLowerCase().includes(term)
+        const matchDriver = (log.driverUsername || log.uploadedBy || '').toLowerCase().includes(term)
+        if (!matchVehicle && !matchDriver) return false
+      }
+      if (filterFuelType !== 'all' && log.fuelType !== filterFuelType) return false
+      if (filterAuditStatus === 'edited' && !log.isUpdated) return false
+      if (filterAuditStatus === 'original' && log.isUpdated) return false
+      return true
+    })
+  }
+
+  const displayLogs = getFilteredLogs()
 
   /* chart helpers */
   const monthlyData = (chartData.months || []).map((month, i) => ({
@@ -377,13 +416,13 @@ const FuelAnalysisPage = () => {
           - */}
           <>
               {/* -- KPI cards -------------------------------- */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: (isAdmin || isController) ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
                 {(isAdmin || isController ? [
-                  { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.indigoDim, iconColor: D.indigo },
-                  { label: 'Total Petrol', value: `${Math.round(summary.totalPetrol).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.goldDim, iconColor: D.gold },
-                  { label: 'Total Volume', value: `${Math.round(summary.totalVolume).toLocaleString()} L`, icon: <BarChart2 size={24}/>, iconBg: D.tealDim, iconColor: D.teal },
-                  { label: 'Total Cost', value: `Rs. ${Math.round(summary.totalCost).toLocaleString()}`, icon: <CircleDollarSign size={24}/>, iconBg: D.greenDim, iconColor: D.green },
-                  { label: 'Active Logs', value: summary.logCount, icon: <BarChart2 size={24}/>, iconBg: D.purpleDim, iconColor: D.purple },
+                  { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.indigoDim, iconColor: D.indigo, filterFuel: 'Diesel', filterStatus: 'all' },
+                  { label: 'Total Petrol', value: `${Math.round(summary.totalPetrol).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.goldDim, iconColor: D.gold, filterFuel: 'Petrol', filterStatus: 'all' },
+                  { label: 'Total Volume', value: `${Math.round(summary.totalVolume).toLocaleString()} L`, icon: <BarChart2 size={24}/>, iconBg: D.tealDim, iconColor: D.teal, filterFuel: 'all', filterStatus: 'all' },
+                  { label: 'Total Cost', value: `Rs. ${Math.round(summary.totalCost).toLocaleString()}`, icon: <CircleDollarSign size={24}/>, iconBg: D.greenDim, iconColor: D.green, filterFuel: 'all', filterStatus: 'all' },
+                  { label: 'Active Logs', value: summary.logCount, icon: <BarChart2 size={24}/>, iconBg: D.purpleDim, iconColor: D.purple, filterFuel: 'all', filterStatus: 'all' },
                 ] : [
                   { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.indigoDim, iconColor: D.indigo },
                   { label: 'Total Petrol', value: `${Math.round(summary.totalPetrol).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.goldDim, iconColor: D.gold },
@@ -392,8 +431,17 @@ const FuelAnalysisPage = () => {
                 ]).map(s => (
                   <div key={s.label} style={{
                     ...card(D), padding: '28px', display: 'flex', alignItems: 'center', gap: 24,
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', cursor: 'default'
-                  }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.borderColor = s.iconColor + '50'; e.currentTarget.style.boxShadow = `0 16px 32px ${s.iconColor}20` }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)' }}>
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', cursor: (isAdmin || isController) ? 'pointer' : 'default'
+                  }} 
+                  onClick={() => {
+                     if (isAdmin || isController) {
+                         if (s.filterFuel) setFilterFuelType(s.filterFuel);
+                         if (s.filterStatus) setFilterAuditStatus(s.filterStatus);
+                         setActiveTab('audit');
+                         document.getElementById('audit-view')?.scrollIntoView({ behavior: 'smooth' });
+                     }
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.borderColor = s.iconColor + '50'; e.currentTarget.style.boxShadow = `0 16px 32px ${s.iconColor}20` }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)' }}>
                     <div style={{ width: 60, height: 60, borderRadius: 18, background: s.iconBg, color: s.iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${s.iconColor}30`, flexShrink: 0 }}>
                       {s.icon}
                     </div>
@@ -587,27 +635,68 @@ const FuelAnalysisPage = () => {
 
               {/* -- Admin/Controller: All Fuel Logs ------------ */}
               {(isAdmin || isController) && (
-                <div style={{ ...card(D), padding: 0 }}>
-                  <div style={{ padding: '28px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: D.surfaceHi }}>
-                    <div>
-                      <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '1.1rem' }}>All Fuel Logs - Audit View</h3>
-                      <p style={{ margin: '3px 0 0', fontSize: '0.85rem', color: D.textSub }}>Complete log history with creator and editor info</p>
+                <div id="audit-view" style={{ ...card(D), padding: 0 }}>
+                  <div style={{ padding: '28px 32px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                      <div>
+                        <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '1.1rem' }}>All Fuel Logs - Audit View</h3>
+                        <p style={{ margin: '3px 0 0', fontSize: '0.85rem', color: D.textSub }}>Complete log history with creator and editor info</p>
+                      </div>
+                      
+                      {isAdmin && (
+                        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', padding: 6, borderRadius: 16, border: `1px solid ${D.border}` }}>
+                          <button onClick={() => setActiveTab('audit')} style={{ padding: '8px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.2s', background: activeTab === 'audit' ? D.surface : 'transparent', color: activeTab === 'audit' ? D.text : D.textSub, boxShadow: activeTab === 'audit' ? '0 4px 12px rgba(0,0,0,0.2)' : 'none' }}>
+                            Active Logs
+                          </button>
+                          <button onClick={() => setActiveTab('deleted')} style={{ padding: '8px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.2s', background: activeTab === 'deleted' ? D.surface : 'transparent', color: activeTab === 'deleted' ? D.red : D.textSub, boxShadow: activeTab === 'deleted' ? '0 4px 12px rgba(0,0,0,0.2)' : 'none' }}>
+                            Archived Vault
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <div style={{ fontSize: '0.9rem', color: D.textSub, fontWeight: 700, background: D.surface, padding: '8px 16px', borderRadius: 12, border: `1px solid ${D.border}` }}>
-                      <span style={{ color: D.purple }}>{allFuelLogs.length}</span> Records
+                    
+                    {/* Filters Bar */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                      <div style={{ position: 'relative', flex: 1 }}>
+                        <Search size={18} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: D.textSub, opacity: 0.7 }} />
+                        <input type="text" placeholder="Search by vehicle reg or driver..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ width: '100%', padding: '12px 16px 12px 44px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', transition: 'all 0.2s', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }} />
+                      </div>
+                      
+                      <div style={{ position: 'relative' }}>
+                        <Filter size={14} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
+                        <select value={filterFuelType} onChange={e => setFilterFuelType(e.target.value)} style={{ padding: '12px 16px 12px 38px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', cursor: 'pointer', appearance: 'none', paddingRight: 32 }} onFocus={e => { e.target.style.borderColor = D.purple }} onBlur={e => { e.target.style.borderColor = D.inputBorder }}>
+                          <option value="all" style={{ background: D.surface, color: D.text }}>All Fuels</option>
+                          <option value="Diesel" style={{ background: D.surface, color: D.text }}>Diesel</option>
+                          <option value="Petrol" style={{ background: D.surface, color: D.text }}>Petrol</option>
+                        </select>
+                      </div>
+                      
+                      <div style={{ position: 'relative' }}>
+                        <Filter size={14} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
+                        <select value={filterAuditStatus} onChange={e => setFilterAuditStatus(e.target.value)} style={{ padding: '12px 16px 12px 38px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', cursor: 'pointer', appearance: 'none', paddingRight: 32 }} onFocus={e => { e.target.style.borderColor = D.purple }} onBlur={e => { e.target.style.borderColor = D.inputBorder }}>
+                          <option value="all" style={{ background: D.surface, color: D.text }}>All Status</option>
+                          <option value="original" style={{ background: D.surface, color: D.text }}>Original</option>
+                          <option value="edited" style={{ background: D.surface, color: D.text }}>Edited</option>
+                        </select>
+                      </div>
+                      
+                      <div style={{ fontSize: '0.8rem', color: D.textSub, fontWeight: 700, background: D.surface, padding: '12px 16px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                        <span style={{ color: D.purple }}>{displayLogs.length}</span> Records
+                      </div>
                     </div>
                   </div>
                   <div style={{ maxHeight: 600, overflowY: 'auto', padding: '24px 32px 40px' }}>
-                    {allFuelLogs.length === 0 ? (
+                    {displayLogs.length === 0 ? (
                       <div style={{ padding: '80px 0', textAlign: 'center' }}>
                         <div style={{ background: D.surfaceHi, width: 90, height: 90, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: D.textSub, border: `1px solid ${D.border}` }}>
-                          <Fuel size={36} opacity={0.3} />
+                          <Search size={36} opacity={0.3} />
                         </div>
-                        <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.2rem' }}>No fuel logs</h3>
+                        <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.2rem' }}>No matching logs found</h3>
+                        <p style={{ margin: '10px 0 0', color: D.textSub, fontSize: '1rem', fontWeight: 500 }}>Try adjusting your search or filters.</p>
                       </div>
                     ) : (
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
-                        {allFuelLogs.map((log, i) => {
+                        {displayLogs.map((log, i) => {
                           const badge = log.fuelEfficiency ? (
                             log.fuelEfficiency > 10 ? { label: 'Excellent', bg: D.greenDim, color: D.green, border: 'rgba(74,222,128,0.3)' } :
                             log.fuelEfficiency > 7 ? { label: 'Good', bg: D.blueDim, color: D.blue, border: 'rgba(96,165,250,0.3)' } :
@@ -656,7 +745,12 @@ const FuelAnalysisPage = () => {
                               
                               <div style={{ width: 140, flexShrink: 0, padding: '0 16px', borderLeft: `1px solid ${D.border}` }}>
                                 <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Audit Status</div>
-                                {log.isUpdated ? (
+                                {log.isDeleted ? (
+                                  <div>
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 800, color: D.red, marginBottom: 2 }}><X size={12}/> Deleted</div>
+                                    <div style={{ fontSize: '0.7rem', color: D.textSub }}>By {log.deletedBy || '-'}</div>
+                                  </div>
+                                ) : log.isUpdated ? (
                                   <div>
                                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 800, color: D.purple, marginBottom: 2 }}><Edit2 size={12}/> Edited</div>
                                     <div style={{ fontSize: '0.7rem', color: D.textSub }}>By {log.updatedBy}</div>
