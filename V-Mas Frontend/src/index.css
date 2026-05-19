@@ -184,6 +184,7 @@
 }
 [data-theme="blue"] .form-control::placeholder { color: #475569; }
 [data-theme="blue"] select.form-control option  { background: #1e2535; }
+[data-theme="blue"] select option { background: #1e2535; color: #e2e8f0; }
 
 /* ── Blue theme icon colors ────────────────────────────────────── */
 [data-theme="blue"] .icon-purple { background: rgba(124,58,237,0.2); color: #a78bfa; }
