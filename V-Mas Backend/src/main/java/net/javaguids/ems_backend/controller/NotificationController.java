@@ -19,6 +19,12 @@ public class NotificationController {
 
     private NotificationService notificationService;
 
+    @PostMapping
+    public ResponseEntity<ApiResponse<Object>> createNotification(@RequestBody NotificationDto notificationDto) {
+        notificationService.createNotification(notificationDto.getVehicleRegNumber(), notificationDto.getMessage(), notificationDto.getType());
+        return ApiResponseUtil.success("Notification created successfully", null, HttpStatus.CREATED);
+    }
+
     @GetMapping("/unread")
     public ResponseEntity<ApiResponse<List<NotificationDto>>> getUnreadNotifications() {
         List<NotificationDto> notifications = notificationService.getUnreadNotifications();

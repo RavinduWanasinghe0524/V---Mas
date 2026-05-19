@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
-import { serviceAPI, vehicleAPI } from '../services/api'
+import { serviceAPI, vehicleAPI, notificationAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
+import { addControllerNotification, addDriverNotification } from '../services/notificationService'
 import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle, Paperclip, User, Eye, Archive, Clock } from 'lucide-react'
 
 const SERVICE_TYPES = [
@@ -463,6 +464,8 @@ const ServicePage = () => {
 
   // ── Driver vehicle scope ───────────────────────────────────────────────
   const [assignedVehicle, setAssignedVehicle] = useState(null)
+  const [allVehicles, setAllVehicles] = useState([])
+  const [previousMileage, setPreviousMileage] = useState(null)
 
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null })
   const [detailModal, setDetailModal] = useState({ isOpen: false, record: null })
@@ -517,28 +520,89 @@ const ServicePage = () => {
     }
   }, [detailModal.isOpen, detailModal.record?.id])
 
-  const validate = (data) => {
+  const validate = (data, isEdit = false) => {
     const e = {}
-    if (!data.vehicleRegNumber?.trim()) e.vehicleRegNumber = 'Required'
+    if (!data.vehicleRegNumber?.trim()) {
+      e.vehicleRegNumber = 'Required'
+    } else {
+      const isRegValid = isDriver 
+        ? (assignedVehicle && data.vehicleRegNumber === assignedVehicle.registrationNo)
+        : allVehicles.some(v => v.registrationNo === data.vehicleRegNumber)
+      if (!isRegValid) {
+        e.vehicleRegNumber = 'Please select a valid registered vehicle'
+      }
+    }
+    
     if (!data.serviceType) e.serviceType = 'Required'
     if (data.serviceType === 'OTHER' && !data.serviceTypeDetail?.trim())
       e.serviceTypeDetail = 'Required for Other'
     if (!data.serviceDate) e.serviceDate = 'Required'
-    if (!data.currentMileageKm) e.currentMileageKm = 'Required'
+    
+    if (!data.currentMileageKm) {
+      e.currentMileageKm = 'Required'
+    } else if (previousMileage != null && Number(data.currentMileageKm) < previousMileage) {
+      e.currentMileageKm = `Must be ≥ previous reading (${previousMileage} km)`
+    }
+    
     if (!data.serviceCost) e.serviceCost = 'Required'
     if (!data.technicianWorkshop?.trim()) e.technicianWorkshop = 'Required'
     return e
   }
 
+  const handleVehicleSelect = (e, isEdit = false) => {
+    const regNo = e.target.value
+    if (isEdit) {
+      setEditFormData(prev => ({ ...prev, vehicleRegNumber: regNo }))
+    } else {
+      setFormData(prev => ({ ...prev, vehicleRegNumber: regNo }))
+    }
+    if (errors.vehicleRegNumber) setErrors(prev => ({ ...prev, vehicleRegNumber: undefined }))
+
+    // calculate base mileage from vehicle entity
+    const vehicleObj = isDriver ? assignedVehicle : allVehicles.find(v => v.registrationNo === regNo)
+    const baseMil = vehicleObj && vehicleObj.currentMileageKm ? Number(vehicleObj.currentMileageKm) : 0
+
+    // find latest service for this vehicle
+    const vehicleServices = services.filter(s => s.vehicleRegNumber === regNo && s.currentMileageKm)
+    vehicleServices.sort((a, b) => Number(b.currentMileageKm) - Number(a.currentMileageKm))
+    const lastServiceMil = vehicleServices.length > 0 ? Number(vehicleServices[0].currentMileageKm) : 0
+
+    const lastMil = Math.max(baseMil, lastServiceMil)
+    setPreviousMileage(lastMil > 0 ? lastMil : null)
+  }
+
+  const handleMileageChange = (e, isEdit = false) => {
+    const val = e.target.value
+    if (isEdit) {
+      setEditFormData(prev => ({ ...prev, currentMileageKm: val }))
+    } else {
+      setFormData(prev => ({ ...prev, currentMileageKm: val }))
+    }
+    if (errors.currentMileageKm) setErrors(prev => ({ ...prev, currentMileageKm: undefined }))
+  }
+
   const openAddModal = () => {
     // For drivers: pre-fill the vehicle reg number from their assigned vehicle
+    const regNo = isDriver && assignedVehicle ? assignedVehicle.registrationNo : ''
     setFormData({
       ...initialForm,
-      vehicleRegNumber: isDriver && assignedVehicle ? assignedVehicle.registrationNo : '',
+      vehicleRegNumber: regNo,
     })
     setErrors({})
     setSubmitError(null)
     setAddAttachmentFile(null)
+    
+    if (isDriver && assignedVehicle) {
+      const baseMil = Number(assignedVehicle.currentMileageKm || 0)
+      const vehicleServices = services.filter(s => s.vehicleRegNumber === regNo && s.currentMileageKm)
+      vehicleServices.sort((a, b) => Number(b.currentMileageKm) - Number(a.currentMileageKm))
+      const lastServiceMil = vehicleServices.length > 0 ? Number(vehicleServices[0].currentMileageKm) : 0
+      const lastMil = Math.max(baseMil, lastServiceMil)
+      setPreviousMileage(lastMil > 0 ? lastMil : null)
+    } else {
+      setPreviousMileage(null)
+    }
+    
     setIsAddModalOpen(true)
   }
   const closeAddModal = () => setIsAddModalOpen(false)
@@ -551,7 +615,7 @@ const ServicePage = () => {
 
   const handleAddSubmit = async (e) => {
     e.preventDefault()
-    const errs = validate(formData)
+    const errs = validate(formData, false)
     if (Object.keys(errs).length) { setErrors(errs); return }
     setFormLoading(true)
     setSubmitError(null)
@@ -569,6 +633,19 @@ const ServicePage = () => {
           // Non-fatal — record is saved, just the attachment failed
           showToast('Record saved but attachment upload failed.', 'error')
         }
+      } else if (!addAttachmentFile) {
+        const msg = `Service record added for ${formData.vehicleRegNumber} without a bill attached.`
+        
+        // Save to backend so all controllers see it
+        await notificationAPI.create({
+          vehicleRegNumber: `VEH-${formData.vehicleRegNumber}`,
+          message: msg,
+          type: 'WARNING'
+        }).catch(() => {}) // non-fatal
+
+        // Still fire local events for immediate UI update
+        addControllerNotification(msg, 'WARNING')
+        if (isDriver) addDriverNotification(msg, 'WARNING')
       }
       setIsAddModalOpen(false)
       loadData()
@@ -598,6 +675,16 @@ const ServicePage = () => {
     setErrors({})
     setSubmitError(null)
     setEditAttachmentFile(null)
+
+    const regNo = record.vehicleRegNumber || ''
+    const vehicleObj = isDriver ? assignedVehicle : allVehicles.find(v => v.registrationNo === regNo)
+    const baseMil = vehicleObj && vehicleObj.currentMileageKm ? Number(vehicleObj.currentMileageKm) : 0
+    const vehicleServices = services.filter(s => s.vehicleRegNumber === regNo && s.id !== id && s.currentMileageKm)
+    vehicleServices.sort((a, b) => Number(b.currentMileageKm) - Number(a.currentMileageKm))
+    const lastServiceMil = vehicleServices.length > 0 ? Number(vehicleServices[0].currentMileageKm) : 0
+    const lastMil = Math.max(baseMil, lastServiceMil)
+    setPreviousMileage(lastMil > 0 ? lastMil : null)
+
     setIsEditModalOpen(true)
   }
   const closeEditModal = () => setIsEditModalOpen(false)
@@ -610,7 +697,7 @@ const ServicePage = () => {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault()
-    const errs = validate(editFormData)
+    const errs = validate(editFormData, true)
     if (Object.keys(errs).length) { setErrors(errs); return }
     setFormLoading(true)
     setSubmitError(null)
@@ -643,10 +730,13 @@ const ServicePage = () => {
       // For drivers: also fetch assigned vehicle so we can pre-fill / lock the reg number
       const requests = [serviceAPI.getAllServices(), serviceAPI.getServiceStats()]
       if (isDriver) requests.push(vehicleAPI.getAssignedVehicle())
+      else requests.push(vehicleAPI.getAllVehicles())
+      
       const [servRes, statsRes, vehicleRes] = await Promise.all(requests)
       setServices(servRes.data.data || [])
       setStats(statsRes.data.data)
-      if (vehicleRes) setAssignedVehicle(vehicleRes.data.data || null)
+      if (isDriver && vehicleRes) setAssignedVehicle(vehicleRes.data.data || null)
+      else if (!isDriver && vehicleRes) setAllVehicles(vehicleRes.data.data || [])
     } catch (err) {
       console.error('Error loading service data', err)
     } finally {
@@ -1699,7 +1789,12 @@ const ServicePage = () => {
                       <span style={{ marginLeft: 'auto', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: D.textSub }}>Locked</span>
                     </div>
                   ) : (
-                    <input type="text" name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={handleAddChange} placeholder="e.g. KA-01-AB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
+                    <>
+                      <input type="text" list="vehiclesListAdd" name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={e => handleVehicleSelect(e, false)} placeholder="e.g. WP-CAB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
+                      <datalist id="vehiclesListAdd">
+                        {allVehicles.map(v => <option key={v.id} value={v.registrationNo} />)}
+                      </datalist>
+                    </>
                   )}
                   {errors.vehicleRegNumber && <p style={fieldError}>{errors.vehicleRegNumber}</p>}
                 </div>
@@ -1727,8 +1822,12 @@ const ServicePage = () => {
                 </div>
                 <div>
                   <label style={fieldLabel}>Current Mileage (km) <span style={{ color: D.red }}>*</span></label>
-                  <input type="number" name="currentMileageKm" value={formData.currentMileageKm} onChange={handleAddChange} placeholder="e.g. 45000" style={fieldInput(errors.currentMileageKm)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.currentMileageKm)} />
-                  {errors.currentMileageKm && <p style={fieldError}>{errors.currentMileageKm}</p>}
+                  <input type="number" name="currentMileageKm" value={formData.currentMileageKm} onChange={e => handleMileageChange(e, false)} placeholder="e.g. 45000" style={fieldInput(errors.currentMileageKm)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.currentMileageKm)} />
+                  {errors.currentMileageKm ? (
+                    <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.red, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>⚠ {errors.currentMileageKm}</p>
+                  ) : previousMileage != null && (
+                    <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.textFaint, fontWeight: 600 }}>Last reading: <span style={{ color: D.purple }}>{previousMileage.toLocaleString()} km</span></p>
+                  )}
                 </div>
                 <div>
                   <label style={fieldLabel}>Service Cost (Rs.) <span style={{ color: D.red }}>*</span></label>
@@ -1843,7 +1942,12 @@ const ServicePage = () => {
                       <span style={{ marginLeft: 'auto', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: D.textSub }}>Locked</span>
                     </div>
                   ) : (
-                    <input type="text" name="vehicleRegNumber" value={editFormData.vehicleRegNumber} onChange={handleEditChange} placeholder="e.g. KA-01-AB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
+                    <>
+                      <input type="text" list="vehiclesListEdit" name="vehicleRegNumber" value={editFormData.vehicleRegNumber} onChange={e => handleVehicleSelect(e, true)} placeholder="e.g. WP-CAB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
+                      <datalist id="vehiclesListEdit">
+                        {allVehicles.map(v => <option key={v.id} value={v.registrationNo} />)}
+                      </datalist>
+                    </>
                   )}
                   {errors.vehicleRegNumber && <p style={fieldError}>{errors.vehicleRegNumber}</p>}
                 </div>
@@ -1871,7 +1975,7 @@ const ServicePage = () => {
                 </div>
                 <div>
                   <label style={fieldLabel}>Current Mileage (km) <span style={{ color: D.red }}>*</span></label>
-                  <input type="number" name="currentMileageKm" value={editFormData.currentMileageKm} onChange={handleEditChange} placeholder="e.g. 45000" style={fieldInput(errors.currentMileageKm)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.currentMileageKm)} />
+                  <input type="number" name="currentMileageKm" value={editFormData.currentMileageKm} onChange={e => handleMileageChange(e, true)} placeholder="e.g. 45000" style={fieldInput(errors.currentMileageKm)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.currentMileageKm)} />
                   {errors.currentMileageKm && <p style={fieldError}>{errors.currentMileageKm}</p>}
                 </div>
                 <div>
