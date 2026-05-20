@@ -249,6 +249,7 @@ const UsersPage = () => {
                   <Users size={32} strokeWidth={1.5} />
                 </div>
                 <div>
+                <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                       User Management
