@@ -74,6 +74,11 @@ const UsersPage = () => {
     return matchSearch && matchRole
   })
 
+  const totalUsersCount = users.length
+  const activeUsersCount = users.filter(u => u.accountStatus === 'ACTIVE').length
+  const pendingUsersCount = pendingUsers.length
+  const suspendedUsersCount = users.filter(u => u.accountStatus === 'SUSPENDED').length
+
   useEffect(() => {
     if (isAdmin || isController) {
       if (isAdmin) loadUsers()
@@ -249,6 +254,52 @@ const UsersPage = () => {
             {error && (
               <div style={{ padding: '14px 20px', borderRadius: 12, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 24, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, animation: 'fadeIn 0.3s ease' }}>
                 <AlertCircle size={16} /> {error}
+              </div>
+            )}
+
+            {/* Interactive User Statistics Dashboard */}
+            {isAdmin && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 28 }}>
+                {[
+                  { label: 'Total Users', count: totalUsersCount, icon: <Users size={20} />, color: D.blue, bg: D.blueDim, desc: 'Registered accounts' },
+                  { label: 'Active Users', count: activeUsersCount, icon: <UserCheck size={20} />, color: D.green, bg: D.greenDim, desc: 'Active in system' },
+                  { label: 'Pending Approvals', count: pendingUsersCount, icon: <Clock size={20} />, color: D.gold, bg: D.goldDim, desc: 'Awaiting review' },
+                  { label: 'Suspended', count: suspendedUsersCount, icon: <AlertCircle size={20} />, color: D.red, bg: D.redDim, desc: 'Restricted access' },
+                ].map((card, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      background: D.surface,
+                      borderRadius: 16,
+                      border: `1px solid ${D.border}`,
+                      padding: '20px 22px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = 'translateY(-4px)';
+                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.18)';
+                      e.currentTarget.style.borderColor = D.borderHi;
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+                      e.currentTarget.style.borderColor = D.border;
+                    }}
+                  >
+                    <div>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{card.label}</span>
+                      <h2 style={{ margin: '6px 0 2px', fontSize: '1.8rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{card.count}</h2>
+                      <span style={{ fontSize: '0.7rem', color: D.textFaint }}>{card.desc}</span>
+                    </div>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: card.bg, border: `1px solid ${card.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: card.color }}>
+                      {card.icon}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
