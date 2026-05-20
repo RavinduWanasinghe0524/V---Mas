@@ -126,10 +126,10 @@ const ReportsPage = () => {
         }
         const { data } = await userAPI.getAllUsers()
         const tableData = data.map(u => [
-          u.username || 'N/A',
+          u.userName || 'N/A',
           u.email || 'N/A',
           u.role || 'N/A',
-          u.status || 'Active'
+          u.accountStatus || 'ACTIVE'
         ])
         doc.autoTable({
           startY: id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 45) : 40,
