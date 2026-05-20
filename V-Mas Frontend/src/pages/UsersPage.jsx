@@ -1,3 +1,14 @@
+/**
+ * UsersPage Component
+ * 
+ * Provides administrative interface for system-wide user management.
+ * Features:
+ * - View registered users and filtering by role/search terms.
+ * - Create, update (edit), and delete user accounts.
+ * - Process self-registered driver approvals/rejections with real-time feedback.
+ * - Dynamic role badges and account status indicators.
+ */
+
 import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
