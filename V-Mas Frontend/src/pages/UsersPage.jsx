@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
 import { userAPI } from '../services/api'
 import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck } from 'lucide-react'
-import DriverAssignmentTab from './DriverAssignmentTab'
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(99,102,241,0.5)'
@@ -53,7 +52,6 @@ const UsersPage = () => {
     color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.02em',
   }
   const { isAdmin, isController } = useAuth()
-  const [activeTab, setActiveTab] = useState('users')
 
   const [users,        setUsers]        = useState([])
   const [pendingUsers, setPendingUsers] = useState([])
@@ -229,25 +227,7 @@ const UsersPage = () => {
               </button>
             </div>
 
-            {/* Tab Bar */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-              {[
-                { key: 'users',      label: 'All Users',        icon: <Users size={15}/> },
-                { key: 'assignment', label: 'Driver Assignment', icon: <UserCheck size={15}/> },
-              ].map(tab => (
-                <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
-                  display: 'flex', alignItems: 'center', gap: 7,
-                  padding: '9px 20px', borderRadius: 10, fontWeight: 700, fontSize: '0.85rem',
-                  border: activeTab === tab.key ? 'none' : `1px solid ${D.border}`,
-                  background: activeTab === tab.key ? 'linear-gradient(135deg,#6366f1,#4f46e5)' : D.surface,
-                  color: activeTab === tab.key ? '#fff' : D.textSub,
-                  cursor: 'pointer', transition: 'all 0.15s',
-                  boxShadow: activeTab === tab.key ? '0 4px 14px rgba(99,102,241,0.35)' : 'none',
-                }}>
-                  {tab.icon} {tab.label}
-                </button>
-              ))}
-            </div>
+
 
             {/* Messages */}
             {actionMsg && (
@@ -261,14 +241,6 @@ const UsersPage = () => {
               </div>
             )}
 
-            {/* Driver Assignment Tab */}
-            {activeTab === 'assignment' && (
-              <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
-                <DriverAssignmentTab />
-              </div>
-            )}
-
-            {activeTab === 'users' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
               {/* Pending Approvals */}
@@ -404,7 +376,6 @@ const UsersPage = () => {
               </div>
 
               </div>
-            )}
           </div>
         </div>
       </div>

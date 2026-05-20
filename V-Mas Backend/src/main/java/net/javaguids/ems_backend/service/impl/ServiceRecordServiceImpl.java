@@ -55,19 +55,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = (auth != null && auth.isAuthenticated()) ? auth.getName() : null;
 
-        // ── Driver ownership guard: vehicle reg must match the driver's assigned vehicle ──
-        boolean isDriver = auth != null && auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_DRIVER"));
-        if (isDriver) {
-            Vehicle assignedVehicle = vehicleRepository.findByAssigneeUsername(currentUsername)
-                    .orElseThrow(() -> new AccessDeniedException(
-                            "No vehicle is assigned to you. You cannot add a service record."));
-            if (!assignedVehicle.getRegistrationNo().equals(dto.getVehicleRegNumber())) {
-                throw new AccessDeniedException(
-                        "You can only add service records for your assigned vehicle: "
-                                + assignedVehicle.getRegistrationNo());
-            }
-        }
+        // Driver can add service records for any vehicle (no assignment check required)
 
         // ── Ensure vehicle exists and update its mileage ──
         Vehicle vehicle = vehicleRepository.findByRegistrationNo(dto.getVehicleRegNumber())
@@ -130,14 +118,6 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
             if (!currentUsername.equals(record.getCreatedBy())) {
                 throw new AccessDeniedException(
                         "You can only edit service records that you created.");
-            }
-            // Also ensure the vehicle reg number stays locked to their assigned vehicle
-            Vehicle assignedVehicle = vehicleRepository.findByAssigneeUsername(currentUsername)
-                    .orElseThrow(() -> new AccessDeniedException(
-                            "No vehicle is assigned to you."));
-            if (!assignedVehicle.getRegistrationNo().equals(dto.getVehicleRegNumber())) {
-                throw new AccessDeniedException(
-                        "You cannot change the vehicle registration number.");
             }
         }
 
@@ -215,9 +195,28 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
             }
         }
 
+        // Create a detailed notification message containing only the changed fields with values
+        StringBuilder msgBuilder = new StringBuilder("Service record for vehicle ")
+                .append(updated.getVehicleRegNumber())
+                .append(" was updated.");
+        
+        if (!changes.isEmpty()) {
+            msgBuilder.append(" Changes: ");
+            for (int i = 0; i < changes.size(); i++) {
+                Map<String, String> change = changes.get(i);
+                if (i > 0) msgBuilder.append(", ");
+                msgBuilder.append(change.get("field"))
+                          .append(" (")
+                          .append(change.get("from"))
+                          .append(" → ")
+                          .append(change.get("to"))
+                          .append(")");
+            }
+        }
+
         notificationService.createNotification(
                 "VEH-" + updated.getVehicleRegNumber(),
-                "Service record for vehicle " + updated.getVehicleRegNumber() + " was updated.",
+                msgBuilder.toString(),
                 "SERVICE_UPDATE"
         );
 

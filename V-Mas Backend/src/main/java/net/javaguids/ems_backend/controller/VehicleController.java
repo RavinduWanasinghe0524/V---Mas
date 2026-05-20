@@ -35,7 +35,7 @@ public class VehicleController {
     }
 
     // GET /api/vehicles — Get all vehicles
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER', 'DRIVER')")
     @GetMapping
     public ResponseEntity<ApiResponse<List<VehicleDto>>> getAllVehicles() {
         List<VehicleDto> vehicles = vehicleService.getAllVehicles();
@@ -69,27 +69,5 @@ public class VehicleController {
         return ApiResponseUtil.success("Vehicle deleted successfully", null, HttpStatus.OK);
     }
 
-    // GET /api/vehicles/assigned - Get assigned vehicles to logged user
-    @GetMapping("/assigned")
-    @PreAuthorize("hasAnyRole('DRIVER')")
-    public ResponseEntity<ApiResponse<VehicleDto>> getAssignedVehicles(@AuthenticationPrincipal UserDetails loggedUser) {
-        VehicleDto assignedVehicle = vehicleService.getAssignedVehicle(loggedUser.getUsername());
-        return ApiResponseUtil.success("Vehicle fetched successfully", assignedVehicle, HttpStatus.OK);
-    }
 
-    // PATCH /api/vehicles/{vehicleId}/driver/{driverId} - Assign driver to a vehicle
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
-    @PatchMapping("/{vehicleId}/driver/{driverId}")
-    public ResponseEntity<ApiResponse<VehicleDto>> assignDriver(@PathVariable Long vehicleId, @PathVariable Long driverId) throws BadRequestException {
-        VehicleDto assignedVehicle = vehicleService.assignDriver(vehicleId, driverId);
-        return ApiResponseUtil.success("Driver assigned successfully", assignedVehicle, HttpStatus.OK);
-    }
-
-    // PATCH /api/vehicles/{vehicleId}/unassign - Remove driver from a vehicle
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
-    @PatchMapping("/{vehicleId}/unassign")
-    public ResponseEntity<ApiResponse<VehicleDto>> unassignDriver(@PathVariable Long vehicleId) {
-        VehicleDto updated = vehicleService.unassignDriver(vehicleId);
-        return ApiResponseUtil.success("Driver unassigned successfully", updated, HttpStatus.OK);
-    }
 }
