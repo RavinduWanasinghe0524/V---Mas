@@ -4,7 +4,7 @@ import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
 import { userAPI } from '../services/api'
-import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck } from 'lucide-react'
+import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck } from 'lucide-react'
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(99,102,241,0.5)'
@@ -222,25 +222,35 @@ const UsersPage = () => {
                 <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
               ))}
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', color: '#fff', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', color: '#fff', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
                   <Users size={32} strokeWidth={1.5} />
                 </div>
                 <div>
-                  <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                    User Management
-                  </h1>
-                  <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
-                    Manage system users, roles, and access approvals
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                      User Management
+                    </h1>
+                    {isAdmin && users.length > 0 && (
+                      <span style={{ background: 'rgba(255,255,255,0.15)', color: '#e0e7ff', padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                        {users.length} users
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ margin: '6px 0 0', color: '#a5b4fc', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <ShieldCheck size={14} />
+                    {isAdmin ? 'Manage system users, roles & access approvals' : 'Review and process pending driver account requests'}
                   </p>
                 </div>
               </div>
-              <button onClick={handleCreate} style={{
-                position: 'relative', padding: '10px 22px', borderRadius: 10, border: 'none', background: '#fff', color: '#4338ca', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s', boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
-              }}
-              onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 6px 20px rgba(0,0,0,0.3)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 4px 14px rgba(0,0,0,0.2)' }}>
-                <Users size={16} /> Add User
-              </button>
+              {isAdmin && (
+                <button onClick={handleCreate} style={{
+                  position: 'relative', padding: '11px 22px', borderRadius: 10, border: 'none', background: '#fff', color: '#4338ca', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s', boxShadow: '0 4px 14px rgba(0,0,0,0.2)', whiteSpace: 'nowrap'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 4px 14px rgba(0,0,0,0.2)' }}>
+                  <UserPlus size={16} /> Add User
+                </button>
+              )}
             </div>
 
 
