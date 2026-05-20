@@ -64,6 +64,15 @@ const UsersPage = () => {
   const [formData,     setFormData]     = useState({
     userName: '', email: '', password: '', role: 'DRIVER', accountStatus: 'ACTIVE', profilePicture: ''
   })
+  const [searchTerm,   setSearchTerm]   = useState('')
+  const [roleFilter,   setRoleFilter]   = useState('ALL')
+
+  const filteredUsers = users.filter(u => {
+    const matchSearch = (u.userName || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
+    const matchRole = roleFilter === 'ALL' || u.role === roleFilter
+    return matchSearch && matchRole
+  })
 
   useEffect(() => {
     if (isAdmin || isController) {
@@ -320,11 +329,51 @@ const UsersPage = () => {
                   </button>
                 </div>
 
+                {/* Search and filter row */}
+                <div style={{ padding: '14px 24px', borderBottom: `1px solid ${D.border}`, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', background: D.surface }}>
+                  <input
+                    type="text"
+                    placeholder="Search by name or email..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      border: `1px solid ${D.border}`,
+                      background: D.bg,
+                      color: D.text,
+                      fontSize: '0.8rem',
+                      outline: 'none',
+                      flex: 1,
+                      minWidth: 200
+                    }}
+                  />
+                  <select
+                    value={roleFilter}
+                    onChange={e => setRoleFilter(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      border: `1px solid ${D.border}`,
+                      background: D.bg,
+                      color: D.text,
+                      fontSize: '0.8rem',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="ALL">All Roles</option>
+                    <option value="ADMIN">Admin</option>
+                    <option value="CONTROLLER">Controller</option>
+                    <option value="DRIVER">Driver</option>
+                  </select>
+                </div>
+
                 <div style={{ overflowX: 'auto' }}>
                   {loading ? (
                     <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>Loading users...</div>
-                  ) : users.length === 0 ? (
-                    <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>No users found.</div>
+                  ) : filteredUsers.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>No users found matching filters.</div>
                   ) : (
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                       <thead style={{ background: D.surfaceHi }}>
@@ -335,7 +384,7 @@ const UsersPage = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {users.map((u, i) => (
+                        {filteredUsers.map((u, i) => (
                           <tr key={u.id} style={{ borderBottom: `1px solid ${D.border}`, background: u.accountStatus === 'PENDING' ? D.goldDim : (i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'), transition: 'background 0.15s' }}
                               onMouseEnter={e => { if(u.accountStatus !== 'PENDING') e.currentTarget.style.background='rgba(99,102,241,0.08)' }}
                               onMouseLeave={e => { if(u.accountStatus !== 'PENDING') e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>
