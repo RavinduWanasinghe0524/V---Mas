@@ -229,12 +229,16 @@ const FuelManagementPage = () => {
     }
 
     setSubmitting(true)
+    const prevMilCapture = previousMileage
+    const milNew = parseFloat(formData.mileage)
+    const litersNew = parseFloat(formData.liters)
+    const regCapture = formData.vehicleRegNumber
     try {
       await fuelAPI.controllerAddLog({
         ...formData,
-        liters: parseFloat(formData.liters),
+        liters: litersNew,
         costPerLiter: parseFloat(formData.costPerLiter),
-        mileage: parseFloat(formData.mileage),
+        mileage: milNew,
         driverUsername: formData.driverUsername || undefined,
       })
       setShowAddModal(false)
@@ -243,7 +247,17 @@ const FuelManagementPage = () => {
       setMileageError('')
       await loadData()
       showToast('Fuel log added successfully!')
-      addControllerNotification(`Fuel log added for vehicle ${formData.vehicleRegNumber}`, 'FUEL_ADD')
+      addControllerNotification(`Fuel log added for vehicle ${regCapture}`, 'FUEL_ADD')
+      // ── Low efficiency alert ─────────────────────────────────────────────
+      if (prevMilCapture != null && milNew > prevMilCapture && litersNew > 0) {
+        const eff = (milNew - prevMilCapture) / litersNew
+        if (eff < 5) {
+          addControllerNotification(
+            `⚠️ Low Efficiency Alert: ${regCapture} recorded only ${eff.toFixed(2)} km/L (Poor) — consider scheduling an inspection.`,
+            'FUEL_LOW_EFF'
+          )
+        }
+      }
     } catch (err) {
       showToast('Failed to add fuel log', 'error')
     } finally { setSubmitting(false) }
@@ -253,19 +267,38 @@ const FuelManagementPage = () => {
     e.preventDefault()
     if (!editingLog) return
     setSubmitting(true)
+    const editMilNew = parseFloat(editingLog.mileage)
+    const editLitersNew = parseFloat(editingLog.liters)
+    const editReg = editingLog.vehicleRegNumber
+    const editId = editingLog.id
+    // Find the previous log's mileage for this vehicle (excluding current log)
+    const prevLogForEdit = allLogs
+      .filter(l => !l.isDeleted && l.vehicleRegNumber === editReg && l.id !== editId)
+      .sort((a, b) => new Date(b.date) - new Date(a.date))[0]
+    const prevMilForEdit = prevLogForEdit ? prevLogForEdit.mileage : null
     try {
-      await fuelAPI.controllerUpdateLog(editingLog.id, {
+      await fuelAPI.controllerUpdateLog(editId, {
         ...editingLog,
-        liters: parseFloat(editingLog.liters),
+        liters: editLitersNew,
         costPerLiter: parseFloat(editingLog.costPerLiter),
-        mileage: parseFloat(editingLog.mileage),
+        mileage: editMilNew,
         driverUsername: editingLog.driverUsername || undefined,
         updatedBy: user?.username
       })
       setEditingLog(null)
       await loadData()
       showToast('Fuel log updated!')
-      addControllerNotification(`Fuel log #${editingLog.id} updated`, 'FUEL_EDIT')
+      addControllerNotification(`Fuel log #${editId} updated`, 'FUEL_EDIT')
+      // ── Low efficiency alert ─────────────────────────────────────────────
+      if (prevMilForEdit != null && editMilNew > prevMilForEdit && editLitersNew > 0) {
+        const eff = (editMilNew - prevMilForEdit) / editLitersNew
+        if (eff < 5) {
+          addControllerNotification(
+            `⚠️ Low Efficiency Alert: ${editReg} updated log shows only ${eff.toFixed(2)} km/L (Poor) — consider scheduling an inspection.`,
+            'FUEL_LOW_EFF'
+          )
+        }
+      }
     } catch (err) {
       showToast('Failed to update', 'error')
     } finally { setSubmitting(false) }

@@ -151,6 +151,7 @@ const FuelAnalysisPage = () => {
   const D = useD()
   const { user, isAdmin, isController, isDriver } = useAuth()
   const [period, setPeriod] = useState('6M')
+  const [costPeriod, setCostPeriod] = useState('ALL')
   const [showAddModal, setShowAddModal] = useState(false)
 
   const [summary, setSummary] = useState({ totalDiesel: 0, totalPetrol: 0, totalVolume: 0, totalCost: 0, logCount: 0 })
@@ -328,6 +329,54 @@ const FuelAnalysisPage = () => {
 
   /* max spending for normalising hbars */
   const maxSpend = Math.max(...vehicleStats.map(v => v.totalSpending), 1)
+
+  /* ── Cost period filter & derived stats ────────────────────────────────── */
+  const costCutoff = (() => {
+    if (costPeriod === 'ALL') return null
+    const d = new Date()
+    if (costPeriod === '3M') d.setMonth(d.getMonth() - 3)
+    else if (costPeriod === '6M') d.setMonth(d.getMonth() - 6)
+    else if (costPeriod === '12M') d.setFullYear(d.getFullYear() - 1)
+    return d
+  })()
+  const costFilteredLogs = costCutoff
+    ? allFuelLogs.filter(l => new Date(l.date) >= costCutoff)
+    : allFuelLogs
+
+  /* Vehicle spending filtered by selected period */
+  const filteredVehicleSpendMap = {}
+  costFilteredLogs.forEach(l => {
+    if (!filteredVehicleSpendMap[l.vehicleRegNumber]) filteredVehicleSpendMap[l.vehicleRegNumber] = 0
+    filteredVehicleSpendMap[l.vehicleRegNumber] += l.totalCost || 0
+  })
+  const filteredSpendStats = Object.entries(filteredVehicleSpendMap)
+    .map(([reg, totalSpending]) => ({ vehicleRegNumber: reg, totalSpending }))
+    .sort((a, b) => b.totalSpending - a.totalSpending)
+  const maxFilteredSpend = Math.max(...filteredSpendStats.map(v => v.totalSpending), 1)
+
+  /* Driver performance ranking for selected period */
+  const drvMap = {}
+  costFilteredLogs.forEach(l => {
+    const drv = l.driverUsername || l.uploadedBy || 'Unassigned'
+    if (!drvMap[drv]) drvMap[drv] = { logs: [], totalCost: 0, totalLiters: 0 }
+    drvMap[drv].logs.push(l)
+    drvMap[drv].totalCost += l.totalCost || 0
+    drvMap[drv].totalLiters += l.liters || 0
+  })
+  const driverRanking = Object.entries(drvMap)
+    .map(([name, { logs, totalCost, totalLiters }]) => {
+      const effLogs = logs.filter(l => l.fuelEfficiency && l.fuelEfficiency > 0)
+      const avgEff = effLogs.length > 0
+        ? effLogs.reduce((s, l) => s + l.fuelEfficiency, 0) / effLogs.length
+        : null
+      const status = avgEff == null ? 'N/A'
+        : avgEff > 10 ? 'Excellent'
+        : avgEff > 7 ? 'Good'
+        : avgEff > 5 ? 'Average'
+        : 'Poor'
+      return { name, logCount: logs.length, totalCost, totalLiters, avgEff, status }
+    })
+    .sort((a, b) => (b.avgEff ?? -Infinity) - (a.avgEff ?? -Infinity))
 
   const hBarColor = status => ({
     Excellent: D.green, Good: D.blue, Average: D.gold, Poor: D.red,
@@ -538,20 +587,127 @@ const FuelAnalysisPage = () => {
 
                   {/* Spending H-bars */}
                   <div style={{ ...card(D), padding: '22px 24px' }}>
-                    <div style={{ marginBottom: 20 }}>
-                      <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fleet Fuel Spending</h3>
-                      <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>Total LKR spent per vehicle</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+                      <div>
+                        <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fleet Fuel Spending</h3>
+                        <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>
+                          {costPeriod === 'ALL' ? 'All-time LKR spent per vehicle' : `Last ${costPeriod} — LKR per vehicle`}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        {['3M', '6M', '12M', 'ALL'].map(p => (
+                          <button key={p} onClick={() => setCostPeriod(p)} style={{
+                            padding: '4px 10px', borderRadius: 999, border: 'none', cursor: 'pointer',
+                            fontSize: '0.72rem', fontWeight: 700, transition: 'all 0.15s',
+                            background: costPeriod === p ? 'rgba(129,140,248,0.25)' : 'transparent',
+                            color: costPeriod === p ? D.indigo : D.textSub,
+                          }}>{p}</button>
+                        ))}
+                      </div>
                     </div>
-                    {vehicleStats.slice(0, 8).map((v, i) => (
+                    {filteredSpendStats.length === 0 ? (
+                      <div style={{ padding: '28px 0', textAlign: 'center', color: D.textSub, fontSize: '0.82rem', opacity: 0.6 }}>No data for selected period</div>
+                    ) : filteredSpendStats.slice(0, 8).map((v, i) => (
                       <HBar key={v.vehicleRegNumber}
                         label={v.vehicleRegNumber}
                         value={v.totalSpending}
-                        max={maxSpend}
+                        max={maxFilteredSpend}
                         color={[D.blue, D.indigo, D.teal, D.purple, D.green, D.gold][i % 6]}
-                        sub={`Rs. ${v.totalSpending.toLocaleString()}`}
+                        sub={`Rs. ${Math.round(v.totalSpending).toLocaleString()}`}
                         D={D}
                       />
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Driver Performance Ranking ─────────────────────────────────── */}
+              {(isAdmin || isController) && driverRanking.length > 0 && (
+                <div style={{ ...card(D), padding: 0, marginBottom: 20 }}>
+                  {/* Header */}
+                  <div style={{ padding: '22px 28px 18px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Driver Fuel Performance Ranking</h3>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>
+                        Ranked by average km/L · {costPeriod === 'ALL' ? 'All time' : `Last ${costPeriod}`}
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      {['3M', '6M', '12M', 'ALL'].map(p => (
+                        <button key={p} onClick={() => setCostPeriod(p)} style={{
+                          padding: '4px 10px', borderRadius: 999, border: 'none', cursor: 'pointer',
+                          fontSize: '0.72rem', fontWeight: 700, transition: 'all 0.15s',
+                          background: costPeriod === p ? 'rgba(129,140,248,0.25)' : 'transparent',
+                          color: costPeriod === p ? D.indigo : D.textSub,
+                        }}>{p}</button>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Ranked list */}
+                  <div style={{ padding: '20px 28px 28px' }}>
+                    {driverRanking.map((drv, idx) => {
+                      const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null
+                      const effColor = drv.status === 'Excellent' ? D.green
+                        : drv.status === 'Good' ? D.blue
+                        : drv.status === 'Average' ? D.gold
+                        : drv.status === 'Poor' ? D.red
+                        : D.textSub
+                      const effBg = drv.status === 'Excellent' ? D.greenDim
+                        : drv.status === 'Good' ? D.blueDim
+                        : drv.status === 'Average' ? D.goldDim
+                        : drv.status === 'Poor' ? D.redDim
+                        : 'rgba(255,255,255,0.04)'
+                      return (
+                        <div key={drv.name} style={{
+                          display: 'flex', alignItems: 'center', gap: 20,
+                          padding: '13px 18px', borderRadius: 16, marginBottom: 10,
+                          background: idx < 3 ? `${effColor}08` : D.surfaceHi,
+                          border: `1px solid ${idx < 3 ? effColor + '28' : D.border}`,
+                          transition: 'all 0.2s ease',
+                          animation: `fadeUp 0.4s ease ${idx * 0.06}s both`,
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.boxShadow = `0 6px 20px ${effColor}15` }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.boxShadow = 'none' }}
+                        >
+                          {/* Rank */}
+                          <div style={{ width: 36, flexShrink: 0, textAlign: 'center' }}>
+                            {medal
+                              ? <span style={{ fontSize: '1.35rem', lineHeight: 1 }}>{medal}</span>
+                              : <span style={{ fontSize: '0.88rem', fontWeight: 900, color: D.textSub, opacity: 0.45 }}>#{idx + 1}</span>
+                            }
+                          </div>
+                          {/* Driver name + stats */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '0.92rem', fontWeight: 800, color: D.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {drv.name}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: D.textSub, marginTop: 3 }}>
+                              {drv.logCount} log{drv.logCount !== 1 ? 's' : ''} · {drv.totalLiters.toFixed(1)} L consumed
+                            </div>
+                          </div>
+                          {/* Total cost */}
+                          <div style={{ textAlign: 'right', flexShrink: 0, marginRight: 8 }}>
+                            <div style={{ fontSize: '0.65rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Total Cost</div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: D.green }}>Rs. {Math.round(drv.totalCost).toLocaleString()}</div>
+                          </div>
+                          {/* Efficiency badge */}
+                          <div style={{ flexShrink: 0 }}>
+                            <div style={{
+                              display: 'inline-flex', flexDirection: 'column', alignItems: 'center',
+                              padding: '8px 18px', borderRadius: 12, background: effBg,
+                              border: `1px solid ${effColor}35`,
+                            }}>
+                              <span style={{ fontSize: '1.08rem', fontWeight: 900, color: effColor, lineHeight: 1 }}>
+                                {drv.avgEff != null ? drv.avgEff.toFixed(2) : '—'}
+                              </span>
+                              <span style={{ fontSize: '0.6rem', fontWeight: 700, color: effColor, textTransform: 'uppercase', letterSpacing: '0.04em', opacity: 0.8, marginTop: 2 }}>
+                                {drv.avgEff != null ? 'km/L' : 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )}
