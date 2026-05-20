@@ -4,7 +4,8 @@ import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
 import {
   Car, Fuel, Wrench, Users, MapPin, DollarSign,
-  FileText, Calendar, Download, ClipboardList, BarChart2, Loader2, Database, TrendingUp
+  FileText, Calendar, Download, ClipboardList, BarChart2, Loader2, Database, TrendingUp,
+  AlertCircle, CheckCircle
 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
@@ -37,8 +38,12 @@ const ReportsPage = () => {
     { id: 'cost-report',        icon: <DollarSign size={24} strokeWidth={1.5} />,  title: 'Cost Analysis Report',          desc: 'Full cost breakdown including fuel, maintenance, and operational expenses.',             category: 'Finance',     color: D.indigo, bg: D.indigoDim },
   ]
   const [generating, setGenerating] = useState(null)
+  const [error, setError] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
 
   const handleGenerate = async (id) => {
+    setError('')
+    setSuccessMsg('')
     setGenerating(id)
     try {
       const doc = new jsPDF()
@@ -301,10 +306,13 @@ const ReportsPage = () => {
         addHeader('Comprehensive Master Report')
       }
 
-      doc.save(`${id}-${new Date().toISOString().split('T')[0]}.pdf`)
-    } catch (error) {
-      console.error('Error generating PDF:', error)
-      alert('Failed to generate report. Make sure you have the required permissions.')
+      const filename = `${id}-${new Date().toISOString().split('T')[0]}.pdf`
+      doc.save(filename)
+      setSuccessMsg(`Report "${filename}" generated and downloaded successfully.`)
+      setTimeout(() => setSuccessMsg(''), 5000)
+    } catch (err) {
+      console.error('Error generating PDF:', err)
+      setError(err.response?.data?.message || 'Failed to generate report. Make sure you have the required permissions.')
     } finally {
       setGenerating(null)
     }
@@ -346,6 +354,18 @@ const ReportsPage = () => {
               </div>
             </div>
           </div>
+
+          {/* Messages */}
+          {successMsg && (
+            <div style={{ padding: '14px 20px', borderRadius: 12, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 24, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, animation: 'fadeIn 0.3s ease' }}>
+              <CheckCircle size={16} /> {successMsg}
+            </div>
+          )}
+          {error && (
+            <div style={{ padding: '14px 20px', borderRadius: 12, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 24, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, animation: 'fadeIn 0.3s ease' }}>
+              <AlertCircle size={16} /> {error}
+            </div>
+          )}
 
           {/* Quick stats */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
