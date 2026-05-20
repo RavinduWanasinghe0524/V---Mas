@@ -122,6 +122,8 @@ const UsersPage = () => {
   }
 
   const handleApprove = async (id, username) => {
+    setError('')
+    setActionMsg('')
     try {
       await userAPI.approveUser(id)
       setActionMsg(`${username} has been approved.`)
@@ -135,6 +137,8 @@ const UsersPage = () => {
 
   const handleReject = async (id, username) => {
     if (!window.confirm(`Reject "${username}"? Their account will be set to Inactive.`)) return
+    setError('')
+    setActionMsg('')
     try {
       await userAPI.rejectUser(id)
       setActionMsg(`${username}'s account has been rejected.`)
@@ -147,12 +151,16 @@ const UsersPage = () => {
   }
 
   const handleCreate = () => {
+    setError('')
+    setActionMsg('')
     setEditingUser(null)
     setFormData({ userName: '', email: '', password: '', role: 'DRIVER', accountStatus: 'ACTIVE', profilePicture: '' })
     setShowModal(true)
   }
 
   const handleEdit = (user) => {
+    setError('')
+    setActionMsg('')
     setEditingUser(user)
     setFormData({
       userName: user.userName, email: user.email, password: '',
@@ -164,8 +172,12 @@ const UsersPage = () => {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this user?')) return
+    setError('')
+    setActionMsg('')
     try {
       await userAPI.deleteUser(id)
+      setActionMsg('User has been deleted successfully.')
+      setTimeout(() => setActionMsg(''), 4000)
       if (isAdmin) loadUsers()
       loadPending()
     } catch (e) {
