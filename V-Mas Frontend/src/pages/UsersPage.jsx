@@ -64,6 +64,20 @@ const UsersPage = () => {
   const [formData,     setFormData]     = useState({
     userName: '', email: '', password: '', role: 'DRIVER', accountStatus: 'ACTIVE', profilePicture: ''
   })
+  const [searchTerm,   setSearchTerm]   = useState('')
+  const [roleFilter,   setRoleFilter]   = useState('ALL')
+
+  const filteredUsers = users.filter(u => {
+    const matchSearch = (u.userName || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
+    const matchRole = roleFilter === 'ALL' || u.role === roleFilter
+    return matchSearch && matchRole
+  })
+
+  const totalUsersCount = users.length
+  const activeUsersCount = users.filter(u => u.accountStatus === 'ACTIVE').length
+  const pendingUsersCount = pendingUsers.length
+  const suspendedUsersCount = users.filter(u => u.accountStatus === 'SUSPENDED').length
 
   useEffect(() => {
     if (isAdmin || isController) {
@@ -102,7 +116,7 @@ const UsersPage = () => {
       setActionMsg(`${username} has been approved.`)
       setTimeout(() => setActionMsg(''), 4000)
       loadPending()
-      loadUsers()
+      if (isAdmin) loadUsers()
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to approve user')
     }
@@ -115,7 +129,7 @@ const UsersPage = () => {
       setActionMsg(`${username}'s account has been rejected.`)
       setTimeout(() => setActionMsg(''), 4000)
       loadPending()
-      loadUsers()
+      if (isAdmin) loadUsers()
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to reject user')
     }
@@ -141,7 +155,8 @@ const UsersPage = () => {
     if (!window.confirm('Are you sure you want to delete this user?')) return
     try {
       await userAPI.deleteUser(id)
-      loadUsers()
+      if (isAdmin) loadUsers()
+      loadPending()
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to delete user')
     }
@@ -162,7 +177,8 @@ const UsersPage = () => {
         await userAPI.createUser(submitData)
       }
       setShowModal(false)
-      loadUsers()
+      if (isAdmin) loadUsers()
+      loadPending()
     } catch (e) {
       setError(e.response?.data?.message || 'Operation failed')
     }
@@ -241,7 +257,53 @@ const UsersPage = () => {
               </div>
             )}
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            {/* Interactive User Statistics Dashboard */}
+            {isAdmin && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 28 }}>
+                {[
+                  { label: 'Total Users', count: totalUsersCount, icon: <Users size={20} />, color: D.blue, bg: D.blueDim, desc: 'Registered accounts' },
+                  { label: 'Active Users', count: activeUsersCount, icon: <UserCheck size={20} />, color: D.green, bg: D.greenDim, desc: 'Active in system' },
+                  { label: 'Pending Approvals', count: pendingUsersCount, icon: <Clock size={20} />, color: D.gold, bg: D.goldDim, desc: 'Awaiting review' },
+                  { label: 'Suspended', count: suspendedUsersCount, icon: <AlertCircle size={20} />, color: D.red, bg: D.redDim, desc: 'Restricted access' },
+                ].map((card, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      background: D.surface,
+                      borderRadius: 16,
+                      border: `1px solid ${D.border}`,
+                      padding: '20px 22px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = 'translateY(-4px)';
+                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.18)';
+                      e.currentTarget.style.borderColor = D.borderHi;
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+                      e.currentTarget.style.borderColor = D.border;
+                    }}
+                  >
+                    <div>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{card.label}</span>
+                      <h2 style={{ margin: '6px 0 2px', fontSize: '1.8rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{card.count}</h2>
+                      <span style={{ fontSize: '0.7rem', color: D.textFaint }}>{card.desc}</span>
+                    </div>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: card.bg, border: `1px solid ${card.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: card.color }}>
+                      {card.icon}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
               {/* Pending Approvals */}
               <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
@@ -314,11 +376,82 @@ const UsersPage = () => {
                   </button>
                 </div>
 
+                {/* Search and filter row */}
+                <div style={{ padding: '14px 24px', borderBottom: `1px solid ${D.border}`, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', background: D.surface }}>
+                  <input
+                    type="text"
+                    placeholder="Search by name or email..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      border: `1px solid ${D.border}`,
+                      background: D.bg,
+                      color: D.text,
+                      fontSize: '0.8rem',
+                      outline: 'none',
+                      flex: 1,
+                      minWidth: 200
+                    }}
+                  />
+                  <select
+                    value={roleFilter}
+                    onChange={e => setRoleFilter(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      border: `1px solid ${D.border}`,
+                      background: D.bg,
+                      color: D.text,
+                      fontSize: '0.8rem',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="ALL">All Roles</option>
+                    <option value="ADMIN">Admin</option>
+                    <option value="CONTROLLER">Controller</option>
+                    <option value="DRIVER">Driver</option>
+                  </select>
+
+                  {(searchTerm || roleFilter !== 'ALL') && (
+                    <button
+                      onClick={() => { setSearchTerm(''); setRoleFilter('ALL'); }}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: 8,
+                        border: `1px solid ${D.red}40`,
+                        background: D.redDim,
+                        color: D.red,
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        transition: 'all 0.15s ease',
+                        animation: 'fadeIn 0.2s ease',
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.background = 'rgba(248,113,113,0.2)';
+                        e.currentTarget.style.transform = 'scale(1.02)';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = D.redDim;
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
+                      <X size={14} /> Clear Filters
+                    </button>
+                  )}
+                </div>
+
                 <div style={{ overflowX: 'auto' }}>
                   {loading ? (
                     <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>Loading users...</div>
-                  ) : users.length === 0 ? (
-                    <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>No users found.</div>
+                  ) : filteredUsers.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>No users found matching filters.</div>
                   ) : (
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                       <thead style={{ background: D.surfaceHi }}>
@@ -329,7 +462,7 @@ const UsersPage = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {users.map((u, i) => (
+                        {filteredUsers.map((u, i) => (
                           <tr key={u.id} style={{ borderBottom: `1px solid ${D.border}`, background: u.accountStatus === 'PENDING' ? D.goldDim : (i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'), transition: 'background 0.15s' }}
                               onMouseEnter={e => { if(u.accountStatus !== 'PENDING') e.currentTarget.style.background='rgba(99,102,241,0.08)' }}
                               onMouseLeave={e => { if(u.accountStatus !== 'PENDING') e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>

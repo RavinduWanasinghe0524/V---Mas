@@ -6,7 +6,7 @@ import {
   Car, Fuel, Wrench, Users, MapPin, DollarSign,
   FileText, Calendar, Download, ClipboardList, BarChart2, Loader2, Database, TrendingUp
 } from 'lucide-react'
-import jsPDF from 'jspdf'
+import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
 import { vehicleAPI, fuelAPI, serviceAPI, userAPI } from '../services/api'
 
@@ -126,10 +126,10 @@ const ReportsPage = () => {
         }
         const { data } = await userAPI.getAllUsers()
         const tableData = data.map(u => [
-          u.username || 'N/A',
+          u.userName || 'N/A',
           u.email || 'N/A',
           u.role || 'N/A',
-          u.status || 'Active'
+          u.accountStatus || 'ACTIVE'
         ])
         doc.autoTable({
           startY: id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 45) : 40,
@@ -205,8 +205,93 @@ const ReportsPage = () => {
         })
       }
 
-      if (id === 'location-report' || id === 'cost-report') {
-        addHeader(id === 'location-report' ? 'Location & Route Report' : 'Cost Analysis Report')
+      if (id === 'cost-report') {
+        addHeader('Cost Analysis Report')
+        const { data: fuelLogs } = await fuelAPI.getAllFuelLogs()
+        const { data: services } = await serviceAPI.getAllServices()
+
+        const totalFuelCost = fuelLogs.reduce((sum, f) => sum + (f.cost || 0), 0)
+        const totalServiceCost = services.reduce((sum, s) => sum + (s.cost || 0), 0)
+        const grandTotal = totalFuelCost + totalServiceCost
+
+        let y = 38
+        doc.setFontSize(11)
+        doc.setTextColor(60, 60, 60)
+        doc.text('Operational Expenses Summary', 14, y); y += 7
+
+        const summaryItems = [
+          ['Total Fuel Expenses', `Rs. ${totalFuelCost.toLocaleString()}`],
+          ['Total Maintenance / Service Expenses', `Rs. ${totalServiceCost.toLocaleString()}`],
+          ['Total Fleet Operational Expenses', `Rs. ${grandTotal.toLocaleString()}`],
+        ]
+
+        doc.autoTable({
+          startY: y,
+          head: [['Cost Category', 'Amount']],
+          body: summaryItems,
+          theme: 'grid',
+          headStyles: { fillColor: [67, 56, 202] },
+          columnStyles: { 0: { fontStyle: 'bold', cellWidth: 100 }, 1: { cellWidth: 50 } },
+          margin: { left: 14, right: 14 },
+        })
+
+        const afterSummary = doc.lastAutoTable ? doc.lastAutoTable.finalY + 12 : y + 35
+        
+        doc.setFontSize(11)
+        doc.setTextColor(60, 60, 60)
+        doc.text('Fuel Expenditure Breakdown (Top 5 Transactions)', 14, afterSummary)
+
+        const topFuelRows = [...fuelLogs]
+          .sort((a, b) => (b.cost || 0) - (a.cost || 0))
+          .slice(0, 5)
+          .map(f => [
+            f.date ? new Date(f.date).toLocaleDateString() : 'N/A',
+            f.vehicleRegNo || 'N/A',
+            f.driverName || 'N/A',
+            f.liters ? `${f.liters} L` : '0 L',
+            f.cost ? `Rs. ${f.cost.toLocaleString()}` : 'Rs. 0'
+          ])
+
+        doc.autoTable({
+          startY: afterSummary + 5,
+          head: [['Date', 'Vehicle', 'Driver', 'Volume', 'Cost']],
+          body: topFuelRows,
+          theme: 'striped',
+          headStyles: { fillColor: [217, 119, 6], fontSize: 9 },
+          bodyStyles: { fontSize: 8 },
+          margin: { left: 14, right: 14 },
+        })
+
+        const afterFuel = doc.lastAutoTable ? doc.lastAutoTable.finalY + 12 : afterSummary + 50
+
+        doc.setFontSize(11)
+        doc.setTextColor(60, 60, 60)
+        doc.text('Maintenance Expenditure Breakdown (Top 5 Transactions)', 14, afterFuel)
+
+        const topServiceRows = [...services]
+          .sort((a, b) => (b.cost || 0) - (a.cost || 0))
+          .slice(0, 5)
+          .map(s => [
+            s.date ? new Date(s.date).toLocaleDateString() : 'N/A',
+            s.vehicleRegNo || 'N/A',
+            s.serviceType || 'N/A',
+            s.status || 'N/A',
+            s.cost ? `Rs. ${s.cost.toLocaleString()}` : 'Rs. 0'
+          ])
+
+        doc.autoTable({
+          startY: afterFuel + 5,
+          head: [['Date', 'Vehicle', 'Service Type', 'Status', 'Cost']],
+          body: topServiceRows,
+          theme: 'striped',
+          headStyles: { fillColor: [5, 150, 105], fontSize: 9 },
+          bodyStyles: { fontSize: 8 },
+          margin: { left: 14, right: 14 },
+        })
+      }
+
+      if (id === 'location-report') {
+        addHeader('Location & Route Report')
         doc.setFontSize(12)
         doc.text('This feature is currently under development.', 14, 40)
       }
