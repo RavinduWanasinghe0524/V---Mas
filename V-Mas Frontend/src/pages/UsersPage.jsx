@@ -420,6 +420,37 @@ const UsersPage = () => {
                     <option value="CONTROLLER">Controller</option>
                     <option value="DRIVER">Driver</option>
                   </select>
+
+                  {(searchTerm || roleFilter !== 'ALL') && (
+                    <button
+                      onClick={() => { setSearchTerm(''); setRoleFilter('ALL'); }}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: 8,
+                        border: `1px solid ${D.red}40`,
+                        background: D.redDim,
+                        color: D.red,
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        transition: 'all 0.15s ease',
+                        animation: 'fadeIn 0.2s ease',
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.background = 'rgba(248,113,113,0.2)';
+                        e.currentTarget.style.transform = 'scale(1.02)';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = D.redDim;
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
+                      <X size={14} /> Clear Filters
+                    </button>
+                  )}
                 </div>
 
                 <div style={{ overflowX: 'auto' }}>
