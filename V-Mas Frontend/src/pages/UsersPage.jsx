@@ -111,7 +111,7 @@ const UsersPage = () => {
       setActionMsg(`${username} has been approved.`)
       setTimeout(() => setActionMsg(''), 4000)
       loadPending()
-      loadUsers()
+      if (isAdmin) loadUsers()
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to approve user')
     }
@@ -124,7 +124,7 @@ const UsersPage = () => {
       setActionMsg(`${username}'s account has been rejected.`)
       setTimeout(() => setActionMsg(''), 4000)
       loadPending()
-      loadUsers()
+      if (isAdmin) loadUsers()
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to reject user')
     }
@@ -150,7 +150,8 @@ const UsersPage = () => {
     if (!window.confirm('Are you sure you want to delete this user?')) return
     try {
       await userAPI.deleteUser(id)
-      loadUsers()
+      if (isAdmin) loadUsers()
+      loadPending()
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to delete user')
     }
@@ -171,7 +172,8 @@ const UsersPage = () => {
         await userAPI.createUser(submitData)
       }
       setShowModal(false)
-      loadUsers()
+      if (isAdmin) loadUsers()
+      loadPending()
     } catch (e) {
       setError(e.response?.data?.message || 'Operation failed')
     }
