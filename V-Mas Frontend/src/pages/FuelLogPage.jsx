@@ -143,6 +143,7 @@ const FuelLogPage = () => {
     }
 
     setSubmitting(true)
+    const prevMilDrv = previousMileage
     
     try {
       const payload = {
@@ -182,6 +183,16 @@ const FuelLogPage = () => {
         `⛽ Fuel log added — ${payload.liters} L @ Rs.${payload.costPerLiter}/L for ${payload.vehicleRegNumber} (${payload.mileage} km on ${payload.date})`,
         'FUEL_ADD'
       )
+      // ── Low efficiency alert for driver ──────────────────────────────
+      if (prevMilDrv != null && payload.mileage > prevMilDrv && payload.liters > 0) {
+        const eff = (payload.mileage - prevMilDrv) / payload.liters
+        if (eff < 5) {
+          addDriverNotification(
+            `⚠️ Low Efficiency Alert: Your fill-up for ${payload.vehicleRegNumber} recorded only ${eff.toFixed(2)} km/L (Poor). Please report this to your controller.`,
+            'FUEL_LOW_EFF'
+          )
+        }
+      }
     } catch (error) {
       console.error('Error adding fuel log:', error)
       alert('Failed to add fuel log: ' + (error.response?.data?.message || error.message))

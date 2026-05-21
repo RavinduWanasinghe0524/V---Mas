@@ -4,7 +4,8 @@ import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
 import {
   Car, Fuel, Wrench, Users, MapPin, DollarSign,
-  FileText, Calendar, Download, ClipboardList, BarChart2, Loader2, Database, TrendingUp
+  FileText, Calendar, Download, ClipboardList, BarChart2, Loader2, Database, TrendingUp,
+  AlertCircle, CheckCircle
 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
@@ -37,10 +38,30 @@ const ReportsPage = () => {
     { id: 'cost-report',        icon: <DollarSign size={24} strokeWidth={1.5} />,  title: 'Cost Analysis Report',          desc: 'Full cost breakdown including fuel, maintenance, and operational expenses.',             category: 'Finance',     color: D.indigo, bg: D.indigoDim },
   ]
   const [generating, setGenerating] = useState(null)
+  const [error, setError] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
+  const [recentSearch, setRecentSearch] = useState('')
+  const [pdfTheme, setPdfTheme] = useState('indigo')
+
+  const pdfThemeColors = {
+    indigo: { primary: [67, 56, 202] },
+    emerald: { primary: [5, 150, 105] },
+    crimson: { primary: [220, 38, 38] },
+    charcoal: { primary: [55, 65, 81] }
+  }
+
+  const filteredRecentReports = recentReports.filter(r =>
+    r.name.toLowerCase().includes(recentSearch.toLowerCase()) ||
+    r.format.toLowerCase().includes(recentSearch.toLowerCase())
+  )
 
   const handleGenerate = async (id) => {
+    setError('')
+    setSuccessMsg('')
     setGenerating(id)
     try {
+      const themeColors = pdfThemeColors[pdfTheme] || pdfThemeColors.indigo
+      const headerColor = themeColors.primary
       const doc = new jsPDF()
 
       const addHeader = (title) => {
@@ -67,7 +88,7 @@ const ReportsPage = () => {
           head: [['Reg No', 'Brand', 'Model', 'Status', 'Mileage', 'Fuel Type', 'Capacity']],
           body: tableData,
           theme: 'grid',
-          headStyles: { fillColor: [67, 56, 202] }
+          headStyles: { fillColor: headerColor }
         })
       }
 
@@ -91,7 +112,7 @@ const ReportsPage = () => {
           head: [['Date', 'Vehicle', 'Driver', 'Type', 'Liters', 'Cost']],
           body: tableData,
           theme: 'grid',
-          headStyles: { fillColor: [217, 119, 6] }
+          headStyles: { fillColor: headerColor }
         })
       }
 
@@ -114,7 +135,7 @@ const ReportsPage = () => {
           head: [['Date', 'Vehicle Reg', 'Service Type', 'Status', 'Cost']],
           body: tableData,
           theme: 'grid',
-          headStyles: { fillColor: [5, 150, 105] }
+          headStyles: { fillColor: headerColor }
         })
       }
 
@@ -136,7 +157,7 @@ const ReportsPage = () => {
           head: [['Username', 'Email', 'Role', 'Status']],
           body: tableData,
           theme: 'grid',
-          headStyles: { fillColor: [37, 99, 235] }
+          headStyles: { fillColor: headerColor }
         })
       }
 
@@ -163,7 +184,7 @@ const ReportsPage = () => {
           head: [['Metric', 'Value']],
           body: summaryItems,
           theme: 'grid',
-          headStyles: { fillColor: [5, 150, 105] },
+          headStyles: { fillColor: headerColor },
           columnStyles: { 0: { fontStyle: 'bold', cellWidth: 90 }, 1: { cellWidth: 60 } },
           margin: { left: 14, right: 14 },
         })
@@ -191,7 +212,7 @@ const ReportsPage = () => {
           head: [['Reg No', 'Latest km/L', 'Avg km/L', 'Status', 'Total Liters', 'Total Cost', 'Cost/km', 'Fill-ups']],
           body: vehicleRows,
           theme: 'striped',
-          headStyles: { fillColor: [5, 150, 105], fontSize: 8 },
+          headStyles: { fillColor: headerColor, fontSize: 8 },
           bodyStyles: { fontSize: 8 },
           margin: { left: 14, right: 14 },
           didParseCell: (data) => {
@@ -230,7 +251,7 @@ const ReportsPage = () => {
           head: [['Cost Category', 'Amount']],
           body: summaryItems,
           theme: 'grid',
-          headStyles: { fillColor: [67, 56, 202] },
+          headStyles: { fillColor: headerColor },
           columnStyles: { 0: { fontStyle: 'bold', cellWidth: 100 }, 1: { cellWidth: 50 } },
           margin: { left: 14, right: 14 },
         })
@@ -257,7 +278,7 @@ const ReportsPage = () => {
           head: [['Date', 'Vehicle', 'Driver', 'Volume', 'Cost']],
           body: topFuelRows,
           theme: 'striped',
-          headStyles: { fillColor: [217, 119, 6], fontSize: 9 },
+          headStyles: { fillColor: headerColor, fontSize: 9 },
           bodyStyles: { fontSize: 8 },
           margin: { left: 14, right: 14 },
         })
@@ -284,7 +305,7 @@ const ReportsPage = () => {
           head: [['Date', 'Vehicle', 'Service Type', 'Status', 'Cost']],
           body: topServiceRows,
           theme: 'striped',
-          headStyles: { fillColor: [5, 150, 105], fontSize: 9 },
+          headStyles: { fillColor: headerColor, fontSize: 9 },
           bodyStyles: { fontSize: 8 },
           margin: { left: 14, right: 14 },
         })
@@ -301,10 +322,13 @@ const ReportsPage = () => {
         addHeader('Comprehensive Master Report')
       }
 
-      doc.save(`${id}-${new Date().toISOString().split('T')[0]}.pdf`)
-    } catch (error) {
-      console.error('Error generating PDF:', error)
-      alert('Failed to generate report. Make sure you have the required permissions.')
+      const filename = `${id}-${new Date().toISOString().split('T')[0]}.pdf`
+      doc.save(filename)
+      setSuccessMsg(`Report "${filename}" generated and downloaded successfully.`)
+      setTimeout(() => setSuccessMsg(''), 5000)
+    } catch (err) {
+      console.error('Error generating PDF:', err)
+      setError(err.response?.data?.message || 'Failed to generate report. Make sure you have the required permissions.')
     } finally {
       setGenerating(null)
     }
@@ -341,11 +365,23 @@ const ReportsPage = () => {
                   Reports & Analytics
                 </h1>
                 <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
-                  Generate comprehensive reports on fleet performance, fuel usage, and system activity.
+                  Generate and download comprehensive reports on fleet performance, fuel consumption, maintenance costs, and system-wide activity.
                 </p>
               </div>
             </div>
           </div>
+
+          {/* Messages */}
+          {successMsg && (
+            <div style={{ padding: '14px 20px', borderRadius: 12, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 24, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, animation: 'fadeIn 0.3s ease' }}>
+              <CheckCircle size={16} /> {successMsg}
+            </div>
+          )}
+          {error && (
+            <div style={{ padding: '14px 20px', borderRadius: 12, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 24, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, animation: 'fadeIn 0.3s ease' }}>
+              <AlertCircle size={16} /> {error}
+            </div>
+          )}
 
           {/* Quick stats */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
@@ -377,6 +413,57 @@ const ReportsPage = () => {
 
           {/* Generate Reports */}
           <SectionHeader title="Generate Reports" D={D} />
+
+          {/* Export Theme Selection */}
+          <div style={{
+            background: D.surface,
+            borderRadius: 12,
+            border: `1px solid ${D.border}`,
+            padding: '12px 20px',
+            marginBottom: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+            flexWrap: 'wrap',
+            fontSize: '0.85rem',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontWeight: 600, color: D.text }}>PDF Export Palette:</span>
+              <span style={{ fontSize: '0.75rem', color: D.textSub }}>Select branding color for tables</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[
+                { id: 'indigo',   name: 'Indigo',   color: '#4338ca' },
+                { id: 'emerald',  name: 'Emerald',  color: '#059669' },
+                { id: 'crimson',  name: 'Crimson',  color: '#dc2626' },
+                { id: 'charcoal', name: 'Charcoal', color: '#374151' },
+              ].map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setPdfTheme(t.id)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 8,
+                    border: pdfTheme === t.id ? `2px solid ${t.color}` : `1px solid ${D.border}`,
+                    background: pdfTheme === t.id ? `${t.color}15` : D.bg,
+                    color: pdfTheme === t.id ? t.color : D.textSub,
+                    fontWeight: pdfTheme === t.id ? 700 : 500,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: '0.75rem',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: t.color }}></span>
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20, marginBottom: 36 }}>
             {reportTypes.map(r => (
               <div key={r.id} style={{
@@ -423,48 +510,103 @@ const ReportsPage = () => {
 
           {/* Recent Reports */}
           <SectionHeader title="Recent Reports" D={D} />
+          <p style={{ margin: '-12px 0 16px', fontSize: '0.8rem', color: D.textSub }}>Previously generated reports are listed below for quick re-download.</p>
           <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-              <thead style={{ background: D.surfaceHi }}>
-                <tr>
-                  {['Report Name', 'Generated Date', 'Format', 'Size', 'Actions'].map(h => (
-                    <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: D.textSub, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${D.border}`, whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {recentReports.map((r, i) => (
-                  <tr key={r.name} style={{ borderBottom: `1px solid ${D.border}`, background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)', transition: 'background 0.15s' }}
-                      onMouseEnter={e => e.currentTarget.style.background='rgba(99,102,241,0.08)'}
-                      onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'}>
-                    <td style={{ padding: '14px 16px', fontWeight: 600, color: D.text, display: 'flex', alignItems: 'center' }}>
-                      <FileText size={16} style={{ marginRight: 10, color: D.textSub }} />{r.name}
-                    </td>
-                    <td style={{ padding: '14px 16px', color: D.textSub }}>{r.generated}</td>
-                    <td style={{ padding: '14px 16px' }}>
-                      <span style={{ background: r.format === 'PDF' ? D.redDim : D.greenDim, color: r.format === 'PDF' ? D.red : D.green, border: `1px solid ${r.format === 'PDF' ? D.red : D.green}30`, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700 }}>
-                        {r.format}
-                      </span>
-                    </td>
-                    <td style={{ padding: '14px 16px', color: D.textSub }}>{r.size}</td>
-                    <td style={{ padding: '14px 16px' }}>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
-                          onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor='rgba(99,102,241,0.4)'; e.currentTarget.style.color='#a5b4fc' }}
-                          onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor=D.border; e.currentTarget.style.color=D.text }}>
-                          <Download size={12} strokeWidth={2} style={{ marginRight: 4 }} /> Download
-                        </button>
-                        <button style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
-                          onMouseEnter={e => { e.currentTarget.style.background='rgba(248,113,113,0.2)' }}
-                          onMouseLeave={e => { e.currentTarget.style.background='rgba(248,113,113,0.1)' }}>
-                          Delete
-                        </button>
-                      </div>
-                    </td>
+            {/* Search and filter row */}
+            <div style={{ padding: '14px 24px', borderBottom: `1px solid ${D.border}`, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', background: D.surfaceHi }}>
+              <input
+                type="text"
+                placeholder="Search recent reports by name or format..."
+                value={recentSearch}
+                onChange={e => setRecentSearch(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 8,
+                  border: `1px solid ${D.border}`,
+                  background: D.bg,
+                  color: D.text,
+                  fontSize: '0.8rem',
+                  outline: 'none',
+                  flex: 1,
+                  minWidth: 200
+                }}
+              />
+              {recentSearch && (
+                <button
+                  onClick={() => setRecentSearch('')}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 8,
+                    border: `1px solid ${D.red}40`,
+                    background: D.redDim,
+                    color: D.red,
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = 'rgba(248,113,113,0.2)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = D.redDim;
+                  }}
+                >
+                  <X size={14} /> Clear Search
+                </button>
+              )}
+            </div>
+
+            {filteredRecentReports.length === 0 ? (
+              <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>
+                No recent reports found matching "{recentSearch}"
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                <thead style={{ background: D.surfaceHi }}>
+                  <tr>
+                    {['Report Name', 'Generated Date', 'Format', 'Size', 'Actions'].map(h => (
+                      <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: D.textSub, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${D.border}`, whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredRecentReports.map((r, i) => (
+                    <tr key={r.name} style={{ borderBottom: `1px solid ${D.border}`, background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)', transition: 'background 0.15s' }}
+                        onMouseEnter={e => e.currentTarget.style.background='rgba(99,102,241,0.08)'}
+                        onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'}>
+                      <td style={{ padding: '14px 16px', fontWeight: 600, color: D.text, display: 'flex', alignItems: 'center' }}>
+                        <FileText size={16} style={{ marginRight: 10, color: D.textSub }} />{r.name}
+                      </td>
+                      <td style={{ padding: '14px 16px', color: D.textSub }}>{r.generated}</td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <span style={{ background: r.format === 'PDF' ? D.redDim : D.greenDim, color: r.format === 'PDF' ? D.red : D.green, border: `1px solid ${r.format === 'PDF' ? D.red : D.green}30`, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700 }}>
+                          {r.format}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 16px', color: D.textSub }}>{r.size}</td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
+                            onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor='rgba(99,102,241,0.4)'; e.currentTarget.style.color='#a5b4fc' }}
+                            onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor=D.border; e.currentTarget.style.color=D.text }}>
+                            <Download size={12} strokeWidth={2} style={{ marginRight: 4 }} /> Download
+                          </button>
+                          <button style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
+                            onMouseEnter={e => { e.currentTarget.style.background='rgba(248,113,113,0.2)' }}
+                            onMouseLeave={e => { e.currentTarget.style.background='rgba(248,113,113,0.1)' }}>
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
         </div>

@@ -1,3 +1,14 @@
+/**
+ * UsersPage Component
+ * 
+ * Provides administrative interface for system-wide user management.
+ * Features:
+ * - View registered users and filtering by role/search terms.
+ * - Create, update (edit), and delete user accounts.
+ * - Process self-registered driver approvals/rejections with real-time feedback.
+ * - Dynamic role badges and account status indicators.
+ */
+
 import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
@@ -111,6 +122,8 @@ const UsersPage = () => {
   }
 
   const handleApprove = async (id, username) => {
+    setError('')
+    setActionMsg('')
     try {
       await userAPI.approveUser(id)
       setActionMsg(`${username} has been approved.`)
@@ -124,6 +137,8 @@ const UsersPage = () => {
 
   const handleReject = async (id, username) => {
     if (!window.confirm(`Reject "${username}"? Their account will be set to Inactive.`)) return
+    setError('')
+    setActionMsg('')
     try {
       await userAPI.rejectUser(id)
       setActionMsg(`${username}'s account has been rejected.`)
@@ -136,12 +151,16 @@ const UsersPage = () => {
   }
 
   const handleCreate = () => {
+    setError('')
+    setActionMsg('')
     setEditingUser(null)
     setFormData({ userName: '', email: '', password: '', role: 'DRIVER', accountStatus: 'ACTIVE', profilePicture: '' })
     setShowModal(true)
   }
 
   const handleEdit = (user) => {
+    setError('')
+    setActionMsg('')
     setEditingUser(user)
     setFormData({
       userName: user.userName, email: user.email, password: '',
@@ -153,8 +172,12 @@ const UsersPage = () => {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this user?')) return
+    setError('')
+    setActionMsg('')
     try {
       await userAPI.deleteUser(id)
+      setActionMsg('User has been deleted successfully.')
+      setTimeout(() => setActionMsg(''), 4000)
       if (isAdmin) loadUsers()
       loadPending()
     } catch (e) {
@@ -238,7 +261,7 @@ const UsersPage = () => {
                   </div>
                   <p style={{ margin: '6px 0 0', color: '#a5b4fc', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <ShieldCheck size={14} />
-                    {isAdmin ? 'Manage system users, roles & access approvals' : 'Review and process pending driver account requests'}
+                    {isAdmin ? 'Manage system users, roles, permissions & access approvals across the platform' : 'Review and process pending driver account requests'}
                   </p>
                 </div>
               </div>
@@ -376,6 +399,7 @@ const UsersPage = () => {
                     </div>
                     <div>
                       <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem' }}>All Users</h3>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Last refreshed: {new Date().toLocaleTimeString()}</p>
                     </div>
                     {!loading && (
                       <span style={{ background: 'rgba(255,255,255,0.1)', color: D.text, padding: '2px 8px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 800 }}>{users.length}</span>
