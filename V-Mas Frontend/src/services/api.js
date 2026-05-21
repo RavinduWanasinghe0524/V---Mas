@@ -128,6 +128,7 @@ export const serviceAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
+  getAttachmentBlob:    (id)             => api.get(`/services/${id}/attachment`, { responseType: 'blob' }),
   getServicesByVehicle: (regNo)          => api.get(`/services/vehicle/${encodeURIComponent(regNo)}`),
 }
 

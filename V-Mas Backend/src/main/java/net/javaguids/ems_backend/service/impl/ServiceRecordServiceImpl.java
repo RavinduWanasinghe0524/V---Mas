@@ -154,8 +154,17 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
                 str(record.getServiceDate()), str(dto.getServiceDate()));
         auditField(changes, "Mileage (km)",
                 str(record.getCurrentMileageKm()), str(dto.getCurrentMileageKm()));
-        auditField(changes, "Service Cost (Rs.)",
-                str(record.getServiceCost()), str(dto.getServiceCost()));
+        java.math.BigDecimal oldCost = record.getServiceCost();
+        java.math.BigDecimal newCost = dto.getServiceCost();
+        if ((oldCost == null && newCost != null) || 
+            (oldCost != null && newCost == null) || 
+            (oldCost != null && newCost != null && oldCost.compareTo(newCost) != 0)) {
+            Map<String, String> costEntry = new LinkedHashMap<>();
+            costEntry.put("field", "Service Cost (Rs.)");
+            costEntry.put("from", oldCost == null ? "—" : oldCost.stripTrailingZeros().toPlainString());
+            costEntry.put("to",   newCost == null ? "—" : newCost.stripTrailingZeros().toPlainString());
+            changes.add(costEntry);
+        }
         auditField(changes, "Technician / Workshop",
                 record.getTechnicianWorkshop(), dto.getTechnicianWorkshop());
         auditField(changes, "Next Service Due",
@@ -290,6 +299,18 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
      * Stores the uploaded bill attachment file to disk and persists the path on the record.
      * Files are saved under uploads/service-attachments/{recordId}/{uuid}_{originalFilename}
      */
+    private String getCleanFilename(String path) {
+        if (path == null || path.isBlank()) {
+            return null;
+        }
+        String filename = path.substring(path.lastIndexOf('/') + 1);
+        int firstUnderscore = filename.indexOf('_');
+        if (firstUnderscore > 0 && firstUnderscore < 40) {
+            return filename.substring(firstUnderscore + 1);
+        }
+        return filename;
+    }
+
     @Override
     public ServiceRecordDto uploadAttachment(Long id, MultipartFile file) {
         ServiceRecord record = serviceRecordRepository.findById(java.util.Objects.requireNonNull(id))
@@ -307,8 +328,42 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
             Path filePath = uploadPath.resolve(filename);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
+            String oldPath = record.getAttachmentPath();
+            String oldFilename = getCleanFilename(oldPath);
+            String newFilename = file.getOriginalFilename();
+
             record.setAttachmentPath(uploadDir + "/" + filename);
             ServiceRecord updated = serviceRecordRepository.save(record);
+
+            // ── Persist audit entry for the attachment upload ──────────────────────────
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String editor = (auth != null && auth.isAuthenticated()) ? auth.getName() : "unknown";
+
+            List<Map<String, String>> changes = new ArrayList<>();
+            Map<String, String> changeEntry = new LinkedHashMap<>();
+            changeEntry.put("field", "Bill Attachment");
+            changeEntry.put("from", oldFilename == null ? "—" : oldFilename);
+            changeEntry.put("to",   newFilename);
+            changes.add(changeEntry);
+
+            try {
+                ServiceRecordAudit audit = new ServiceRecordAudit();
+                audit.setServiceRecordId(id);
+                audit.setChangedBy(editor);
+                audit.setChangedAt(java.time.LocalDateTime.now());
+                audit.setChangedFields(OBJECT_MAPPER.writeValueAsString(changes));
+                auditRepository.save(audit);
+            } catch (JsonProcessingException e) {
+                System.err.println("[ServiceRecord] Failed to serialize attachment audit: " + e.getMessage());
+            }
+
+            // ── Dispatch Notification ──
+            notificationService.createNotification(
+                    "VEH-" + updated.getVehicleRegNumber(),
+                    "Bill attachment was " + (oldFilename == null ? "added" : "updated") + " for vehicle " + updated.getVehicleRegNumber() + ". Filename: " + newFilename,
+                    "SERVICE_UPDATE"
+            );
+
             return ServiceRecordMapper.mapToServiceRecordDto(updated);
 
         } catch (IOException e) {
@@ -451,6 +506,29 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
     /** Null-safe toString for any value. */
     private String str(Object val) {
         return val == null ? null : val.toString();
+    }
+
+    @Override
+    public org.springframework.core.io.Resource getAttachment(Long id) {
+        ServiceRecord record = serviceRecordRepository.findById(java.util.Objects.requireNonNull(id))
+                .orElseThrow(() -> new ResourceNotFoundException("Service record not found with id: " + id));
+
+        String attachmentPath = record.getAttachmentPath();
+        if (attachmentPath == null || attachmentPath.isBlank()) {
+            throw new ResourceNotFoundException("No attachment found for service record with id: " + id);
+        }
+
+        try {
+            Path filePath = Paths.get(attachmentPath);
+            org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(filePath.toUri());
+            if (resource.exists() || resource.isReadable()) {
+                return resource;
+            } else {
+                throw new ResourceNotFoundException("Attachment file not found or not readable at: " + attachmentPath);
+            }
+        } catch (java.net.MalformedURLException e) {
+            throw new RuntimeException("Error reading attachment file path: " + e.getMessage(), e);
+        }
     }
 
     /** Converts ServiceType enum to a human-readable label. */

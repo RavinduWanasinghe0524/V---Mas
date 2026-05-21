@@ -72,7 +72,7 @@ const ProgressBar = ({ value, max, color, D }) => {
 }
 
 /* ── Service List Card (Old Style) ──────────────────────────────── */
-const ServiceListCard = ({ record, index, isDriver, currentUsername, onEdit, onDelete, onView, D }) => {
+const ServiceListCard = ({ record, index, isDriver, currentUsername, onEdit, onDelete, onView, onViewAttachment, D }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
@@ -165,8 +165,19 @@ const ServiceListCard = ({ record, index, isDriver, currentUsername, onEdit, onD
           )}
           {/* ── Attachment chip ── */}
           {record.attachmentPath && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)' }}>
-              <Paperclip size={11} /> Bill attached
+            <span 
+              onClick={e => { e.stopPropagation(); onViewAttachment(record) }}
+              title="Click to view attached bill"
+              style={{ 
+                display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', 
+                color: '#10b981', background: 'rgba(16,185,129,0.1)', 
+                padding: '3px 10px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)',
+                cursor: 'pointer', transition: 'all 0.2s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.2)'; e.currentTarget.style.transform = 'scale(1.03)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.1)'; e.currentTarget.style.transform = 'scale(1)' }}
+            >
+              <Paperclip size={11} /> Bill attached · <span style={{ textDecoration: 'underline', fontWeight: 700 }}>View</span>
             </span>
           )}
         </div>
@@ -228,7 +239,7 @@ const ServiceListCard = ({ record, index, isDriver, currentUsername, onEdit, onD
 }
 
 /* ── Service Grid Card (New Style) ──────────────────────────────── */
-const ServiceGridCard = ({ record, index, isDriver, currentUsername, onEdit, onDelete, onView, D }) => {
+const ServiceGridCard = ({ record, index, isDriver, currentUsername, onEdit, onDelete, onView, onViewAttachment, D }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
@@ -328,8 +339,19 @@ const ServiceGridCard = ({ record, index, isDriver, currentUsername, onEdit, onD
           </span>
         )}
         {record.attachmentPath && (
-          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)' }}>
-            <Paperclip size={11} /> Bill attached
+          <span 
+            onClick={e => { e.stopPropagation(); onViewAttachment(record) }}
+            title="Click to view attached bill"
+            style={{ 
+              marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', 
+              color: '#10b981', background: 'rgba(16,185,129,0.1)', 
+              padding: '3px 10px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)',
+              cursor: 'pointer', transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.2)'; e.currentTarget.style.transform = 'scale(1.03)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.1)'; e.currentTarget.style.transform = 'scale(1)' }}
+          >
+            <Paperclip size={11} /> Bill attached · <span style={{ textDecoration: 'underline', fontWeight: 700 }}>View</span>
           </span>
         )}
       </div>
@@ -495,19 +517,62 @@ const ServicePage = () => {
   const [addAttachmentFile, setAddAttachmentFile] = useState(null)
   const [editAttachmentFile, setEditAttachmentFile] = useState(null)
 
+  // Attachment lightbox viewer state
+  const [attachmentViewer, setAttachmentViewer] = useState({
+    isOpen: false,
+    url: null,
+    type: null,
+    filename: null,
+    loading: false
+  })
+
+  const handleViewAttachment = async (record) => {
+    if (!record || !record.id) return
+    setAttachmentViewer(prev => ({ ...prev, loading: true }))
+    try {
+      const res = await serviceAPI.getAttachmentBlob(record.id)
+      const blob = res.data
+      const type = blob.type || ''
+      const url = URL.createObjectURL(blob)
+      
+      const path = record.attachmentPath || ''
+      let filename = path.substring(path.lastIndexOf('/') + 1)
+      if (filename.length > 37 && filename.substring(8, 9) === '-' && filename.substring(13, 14) === '-') {
+        filename = filename.substring(37)
+      }
+      
+      if (type.includes('pdf')) {
+        setAttachmentViewer(prev => ({ ...prev, loading: false }))
+        window.open(url, '_blank')
+      } else {
+        setAttachmentViewer({
+          isOpen: true,
+          url,
+          type,
+          filename,
+          loading: false
+        })
+      }
+    } catch (err) {
+      console.error('Error loading attachment', err)
+      setAttachmentViewer(prev => ({ ...prev, loading: false }))
+      showToast('Failed to load attachment. File may not exist.', 'error')
+    }
+  }
+
   const showToast = (msg, type) => {
     setToastMessage({ msg, type })
     setTimeout(() => setToastMessage(null), 3000)
   }
 
   useEffect(() => {
-    if (isAddModalOpen || isEditModalOpen || deleteModal.isOpen || detailModal.isOpen) {
+    if (isAddModalOpen || isEditModalOpen || deleteModal.isOpen || detailModal.isOpen || attachmentViewer.isOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
     }
     return () => { document.body.style.overflow = '' }
-  }, [isAddModalOpen, isEditModalOpen, deleteModal.isOpen, detailModal.isOpen])
+  }, [isAddModalOpen, isEditModalOpen, deleteModal.isOpen, detailModal.isOpen, attachmentViewer.isOpen])
 
   // Fetch audit history whenever detail modal opens for a record
   useEffect(() => {
@@ -1340,6 +1405,7 @@ const ServicePage = () => {
                   onEdit={openEditModal}
                   onDelete={confirmDelete}
                   onView={r => setDetailModal({ isOpen: true, record: r })}
+                  onViewAttachment={handleViewAttachment}
                   D={D}
                 />
               ))
@@ -1354,6 +1420,7 @@ const ServicePage = () => {
                   onEdit={openEditModal}
                   onDelete={confirmDelete}
                   onView={r => setDetailModal({ isOpen: true, record: r })}
+                  onViewAttachment={handleViewAttachment}
                   D={D}
                 />
               ))
@@ -1826,14 +1893,78 @@ const ServicePage = () => {
                   {r.description || 'No description provided.'}
                 </p>
 
+                {/* Attached Bill Section */}
+                {r.attachmentPath && (
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Document Attachment</span>
+                      <div style={{ flex: 1, height: 1, background: D.border }} />
+                    </div>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      background: D.surfaceHi, border: `1px solid ${D.border}`,
+                      borderRadius: 12, padding: '12px 18px',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{
+                          width: 36, height: 36, borderRadius: 8,
+                          background: 'rgba(16,185,129,0.1)',
+                          border: '1px solid rgba(16,185,129,0.2)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: '#10b981'
+                        }}>
+                          <Paperclip size={18} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: D.text }}>Service Bill / Invoice</div>
+                          <div style={{ fontSize: '0.72rem', color: D.textSub }}>
+                            {(() => {
+                              const path = r.attachmentPath || '';
+                              let filename = path.substring(path.lastIndexOf('/') + 1);
+                              if (filename.length > 37 && filename.substring(8, 9) === '-' && filename.substring(13, 14) === '-') {
+                                return filename.substring(37);
+                              }
+                              return filename || 'bill_document';
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleViewAttachment(r)}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          padding: '6px 16px', borderRadius: 8, fontSize: '0.78rem',
+                          fontWeight: 700, background: '#10b981', color: '#fff',
+                          border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                          boxShadow: '0 4px 12px rgba(16,185,129,0.25)'
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#059669'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = '#10b981'; e.currentTarget.style.transform = 'translateY(0)' }}
+                      >
+                        <Eye size={14} /> View Bill
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* ── Record Activity & Change History ───────────────── */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                   <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Record Activity</span>
                   <div style={{ flex: 1, height: 1, background: D.border }} />
                   {r.attachmentPath && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: '#10b981', background: 'rgba(16,185,129,0.08)', padding: '3px 10px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)' }}>
-                      <Paperclip size={12} /> Bill Attached
-                    </span>
+                    <button 
+                      onClick={() => handleViewAttachment(r)}
+                      style={{ 
+                        display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', 
+                        color: '#10b981', background: 'rgba(16,185,129,0.1)', 
+                        padding: '4px 12px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.3)',
+                        cursor: 'pointer', fontWeight: 700, transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#10b981'; e.currentTarget.style.color = '#fff' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.1)'; e.currentTarget.style.color = '#10b981' }}
+                    >
+                      <Eye size={12} /> View Attached Bill
+                    </button>
                   )}
                 </div>
 
@@ -2270,6 +2401,115 @@ const ServicePage = () => {
                 Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Attachment Lightbox Modal ─────────────────────────────────── */}
+      {attachmentViewer.isOpen && (
+        <div
+          onClick={() => setAttachmentViewer(prev => ({ ...prev, isOpen: false }))}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(10px)', zIndex: 9999,
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', padding: '24px', animation: 'fadeIn 0.2s ease',
+          }}
+        >
+          {/* Header controls */}
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'absolute', top: 24, left: 24, right: 24,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              color: '#fff', zIndex: 10,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Paperclip size={18} color="#10b981" />
+              <div>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  Attached Bill
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>
+                  {attachmentViewer.filename}
+                </p>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: 8 }}>
+              {/* Download button */}
+              <a
+                href={attachmentViewer.url}
+                download={attachmentViewer.filename}
+                style={{
+                  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 10, color: '#fff', padding: '8px 16px', fontSize: '0.8rem',
+                  fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center',
+                  gap: 6, textDecoration: 'none', transition: 'all 0.15s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              >
+                Download
+              </a>
+              {/* Close button */}
+              <button
+                onClick={() => setAttachmentViewer(prev => ({ ...prev, isOpen: false }))}
+                style={{
+                  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 10, color: '#fff', padding: '8px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Image Container */}
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'relative', width: '100%', height: '100%',
+              maxWidth: '85vw', maxHeight: '75vh', marginTop: '40px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              animation: 'scaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            }}
+          >
+            <img
+              src={attachmentViewer.url}
+              alt="Bill Attachment"
+              style={{
+                maxWidth: '100%', maxHeight: '100%', borderRadius: 16,
+                boxShadow: '0 24px 60px rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)',
+                objectFit: 'contain', background: '#000',
+              }}
+            />
+          </div>
+        </div>
+      )}
+      
+      {/* ── Global Loading Spinner overlay for fetching attachment ── */}
+      {attachmentViewer.loading && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(3px)', zIndex: 10000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          animation: 'fadeIn 0.1s ease'
+        }}>
+          <div style={{
+            background: D.surface, border: `1px solid ${D.border}`,
+            borderRadius: 16, padding: '24px 32px', display: 'flex',
+            flexDirection: 'column', alignItems: 'center', gap: 12,
+            boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+          }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: '#10b981', animation: 'spin 0.8s linear infinite' }}>
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+            </svg>
+            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: D.text }}>Retrieving attachment...</span>
           </div>
         </div>
       )}
