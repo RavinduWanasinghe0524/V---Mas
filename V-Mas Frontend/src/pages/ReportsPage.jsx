@@ -349,7 +349,7 @@ const ReportsPage = () => {
                   Reports & Analytics
                 </h1>
                 <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
-                  Generate comprehensive reports on fleet performance, fuel usage, and system activity.
+                  Generate and download comprehensive reports on fleet performance, fuel consumption, maintenance costs, and system-wide activity.
                 </p>
               </div>
             </div>
@@ -443,6 +443,7 @@ const ReportsPage = () => {
 
           {/* Recent Reports */}
           <SectionHeader title="Recent Reports" D={D} />
+          <p style={{ margin: '-12px 0 16px', fontSize: '0.8rem', color: D.textSub }}>Previously generated reports are listed below for quick re-download.</p>
           <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
               <thead style={{ background: D.surfaceHi }}>

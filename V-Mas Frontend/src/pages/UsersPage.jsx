@@ -249,7 +249,6 @@ const UsersPage = () => {
                   <Users size={32} strokeWidth={1.5} />
                 </div>
                 <div>
-                <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                       User Management
@@ -262,7 +261,7 @@ const UsersPage = () => {
                   </div>
                   <p style={{ margin: '6px 0 0', color: '#a5b4fc', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <ShieldCheck size={14} />
-                    {isAdmin ? 'Manage system users, roles & access approvals' : 'Review and process pending driver account requests'}
+                    {isAdmin ? 'Manage system users, roles, permissions & access approvals across the platform' : 'Review and process pending driver account requests'}
                   </p>
                 </div>
               </div>
@@ -400,6 +399,7 @@ const UsersPage = () => {
                     </div>
                     <div>
                       <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem' }}>All Users</h3>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Last refreshed: {new Date().toLocaleTimeString()}</p>
                     </div>
                     {!loading && (
                       <span style={{ background: 'rgba(255,255,255,0.1)', color: D.text, padding: '2px 8px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 800 }}>{users.length}</span>
