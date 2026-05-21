@@ -643,9 +643,28 @@ const UsersPage = () => {
                         e.currentTarget.style.background = D.redDim;
                         e.currentTarget.style.transform = 'scale(1)';
                       }}
-                    >
-                      <X size={14} /> Clear Filters
                     </button>
+                  )}
+                </div>
+
+                {/* Filter status sub-banner */}
+                <div style={{
+                  padding: '10px 24px',
+                  fontSize: '0.78rem',
+                  color: D.textSub,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderBottom: `1px solid ${D.border}`,
+                  background: D.surfaceHi,
+                  fontWeight: 500
+                }}>
+                  <span>Showing <strong>{filteredUsers.length}</strong> of <strong>{users.length}</strong> registered users</span>
+                  {(searchTerm || roleFilter !== 'ALL' || statusFilter !== 'ALL') && (
+                    <span style={{ color: D.purple, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: D.purple }}></span>
+                      Active filters matching your search
+                    </span>
                   )}
                 </div>
 
