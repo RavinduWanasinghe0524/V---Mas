@@ -77,12 +77,14 @@ const UsersPage = () => {
   })
   const [searchTerm,   setSearchTerm]   = useState('')
   const [roleFilter,   setRoleFilter]   = useState('ALL')
+  const [statusFilter, setStatusFilter] = useState('ALL')
 
   const filteredUsers = users.filter(u => {
     const matchSearch = (u.userName || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
                         (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
     const matchRole = roleFilter === 'ALL' || u.role === roleFilter
-    return matchSearch && matchRole
+    const matchStatus = statusFilter === 'ALL' || u.accountStatus === statusFilter
+    return matchSearch && matchRole && matchStatus
   })
 
   const totalUsersCount = users.length
@@ -448,10 +450,30 @@ const UsersPage = () => {
                     <option value="CONTROLLER">Controller</option>
                     <option value="DRIVER">Driver</option>
                   </select>
+                  <select
+                    value={statusFilter}
+                    onChange={e => setStatusFilter(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      border: `1px solid ${D.border}`,
+                      background: D.bg,
+                      color: D.text,
+                      fontSize: '0.8rem',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="ALL">All Statuses</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="INACTIVE">Inactive</option>
+                    <option value="SUSPENDED">Suspended</option>
+                  </select>
 
-                  {(searchTerm || roleFilter !== 'ALL') && (
+                  {(searchTerm || roleFilter !== 'ALL' || statusFilter !== 'ALL') && (
                     <button
-                      onClick={() => { setSearchTerm(''); setRoleFilter('ALL'); }}
+                      onClick={() => { setSearchTerm(''); setRoleFilter('ALL'); setStatusFilter('ALL'); }}
                       style={{
                         padding: '8px 16px',
                         borderRadius: 8,
