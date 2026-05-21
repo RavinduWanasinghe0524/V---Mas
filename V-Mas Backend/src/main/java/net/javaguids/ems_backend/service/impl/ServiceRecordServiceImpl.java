@@ -173,6 +173,10 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
                 str(record.getNextServiceMileageKm()), str(dto.getNextServiceMileageKm()));
         auditField(changes, "Description",
                 record.getDescription(), dto.getDescription());
+        auditField(changes, "Parts Replaced",
+                record.getPartsReplaced(), dto.getPartsReplaced());
+        auditField(changes, "Service Classification",
+                record.getServiceClassification(), dto.getServiceClassification());
 
         // Apply the updates to the record
         record.setVehicleRegNumber(dto.getVehicleRegNumber());
@@ -185,6 +189,10 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
         record.setNextServiceDue(dto.getNextServiceDue());
         record.setNextServiceMileageKm(dto.getNextServiceMileageKm());
         record.setDescription(dto.getDescription());
+        record.setPartsReplaced(dto.getPartsReplaced());
+        if (dto.getServiceClassification() != null) {
+            record.setServiceClassification(dto.getServiceClassification());
+        }
 
         ServiceRecord updated = serviceRecordRepository.save(record);
 

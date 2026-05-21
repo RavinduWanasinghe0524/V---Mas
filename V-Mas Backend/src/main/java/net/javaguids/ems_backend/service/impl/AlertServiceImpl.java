@@ -26,7 +26,8 @@ import java.util.List;
 @AllArgsConstructor
 public class AlertServiceImpl {
 
-    private static final int UPCOMING_THRESHOLD_DAYS = 30;
+    private static final int UPCOMING_THRESHOLD_DAYS = 7;
+    private static final int MILEAGE_THRESHOLD_KM = 100;
 
     private final ServiceRecordRepository serviceRecordRepository;
     private final VehicleRepository vehicleRepository;
@@ -38,7 +39,7 @@ public class AlertServiceImpl {
         LocalDate today = LocalDate.now();
 
         // ── 1. Service-due alerts ──────────────────────────────────────────────
-        List<ServiceRecord> dueRecords = serviceRecordRepository.findLatestServiceRecordWithDueDatePerVehicle();
+        List<ServiceRecord> dueRecords = serviceRecordRepository.findLatestServiceRecordPerVehicleAndServiceType();
         for (ServiceRecord sr : dueRecords) {
             String reg = sr.getVehicleRegNumber();
             Vehicle v = vehicleRepository.findAll().stream() // Ideally findByRegistrationNo
@@ -70,7 +71,7 @@ public class AlertServiceImpl {
                 int currentMileage = v.getCurrentMileageKm();
                 int remainingKm = nextMileage - currentMileage;
 
-                if (remainingKm <= 500) {
+                if (remainingKm <= MILEAGE_THRESHOLD_KM) {
                     String severity = remainingKm < 0 ? "OVERDUE" : "UPCOMING";
                     String title = remainingKm < 0 ? "Mileage Limit Exceeded" : "Service Milestone Soon";
                     String message = remainingKm < 0

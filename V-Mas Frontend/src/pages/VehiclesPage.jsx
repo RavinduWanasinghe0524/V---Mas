@@ -3,8 +3,9 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
-import { vehicleAPI, userAPI } from '../services/api'
-import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check } from 'lucide-react'
+import { vehicleAPI, userAPI, serviceAPI } from '../services/api'
+import { getAlertLevel, computeMileageProgress, computeDateAlert, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
+import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar } from 'lucide-react'
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(99,102,241,0.5)'
@@ -69,6 +70,7 @@ const VehiclesPage = () => {
   const [addError, setAddError] = useState('')
   const [editError, setEditError] = useState('')
   const [vehicles, setVehicles] = useState([])
+  const [serviceRecords, setServiceRecords] = useState([])
   const [formData, setFormData] = useState({
     model: '',
     registrationNo: '',
@@ -104,8 +106,12 @@ const VehiclesPage = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const vehicleRes = await vehicleAPI.getAllVehicles()
+        const [vehicleRes, serviceRes] = await Promise.all([
+          vehicleAPI.getAllVehicles(),
+          serviceAPI.getAllServices(),
+        ])
         setVehicles(vehicleRes.data.data || [])
+        setServiceRecords(serviceRes.data.data || [])
       } catch (err) {
         console.error('Error loading data:', err)
       } finally {
@@ -284,6 +290,26 @@ const VehiclesPage = () => {
     INACTIVE: vehicles.filter(v => v.status === 'INACTIVE').length,
   }
 
+  // ── Compute service due alerts per vehicle ──
+  // Find the most recent service record per vehicle (highest mileage = most recent)
+  const vehicleAlerts = vehicles.reduce((acc, v) => {
+    const records = serviceRecords.filter(r => r.vehicleRegNumber === v.registrationNo)
+    if (records.length === 0) return acc
+    // Pick the record with a next-service target (highest service km)
+    const relevant = records
+      .filter(r => r.nextServiceMileageKm || r.nextServiceDue)
+      .sort((a, b) => Number(b.currentMileageKm || 0) - Number(a.currentMileageKm || 0))
+    if (relevant.length === 0) return acc
+    const record = relevant[0]
+    const level = getAlertLevel(record, v.currentMileageKm)
+    acc[v.registrationNo] = { record, level, vehicleKm: v.currentMileageKm }
+    return acc
+  }, {})
+
+  const alertVehicles = Object.entries(vehicleAlerts)
+    .filter(([, info]) => info.level === 'DUE_SOON' || info.level === 'OVERDUE')
+    .map(([reg, info]) => ({ reg, ...info }))
+
 
 
   return (
@@ -323,6 +349,78 @@ const VehiclesPage = () => {
                 </div>
               </div>
             </div>
+
+            {/* Service Due Alert Strip */}
+            {alertVehicles.length > 0 && (
+              <div style={{
+                background: D.surface,
+                border: `1px solid ${alertVehicles.some(a => a.level === 'OVERDUE') ? 'rgba(239,68,68,0.35)' : 'rgba(245,158,11,0.35)'}`,
+                borderRadius: 16,
+                marginBottom: 20,
+                overflow: 'hidden',
+                animation: 'fadeIn 0.3s ease',
+              }}>
+                <div style={{
+                  padding: '14px 20px',
+                  borderBottom: `1px solid ${D.border}`,
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  background: alertVehicles.some(a => a.level === 'OVERDUE') ? 'rgba(239,68,68,0.07)' : 'rgba(245,158,11,0.07)',
+                }}>
+                  <BellRing size={16} style={{ color: alertVehicles.some(a => a.level === 'OVERDUE') ? '#ef4444' : '#f59e0b', flexShrink: 0 }} />
+                  <span style={{ fontWeight: 700, fontSize: '0.88rem', color: D.text }}>Vehicle Service Alerts</span>
+                  {alertVehicles.filter(a => a.level === 'OVERDUE').length > 0 && (
+                    <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '2px 7px', borderRadius: 999 }}>
+                      {alertVehicles.filter(a => a.level === 'OVERDUE').length} Overdue
+                    </span>
+                  )}
+                  {alertVehicles.filter(a => a.level === 'DUE_SOON').length > 0 && (
+                    <span style={{ background: '#f59e0b', color: '#000', fontSize: '0.65rem', fontWeight: 800, padding: '2px 7px', borderRadius: 999 }}>
+                      {alertVehicles.filter(a => a.level === 'DUE_SOON').length} Due Soon
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 12, padding: '14px 16px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
+                  {alertVehicles.map(({ reg, record, level, vehicleKm }) => {
+                    const ac = ALERT_COLORS[level]
+                    const mileage = computeMileageProgress(record, vehicleKm)
+                    const date    = computeDateAlert(record)
+                    return (
+                      <div key={reg} style={{
+                        flexShrink: 0, minWidth: 220, maxWidth: 250,
+                        background: D.bg, border: `1px solid ${ac.border}`,
+                        borderRadius: 12, padding: '12px 14px',
+                        display: 'flex', flexDirection: 'column', gap: 8,
+                        boxShadow: `0 2px 12px ${ac.bg}`,
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ width: 32, height: 32, borderRadius: 8, background: ac.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${ac.border}` }}>
+                            <Car size={16} style={{ color: ac.color }} />
+                          </div>
+                          <div>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: '0.82rem', color: D.text }}>{reg}</p>
+                            <p style={{ margin: 0, fontSize: '0.7rem', color: D.textSub }}>{record.serviceType?.replace(/_/g, ' ')}</p>
+                          </div>
+                          <span style={{ marginLeft: 'auto', fontSize: '0.62rem', fontWeight: 800, padding: '2px 7px', borderRadius: 999, background: ac.bg, color: ac.color, border: `1px solid ${ac.border}` }}>{ac.label}</span>
+                        </div>
+                        {mileage && (
+                          <div>
+                            <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden', marginBottom: 4 }}>
+                              <div style={{ width: `${Math.min(mileage.pct, 100)}%`, height: '100%', background: ac.color, borderRadius: 999 }} />
+                            </div>
+                            <p style={{ margin: 0, fontSize: '0.68rem', color: ac.color, fontWeight: 700 }}>{fmtKmRemaining(mileage.remaining)}</p>
+                          </div>
+                        )}
+                        {date && (
+                          <p style={{ margin: 0, fontSize: '0.68rem', color: ac.color, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Calendar size={11} /> {fmtDaysRemaining(date.daysRemaining)}
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Stats row */}
             <div style={{ display: 'flex', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
@@ -385,7 +483,7 @@ const VehiclesPage = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead style={{ background: D.surfaceHi }}>
                     <tr>
-                      {['Reg. No.', 'Make / Model', 'Year', 'Fuel Type', 'Mileage (km)', 'Status', ...(isAdmin ? ['Last Modified'] : []), ...(!isDriver ? ['Actions'] : [])].map(h => (
+                      {['Reg. No.', 'Make / Model', 'Year', 'Fuel Type', 'Mileage (km)', 'Next Service', 'Status', ...(isAdmin ? ['Last Modified'] : []), ...(!isDriver ? ['Actions'] : [])].map(h => (
                         <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: D.textSub, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${D.border}`, whiteSpace: 'nowrap' }}>{h}</th>
                       ))}
                     </tr>
@@ -411,6 +509,34 @@ const VehiclesPage = () => {
                           <td style={{ padding: '14px 16px', color: D.textSub }}>{v.fuelType ?? 'N/A'}</td>
 
                           <td style={{ padding: '14px 16px', color: D.textSub }}>{v.currentMileageKm ? `${v.currentMileageKm} km` : 'N/A'}</td>
+                          {/* Next Service Status */}
+                          <td style={{ padding: '14px 16px' }}>
+                            {(() => {
+                              const info = vehicleAlerts[v.registrationNo]
+                              if (!info) return <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>
+                              const ac = ALERT_COLORS[info.level] || ALERT_COLORS.OK
+                              const mileage = computeMileageProgress(info.record, info.vehicleKm)
+                              const date    = computeDateAlert(info.record)
+                              return (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: 999, background: ac.bg, color: ac.color, border: `1px solid ${ac.border}`, display: 'inline-block', width: 'fit-content' }}>
+                                    {ac.label}
+                                  </span>
+                                  {mileage && (
+                                    <div style={{ minWidth: 100 }}>
+                                      <div style={{ height: 4, background: 'rgba(128,128,128,0.2)', borderRadius: 999, overflow: 'hidden' }}>
+                                        <div style={{ width: `${Math.min(mileage.pct, 100)}%`, height: '100%', background: ac.color, borderRadius: 999 }} />
+                                      </div>
+                                      <span style={{ fontSize: '0.62rem', color: ac.color, fontWeight: 700 }}>{fmtKmRemaining(mileage.remaining)}</span>
+                                    </div>
+                                  )}
+                                  {date && !mileage && (
+                                    <span style={{ fontSize: '0.62rem', color: ac.color, fontWeight: 700 }}>{fmtDaysRemaining(date.daysRemaining)}</span>
+                                  )}
+                                </div>
+                              )
+                            })()}
+                          </td>
                           <td style={{ padding: '14px 16px' }}>
                             <span style={{ background: s.bg, color: s.color, padding: '4px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', border: `1px solid ${s.border}` }}>
                               {v.status ?? 'N/A'}

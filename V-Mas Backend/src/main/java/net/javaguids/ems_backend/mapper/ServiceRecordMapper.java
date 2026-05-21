@@ -20,6 +20,8 @@ public class ServiceRecordMapper {
         dto.setDescription(record.getDescription());
         dto.setCreatedBy(record.getCreatedBy());
         dto.setAttachmentPath(record.getAttachmentPath());
+        dto.setPartsReplaced(record.getPartsReplaced());
+        dto.setServiceClassification(record.getServiceClassification());
         dto.setCreatedAt(record.getCreatedAt());
         dto.setDeleted(record.isDeleted());
         dto.setDeletedBy(record.getDeletedBy());
@@ -39,6 +41,10 @@ public class ServiceRecordMapper {
         record.setNextServiceDue(dto.getNextServiceDue());
         record.setNextServiceMileageKm(dto.getNextServiceMileageKm());
         record.setDescription(dto.getDescription());
+        record.setPartsReplaced(dto.getPartsReplaced());
+        if (dto.getServiceClassification() != null) {
+            record.setServiceClassification(dto.getServiceClassification());
+        }
         // attachmentPath is managed separately via the upload endpoint
         // createdBy is injected by the service layer, not from the DTO
         return record;
