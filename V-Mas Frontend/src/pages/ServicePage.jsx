@@ -802,24 +802,26 @@ const ServicePage = () => {
         const regNo = data.vehicleRegNumber
         const recordDate = data.serviceDate ? new Date(data.serviceDate) : new Date()
 
-        // Find service records for this vehicle with an earlier or equal date
+        // Find service records for this vehicle with an earlier or equal date (excluding scheduled)
         const earlierServices = services.filter(s => 
           s.vehicleRegNumber === regNo && 
           (!originalRecord || s.id !== originalRecord.id) &&
           s.currentMileageKm && 
           s.serviceDate &&
+          getStatus(s) !== 'SCHEDULED' &&
           new Date(s.serviceDate) <= recordDate
         )
 
         // Find the maximum mileage among older services
         const maxEarlierMileage = earlierServices.reduce((max, s) => Math.max(max, Number(s.currentMileageKm)), 0)
 
-        // Find service records for this vehicle with a later date
+        // Find service records for this vehicle with a later date (excluding scheduled)
         const laterServices = services.filter(s =>
           s.vehicleRegNumber === regNo &&
           (!originalRecord || s.id !== originalRecord.id) &&
           s.currentMileageKm &&
           s.serviceDate &&
+          getStatus(s) !== 'SCHEDULED' &&
           new Date(s.serviceDate) > recordDate
         )
 
@@ -854,8 +856,8 @@ const ServicePage = () => {
     const vehicleObj = allVehicles.find(v => v.registrationNo === regNo)
     const baseMil = vehicleObj && vehicleObj.currentMileageKm ? Number(vehicleObj.currentMileageKm) : 0
 
-    // find latest service for this vehicle
-    const vehicleServices = services.filter(s => s.vehicleRegNumber === regNo && s.currentMileageKm)
+    // find latest service for this vehicle (excluding scheduled)
+    const vehicleServices = services.filter(s => s.vehicleRegNumber === regNo && s.currentMileageKm && getStatus(s) !== 'SCHEDULED')
     vehicleServices.sort((a, b) => Number(b.currentMileageKm) - Number(a.currentMileageKm))
     const lastServiceMil = vehicleServices.length > 0 ? Number(vehicleServices[0].currentMileageKm) : 0
 
@@ -866,6 +868,7 @@ const ServicePage = () => {
         s.id !== editingServiceId && 
         s.currentMileageKm && 
         s.serviceDate &&
+        getStatus(s) !== 'SCHEDULED' &&
         new Date(s.serviceDate) <= recordDate
       )
       earlierServices.sort((a, b) => Number(b.currentMileageKm) - Number(a.currentMileageKm))
@@ -900,7 +903,7 @@ const ServicePage = () => {
     if (regNo) {
       const vehicleObj = allVehicles.find(v => v.registrationNo === regNo)
       const baseMil = Number(vehicleObj?.currentMileageKm || 0)
-      const vehicleServices = services.filter(s => s.vehicleRegNumber === regNo && s.currentMileageKm)
+      const vehicleServices = services.filter(s => s.vehicleRegNumber === regNo && s.currentMileageKm && getStatus(s) !== 'SCHEDULED')
       vehicleServices.sort((a, b) => Number(b.currentMileageKm) - Number(a.currentMileageKm))
       const lastServiceMil = vehicleServices.length > 0 ? Number(vehicleServices[0].currentMileageKm) : 0
       const lastMil = Math.max(baseMil, lastServiceMil)
@@ -1088,6 +1091,7 @@ const ServicePage = () => {
       s.id !== id && 
       s.currentMileageKm && 
       s.serviceDate &&
+      getStatus(s) !== 'SCHEDULED' &&
       new Date(s.serviceDate) <= recordDate
     )
     earlierServices.sort((a, b) => Number(b.currentMileageKm) - Number(a.currentMileageKm))
