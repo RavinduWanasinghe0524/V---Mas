@@ -334,6 +334,83 @@ const ReportsPage = () => {
     }
   }
 
+  const handleGenerateExcel = async (id) => {
+    setError('')
+    setSuccessMsg('')
+    setGenerating(id)
+    try {
+      let csvContent = ''
+      let headers = []
+      let rows = []
+      const filename = `${id}-${new Date().toISOString().split('T')[0]}.csv`
+
+      if (id === 'vehicle-summary' || id === 'master-report') {
+        const { data } = await vehicleAPI.getAllVehicles()
+        headers = ['Reg No', 'Brand', 'Model', 'Status', 'Mileage', 'Fuel Type', 'Capacity']
+        rows = data.map(v => [
+          v.registrationNumber, v.brand || 'N/A', v.model || 'N/A', v.status || 'N/A', v.mileage || 0, v.fuelType || 'N/A', v.fuelCapacity || 0
+        ])
+      } else if (id === 'fuel-report') {
+        const { data } = await fuelAPI.getAllFuelLogs()
+        headers = ['Date', 'Vehicle', 'Driver', 'Type', 'Liters', 'Cost']
+        rows = data.map(f => [
+          f.date ? new Date(f.date).toLocaleDateString() : 'N/A',
+          f.vehicleRegNo || 'N/A',
+          f.driverName || 'N/A',
+          f.fuelType || 'N/A',
+          f.liters || 0,
+          f.cost || 0
+        ])
+      } else if (id === 'service-report') {
+        const { data } = await serviceAPI.getAllServices()
+        headers = ['Date', 'Vehicle Reg', 'Service Type', 'Status', 'Cost']
+        rows = data.map(s => [
+          s.date ? new Date(s.date).toLocaleDateString() : 'N/A',
+          s.vehicleRegNo || 'N/A',
+          s.serviceType || 'N/A',
+          s.status || 'N/A',
+          s.cost || 0
+        ])
+      } else if (id === 'user-report') {
+        const { data } = await userAPI.getAllUsers()
+        headers = ['Username', 'Email', 'Role', 'Status']
+        rows = data.map(u => [
+          u.userName || 'N/A',
+          u.email || 'N/A',
+          u.role || 'N/A',
+          u.accountStatus || 'ACTIVE'
+        ])
+      } else {
+        setError('Excel export for this category is under development.')
+        setTimeout(() => setError(''), 4000)
+        return
+      }
+
+      csvContent = [
+        headers.join(','),
+        ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+      ].join('\n')
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.setAttribute("href", url)
+      link.setAttribute("download", filename)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      setSuccessMsg(`Excel (CSV) report "${filename}" generated and downloaded successfully.`)
+      setTimeout(() => setSuccessMsg(''), 5000)
+    } catch (err) {
+      console.error('Error generating Excel:', err)
+      setError('Failed to generate Excel report.')
+      setTimeout(() => setError(''), 4000)
+    } finally {
+      setGenerating(null)
+    }
+  }
+
   return (
     <div className="app-shell" style={{ background: D.bg }}>
       <Sidebar />
@@ -498,9 +575,12 @@ const ReportsPage = () => {
                   >
                     {generating === r.id ? <><Loader2 size={14} className="animate-spin" style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}/> Generating…</> : <><Download size={14} style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}/> Generate PDF</>}
                   </button>
-                  <button style={{ padding: '9px 12px', borderRadius: 10, border: `1px solid ${r.color}40`, background: r.bg, color: r.color, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = r.color; e.currentTarget.style.color = '#fff' }}
-                    onMouseLeave={e => { e.currentTarget.style.background = r.bg; e.currentTarget.style.color = r.color }}>
+                  <button
+                    onClick={() => handleGenerateExcel(r.id)}
+                    disabled={generating === r.id}
+                    style={{ padding: '9px 12px', borderRadius: 10, border: `1px solid ${r.color}40`, background: r.bg, color: r.color, fontSize: '0.8rem', fontWeight: 700, cursor: generating === r.id ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}
+                    onMouseEnter={e => { if (generating !== r.id) { e.currentTarget.style.background = r.color; e.currentTarget.style.color = '#fff' } }}
+                    onMouseLeave={e => { if (generating !== r.id) { e.currentTarget.style.background = r.bg; e.currentTarget.style.color = r.color } }}>
                     Excel
                   </button>
                 </div>
