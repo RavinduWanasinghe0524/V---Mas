@@ -238,6 +238,7 @@ img { display: block; max-width: 100%; }
 @keyframes slideRight { from { transform: translateX(-20px); opacity:0; } to { transform: translateX(0); opacity:1; } }
 @keyframes slideInRight { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.45; } }
+@keyframes pulseBar { 0%,100% { opacity:1; } 50% { opacity:0.55; transform: scaleX(1); } 25%,75% { opacity:0.8; } }
 
 /* ═══════════════════════════════════════════════════════════════════
    LAYOUT SHELL
