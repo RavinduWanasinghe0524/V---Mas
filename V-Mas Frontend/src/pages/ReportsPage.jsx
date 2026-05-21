@@ -419,6 +419,15 @@ const ReportsPage = () => {
     setTimeout(() => setSuccessMsg(''), 4000)
   }
 
+  const handleClearAllRecent = () => {
+    if (reportsList.length === 0) return
+    if (!window.confirm('Are you sure you want to clear all recent reports history? This cannot be undone.')) return
+    setReportsList([])
+    setSuccessMsg('Successfully cleared all recent reports history.')
+    setTimeout(() => setSuccessMsg(''), 4000)
+  }
+
+
   const handleRedownloadRecent = (name, format) => {
     setSuccessMsg(`Starting re-download of "${name}" in ${format} format...`)
     setTimeout(() => setSuccessMsg(''), 4000)
@@ -649,6 +658,33 @@ const ReportsPage = () => {
                   }}
                 >
                   <X size={14} /> Clear Search
+                </button>
+              )}
+              {reportsList.length > 0 && (
+                <button
+                  onClick={handleClearAllRecent}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 8,
+                    border: `1px solid ${D.red}40`,
+                    background: 'transparent',
+                    color: D.red,
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = D.redDim;
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  Clear All History
                 </button>
               )}
             </div>
