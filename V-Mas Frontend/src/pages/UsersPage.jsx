@@ -230,7 +230,7 @@ const UsersPage = () => {
                     User Management
                   </h1>
                   <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
-                    Manage system users, roles, and access approvals
+                    Manage system users, roles, permissions, and access approvals across the platform
                   </p>
                 </div>
               </div>
@@ -366,6 +366,7 @@ const UsersPage = () => {
                     </div>
                     <div>
                       <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem' }}>All Users</h3>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Last refreshed: {new Date().toLocaleTimeString()}</p>
                     </div>
                     {!loading && (
                       <span style={{ background: 'rgba(255,255,255,0.1)', color: D.text, padding: '2px 8px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 800 }}>{users.length}</span>
