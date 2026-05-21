@@ -42,6 +42,7 @@ const ReportsPage = () => {
   const [successMsg, setSuccessMsg] = useState('')
   const [recentSearch, setRecentSearch] = useState('')
   const [pdfTheme, setPdfTheme] = useState('indigo')
+  const [reportsList, setReportsList] = useState(recentReports)
 
   const pdfThemeColors = {
     indigo: { primary: [67, 56, 202] },
@@ -50,7 +51,7 @@ const ReportsPage = () => {
     charcoal: { primary: [55, 65, 81] }
   }
 
-  const filteredRecentReports = recentReports.filter(r =>
+  const filteredRecentReports = reportsList.filter(r =>
     r.name.toLowerCase().includes(recentSearch.toLowerCase()) ||
     r.format.toLowerCase().includes(recentSearch.toLowerCase())
   )
@@ -411,6 +412,18 @@ const ReportsPage = () => {
     }
   }
 
+  const handleDeleteRecent = (name) => {
+    if (!window.confirm(`Are you sure you want to remove "${name}" from recent downloads?`)) return
+    setReportsList(reportsList.filter(r => r.name !== name))
+    setSuccessMsg(`Successfully removed "${name}" from recent reports.`)
+    setTimeout(() => setSuccessMsg(''), 4000)
+  }
+
+  const handleRedownloadRecent = (name, format) => {
+    setSuccessMsg(`Starting re-download of "${name}" in ${format} format...`)
+    setTimeout(() => setSuccessMsg(''), 4000)
+  }
+
   return (
     <div className="app-shell" style={{ background: D.bg }}>
       <Sidebar />
@@ -670,12 +683,16 @@ const ReportsPage = () => {
                       <td style={{ padding: '14px 16px', color: D.textSub }}>{r.size}</td>
                       <td style={{ padding: '14px 16px' }}>
                         <div style={{ display: 'flex', gap: 6 }}>
-                          <button style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
+                          <button
+                            onClick={() => handleRedownloadRecent(r.name, r.format)}
+                            style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
                             onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor='rgba(99,102,241,0.4)'; e.currentTarget.style.color='#a5b4fc' }}
                             onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor=D.border; e.currentTarget.style.color=D.text }}>
                             <Download size={12} strokeWidth={2} style={{ marginRight: 4 }} /> Download
                           </button>
-                          <button style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
+                          <button
+                            onClick={() => handleDeleteRecent(r.name)}
+                            style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
                             onMouseEnter={e => { e.currentTarget.style.background='rgba(248,113,113,0.2)' }}
                             onMouseLeave={e => { e.currentTarget.style.background='rgba(248,113,113,0.1)' }}>
                             Delete
