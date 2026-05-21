@@ -4,7 +4,7 @@ import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
 import { vehicleAPI, userAPI } from '../services/api'
-import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, X, Check } from 'lucide-react'
+import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check } from 'lucide-react'
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(99,102,241,0.5)'
@@ -67,6 +67,7 @@ const VehiclesPage = () => {
   const [deletingVehicle, setDeletingVehicle] = useState(null)
 
   const [addError, setAddError] = useState('')
+  const [editError, setEditError] = useState('')
   const [vehicles, setVehicles] = useState([])
   const [formData, setFormData] = useState({
     model: '',
@@ -190,6 +191,7 @@ const VehiclesPage = () => {
   const closeEditModal = () => {
     setIsEditModalOpen(false)
     setEditingVehicle(null)
+    setEditError('')
     setEditFormData({
       model: '',
       registrationNo: '',
@@ -209,10 +211,11 @@ const VehiclesPage = () => {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault()
+    setEditError('')
 
     const regRegex = /^([A-Z]{2}-[A-Z]{2,3}-\d{4}|[A-Z]{2,3}-\d{4}|\d{2,3}-\d{4})$/;
     if (!regRegex.test(editFormData.registrationNo)) {
-      alert('Invalid registration format. Use WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, or ABC-1234')
+      setEditError('Invalid registration format. Use WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, or ABC-1234')
       return;
     }
 
@@ -235,6 +238,8 @@ const VehiclesPage = () => {
       setVehicles(response.data.data || [])
       closeEditModal()
     } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Failed to update vehicle.'
+      setEditError(msg)
       console.error('Error updating vehicle:', err)
     }
   }
@@ -587,6 +592,11 @@ const VehiclesPage = () => {
                     <input type="date" name="licenseExpiryDate" value={editFormData.licenseExpiryDate} onChange={handleEditChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                   </div>
                 </div>
+                {editError && (
+                  <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 8, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', color: D.red, fontSize: '0.83rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <AlertCircle size={14} /> {editError}
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: 12 }}>
                   <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                     <Check size={16} /> Save Changes
