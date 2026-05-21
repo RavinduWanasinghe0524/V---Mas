@@ -43,6 +43,7 @@ const ReportsPage = () => {
   const [recentSearch, setRecentSearch] = useState('')
   const [pdfTheme, setPdfTheme] = useState('indigo')
   const [reportsList, setReportsList] = useState(recentReports)
+  const [activeCategory, setActiveCategory] = useState('All')
 
   const pdfThemeColors = {
     indigo: { primary: [67, 56, 202] },
@@ -563,8 +564,59 @@ const ReportsPage = () => {
               ))}
             </div>
           </div>
+
+          {/* Category Filter Tabs */}
+          <div style={{
+            display: 'flex',
+            gap: 8,
+            overflowX: 'auto',
+            paddingBottom: 12,
+            marginBottom: 24,
+            borderBottom: `1px solid ${D.border}`,
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}>
+            {['All', 'System', 'Fleet', 'Fuel', 'Maintenance', 'Users', 'Finance'].map(cat => {
+              const isActive = activeCategory === cat
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 20,
+                    border: 'none',
+                    background: isActive ? D.indigo : D.surface,
+                    color: isActive ? '#fff' : D.textSub,
+                    fontWeight: 700,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    boxShadow: isActive ? `0 4px 12px ${D.indigoDim}` : 'none',
+                    border: `1px solid ${isActive ? D.indigo : D.border}`,
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={e => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = D.surfaceHi;
+                      e.currentTarget.style.color = D.text;
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = D.surface;
+                      e.currentTarget.style.color = D.textSub;
+                    }
+                  }}
+                >
+                  {cat}
+                </button>
+              )
+            })}
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20, marginBottom: 36 }}>
-            {reportTypes.map(r => (
+            {reportTypes.filter(r => activeCategory === 'All' || r.category.toLowerCase() === activeCategory.toLowerCase()).map(r => (
               <div key={r.id} style={{
                 background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`,
                 padding: '24px', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', height: '100%',
