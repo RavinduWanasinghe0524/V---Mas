@@ -126,6 +126,7 @@ const UsersPage = () => {
   }
 
   const handleApprove = async (id, username) => {
+    if (!window.confirm(`Approve user "${username}" and activate their account?`)) return
     setError('')
     setActionMsg('')
     try {
@@ -282,6 +283,22 @@ const UsersPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setError('')
+    
+    // Client-side validations
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid email address.')
+      return
+    }
+    if (!editingUser && (!formData.password || formData.password.length < 6)) {
+      setError('Password must be at least 6 characters long.')
+      return
+    }
+    if (editingUser && formData.password && formData.password.length < 6) {
+      setError('Password must be at least 6 characters long.')
+      return
+    }
+
     try {
       const submitData = { ...formData }
       if (!submitData.profilePicture)
