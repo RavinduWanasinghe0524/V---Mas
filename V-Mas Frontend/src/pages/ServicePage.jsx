@@ -21,6 +21,18 @@ const SERVICE_TYPES = [
   { value: 'OTHER', label: 'Other' },
 ]
 
+const SERVICE_LOGIC_ENGINE = {
+  OIL_CHANGE:           { intervalKm: 5000,  intervalMonths: 3 },
+  ENGINE_TUNE_UP:       { intervalKm: 10000, intervalMonths: 6 },
+  BRAKE_SERVICE:        { intervalKm: 20000, intervalMonths: 12 },
+  TIRE_ROTATION:        { intervalKm: 10000, intervalMonths: 6 },
+  TRANSMISSION_SERVICE: { intervalKm: 40000, intervalMonths: 24 },
+  AC_SERVICE:           { intervalKm: 20000, intervalMonths: 12 },
+  BATTERY_REPLACEMENT:  { intervalKm: 60000, intervalMonths: 36 },
+  GENERAL_INSPECTION:   { intervalKm: 10000, intervalMonths: 6 },
+  OTHER:                { intervalKm: 5000,  intervalMonths: 3 }
+}
+
 const initialForm = {
   vehicleRegNumber: '',
   serviceType: '',
@@ -30,7 +42,10 @@ const initialForm = {
   serviceCost: '',
   technicianWorkshop: '',
   nextServiceDue: '',
+  nextServiceMileageKm: '',
   description: '',
+  partsReplaced: '',
+  serviceClassification: 'ROUTINE',
 }
 
 const initialScheduleForm = {
@@ -72,6 +87,8 @@ const STATUS_CONFIG = {
   ALL: { label: 'All', color: '#6366f1', bg: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.3)' },
   SCHEDULED: { label: 'Scheduled', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' },
   COMPLETED: { label: 'Completed', color: '#10b981', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)' },
+  UPCOMING: { label: 'Upcoming', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' },
+  OVERDUE: { label: 'Overdue', color: '#ef4444', bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)' },
 }
 
 /* ── Progress bar widths for stat cards ─────────────────────────── */
@@ -157,7 +174,7 @@ const ServiceProgressMeter = ({ record, vehicleCurrentKm, D }) => {
    Horizontal scroll strip shown at top of the page for records
    that are DUE_SOON or OVERDUE.
 ──────────────────────────────────────────────────────────────────── */
-const ServiceDueAlertStrip = ({ alertRecords, D }) => {
+const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D }) => {
   if (!alertRecords || alertRecords.length === 0) return null
 
   const overdue  = alertRecords.filter(r => r._alertLevel === 'OVERDUE')
@@ -249,6 +266,24 @@ const ServiceDueAlertStrip = ({ alertRecords, D }) => {
                   <Calendar size={11} /> {fmtDaysRemaining(date.daysRemaining)}
                 </p>
               )}
+
+              {/* Actions */}
+              {onCompleteAlert && (
+                <div style={{ marginTop: 'auto', paddingTop: 8 }}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onCompleteAlert(r); }}
+                    style={{
+                      width: '100%', padding: '6px 0', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
+                      background: ac.bg, color: ac.color, border: `1px solid ${ac.border}`,
+                      cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = ac.color; e.currentTarget.style.color = '#fff' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = ac.bg; e.currentTarget.style.color = ac.color }}
+                  >
+                    <CheckCircle size={14} /> Complete Service
+                  </button>
+                </div>
+              )}
             </div>
           )
         })}
@@ -314,6 +349,17 @@ const ServiceListCard = ({ record, index, isDriver, currentUsername, vehicleCurr
           }}>
             {sc.label}
           </span>
+          {/* Classification badge */}
+          <span style={{
+            padding: '2px 10px', borderRadius: 999,
+            fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            background: record.serviceClassification === 'AD_HOC' ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)',
+            color: record.serviceClassification === 'AD_HOC' ? '#ef4444' : '#10b981',
+            border: `1px solid ${record.serviceClassification === 'AD_HOC' ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)'}`,
+          }}>
+            {record.serviceClassification === 'AD_HOC' ? '🛠️ Ad-hoc Repair' : '🟢 Routine'}
+          </span>
           {record.serviceTypeDetail && (
             <span style={{ fontSize: '0.75rem', color: D.textSub }}>({record.serviceTypeDetail})</span>
           )}
@@ -372,6 +418,20 @@ const ServiceListCard = ({ record, index, isDriver, currentUsername, vehicleCurr
           <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: D.textSub, fontStyle: 'italic' }}>
             {record.description}
           </p>
+        )}
+        {/* Parts Replaced */}
+        {record.partsReplaced && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6, alignItems: 'center' }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Parts:</span>
+            {record.partsReplaced.split(',').map((part, pi) => (
+              <span key={pi} style={{
+                background: D.surfaceHi, border: `1px solid ${D.border}`,
+                color: D.text, borderRadius: 6, padding: '2px 8px', fontSize: '0.68rem', fontWeight: 600
+              }}>
+                {part.trim()}
+              </span>
+            ))}
+          </div>
         )}
         {/* Service progress meter */}
         <ServiceProgressMeter record={record} vehicleCurrentKm={vehicleCurrentKm} D={D} />
@@ -460,14 +520,26 @@ const ServiceGridCard = ({ record, index, isDriver, currentUsername, vehicleCurr
             {record.serviceTypeDetail ? ` - ${record.serviceTypeDetail}` : ''}
           </div>
         </div>
-        <div style={{
-          padding: '4px 10px', borderRadius: 999,
-          fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em',
-          background: sc.bg, color: sc.color,
-          border: `1px solid ${sc.border}`,
-          textTransform: 'uppercase'
-        }}>
-          {sc.label}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+          <div style={{
+            padding: '4px 10px', borderRadius: 999,
+            fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em',
+            background: sc.bg, color: sc.color,
+            border: `1px solid ${sc.border}`,
+            textTransform: 'uppercase'
+          }}>
+            {sc.label}
+          </div>
+          <div style={{
+            padding: '4px 10px', borderRadius: 999,
+            fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em',
+            background: record.serviceClassification === 'AD_HOC' ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)',
+            color: record.serviceClassification === 'AD_HOC' ? '#ef4444' : '#10b981',
+            border: `1px solid ${record.serviceClassification === 'AD_HOC' ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)'}`,
+            textTransform: 'uppercase'
+          }}>
+            {record.serviceClassification === 'AD_HOC' ? '🛠️ Ad-hoc' : '🟢 Routine'}
+          </div>
         </div>
       </div>
 
@@ -477,6 +549,21 @@ const ServiceGridCard = ({ record, index, isDriver, currentUsername, vehicleCurr
       <div style={{ color: D.text, fontSize: '0.85rem' }}>
         {record.description || 'No description provided.'}
       </div>
+
+      {/* Parts Replaced */}
+      {record.partsReplaced && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Parts:</span>
+          {record.partsReplaced.split(',').map((part, pi) => (
+            <span key={pi} style={{
+              background: D.surfaceHi, border: `1px solid ${D.border}`,
+              color: D.text, borderRadius: 6, padding: '2px 8px', fontSize: '0.68rem', fontWeight: 600
+            }}>
+              {part.trim()}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
@@ -890,10 +977,13 @@ const ServicePage = () => {
     if (errors.currentMileageKm) setErrors(prev => ({ ...prev, currentMileageKm: undefined }))
   }
 
-  const openAddModal = () => {
-    const regNo = ''
+  const openAddModal = (prefill = {}) => {
+    const isEvent = prefill && (prefill.nativeEvent || prefill.target)
+    const actualPrefill = isEvent ? {} : prefill
+    const regNo = actualPrefill.vehicleRegNumber || ''
     setFormData({
       ...initialForm,
+      ...actualPrefill,
       vehicleRegNumber: regNo,
     })
     setErrors({})
@@ -1030,9 +1120,15 @@ const ServicePage = () => {
     try {
       const payload = {
         ...formData,
+        nextServiceDue: formData.nextServiceDue ? formData.nextServiceDue : null,
         nextServiceMileageKm: formData.nextServiceMileageKm ? Number(formData.nextServiceMileageKm) : null
       }
-      const res = await serviceAPI.createService(payload)
+      let res;
+      if (formData.id) {
+        res = await serviceAPI.updateService(formData.id, payload)
+      } else {
+        res = await serviceAPI.createService(payload)
+      }
       // If a file was selected, upload it immediately after record creation
       if (addAttachmentFile && res.data?.data?.id) {
         try {
@@ -1058,7 +1154,8 @@ const ServicePage = () => {
       setIsAddModalOpen(false)
       loadData()
     } catch (err) {
-      setSubmitError(err.response?.data?.message || 'Failed to save service record.')
+      const msg = err.response?.data ? JSON.stringify(err.response.data) : (err.message || 'Failed to save service record.')
+      setSubmitError('Debug Backend Error: ' + msg)
     } finally {
       setFormLoading(false)
     }
@@ -1079,6 +1176,8 @@ const ServicePage = () => {
       nextServiceDue: record.nextServiceDue ? record.nextServiceDue.substring(0, 10) : '',
       nextServiceMileageKm: record.nextServiceMileageKm || '',
       description: record.description || '',
+      partsReplaced: record.partsReplaced || '',
+      serviceClassification: record.serviceClassification || 'ROUTINE',
     })
     setErrors({})
     setSubmitError(null)
@@ -1117,6 +1216,7 @@ const ServicePage = () => {
     try {
       const payload = {
         ...editFormData,
+        nextServiceDue: editFormData.nextServiceDue ? editFormData.nextServiceDue : null,
         nextServiceMileageKm: editFormData.nextServiceMileageKm ? Number(editFormData.nextServiceMileageKm) : null
       }
       await serviceAPI.updateService(editingServiceId, payload)
@@ -1132,7 +1232,8 @@ const ServicePage = () => {
       setIsEditModalOpen(false)
       loadData()
     } catch (err) {
-      setSubmitError(err.response?.data?.message || 'Failed to update service record.')
+      const msg = err.response?.data ? JSON.stringify(err.response.data) : (err.message || 'Failed to update service record.')
+      setSubmitError('Debug Backend Error: ' + msg)
     } finally {
       setFormLoading(false)
     }
@@ -1154,8 +1255,30 @@ const ServicePage = () => {
       const vehicleKmMap = {}
       loadedVehicles.forEach(v => { vehicleKmMap[v.registrationNo] = v.currentMileageKm })
 
+      // Find the LATEST record per vehicle + service type (based on ID / creation time)
+      const latestServiceMap = {}
+      for (const s of loadedServices) {
+        const key = `${s.vehicleRegNumber}_${s.serviceType}`
+        if (!latestServiceMap[key]) {
+          latestServiceMap[key] = s
+        } else {
+          // Priority 1: id (since it's an auto-incrementing primary key, highest id = newest)
+          if (s.id && latestServiceMap[key].id) {
+            if (s.id > latestServiceMap[key].id) {
+              latestServiceMap[key] = s
+            }
+          } 
+          // Priority 2: Fallback to createdAt if id is missing for some reason
+          else if (s.createdAt && latestServiceMap[key].createdAt) {
+            if (new Date(s.createdAt).getTime() > new Date(latestServiceMap[key].createdAt).getTime()) {
+              latestServiceMap[key] = s
+            }
+          }
+        }
+      }
+
       const alerts = []
-      for (const record of loadedServices) {
+      for (const record of Object.values(latestServiceMap)) {
         const vehicleKm = vehicleKmMap[record.vehicleRegNumber]
         const level = getAlertLevel(record, vehicleKm)
         if (level === 'DUE_SOON' || level === 'OVERDUE') {
@@ -1239,13 +1362,30 @@ const ServicePage = () => {
   }
 
   /* Derived counts */
+  const completedServices = services.filter(s => getStatus(s) === 'COMPLETED')
+  const totalRoutineCost = completedServices
+    .filter(s => s.serviceClassification !== 'AD_HOC')
+    .reduce((sum, s) => sum + Number(s.serviceCost || 0), 0)
+  const totalAdHocCost = completedServices
+    .filter(s => s.serviceClassification === 'AD_HOC')
+    .reduce((sum, s) => sum + Number(s.serviceCost || 0), 0)
+
   const scheduled = services.filter(s => getStatus(s) === 'SCHEDULED').length
-  const completed = services.filter(s => getStatus(s) === 'COMPLETED').length
+  const completed = completedServices.length
   const total = services.length
+  const upcomingCount = alertRecords.filter(r => r._alertLevel === 'DUE_SOON').length
+  const overdueCount = alertRecords.filter(r => r._alertLevel === 'OVERDUE').length
 
   /* Filtered and sorted list */
   const filtered = services.filter(s => {
-    if (filter !== 'ALL' && getStatus(s) !== filter) return false
+    if (filter === 'UPCOMING') {
+      if (!alertRecords.some(r => r.id === s.id && r._alertLevel === 'DUE_SOON')) return false
+    } else if (filter === 'OVERDUE') {
+      if (!alertRecords.some(r => r.id === s.id && r._alertLevel === 'OVERDUE')) return false
+    } else if (filter !== 'ALL' && getStatus(s) !== filter) {
+      return false
+    }
+    
     if (vehicleFilter !== 'ALL' && s.vehicleRegNumber !== vehicleFilter) return false
     if (search) {
       const q = search.toLowerCase()
@@ -1442,7 +1582,20 @@ const ServicePage = () => {
 
           {/* ── Service Due Alert Strip ───────────────────────────── */}
           {!loading && alertRecords.length > 0 && (
-            <ServiceDueAlertStrip alertRecords={alertRecords} D={D} />
+            <ServiceDueAlertStrip 
+              alertRecords={alertRecords} 
+              onCompleteAlert={r => openAddModal({ 
+                id: r.id, 
+                vehicleRegNumber: r.vehicleRegNumber, 
+                serviceType: r.serviceType,
+                serviceTypeDetail: r.serviceTypeDetail || '',
+                serviceDate: new Date().toISOString().split('T')[0], // pre-fill today
+                technicianWorkshop: r.technicianWorkshop === 'Scheduled (TBD)' ? '' : r.technicianWorkshop,
+                description: r.description || ''
+              })}
+              onViewAlert={r => setDetailModal({ isOpen: true, record: r })}
+              D={D} 
+            />
           )}
 
           {/* ── Stat Cards ────────────────────────────────────────── */}
@@ -1478,19 +1631,29 @@ const ServicePage = () => {
                 <ProgressBar value={completed} max={total || 1} color="#10b981" D={D} />
               </div>
 
-              {/* Total Cost */}
-              {stats && (
-                <div style={statCard}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <p style={{ fontSize: '1.55rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
-                      Rs.{(stats.totalServiceCost || 0).toLocaleString()}
-                    </p>
-                    <span style={{ display: 'flex', alignItems: 'center', color: D.blue }}><CircleDollarSign size={28} /></span>
-                  </div>
-                  <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Total Cost</p>
-                  <ProgressBar value={100} max={100} color={D.blue} D={D} />
+              {/* Routine Maintenance Costs */}
+              <div style={statCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <p style={{ fontSize: '1.55rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
+                    Rs.{totalRoutineCost.toLocaleString()}
+                  </p>
+                  <span style={{ display: 'flex', alignItems: 'center', color: '#10b981' }}><CheckCircle size={28} /></span>
                 </div>
-              )}
+                <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Routine Cost</p>
+                <ProgressBar value={totalRoutineCost} max={totalRoutineCost + totalAdHocCost || 1} color="#10b981" D={D} />
+              </div>
+
+              {/* Ad-hoc Repair / Breakdown Costs */}
+              <div style={statCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <p style={{ fontSize: '1.55rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
+                    Rs.{totalAdHocCost.toLocaleString()}
+                  </p>
+                  <span style={{ display: 'flex', alignItems: 'center', color: '#ef4444' }}><AlertTriangle size={28} /></span>
+                </div>
+                <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Breakdown / Ad-hoc Cost</p>
+                <ProgressBar value={totalAdHocCost} max={totalRoutineCost + totalAdHocCost || 1} color="#ef4444" D={D} />
+              </div>
             </div>
           )}
 
@@ -1504,7 +1667,11 @@ const ServicePage = () => {
           }}>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
-                const count = key === 'ALL' ? total : key === 'SCHEDULED' ? scheduled : completed
+                const count = key === 'ALL' ? total : 
+                              key === 'SCHEDULED' ? scheduled : 
+                              key === 'COMPLETED' ? completed :
+                              key === 'UPCOMING' ? upcomingCount :
+                              key === 'OVERDUE' ? overdueCount : 0
                 const active = filter === key
                 return (
                   <button
@@ -2002,6 +2169,7 @@ const ServicePage = () => {
                           ['Mileage', r.currentMileageKm ? `${Number(r.currentMileageKm).toLocaleString()} km` : null],
                           ['Cost', r.serviceCost ? `Rs. ${Number(r.serviceCost).toLocaleString()}` : null],
                           ['Technician / Workshop', r.technicianWorkshop],
+                          ['Classification', r.serviceClassification === 'AD_HOC' ? '🛠️ Ad-hoc Repair / Breakdown' : '🟢 Routine Maintenance'],
                           r.nextServiceDue ? ['Next Service Due', new Date(r.nextServiceDue).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })] : null,
                           r.nextServiceMileageKm ? ['Next Service Mileage', `${Number(r.nextServiceMileageKm).toLocaleString()} km`] : null,
                         ].filter(Boolean).map(([label, value]) => (
@@ -2011,6 +2179,25 @@ const ServicePage = () => {
                           </div>
                         ))}
                       </div>
+
+                      {/* Parts Replaced */}
+                      {r.partsReplaced && (
+                        <div style={{ marginBottom: 16 }}>
+                          <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+                            Parts Replaced <div style={{ flex: 1, height: 1, background: D.border }} />
+                          </div>
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            {r.partsReplaced.split(',').map((part, pi) => (
+                              <span key={pi} style={{
+                                background: D.surfaceHi, border: `1px solid ${D.border}`,
+                                color: D.text, borderRadius: 6, padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600
+                              }}>
+                                {part.trim()}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Description */}
                       <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -2227,6 +2414,7 @@ const ServicePage = () => {
                     ['Current Mileage', r.currentMileageKm ? `${Number(r.currentMileageKm).toLocaleString()} km` : null],
                     ['Service Cost', r.serviceCost ? `Rs. ${Number(r.serviceCost).toLocaleString()}` : null],
                     ['Technician / Workshop', r.technicianWorkshop],
+                    ['Classification', r.serviceClassification === 'AD_HOC' ? '🛠️ Ad-hoc Repair / Breakdown' : '🟢 Routine Maintenance'],
                     r.nextServiceDue ? ['Next Service Due', new Date(r.nextServiceDue).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })] : null,
                     r.nextServiceMileageKm ? ['Next Service Mileage', `${Number(r.nextServiceMileageKm).toLocaleString()} km`] : null,
                   ].filter(Boolean).map(([label, value]) => (
@@ -2245,6 +2433,26 @@ const ServicePage = () => {
                 <p style={{ margin: '0 0 24px', fontSize: '0.88rem', color: r.description ? D.text : D.textSub, lineHeight: 1.6, fontStyle: r.description ? 'normal' : 'italic', background: D.surfaceHi, padding: '12px 16px', borderRadius: 10, border: `1px solid ${D.border}` }}>
                   {r.description || 'No description provided.'}
                 </p>
+
+                {/* Parts Replaced */}
+                {r.partsReplaced && (
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Parts Replaced</span>
+                      <div style={{ flex: 1, height: 1, background: D.border }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {r.partsReplaced.split(',').map((part, pi) => (
+                        <span key={pi} style={{
+                          background: D.surfaceHi, border: `1px solid ${D.border}`,
+                          color: D.text, borderRadius: 8, padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600
+                        }}>
+                          {part.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Attached Bill Section */}
                 {r.attachmentPath && (
@@ -2510,7 +2718,7 @@ const ServicePage = () => {
 
                 <div>
                   <label style={fieldLabel}>Service Date <span style={{ color: D.red }}>*</span></label>
-                  <input type="date" name="serviceDate" value={formData.serviceDate} onChange={handleAddChange} style={fieldInput(errors.serviceDate)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceDate)} />
+                  <input type="date" name="serviceDate" value={formData.serviceDate} onChange={handleAddChange} max={new Date().toISOString().split('T')[0]} style={fieldInput(errors.serviceDate)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceDate)} />
                   {errors.serviceDate && <p style={fieldError}>{errors.serviceDate}</p>}
                 </div>
                 <div>
@@ -2532,6 +2740,40 @@ const ServicePage = () => {
                   <input type="text" name="technicianWorkshop" value={formData.technicianWorkshop} onChange={handleAddChange} placeholder="e.g. Auto Care Center" style={fieldInput(errors.technicianWorkshop)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.technicianWorkshop)} />
                   {errors.technicianWorkshop && <p style={fieldError}>{errors.technicianWorkshop}</p>}
                 </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={fieldLabel}>Service Classification</label>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, serviceClassification: 'ROUTINE' }))}
+                      style={{
+                        flex: 1, padding: '10px 14px', borderRadius: 8,
+                        border: `1.5px solid ${formData.serviceClassification === 'ROUTINE' ? '#10b981' : D.inputBorder}`,
+                        background: formData.serviceClassification === 'ROUTINE' ? 'rgba(16,185,129,0.1)' : D.inputBg,
+                        color: formData.serviceClassification === 'ROUTINE' ? '#10b981' : D.textSub,
+                        fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.15s',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                      }}
+                    >
+                      <CheckCircle size={15} /> 🟢 Routine Maintenance
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, serviceClassification: 'AD_HOC' }))}
+                      style={{
+                        flex: 1, padding: '10px 14px', borderRadius: 8,
+                        border: `1.5px solid ${formData.serviceClassification === 'AD_HOC' ? '#ef4444' : D.inputBorder}`,
+                        background: formData.serviceClassification === 'AD_HOC' ? 'rgba(239,68,68,0.1)' : D.inputBg,
+                        color: formData.serviceClassification === 'AD_HOC' ? '#ef4444' : D.textSub,
+                        fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.15s',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                      }}
+                    >
+                      <AlertTriangle size={15} /> ⚠️ Ad-hoc Repair / Breakdown
+                    </button>
+                  </div>
+                </div>
+
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0 16px' }}>
@@ -2789,7 +3031,7 @@ const ServicePage = () => {
 
                 <div>
                   <label style={fieldLabel}>Service Date <span style={{ color: D.red }}>*</span></label>
-                  <input type="date" name="serviceDate" value={editFormData.serviceDate} onChange={handleEditChange} style={fieldInput(errors.serviceDate)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceDate)} />
+                  <input type="date" name="serviceDate" value={editFormData.serviceDate} onChange={handleEditChange} max={new Date().toISOString().split('T')[0]} style={fieldInput(errors.serviceDate)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceDate)} />
                   {errors.serviceDate && <p style={fieldError}>{errors.serviceDate}</p>}
                 </div>
                 <div>
@@ -2806,6 +3048,43 @@ const ServicePage = () => {
                   <label style={fieldLabel}>Technician / Workshop <span style={{ color: D.red }}>*</span></label>
                   <input type="text" name="technicianWorkshop" value={editFormData.technicianWorkshop} onChange={handleEditChange} placeholder="e.g. Auto Care Center" style={fieldInput(errors.technicianWorkshop)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.technicianWorkshop)} />
                   {errors.technicianWorkshop && <p style={fieldError}>{errors.technicianWorkshop}</p>}
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={fieldLabel}>Service Classification</label>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => setEditFormData(prev => ({ ...prev, serviceClassification: 'ROUTINE' }))}
+                      style={{
+                        flex: 1, padding: '10px 14px', borderRadius: 8,
+                        border: `1.5px solid ${editFormData.serviceClassification === 'ROUTINE' ? '#10b981' : D.inputBorder}`,
+                        background: editFormData.serviceClassification === 'ROUTINE' ? 'rgba(16,185,129,0.1)' : D.inputBg,
+                        color: editFormData.serviceClassification === 'ROUTINE' ? '#10b981' : D.textSub,
+                        fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.15s',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                      }}
+                    >
+                      <CheckCircle size={15} /> 🟢 Routine Maintenance
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditFormData(prev => ({ ...prev, serviceClassification: 'AD_HOC' }))}
+                      style={{
+                        flex: 1, padding: '10px 14px', borderRadius: 8,
+                        border: `1.5px solid ${editFormData.serviceClassification === 'AD_HOC' ? '#ef4444' : D.inputBorder}`,
+                        background: editFormData.serviceClassification === 'AD_HOC' ? 'rgba(239,68,68,0.1)' : D.inputBg,
+                        color: editFormData.serviceClassification === 'AD_HOC' ? '#ef4444' : D.textSub,
+                        fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.15s',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                      }}
+                    >
+                      <AlertTriangle size={15} /> ⚠️ Ad-hoc Repair / Breakdown
+                    </button>
+                  </div>
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={fieldLabel}>Parts Replaced (comma-separated)</label>
+                  <textarea name="partsReplaced" value={editFormData.partsReplaced} onChange={handleEditChange} rows={2} placeholder="e.g. Oil Filter, Air Filter, Brake Pads" style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
                 </div>
               </div>
 

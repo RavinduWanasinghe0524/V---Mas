@@ -11,10 +11,10 @@
  *   null        — Not enough data to compute
  */
 
-/** How much of the interval must be consumed before we alert */
-const MILEAGE_ALERT_THRESHOLD = 0.80   // 80 %
+/** How many km before nextServiceDue we start alerting */
+const MILEAGE_ALERT_THRESHOLD = 100
 /** How many days before nextServiceDue we start alerting */
-const DATE_ALERT_DAYS = 14
+const DATE_ALERT_DAYS = 7
 
 // ─── Mileage ────────────────────────────────────────────────────────────────
 
@@ -46,7 +46,7 @@ export function computeMileageProgress(record, vehicleKm) {
 
   let level = 'OK'
   if (driven >= interval)                        level = 'OVERDUE'
-  else if (driven / interval >= MILEAGE_ALERT_THRESHOLD) level = 'DUE_SOON'
+  else if (remaining <= MILEAGE_ALERT_THRESHOLD) level = 'DUE_SOON'
 
   return { pct, driven, interval, remaining, level, serviceKm, nextKm }
 }
