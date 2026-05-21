@@ -41,6 +41,14 @@ const ReportsPage = () => {
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const [recentSearch, setRecentSearch] = useState('')
+  const [pdfTheme, setPdfTheme] = useState('indigo')
+
+  const pdfThemeColors = {
+    indigo: { primary: [67, 56, 202] },
+    emerald: { primary: [5, 150, 105] },
+    crimson: { primary: [220, 38, 38] },
+    charcoal: { primary: [55, 65, 81] }
+  }
 
   const filteredRecentReports = recentReports.filter(r =>
     r.name.toLowerCase().includes(recentSearch.toLowerCase()) ||
@@ -52,6 +60,8 @@ const ReportsPage = () => {
     setSuccessMsg('')
     setGenerating(id)
     try {
+      const themeColors = pdfThemeColors[pdfTheme] || pdfThemeColors.indigo
+      const headerColor = themeColors.primary
       const doc = new jsPDF()
 
       const addHeader = (title) => {
@@ -78,7 +88,7 @@ const ReportsPage = () => {
           head: [['Reg No', 'Brand', 'Model', 'Status', 'Mileage', 'Fuel Type', 'Capacity']],
           body: tableData,
           theme: 'grid',
-          headStyles: { fillColor: [67, 56, 202] }
+          headStyles: { fillColor: headerColor }
         })
       }
 
@@ -102,7 +112,7 @@ const ReportsPage = () => {
           head: [['Date', 'Vehicle', 'Driver', 'Type', 'Liters', 'Cost']],
           body: tableData,
           theme: 'grid',
-          headStyles: { fillColor: [217, 119, 6] }
+          headStyles: { fillColor: headerColor }
         })
       }
 
@@ -125,7 +135,7 @@ const ReportsPage = () => {
           head: [['Date', 'Vehicle Reg', 'Service Type', 'Status', 'Cost']],
           body: tableData,
           theme: 'grid',
-          headStyles: { fillColor: [5, 150, 105] }
+          headStyles: { fillColor: headerColor }
         })
       }
 
@@ -147,7 +157,7 @@ const ReportsPage = () => {
           head: [['Username', 'Email', 'Role', 'Status']],
           body: tableData,
           theme: 'grid',
-          headStyles: { fillColor: [37, 99, 235] }
+          headStyles: { fillColor: headerColor }
         })
       }
 
@@ -174,7 +184,7 @@ const ReportsPage = () => {
           head: [['Metric', 'Value']],
           body: summaryItems,
           theme: 'grid',
-          headStyles: { fillColor: [5, 150, 105] },
+          headStyles: { fillColor: headerColor },
           columnStyles: { 0: { fontStyle: 'bold', cellWidth: 90 }, 1: { cellWidth: 60 } },
           margin: { left: 14, right: 14 },
         })
@@ -202,7 +212,7 @@ const ReportsPage = () => {
           head: [['Reg No', 'Latest km/L', 'Avg km/L', 'Status', 'Total Liters', 'Total Cost', 'Cost/km', 'Fill-ups']],
           body: vehicleRows,
           theme: 'striped',
-          headStyles: { fillColor: [5, 150, 105], fontSize: 8 },
+          headStyles: { fillColor: headerColor, fontSize: 8 },
           bodyStyles: { fontSize: 8 },
           margin: { left: 14, right: 14 },
           didParseCell: (data) => {
@@ -241,7 +251,7 @@ const ReportsPage = () => {
           head: [['Cost Category', 'Amount']],
           body: summaryItems,
           theme: 'grid',
-          headStyles: { fillColor: [67, 56, 202] },
+          headStyles: { fillColor: headerColor },
           columnStyles: { 0: { fontStyle: 'bold', cellWidth: 100 }, 1: { cellWidth: 50 } },
           margin: { left: 14, right: 14 },
         })
@@ -268,7 +278,7 @@ const ReportsPage = () => {
           head: [['Date', 'Vehicle', 'Driver', 'Volume', 'Cost']],
           body: topFuelRows,
           theme: 'striped',
-          headStyles: { fillColor: [217, 119, 6], fontSize: 9 },
+          headStyles: { fillColor: headerColor, fontSize: 9 },
           bodyStyles: { fontSize: 8 },
           margin: { left: 14, right: 14 },
         })
@@ -295,7 +305,7 @@ const ReportsPage = () => {
           head: [['Date', 'Vehicle', 'Service Type', 'Status', 'Cost']],
           body: topServiceRows,
           theme: 'striped',
-          headStyles: { fillColor: [5, 150, 105], fontSize: 9 },
+          headStyles: { fillColor: headerColor, fontSize: 9 },
           bodyStyles: { fontSize: 8 },
           margin: { left: 14, right: 14 },
         })
@@ -403,6 +413,57 @@ const ReportsPage = () => {
 
           {/* Generate Reports */}
           <SectionHeader title="Generate Reports" D={D} />
+
+          {/* Export Theme Selection */}
+          <div style={{
+            background: D.surface,
+            borderRadius: 12,
+            border: `1px solid ${D.border}`,
+            padding: '12px 20px',
+            marginBottom: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+            flexWrap: 'wrap',
+            fontSize: '0.85rem',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontWeight: 600, color: D.text }}>PDF Export Palette:</span>
+              <span style={{ fontSize: '0.75rem', color: D.textSub }}>Select branding color for tables</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[
+                { id: 'indigo',   name: 'Indigo',   color: '#4338ca' },
+                { id: 'emerald',  name: 'Emerald',  color: '#059669' },
+                { id: 'crimson',  name: 'Crimson',  color: '#dc2626' },
+                { id: 'charcoal', name: 'Charcoal', color: '#374151' },
+              ].map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setPdfTheme(t.id)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 8,
+                    border: pdfTheme === t.id ? `2px solid ${t.color}` : `1px solid ${D.border}`,
+                    background: pdfTheme === t.id ? `${t.color}15` : D.bg,
+                    color: pdfTheme === t.id ? t.color : D.textSub,
+                    fontWeight: pdfTheme === t.id ? 700 : 500,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: '0.75rem',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: t.color }}></span>
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20, marginBottom: 36 }}>
             {reportTypes.map(r => (
               <div key={r.id} style={{
