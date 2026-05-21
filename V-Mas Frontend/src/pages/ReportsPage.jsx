@@ -5,7 +5,7 @@ import { useD } from '../context/ThemeContext'
 import {
   Car, Fuel, Wrench, Users, MapPin, DollarSign,
   FileText, Calendar, Download, ClipboardList, BarChart2, Loader2, Database, TrendingUp,
-  AlertCircle, CheckCircle
+  AlertCircle, CheckCircle, X
 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
