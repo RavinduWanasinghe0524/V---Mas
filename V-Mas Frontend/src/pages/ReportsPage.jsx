@@ -5,7 +5,7 @@ import { useD } from '../context/ThemeContext'
 import {
   Car, Fuel, Wrench, Users, MapPin, DollarSign,
   FileText, Calendar, Download, ClipboardList, BarChart2, Loader2, Database, TrendingUp,
-  AlertCircle, CheckCircle
+  AlertCircle, CheckCircle, X
 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
@@ -43,6 +43,7 @@ const ReportsPage = () => {
   const [recentSearch, setRecentSearch] = useState('')
   const [pdfTheme, setPdfTheme] = useState('indigo')
   const [reportsList, setReportsList] = useState(recentReports)
+  const [activeCategory, setActiveCategory] = useState('All')
 
   const pdfThemeColors = {
     indigo: { primary: [67, 56, 202] },
@@ -419,6 +420,15 @@ const ReportsPage = () => {
     setTimeout(() => setSuccessMsg(''), 4000)
   }
 
+  const handleClearAllRecent = () => {
+    if (reportsList.length === 0) return
+    if (!window.confirm('Are you sure you want to clear all recent reports history? This cannot be undone.')) return
+    setReportsList([])
+    setSuccessMsg('Successfully cleared all recent reports history.')
+    setTimeout(() => setSuccessMsg(''), 4000)
+  }
+
+
   const handleRedownloadRecent = (name, format) => {
     setSuccessMsg(`Starting re-download of "${name}" in ${format} format...`)
     setTimeout(() => setSuccessMsg(''), 4000)
@@ -554,8 +564,59 @@ const ReportsPage = () => {
               ))}
             </div>
           </div>
+
+          {/* Category Filter Tabs */}
+          <div style={{
+            display: 'flex',
+            gap: 8,
+            overflowX: 'auto',
+            paddingBottom: 12,
+            marginBottom: 24,
+            borderBottom: `1px solid ${D.border}`,
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}>
+            {['All', 'System', 'Fleet', 'Fuel', 'Maintenance', 'Users', 'Finance'].map(cat => {
+              const isActive = activeCategory === cat
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 20,
+                    border: 'none',
+                    background: isActive ? D.indigo : D.surface,
+                    color: isActive ? '#fff' : D.textSub,
+                    fontWeight: 700,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    boxShadow: isActive ? `0 4px 12px ${D.indigoDim}` : 'none',
+                    border: `1px solid ${isActive ? D.indigo : D.border}`,
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={e => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = D.surfaceHi;
+                      e.currentTarget.style.color = D.text;
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = D.surface;
+                      e.currentTarget.style.color = D.textSub;
+                    }
+                  }}
+                >
+                  {cat}
+                </button>
+              )
+            })}
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20, marginBottom: 36 }}>
-            {reportTypes.map(r => (
+            {reportTypes.filter(r => activeCategory === 'All' || r.category.toLowerCase() === activeCategory.toLowerCase()).map(r => (
               <div key={r.id} style={{
                 background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`,
                 padding: '24px', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', height: '100%',
@@ -649,6 +710,33 @@ const ReportsPage = () => {
                   }}
                 >
                   <X size={14} /> Clear Search
+                </button>
+              )}
+              {reportsList.length > 0 && (
+                <button
+                  onClick={handleClearAllRecent}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 8,
+                    border: `1px solid ${D.red}40`,
+                    background: 'transparent',
+                    color: D.red,
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = D.redDim;
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  Clear All History
                 </button>
               )}
             </div>
