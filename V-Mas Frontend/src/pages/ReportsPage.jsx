@@ -653,6 +653,27 @@ const ReportsPage = () => {
               )}
             </div>
 
+            {/* Recent reports list count status indicator */}
+            <div style={{
+              padding: '10px 24px',
+              fontSize: '0.78rem',
+              color: D.textSub,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderBottom: `1px solid ${D.border}`,
+              background: D.surfaceHi,
+              fontWeight: 500
+            }}>
+              <span>Showing <strong>{filteredRecentReports.length}</strong> of <strong>{reportsList.length}</strong> recent reports</span>
+              {recentSearch && (
+                <span style={{ color: D.purple, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: D.purple }}></span>
+                  Active search results
+                </span>
+              )}
+            </div>
+
             {filteredRecentReports.length === 0 ? (
               <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>
                 No recent reports found matching "{recentSearch}"
