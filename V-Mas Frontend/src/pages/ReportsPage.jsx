@@ -42,6 +42,7 @@ const ReportsPage = () => {
   const [successMsg, setSuccessMsg] = useState('')
   const [recentSearch, setRecentSearch] = useState('')
   const [pdfTheme, setPdfTheme] = useState('indigo')
+  const [reportsList, setReportsList] = useState(recentReports)
 
   const pdfThemeColors = {
     indigo: { primary: [67, 56, 202] },
@@ -50,7 +51,7 @@ const ReportsPage = () => {
     charcoal: { primary: [55, 65, 81] }
   }
 
-  const filteredRecentReports = recentReports.filter(r =>
+  const filteredRecentReports = reportsList.filter(r =>
     r.name.toLowerCase().includes(recentSearch.toLowerCase()) ||
     r.format.toLowerCase().includes(recentSearch.toLowerCase())
   )
@@ -334,6 +335,95 @@ const ReportsPage = () => {
     }
   }
 
+  const handleGenerateExcel = async (id) => {
+    setError('')
+    setSuccessMsg('')
+    setGenerating(id)
+    try {
+      let csvContent = ''
+      let headers = []
+      let rows = []
+      const filename = `${id}-${new Date().toISOString().split('T')[0]}.csv`
+
+      if (id === 'vehicle-summary' || id === 'master-report') {
+        const { data } = await vehicleAPI.getAllVehicles()
+        headers = ['Reg No', 'Brand', 'Model', 'Status', 'Mileage', 'Fuel Type', 'Capacity']
+        rows = data.map(v => [
+          v.registrationNumber, v.brand || 'N/A', v.model || 'N/A', v.status || 'N/A', v.mileage || 0, v.fuelType || 'N/A', v.fuelCapacity || 0
+        ])
+      } else if (id === 'fuel-report') {
+        const { data } = await fuelAPI.getAllFuelLogs()
+        headers = ['Date', 'Vehicle', 'Driver', 'Type', 'Liters', 'Cost']
+        rows = data.map(f => [
+          f.date ? new Date(f.date).toLocaleDateString() : 'N/A',
+          f.vehicleRegNo || 'N/A',
+          f.driverName || 'N/A',
+          f.fuelType || 'N/A',
+          f.liters || 0,
+          f.cost || 0
+        ])
+      } else if (id === 'service-report') {
+        const { data } = await serviceAPI.getAllServices()
+        headers = ['Date', 'Vehicle Reg', 'Service Type', 'Status', 'Cost']
+        rows = data.map(s => [
+          s.date ? new Date(s.date).toLocaleDateString() : 'N/A',
+          s.vehicleRegNo || 'N/A',
+          s.serviceType || 'N/A',
+          s.status || 'N/A',
+          s.cost || 0
+        ])
+      } else if (id === 'user-report') {
+        const { data } = await userAPI.getAllUsers()
+        headers = ['Username', 'Email', 'Role', 'Status']
+        rows = data.map(u => [
+          u.userName || 'N/A',
+          u.email || 'N/A',
+          u.role || 'N/A',
+          u.accountStatus || 'ACTIVE'
+        ])
+      } else {
+        setError('Excel export for this category is under development.')
+        setTimeout(() => setError(''), 4000)
+        return
+      }
+
+      csvContent = [
+        headers.join(','),
+        ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+      ].join('\n')
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.setAttribute("href", url)
+      link.setAttribute("download", filename)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      setSuccessMsg(`Excel (CSV) report "${filename}" generated and downloaded successfully.`)
+      setTimeout(() => setSuccessMsg(''), 5000)
+    } catch (err) {
+      console.error('Error generating Excel:', err)
+      setError('Failed to generate Excel report.')
+      setTimeout(() => setError(''), 4000)
+    } finally {
+      setGenerating(null)
+    }
+  }
+
+  const handleDeleteRecent = (name) => {
+    if (!window.confirm(`Are you sure you want to remove "${name}" from recent downloads?`)) return
+    setReportsList(reportsList.filter(r => r.name !== name))
+    setSuccessMsg(`Successfully removed "${name}" from recent reports.`)
+    setTimeout(() => setSuccessMsg(''), 4000)
+  }
+
+  const handleRedownloadRecent = (name, format) => {
+    setSuccessMsg(`Starting re-download of "${name}" in ${format} format...`)
+    setTimeout(() => setSuccessMsg(''), 4000)
+  }
+
   return (
     <div className="app-shell" style={{ background: D.bg }}>
       <Sidebar />
@@ -498,9 +588,12 @@ const ReportsPage = () => {
                   >
                     {generating === r.id ? <><Loader2 size={14} className="animate-spin" style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}/> Generating…</> : <><Download size={14} style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}/> Generate PDF</>}
                   </button>
-                  <button style={{ padding: '9px 12px', borderRadius: 10, border: `1px solid ${r.color}40`, background: r.bg, color: r.color, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = r.color; e.currentTarget.style.color = '#fff' }}
-                    onMouseLeave={e => { e.currentTarget.style.background = r.bg; e.currentTarget.style.color = r.color }}>
+                  <button
+                    onClick={() => handleGenerateExcel(r.id)}
+                    disabled={generating === r.id}
+                    style={{ padding: '9px 12px', borderRadius: 10, border: `1px solid ${r.color}40`, background: r.bg, color: r.color, fontSize: '0.8rem', fontWeight: 700, cursor: generating === r.id ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}
+                    onMouseEnter={e => { if (generating !== r.id) { e.currentTarget.style.background = r.color; e.currentTarget.style.color = '#fff' } }}
+                    onMouseLeave={e => { if (generating !== r.id) { e.currentTarget.style.background = r.bg; e.currentTarget.style.color = r.color } }}>
                     Excel
                   </button>
                 </div>
@@ -560,6 +653,27 @@ const ReportsPage = () => {
               )}
             </div>
 
+            {/* Recent reports list count status indicator */}
+            <div style={{
+              padding: '10px 24px',
+              fontSize: '0.78rem',
+              color: D.textSub,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderBottom: `1px solid ${D.border}`,
+              background: D.surfaceHi,
+              fontWeight: 500
+            }}>
+              <span>Showing <strong>{filteredRecentReports.length}</strong> of <strong>{reportsList.length}</strong> recent reports</span>
+              {recentSearch && (
+                <span style={{ color: D.purple, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: D.purple }}></span>
+                  Active search results
+                </span>
+              )}
+            </div>
+
             {filteredRecentReports.length === 0 ? (
               <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>
                 No recent reports found matching "{recentSearch}"
@@ -590,12 +704,16 @@ const ReportsPage = () => {
                       <td style={{ padding: '14px 16px', color: D.textSub }}>{r.size}</td>
                       <td style={{ padding: '14px 16px' }}>
                         <div style={{ display: 'flex', gap: 6 }}>
-                          <button style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
+                          <button
+                            onClick={() => handleRedownloadRecent(r.name, r.format)}
+                            style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
                             onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor='rgba(99,102,241,0.4)'; e.currentTarget.style.color='#a5b4fc' }}
                             onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor=D.border; e.currentTarget.style.color=D.text }}>
                             <Download size={12} strokeWidth={2} style={{ marginRight: 4 }} /> Download
                           </button>
-                          <button style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
+                          <button
+                            onClick={() => handleDeleteRecent(r.name)}
+                            style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
                             onMouseEnter={e => { e.currentTarget.style.background='rgba(248,113,113,0.2)' }}
                             onMouseLeave={e => { e.currentTarget.style.background='rgba(248,113,113,0.1)' }}>
                             Delete
