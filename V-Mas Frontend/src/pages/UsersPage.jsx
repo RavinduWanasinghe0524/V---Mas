@@ -643,6 +643,8 @@ const UsersPage = () => {
                         e.currentTarget.style.background = D.redDim;
                         e.currentTarget.style.transform = 'scale(1)';
                       }}
+                    >
+                      <X size={14} /> Clear Filters
                     </button>
                   )}
                 </div>
