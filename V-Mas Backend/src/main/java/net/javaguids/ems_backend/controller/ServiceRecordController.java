@@ -111,7 +111,7 @@ public class ServiceRecordController {
     }
 
     // POST /api/services/{id}/attachment — Upload a bill or document for a service record
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER', 'DRIVER')")
     @PostMapping(value = "/{id}/attachment", consumes = "multipart/form-data")
     public ResponseEntity<ApiResponse<ServiceRecordDto>> uploadAttachment(
             @PathVariable Long id,
@@ -141,5 +141,20 @@ public class ServiceRecordController {
     public ResponseEntity<ApiResponse<List<ServiceRecordAuditDto>>> getServiceHistory(@PathVariable Long id) {
         List<ServiceRecordAuditDto> history = serviceRecordService.getServiceHistory(id);
         return ApiResponseUtil.success("Service record history fetched successfully", history, HttpStatus.OK);
+    }
+
+    // GET /api/services/{id}/attachment — Download or view the attached bill/receipt
+    @GetMapping("/{id}/attachment")
+    public ResponseEntity<org.springframework.core.io.Resource> getAttachment(@PathVariable Long id) {
+        org.springframework.core.io.Resource resource = serviceRecordService.getAttachment(id);
+        String contentType = "application/octet-stream";
+        try {
+            contentType = java.nio.file.Files.probeContentType(java.nio.file.Paths.get(resource.getFile().getAbsolutePath()));
+        } catch (Exception ignored) {}
+
+        return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
+                .body(resource);
     }
 }

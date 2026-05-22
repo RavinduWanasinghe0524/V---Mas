@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
@@ -6,7 +6,8 @@ import { serviceAPI, vehicleAPI, notificationAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
 import { addControllerNotification, addDriverNotification } from '../services/notificationService'
-import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle, Paperclip, User, Eye, Archive, Clock } from 'lucide-react'
+import { computeMileageProgress, computeDateAlert, getAlertLevel, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
+import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle, Paperclip, User, Eye, Archive, Clock, Gauge, BellRing } from 'lucide-react'
 
 const SERVICE_TYPES = [
   { value: 'OIL_CHANGE', label: 'Oil Change' },
@@ -20,6 +21,18 @@ const SERVICE_TYPES = [
   { value: 'OTHER', label: 'Other' },
 ]
 
+const SERVICE_LOGIC_ENGINE = {
+  OIL_CHANGE:           { intervalKm: 5000,  intervalMonths: 3 },
+  ENGINE_TUNE_UP:       { intervalKm: 10000, intervalMonths: 6 },
+  BRAKE_SERVICE:        { intervalKm: 20000, intervalMonths: 12 },
+  TIRE_ROTATION:        { intervalKm: 10000, intervalMonths: 6 },
+  TRANSMISSION_SERVICE: { intervalKm: 40000, intervalMonths: 24 },
+  AC_SERVICE:           { intervalKm: 20000, intervalMonths: 12 },
+  BATTERY_REPLACEMENT:  { intervalKm: 60000, intervalMonths: 36 },
+  GENERAL_INSPECTION:   { intervalKm: 10000, intervalMonths: 6 },
+  OTHER:                { intervalKm: 5000,  intervalMonths: 3 }
+}
+
 const initialForm = {
   vehicleRegNumber: '',
   serviceType: '',
@@ -29,6 +42,21 @@ const initialForm = {
   serviceCost: '',
   technicianWorkshop: '',
   nextServiceDue: '',
+  nextServiceMileageKm: '',
+  description: '',
+  partsReplaced: '',
+  serviceClassification: 'ROUTINE',
+}
+
+const initialScheduleForm = {
+  vehicleRegNumber: '',
+  serviceType: '',
+  serviceTypeDetail: '',
+  scheduleMode: 'date', // 'date' | 'mileage' | 'both'
+  scheduledDate: '',
+  targetMileageKm: '',
+  estimatedCost: '',
+  preferredWorkshop: '',
   description: '',
 }
 
@@ -59,6 +87,8 @@ const STATUS_CONFIG = {
   ALL: { label: 'All', color: '#6366f1', bg: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.3)' },
   SCHEDULED: { label: 'Scheduled', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' },
   COMPLETED: { label: 'Completed', color: '#10b981', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)' },
+  UPCOMING: { label: 'Upcoming', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' },
+  OVERDUE: { label: 'Overdue', color: '#ef4444', bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)' },
 }
 
 /* ── Progress bar widths for stat cards ─────────────────────────── */
@@ -71,15 +101,206 @@ const ProgressBar = ({ value, max, color, D }) => {
   )
 }
 
+/* ── Service Progress Meter ──────────────────────────────────────────
+   Shows mileage progress bar + date countdown for a service record.
+   vehicleCurrentKm: live mileage from vehicle entity.
+──────────────────────────────────────────────────────────────────── */
+const ServiceProgressMeter = ({ record, vehicleCurrentKm, D }) => {
+  const mileage = computeMileageProgress(record, vehicleCurrentKm)
+  const date    = computeDateAlert(record)
+
+  if (!mileage && !date) return null
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
+      {/* Mileage progress bar */}
+      {mileage && (() => {
+        const ac = ALERT_COLORS[mileage.level]
+        const pct = Math.min(mileage.pct, 100)
+        return (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Gauge size={11} /> Next Service Mileage
+              </span>
+              <span style={{
+                fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px',
+                borderRadius: 999, background: ac.bg, color: ac.color,
+                border: `1px solid ${ac.border}`
+              }}>
+                {pct.toFixed(0)}% · {fmtKmRemaining(mileage.remaining)}
+              </span>
+            </div>
+            <div style={{ position: 'relative', height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden' }}>
+              <div style={{
+                width: `${pct}%`, height: '100%',
+                background: ac.color,
+                borderRadius: 999,
+                transition: 'width 0.6s ease',
+                animation: mileage.level === 'OVERDUE' ? 'pulseBar 1.5s ease-in-out infinite' : 'none',
+              }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3, fontSize: '0.62rem', color: D.textFaint }}>
+              <span>{mileage.serviceKm?.toLocaleString()} km</span>
+              <span>{mileage.nextKm?.toLocaleString()} km</span>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Date countdown chip */}
+      {date && (() => {
+        const ac = ALERT_COLORS[date.level]
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Calendar size={11} style={{ color: ac.color, flexShrink: 0 }} />
+            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: D.textSub }}>Next service date:</span>
+            <span style={{
+              fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px',
+              borderRadius: 999, background: ac.bg, color: ac.color,
+              border: `1px solid ${ac.border}`,
+              animation: date.level === 'OVERDUE' ? 'pulseBar 1.5s ease-in-out infinite' : 'none',
+            }}>
+              {fmtDaysRemaining(date.daysRemaining)}
+            </span>
+          </div>
+        )
+      })()}
+    </div>
+  )
+}
+
+/* ── Service Due Alert Strip ─────────────────────────────────────────
+   Horizontal scroll strip shown at top of the page for records
+   that are DUE_SOON or OVERDUE.
+──────────────────────────────────────────────────────────────────── */
+const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D }) => {
+  if (!alertRecords || alertRecords.length === 0) return null
+
+  const overdue  = alertRecords.filter(r => r._alertLevel === 'OVERDUE')
+  const dueSoon  = alertRecords.filter(r => r._alertLevel === 'DUE_SOON')
+
+  return (
+    <div style={{
+      background: D.surface,
+      border: `1px solid ${overdue.length > 0 ? 'rgba(239,68,68,0.35)' : 'rgba(245,158,11,0.35)'}`,
+      borderRadius: 16,
+      marginBottom: 20,
+      overflow: 'hidden',
+      animation: 'fadeIn 0.3s ease',
+    }}>
+      {/* Header */}
+      <div style={{
+        padding: '14px 20px',
+        borderBottom: `1px solid ${D.border}`,
+        display: 'flex', alignItems: 'center', gap: 10,
+        background: overdue.length > 0 ? 'rgba(239,68,68,0.07)' : 'rgba(245,158,11,0.07)',
+      }}>
+        <BellRing size={16} style={{ color: overdue.length > 0 ? '#ef4444' : '#f59e0b', flexShrink: 0 }} />
+        <span style={{ fontWeight: 700, fontSize: '0.88rem', color: D.text }}>
+          Service Alerts
+        </span>
+        {overdue.length > 0 && (
+          <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '2px 7px', borderRadius: 999, marginLeft: 2 }}>
+            {overdue.length} Overdue
+          </span>
+        )}
+        {dueSoon.length > 0 && (
+          <span style={{ background: '#f59e0b', color: '#000', fontSize: '0.65rem', fontWeight: 800, padding: '2px 7px', borderRadius: 999 }}>
+            {dueSoon.length} Due Soon
+          </span>
+        )}
+      </div>
+
+      {/* Scroll strip of alert cards */}
+      <div style={{ display: 'flex', gap: 12, padding: '14px 16px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
+        {alertRecords.map(r => {
+          const ac = ALERT_COLORS[r._alertLevel] || ALERT_COLORS.DUE_SOON
+          const mileage = computeMileageProgress(r, r._vehicleCurrentKm)
+          const date    = computeDateAlert(r)
+          return (
+            <div key={r.id} style={{
+              flexShrink: 0,
+              minWidth: 230,
+              maxWidth: 260,
+              background: D.bg,
+              border: `1px solid ${ac.border}`,
+              borderRadius: 12,
+              padding: '12px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              boxShadow: `0 2px 12px ${ac.bg}`,
+            }}>
+              {/* Vehicle + type */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: ac.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${ac.border}` }}>
+                  <Car size={16} style={{ color: ac.color }} />
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 800, fontSize: '0.82rem', color: D.text }}>{r.vehicleRegNumber}</p>
+                  <p style={{ margin: 0, fontSize: '0.7rem', color: D.textSub }}>{r.serviceType?.replace(/_/g, ' ')}</p>
+                </div>
+                <span style={{
+                  marginLeft: 'auto', fontSize: '0.62rem', fontWeight: 800,
+                  padding: '2px 7px', borderRadius: 999,
+                  background: ac.bg, color: ac.color, border: `1px solid ${ac.border}`
+                }}>{ac.label}</span>
+              </div>
+
+              {/* Mileage progress */}
+              {mileage && (
+                <div>
+                  <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden', marginBottom: 4 }}>
+                    <div style={{ width: `${Math.min(mileage.pct, 100)}%`, height: '100%', background: ac.color, borderRadius: 999 }} />
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.68rem', color: ac.color, fontWeight: 700 }}>
+                    {fmtKmRemaining(mileage.remaining)}
+                  </p>
+                </div>
+              )}
+
+              {/* Date countdown */}
+              {date && (
+                <p style={{ margin: 0, fontSize: '0.68rem', color: ac.color, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Calendar size={11} /> {fmtDaysRemaining(date.daysRemaining)}
+                </p>
+              )}
+
+              {/* Actions */}
+              {onCompleteAlert && (
+                <div style={{ marginTop: 'auto', paddingTop: 8 }}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onCompleteAlert(r); }}
+                    style={{
+                      width: '100%', padding: '6px 0', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
+                      background: ac.bg, color: ac.color, border: `1px solid ${ac.border}`,
+                      cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = ac.color; e.currentTarget.style.color = '#fff' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = ac.bg; e.currentTarget.style.color = ac.color }}
+                  >
+                    <CheckCircle size={14} /> Complete Service
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 /* ── Service List Card (Old Style) ──────────────────────────────── */
-const ServiceListCard = ({ record, index, isDriver, currentUsername, onEdit, onDelete, onView, D }) => {
+const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, vehicleCurrentKm, onEdit, onDelete, onView, onViewAttachment, D }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
   const icon = SERVICE_TYPE_ICONS[record.serviceType] || <Wrench size={22} />
 
-  // Drivers may edit only records they personally created
-  const canEdit = !isDriver || record.createdBy === currentUsername
+  // Drivers may edit only records they personally created; Admin is view-only
+  const canEdit = !isDriver && !isAdmin || (!isAdmin && record.createdBy === currentUsername)
 
   return (
     <div
@@ -128,6 +349,17 @@ const ServiceListCard = ({ record, index, isDriver, currentUsername, onEdit, onD
           }}>
             {sc.label}
           </span>
+          {/* Classification badge */}
+          <span style={{
+            padding: '2px 10px', borderRadius: 999,
+            fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            background: record.serviceClassification === 'AD_HOC' ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)',
+            color: record.serviceClassification === 'AD_HOC' ? '#ef4444' : '#10b981',
+            border: `1px solid ${record.serviceClassification === 'AD_HOC' ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)'}`,
+          }}>
+            {record.serviceClassification === 'AD_HOC' ? '🛠️ Ad-hoc Repair' : '🟢 Routine'}
+          </span>
           {record.serviceTypeDetail && (
             <span style={{ fontSize: '0.75rem', color: D.textSub }}>({record.serviceTypeDetail})</span>
           )}
@@ -165,8 +397,19 @@ const ServiceListCard = ({ record, index, isDriver, currentUsername, onEdit, onD
           )}
           {/* ── Attachment chip ── */}
           {record.attachmentPath && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)' }}>
-              <Paperclip size={11} /> Bill attached
+            <span 
+              onClick={e => { e.stopPropagation(); onViewAttachment(record) }}
+              title="Click to view attached bill"
+              style={{ 
+                display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', 
+                color: '#10b981', background: 'rgba(16,185,129,0.1)', 
+                padding: '3px 10px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)',
+                cursor: 'pointer', transition: 'all 0.2s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.2)'; e.currentTarget.style.transform = 'scale(1.03)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.1)'; e.currentTarget.style.transform = 'scale(1)' }}
+            >
+              <Paperclip size={11} /> Bill attached · <span style={{ textDecoration: 'underline', fontWeight: 700 }}>View</span>
             </span>
           )}
         </div>
@@ -176,6 +419,22 @@ const ServiceListCard = ({ record, index, isDriver, currentUsername, onEdit, onD
             {record.description}
           </p>
         )}
+        {/* Parts Replaced */}
+        {record.partsReplaced && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6, alignItems: 'center' }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Parts:</span>
+            {record.partsReplaced.split(',').map((part, pi) => (
+              <span key={pi} style={{
+                background: D.surfaceHi, border: `1px solid ${D.border}`,
+                color: D.text, borderRadius: 6, padding: '2px 8px', fontSize: '0.68rem', fontWeight: 600
+              }}>
+                {part.trim()}
+              </span>
+            ))}
+          </div>
+        )}
+        {/* Service progress meter */}
+        <ServiceProgressMeter record={record} vehicleCurrentKm={vehicleCurrentKm} D={D} />
       </div>
 
       {/* Cost */}
@@ -183,11 +442,6 @@ const ServiceListCard = ({ record, index, isDriver, currentUsername, onEdit, onD
         <div style={{ fontSize: '1rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
           Rs. {Number(record.serviceCost || 0).toLocaleString()}
         </div>
-        {record.nextServiceDue && (
-          <div style={{ fontSize: '0.67rem', color: D.textSub, marginTop: 3 }}>
-            Next: {record.nextServiceDue.substring(0, 10)}
-          </div>
-        )}
       </div>
 
       {/* Actions — stop propagation so clicking buttons doesn't also open the detail modal */}
@@ -228,13 +482,13 @@ const ServiceListCard = ({ record, index, isDriver, currentUsername, onEdit, onD
 }
 
 /* ── Service Grid Card (New Style) ──────────────────────────────── */
-const ServiceGridCard = ({ record, index, isDriver, currentUsername, onEdit, onDelete, onView, D }) => {
+const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, vehicleCurrentKm, onEdit, onDelete, onView, onViewAttachment, D }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
 
-  // Drivers may edit only records they personally created
-  const canEdit = !isDriver || record.createdBy === currentUsername
+  // Drivers may edit only records they personally created; Admin is view-only
+  const canEdit = !isDriver && !isAdmin || (!isAdmin && record.createdBy === currentUsername)
 
   return (
     <div
@@ -266,14 +520,26 @@ const ServiceGridCard = ({ record, index, isDriver, currentUsername, onEdit, onD
             {record.serviceTypeDetail ? ` - ${record.serviceTypeDetail}` : ''}
           </div>
         </div>
-        <div style={{
-          padding: '4px 10px', borderRadius: 999,
-          fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em',
-          background: sc.bg, color: sc.color,
-          border: `1px solid ${sc.border}`,
-          textTransform: 'uppercase'
-        }}>
-          {sc.label}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+          <div style={{
+            padding: '4px 10px', borderRadius: 999,
+            fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em',
+            background: sc.bg, color: sc.color,
+            border: `1px solid ${sc.border}`,
+            textTransform: 'uppercase'
+          }}>
+            {sc.label}
+          </div>
+          <div style={{
+            padding: '4px 10px', borderRadius: 999,
+            fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em',
+            background: record.serviceClassification === 'AD_HOC' ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)',
+            color: record.serviceClassification === 'AD_HOC' ? '#ef4444' : '#10b981',
+            border: `1px solid ${record.serviceClassification === 'AD_HOC' ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)'}`,
+            textTransform: 'uppercase'
+          }}>
+            {record.serviceClassification === 'AD_HOC' ? '🛠️ Ad-hoc' : '🟢 Routine'}
+          </div>
         </div>
       </div>
 
@@ -283,6 +549,21 @@ const ServiceGridCard = ({ record, index, isDriver, currentUsername, onEdit, onD
       <div style={{ color: D.text, fontSize: '0.85rem' }}>
         {record.description || 'No description provided.'}
       </div>
+
+      {/* Parts Replaced */}
+      {record.partsReplaced && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Parts:</span>
+          {record.partsReplaced.split(',').map((part, pi) => (
+            <span key={pi} style={{
+              background: D.surfaceHi, border: `1px solid ${D.border}`,
+              color: D.text, borderRadius: 6, padding: '2px 8px', fontSize: '0.68rem', fontWeight: 600
+            }}>
+              {part.trim()}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
@@ -310,10 +591,9 @@ const ServiceGridCard = ({ record, index, isDriver, currentUsername, onEdit, onD
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: D.textSub, fontSize: '0.75rem' }}>
           <Wrench size={12} /> {record.technicianWorkshop || '—'}
         </div>
-        <div style={{ color: D.textSub, fontSize: '0.75rem' }}>
-          Next: {record.nextServiceDue ? record.nextServiceDue.substring(0, 10) : '—'}
-        </div>
       </div>
+      {/* Service progress meter */}
+      <ServiceProgressMeter record={record} vehicleCurrentKm={vehicleCurrentKm} D={D} />
 
       {/* ── Created by / at + attachment ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', paddingTop: 8, borderTop: `1px solid ${D.border}` }}>
@@ -328,8 +608,19 @@ const ServiceGridCard = ({ record, index, isDriver, currentUsername, onEdit, onD
           </span>
         )}
         {record.attachmentPath && (
-          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)' }}>
-            <Paperclip size={11} /> Bill attached
+          <span 
+            onClick={e => { e.stopPropagation(); onViewAttachment(record) }}
+            title="Click to view attached bill"
+            style={{ 
+              marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', 
+              color: '#10b981', background: 'rgba(16,185,129,0.1)', 
+              padding: '3px 10px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)',
+              cursor: 'pointer', transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.2)'; e.currentTarget.style.transform = 'scale(1.03)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.1)'; e.currentTarget.style.transform = 'scale(1)' }}
+          >
+            <Paperclip size={11} /> Bill attached · <span style={{ textDecoration: 'underline', fontWeight: 700 }}>View</span>
           </span>
         )}
       </div>
@@ -454,6 +745,7 @@ const ServicePage = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
   const isDriver = user?.role === 'DRIVER'
+  const isAdmin  = user?.role === 'ADMIN'
 
   const [services, setServices] = useState([])
   const [stats, setStats] = useState(null)
@@ -463,6 +755,11 @@ const ServicePage = () => {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState('grid')
+
+  // ── Service due alerts ──────────────────────────────────────────
+  const [alertRecords, setAlertRecords] = useState([])  // records with DUE_SOON or OVERDUE level
+  // Track which record IDs have already had a notification fired this session
+  const notifiedRef = useRef(new Set())
 
   // ── Vehicle scope ───────────────────────────────────────────────
   const [allVehicles, setAllVehicles] = useState([])
@@ -484,10 +781,13 @@ const ServicePage = () => {
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
   const [editingServiceId, setEditingServiceId] = useState(null)
   const [errors, setErrors] = useState({})
+  const [scheduleErrors, setScheduleErrors] = useState({})
   const [submitError, setSubmitError] = useState(null)
   const [formData, setFormData] = useState(initialForm)
+  const [scheduleFormData, setScheduleFormData] = useState(initialScheduleForm)
   const [editFormData, setEditFormData] = useState(initialForm)
   const [formLoading, setFormLoading] = useState(false)
   const [toastMessage, setToastMessage] = useState(null)
@@ -495,19 +795,62 @@ const ServicePage = () => {
   const [addAttachmentFile, setAddAttachmentFile] = useState(null)
   const [editAttachmentFile, setEditAttachmentFile] = useState(null)
 
+  // Attachment lightbox viewer state
+  const [attachmentViewer, setAttachmentViewer] = useState({
+    isOpen: false,
+    url: null,
+    type: null,
+    filename: null,
+    loading: false
+  })
+
+  const handleViewAttachment = async (record) => {
+    if (!record || !record.id) return
+    setAttachmentViewer(prev => ({ ...prev, loading: true }))
+    try {
+      const res = await serviceAPI.getAttachmentBlob(record.id)
+      const blob = res.data
+      const type = blob.type || ''
+      const url = URL.createObjectURL(blob)
+      
+      const path = record.attachmentPath || ''
+      let filename = path.substring(path.lastIndexOf('/') + 1)
+      if (filename.length > 37 && filename.substring(8, 9) === '-' && filename.substring(13, 14) === '-') {
+        filename = filename.substring(37)
+      }
+      
+      if (type.includes('pdf')) {
+        setAttachmentViewer(prev => ({ ...prev, loading: false }))
+        window.open(url, '_blank')
+      } else {
+        setAttachmentViewer({
+          isOpen: true,
+          url,
+          type,
+          filename,
+          loading: false
+        })
+      }
+    } catch (err) {
+      console.error('Error loading attachment', err)
+      setAttachmentViewer(prev => ({ ...prev, loading: false }))
+      showToast('Failed to load attachment. File may not exist.', 'error')
+    }
+  }
+
   const showToast = (msg, type) => {
     setToastMessage({ msg, type })
     setTimeout(() => setToastMessage(null), 3000)
   }
 
   useEffect(() => {
-    if (isAddModalOpen || isEditModalOpen || deleteModal.isOpen || detailModal.isOpen) {
+    if (isAddModalOpen || isEditModalOpen || deleteModal.isOpen || detailModal.isOpen || attachmentViewer.isOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
     }
     return () => { document.body.style.overflow = '' }
-  }, [isAddModalOpen, isEditModalOpen, deleteModal.isOpen, detailModal.isOpen])
+  }, [isAddModalOpen, isEditModalOpen, deleteModal.isOpen, detailModal.isOpen, attachmentViewer.isOpen])
 
   // Fetch audit history whenever detail modal opens for a record
   useEffect(() => {
@@ -547,24 +890,26 @@ const ServicePage = () => {
         const regNo = data.vehicleRegNumber
         const recordDate = data.serviceDate ? new Date(data.serviceDate) : new Date()
 
-        // Find service records for this vehicle with an earlier or equal date
+        // Find service records for this vehicle with an earlier or equal date (excluding scheduled)
         const earlierServices = services.filter(s => 
           s.vehicleRegNumber === regNo && 
           (!originalRecord || s.id !== originalRecord.id) &&
           s.currentMileageKm && 
           s.serviceDate &&
+          getStatus(s) !== 'SCHEDULED' &&
           new Date(s.serviceDate) <= recordDate
         )
 
         // Find the maximum mileage among older services
         const maxEarlierMileage = earlierServices.reduce((max, s) => Math.max(max, Number(s.currentMileageKm)), 0)
 
-        // Find service records for this vehicle with a later date
+        // Find service records for this vehicle with a later date (excluding scheduled)
         const laterServices = services.filter(s =>
           s.vehicleRegNumber === regNo &&
           (!originalRecord || s.id !== originalRecord.id) &&
           s.currentMileageKm &&
           s.serviceDate &&
+          getStatus(s) !== 'SCHEDULED' &&
           new Date(s.serviceDate) > recordDate
         )
 
@@ -599,8 +944,8 @@ const ServicePage = () => {
     const vehicleObj = allVehicles.find(v => v.registrationNo === regNo)
     const baseMil = vehicleObj && vehicleObj.currentMileageKm ? Number(vehicleObj.currentMileageKm) : 0
 
-    // find latest service for this vehicle
-    const vehicleServices = services.filter(s => s.vehicleRegNumber === regNo && s.currentMileageKm)
+    // find latest service for this vehicle (excluding scheduled)
+    const vehicleServices = services.filter(s => s.vehicleRegNumber === regNo && s.currentMileageKm && getStatus(s) !== 'SCHEDULED')
     vehicleServices.sort((a, b) => Number(b.currentMileageKm) - Number(a.currentMileageKm))
     const lastServiceMil = vehicleServices.length > 0 ? Number(vehicleServices[0].currentMileageKm) : 0
 
@@ -611,6 +956,7 @@ const ServicePage = () => {
         s.id !== editingServiceId && 
         s.currentMileageKm && 
         s.serviceDate &&
+        getStatus(s) !== 'SCHEDULED' &&
         new Date(s.serviceDate) <= recordDate
       )
       earlierServices.sort((a, b) => Number(b.currentMileageKm) - Number(a.currentMileageKm))
@@ -632,10 +978,13 @@ const ServicePage = () => {
     if (errors.currentMileageKm) setErrors(prev => ({ ...prev, currentMileageKm: undefined }))
   }
 
-  const openAddModal = () => {
-    const regNo = ''
+  const openAddModal = (prefill = {}) => {
+    const isEvent = prefill && (prefill.nativeEvent || prefill.target)
+    const actualPrefill = isEvent ? {} : prefill
+    const regNo = actualPrefill.vehicleRegNumber || ''
     setFormData({
       ...initialForm,
+      ...actualPrefill,
       vehicleRegNumber: regNo,
     })
     setErrors({})
@@ -645,7 +994,7 @@ const ServicePage = () => {
     if (regNo) {
       const vehicleObj = allVehicles.find(v => v.registrationNo === regNo)
       const baseMil = Number(vehicleObj?.currentMileageKm || 0)
-      const vehicleServices = services.filter(s => s.vehicleRegNumber === regNo && s.currentMileageKm)
+      const vehicleServices = services.filter(s => s.vehicleRegNumber === regNo && s.currentMileageKm && getStatus(s) !== 'SCHEDULED')
       vehicleServices.sort((a, b) => Number(b.currentMileageKm) - Number(a.currentMileageKm))
       const lastServiceMil = vehicleServices.length > 0 ? Number(vehicleServices[0].currentMileageKm) : 0
       const lastMil = Math.max(baseMil, lastServiceMil)
@@ -657,6 +1006,105 @@ const ServicePage = () => {
     setIsAddModalOpen(true)
   }
   const closeAddModal = () => setIsAddModalOpen(false)
+
+  const openScheduleModal = () => {
+    setScheduleFormData(initialScheduleForm)
+    setScheduleErrors({})
+    setSubmitError(null)
+    setIsScheduleModalOpen(true)
+  }
+
+  const closeScheduleModal = () => setIsScheduleModalOpen(false)
+
+  const handleScheduleChange = (e) => {
+    const { name, value } = e.target
+    setScheduleFormData(prev => ({ ...prev, [name]: value }))
+    if (scheduleErrors[name]) setScheduleErrors(prev => ({ ...prev, [name]: undefined }))
+  }
+
+  const validateSchedule = (data) => {
+    const e = {}
+    if (!data.vehicleRegNumber?.trim()) {
+      e.vehicleRegNumber = 'Required'
+    } else {
+      const isRegValid = allVehicles.some(v => v.registrationNo === data.vehicleRegNumber)
+      if (!isRegValid) e.vehicleRegNumber = 'Please select a valid registered vehicle'
+    }
+
+    if (!data.serviceType) e.serviceType = 'Required'
+    if (data.serviceType === 'OTHER' && !data.serviceTypeDetail?.trim()) {
+      e.serviceTypeDetail = 'Required for Other'
+    }
+
+    if (data.scheduleMode === 'date' || data.scheduleMode === 'both') {
+      if (!data.scheduledDate) {
+        e.scheduledDate = 'Required for date scheduling'
+      } else {
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const selDate = new Date(data.scheduledDate)
+        selDate.setHours(0, 0, 0, 0)
+        if (selDate < today) {
+          e.scheduledDate = 'Scheduled date must be in the future'
+        }
+      }
+    }
+
+    if (data.scheduleMode === 'mileage' || data.scheduleMode === 'both') {
+      if (!data.targetMileageKm) {
+        e.targetMileageKm = 'Required for mileage scheduling'
+      } else {
+        const vehicleObj = allVehicles.find(v => v.registrationNo === data.vehicleRegNumber)
+        const currentMil = vehicleObj && vehicleObj.currentMileageKm ? Number(vehicleObj.currentMileageKm) : 0
+        if (Number(data.targetMileageKm) <= currentMil) {
+          e.targetMileageKm = `Target mileage must be greater than vehicle's current mileage (${currentMil.toLocaleString()} km)`
+        }
+      }
+    }
+
+    return e
+  }
+
+  const handleScheduleSubmit = async (e) => {
+    e.preventDefault()
+    const errs = validateSchedule(scheduleFormData)
+    if (Object.keys(errs).length) { setScheduleErrors(errs); return }
+    setFormLoading(true)
+    setSubmitError(null)
+    try {
+      const vehicleObj = allVehicles.find(v => v.registrationNo === scheduleFormData.vehicleRegNumber)
+      const currentMil = vehicleObj && vehicleObj.currentMileageKm ? Number(vehicleObj.currentMileageKm) : 0
+      
+      const isDate = scheduleFormData.scheduleMode === 'date' || scheduleFormData.scheduleMode === 'both'
+      const isMil = scheduleFormData.scheduleMode === 'mileage' || scheduleFormData.scheduleMode === 'both'
+
+      // DB compatibility mappings:
+      const payload = {
+        vehicleRegNumber: scheduleFormData.vehicleRegNumber,
+        serviceType: scheduleFormData.serviceType,
+        serviceTypeDetail: scheduleFormData.serviceType === 'OTHER' ? scheduleFormData.serviceTypeDetail : null,
+        currentMileageKm: currentMil, // Baseline mileage
+        serviceCost: scheduleFormData.estimatedCost ? Number(scheduleFormData.estimatedCost) : 0,
+        technicianWorkshop: scheduleFormData.preferredWorkshop || 'Scheduled (TBD)',
+        description: scheduleFormData.description,
+        serviceDate: isDate 
+          ? scheduleFormData.scheduledDate 
+          : new Date(Date.now() + 86400000).toISOString().split('T')[0], // tomorrow if mileage only
+        nextServiceDue: isDate ? scheduleFormData.scheduledDate : null,
+        nextServiceMileageKm: isMil ? Number(scheduleFormData.targetMileageKm) : null,
+      }
+
+      await serviceAPI.createService(payload)
+      setIsScheduleModalOpen(false)
+      loadData()
+      showToast('Service scheduled successfully!', 'success')
+    } catch (err) {
+      setSubmitError(err.response?.data?.message || 'Failed to schedule service.')
+    } finally {
+      setFormLoading(false)
+    }
+  }
+
 
   const handleAddChange = (e) => {
     const { name, value } = e.target
@@ -673,9 +1121,15 @@ const ServicePage = () => {
     try {
       const payload = {
         ...formData,
+        nextServiceDue: formData.nextServiceDue ? formData.nextServiceDue : null,
         nextServiceMileageKm: formData.nextServiceMileageKm ? Number(formData.nextServiceMileageKm) : null
       }
-      const res = await serviceAPI.createService(payload)
+      let res;
+      if (formData.id) {
+        res = await serviceAPI.updateService(formData.id, payload)
+      } else {
+        res = await serviceAPI.createService(payload)
+      }
       // If a file was selected, upload it immediately after record creation
       if (addAttachmentFile && res.data?.data?.id) {
         try {
@@ -701,7 +1155,8 @@ const ServicePage = () => {
       setIsAddModalOpen(false)
       loadData()
     } catch (err) {
-      setSubmitError(err.response?.data?.message || 'Failed to save service record.')
+      const msg = err.response?.data ? JSON.stringify(err.response.data) : (err.message || 'Failed to save service record.')
+      setSubmitError('Debug Backend Error: ' + msg)
     } finally {
       setFormLoading(false)
     }
@@ -722,6 +1177,8 @@ const ServicePage = () => {
       nextServiceDue: record.nextServiceDue ? record.nextServiceDue.substring(0, 10) : '',
       nextServiceMileageKm: record.nextServiceMileageKm || '',
       description: record.description || '',
+      partsReplaced: record.partsReplaced || '',
+      serviceClassification: record.serviceClassification || 'ROUTINE',
     })
     setErrors({})
     setSubmitError(null)
@@ -734,6 +1191,7 @@ const ServicePage = () => {
       s.id !== id && 
       s.currentMileageKm && 
       s.serviceDate &&
+      getStatus(s) !== 'SCHEDULED' &&
       new Date(s.serviceDate) <= recordDate
     )
     earlierServices.sort((a, b) => Number(b.currentMileageKm) - Number(a.currentMileageKm))
@@ -759,6 +1217,7 @@ const ServicePage = () => {
     try {
       const payload = {
         ...editFormData,
+        nextServiceDue: editFormData.nextServiceDue ? editFormData.nextServiceDue : null,
         nextServiceMileageKm: editFormData.nextServiceMileageKm ? Number(editFormData.nextServiceMileageKm) : null
       }
       await serviceAPI.updateService(editingServiceId, payload)
@@ -774,7 +1233,8 @@ const ServicePage = () => {
       setIsEditModalOpen(false)
       loadData()
     } catch (err) {
-      setSubmitError(err.response?.data?.message || 'Failed to update service record.')
+      const msg = err.response?.data ? JSON.stringify(err.response.data) : (err.message || 'Failed to update service record.')
+      setSubmitError('Debug Backend Error: ' + msg)
     } finally {
       setFormLoading(false)
     }
@@ -786,9 +1246,61 @@ const ServicePage = () => {
       // Fetch all vehicles for dropdown selection for all roles
       const requests = [serviceAPI.getAllServices(), serviceAPI.getServiceStats(), vehicleAPI.getAllVehicles()]
       const [servRes, statsRes, vehicleRes] = await Promise.all(requests)
-      setServices(servRes.data.data || [])
+      const loadedServices = servRes.data.data || []
+      const loadedVehicles = vehicleRes?.data.data || []
+      setServices(loadedServices)
       setStats(statsRes.data.data)
-      if (vehicleRes) setAllVehicles(vehicleRes.data.data || [])
+      if (vehicleRes) setAllVehicles(loadedVehicles)
+
+      // ── Compute alert records and fire notifications ──
+      const vehicleKmMap = {}
+      loadedVehicles.forEach(v => { vehicleKmMap[v.registrationNo] = v.currentMileageKm })
+
+      // Find the LATEST record per vehicle + service type (based on ID / creation time)
+      const latestServiceMap = {}
+      for (const s of loadedServices) {
+        const key = `${s.vehicleRegNumber}_${s.serviceType}`
+        if (!latestServiceMap[key]) {
+          latestServiceMap[key] = s
+        } else {
+          // Priority 1: id (since it's an auto-incrementing primary key, highest id = newest)
+          if (s.id && latestServiceMap[key].id) {
+            if (s.id > latestServiceMap[key].id) {
+              latestServiceMap[key] = s
+            }
+          } 
+          // Priority 2: Fallback to createdAt if id is missing for some reason
+          else if (s.createdAt && latestServiceMap[key].createdAt) {
+            if (new Date(s.createdAt).getTime() > new Date(latestServiceMap[key].createdAt).getTime()) {
+              latestServiceMap[key] = s
+            }
+          }
+        }
+      }
+
+      const alerts = []
+      for (const record of Object.values(latestServiceMap)) {
+        const vehicleKm = vehicleKmMap[record.vehicleRegNumber]
+        const level = getAlertLevel(record, vehicleKm)
+        if (level === 'DUE_SOON' || level === 'OVERDUE') {
+          alerts.push({ ...record, _alertLevel: level, _vehicleCurrentKm: vehicleKm })
+          // Fire backend notification once per record per session
+          if (!notifiedRef.current.has(record.id)) {
+            notifiedRef.current.add(record.id)
+            const mileageInfo = computeMileageProgress(record, vehicleKm)
+            const dateInfo    = computeDateAlert(record)
+            let msg = `${level === 'OVERDUE' ? '🔴 OVERDUE' : '🟡 Due Soon'}: Vehicle ${record.vehicleRegNumber} — ${record.serviceType?.replace(/_/g, ' ')}.`
+            if (mileageInfo) msg += ` ${fmtKmRemaining(mileageInfo.remaining)}.`
+            if (dateInfo)    msg += ` ${fmtDaysRemaining(dateInfo.daysRemaining)}.`
+            notificationAPI.create({
+              vehicleRegNumber: `VEH-${record.vehicleRegNumber}`,
+              message: msg,
+              type: level === 'OVERDUE' ? 'OVERDUE_SERVICE' : 'SERVICE_DUE'
+            }).catch(() => {}) // non-fatal
+          }
+        }
+      }
+      setAlertRecords(alerts)
     } catch (err) {
       console.error('Error loading service data', err)
     } finally {
@@ -851,13 +1363,30 @@ const ServicePage = () => {
   }
 
   /* Derived counts */
+  const completedServices = services.filter(s => getStatus(s) === 'COMPLETED')
+  const totalRoutineCost = completedServices
+    .filter(s => s.serviceClassification !== 'AD_HOC')
+    .reduce((sum, s) => sum + Number(s.serviceCost || 0), 0)
+  const totalAdHocCost = completedServices
+    .filter(s => s.serviceClassification === 'AD_HOC')
+    .reduce((sum, s) => sum + Number(s.serviceCost || 0), 0)
+
   const scheduled = services.filter(s => getStatus(s) === 'SCHEDULED').length
-  const completed = services.filter(s => getStatus(s) === 'COMPLETED').length
+  const completed = completedServices.length
   const total = services.length
+  const upcomingCount = alertRecords.filter(r => r._alertLevel === 'DUE_SOON').length
+  const overdueCount = alertRecords.filter(r => r._alertLevel === 'OVERDUE').length
 
   /* Filtered and sorted list */
   const filtered = services.filter(s => {
-    if (filter !== 'ALL' && getStatus(s) !== filter) return false
+    if (filter === 'UPCOMING') {
+      if (!alertRecords.some(r => r.id === s.id && r._alertLevel === 'DUE_SOON')) return false
+    } else if (filter === 'OVERDUE') {
+      if (!alertRecords.some(r => r.id === s.id && r._alertLevel === 'OVERDUE')) return false
+    } else if (filter !== 'ALL' && getStatus(s) !== filter) {
+      return false
+    }
+    
     if (vehicleFilter !== 'ALL' && s.vehicleRegNumber !== vehicleFilter) return false
     if (search) {
       const q = search.toLowerCase()
@@ -1017,23 +1546,62 @@ const ServicePage = () => {
                   }}>Calendar</button>
               </div>
 
-              {/* Add button — all roles; drivers add for their own vehicle */}
-              <button
-                id="add-service-btn"
-                onClick={openAddModal}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
-                  background: '#ffffff', color: '#4338ca', border: 'none', cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.1)', transition: 'all 0.2s ease',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.transform = 'translateY(0)' }}
-              >
-                <Calendar size={18} /> Add New Service
-              </button>
+              {/* Schedule button — hidden for admin (read-only monitor) */}
+              {!isAdmin && (
+                <button
+                  id="schedule-service-btn"
+                  onClick={openScheduleModal}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
+                    background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.4)', cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.1)', transition: 'all 0.2s ease',
+                    backdropFilter: 'blur(4px)',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.3)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.2)'; e.currentTarget.style.color = '#a5b4fc'; e.currentTarget.style.transform = 'translateY(0)' }}
+                >
+                  <Clock size={18} /> Schedule Service
+                </button>
+              )}
+
+              {/* Add button — hidden for admin (read-only monitor) */}
+              {!isAdmin && (
+                <button
+                  id="add-service-btn"
+                  onClick={openAddModal}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
+                    background: '#ffffff', color: '#4338ca', border: 'none', cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.1)', transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.transform = 'translateY(0)' }}
+                >
+                  <Calendar size={18} /> Add New Service
+                </button>
+              )}
             </div>
           </div>
+
+          {/* ── Service Due Alert Strip ───────────────────────────── */}
+          {!loading && alertRecords.length > 0 && (
+            <ServiceDueAlertStrip 
+              alertRecords={alertRecords} 
+              onCompleteAlert={isAdmin ? null : r => openAddModal({ 
+                id: r.id, 
+                vehicleRegNumber: r.vehicleRegNumber, 
+                serviceType: r.serviceType,
+                serviceTypeDetail: r.serviceTypeDetail || '',
+                serviceDate: new Date().toISOString().split('T')[0], // pre-fill today
+                technicianWorkshop: r.technicianWorkshop === 'Scheduled (TBD)' ? '' : r.technicianWorkshop,
+                description: r.description || ''
+              })}
+              onViewAlert={r => setDetailModal({ isOpen: true, record: r })}
+              D={D} 
+            />
+          )}
 
           {/* ── Stat Cards ────────────────────────────────────────── */}
           {!loading && (
@@ -1068,172 +1636,174 @@ const ServicePage = () => {
                 <ProgressBar value={completed} max={total || 1} color="#10b981" D={D} />
               </div>
 
-              {/* Total Cost */}
-              {stats && (
-                <div style={statCard}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <p style={{ fontSize: '1.55rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
-                      Rs.{(stats.totalServiceCost || 0).toLocaleString()}
-                    </p>
-                    <span style={{ display: 'flex', alignItems: 'center', color: D.blue }}><CircleDollarSign size={28} /></span>
-                  </div>
-                  <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Total Cost</p>
-                  <ProgressBar value={100} max={100} color={D.blue} D={D} />
+              {/* Routine Maintenance Costs */}
+              <div style={statCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <p style={{ fontSize: '1.55rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
+                    Rs.{totalRoutineCost.toLocaleString()}
+                  </p>
+                  <span style={{ display: 'flex', alignItems: 'center', color: '#10b981' }}><CheckCircle size={28} /></span>
                 </div>
-              )}
+                <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Routine Cost</p>
+                <ProgressBar value={totalRoutineCost} max={totalRoutineCost + totalAdHocCost || 1} color="#10b981" D={D} />
+              </div>
+
+              {/* Ad-hoc Repair / Breakdown Costs */}
+              <div style={statCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <p style={{ fontSize: '1.55rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
+                    Rs.{totalAdHocCost.toLocaleString()}
+                  </p>
+                  <span style={{ display: 'flex', alignItems: 'center', color: '#ef4444' }}><AlertTriangle size={28} /></span>
+                </div>
+                <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Breakdown / Ad-hoc Cost</p>
+                <ProgressBar value={totalAdHocCost} max={totalRoutineCost + totalAdHocCost || 1} color="#ef4444" D={D} />
+              </div>
             </div>
           )}
 
-          {/* ── Filter Tabs + Search ───────────────────────────────── */}
+          {/* ── Filter Bar ───────────────────────────────────────────── */}
           <div style={{
             background: D.surface,
             border: `1px solid ${D.border}`,
-            borderRadius: 14, padding: '14px 18px',
-            display: 'flex', alignItems: 'center',
-            gap: 10, flexWrap: 'wrap', marginBottom: 20,
+            borderRadius: 16, marginBottom: 20,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+            position: 'relative', zIndex: 40
           }}>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+
+            {/* Row 1: pills + vehicle + actions */}
+            <div style={{
+              padding: '12px 18px',
+              display: 'flex', alignItems: 'center',
+              gap: 8, flexWrap: 'wrap',
+              borderBottom: `1px solid ${D.border}`,
+              background: D.surfaceHi,
+              borderTopLeftRadius: 16, borderTopRightRadius: 16,
+            }}>
+
+              {/* Label */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: D.textSub, flexShrink: 0, marginRight: 2 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Filters</span>
+              </div>
+              <div style={{ width: 1, height: 18, background: D.border, flexShrink: 0 }} />
+
+              {/* Status pills */}
               {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
-                const count = key === 'ALL' ? total : key === 'SCHEDULED' ? scheduled : completed
+                const count = key === 'ALL' ? total :
+                              key === 'SCHEDULED' ? scheduled :
+                              key === 'COMPLETED' ? completed :
+                              key === 'UPCOMING' ? upcomingCount :
+                              key === 'OVERDUE' ? overdueCount : 0
                 const active = filter === key
+                const pc = {
+                  ALL:       { grad: 'linear-gradient(135deg,#3b82f6,#6366f1)', shadow: 'rgba(99,102,241,0.4)', dot: '#6366f1' },
+                  SCHEDULED: { grad: 'linear-gradient(135deg,#d97706,#f59e0b)', shadow: 'rgba(245,158,11,0.4)',  dot: '#f59e0b' },
+                  COMPLETED: { grad: 'linear-gradient(135deg,#059669,#10b981)', shadow: 'rgba(16,185,129,0.4)',  dot: '#10b981' },
+                  UPCOMING:  { grad: 'linear-gradient(135deg,#d97706,#f59e0b)', shadow: 'rgba(245,158,11,0.4)',  dot: '#f59e0b' },
+                  OVERDUE:   { grad: 'linear-gradient(135deg,#dc2626,#ef4444)', shadow: 'rgba(239,68,68,0.4)',   dot: '#ef4444' },
+                }[key] || { grad: 'linear-gradient(135deg,#3b82f6,#6366f1)', shadow: 'rgba(99,102,241,0.4)', dot: '#6366f1' }
                 return (
                   <button
                     key={key}
                     id={`filter-${key.toLowerCase()}`}
                     onClick={() => setFilter(key)}
                     style={{
-                      padding: '6px 14px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 700,
+                      padding: '5px 11px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700,
                       border: active ? 'none' : `1px solid ${D.border}`,
-                      background: active ? `linear-gradient(135deg, #3b82f6, #6366f1)` : 'transparent',
+                      background: active ? pc.grad : 'transparent',
                       color: active ? '#fff' : D.textSub,
-                      cursor: 'pointer', transition: 'all 0.15s ease',
-                      boxShadow: active ? '0 2px 12px rgba(99,102,241,0.4)' : 'none',
+                      cursor: 'pointer', transition: 'all 0.18s ease',
+                      boxShadow: active ? `0 2px 12px ${pc.shadow}` : 'none',
+                      display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap',
                     }}
+                    onMouseEnter={e => { if (!active) { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.color = D.text } }}
+                    onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = D.textSub } }}
                   >
-                    {cfg.label} <span style={{ opacity: 0.8, marginLeft: 2 }}>{count}</span>
+                    {key !== 'ALL' && !active && (
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: pc.dot, flexShrink: 0 }} />
+                    )}
+                    {cfg.label}
+                    <span style={{
+                      background: active ? 'rgba(255,255,255,0.22)' : D.surfaceHi,
+                      color: active ? '#fff' : D.textSub,
+                      borderRadius: 999, padding: '1px 6px',
+                      fontSize: '0.67rem', fontWeight: 800,
+                      border: active ? 'none' : `1px solid ${D.border}`,
+                    }}>{count}</span>
                   </button>
                 )
               })}
+
+              <div style={{ width: 1, height: 18, background: D.border, flexShrink: 0 }} />
+
+              {/* Vehicle dropdown */}
               <div style={{ position: 'relative', zIndex: 50 }}>
                 <button
                   onClick={() => setVehicleDropdownOpen(!vehicleDropdownOpen)}
                   style={{
-                    padding: '6px 14px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 700,
+                    padding: '5px 11px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700,
                     border: vehicleFilter !== 'ALL' ? 'none' : `1px solid ${D.border}`,
-                    background: vehicleFilter !== 'ALL' ? `linear-gradient(135deg, #3b82f6, #6366f1)` : 'transparent',
+                    background: vehicleFilter !== 'ALL' ? 'linear-gradient(135deg,#3b82f6,#6366f1)' : 'transparent',
                     color: vehicleFilter !== 'ALL' ? '#fff' : D.textSub,
-                    cursor: 'pointer', transition: 'all 0.15s ease',
+                    cursor: 'pointer', transition: 'all 0.18s ease',
                     boxShadow: vehicleFilter !== 'ALL' ? '0 2px 12px rgba(99,102,241,0.4)' : 'none',
-                    display: 'flex', alignItems: 'center', gap: 6
+                    display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap',
                   }}
+                  onMouseEnter={e => { if (vehicleFilter === 'ALL') { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.color = D.text } }}
+                  onMouseLeave={e => { if (vehicleFilter === 'ALL') { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = D.textSub } }}
                 >
-                  <span>{vehicleFilter === 'ALL' ? 'Vehicle: All' : `Vehicle: ${vehicleFilter}`}</span>
-                  <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>▼</span>
+                  <Car size={12} />
+                  <span>{vehicleFilter === 'ALL' ? 'All Vehicles' : vehicleFilter}</span>
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                    style={{ opacity: 0.7, transform: vehicleDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
                 </button>
 
                 {vehicleDropdownOpen && (
                   <>
-                    <div 
-                      onClick={() => setVehicleDropdownOpen(false)} 
-                      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 }} 
-                    />
+                    <div onClick={() => setVehicleDropdownOpen(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 }} />
                     <div style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 8px)',
-                      left: 0,
-                      width: 280,
-                      background: D.surface,
-                      border: `1px solid ${D.border}`,
-                      borderRadius: 12,
-                      boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                      zIndex: 999,
-                      padding: 8,
-                      maxHeight: 320,
-                      overflowY: 'auto',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 4
+                      position: 'absolute', top: 'calc(100% + 8px)', left: 0,
+                      width: 290, background: D.surface,
+                      border: `1px solid ${D.border}`, borderRadius: 14,
+                      boxShadow: '0 16px 40px rgba(0,0,0,0.35)', zIndex: 999,
+                      padding: 8, maxHeight: 320, overflowY: 'auto',
+                      display: 'flex', flexDirection: 'column', gap: 3,
                     }}>
-                      {/* Option: All Vehicles */}
-                      <div
-                        onClick={() => {
-                          setVehicleFilter('ALL')
-                          setVehicleDropdownOpen(false)
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 12,
-                          padding: '10px 12px',
-                          borderRadius: 8,
-                          cursor: 'pointer',
-                          background: vehicleFilter === 'ALL' ? D.indigoDim : 'transparent',
-                          transition: 'background 0.2s',
-                          border: `1px solid ${vehicleFilter === 'ALL' ? D.borderHi : 'transparent'}`
-                        }}
-                        onMouseEnter={e => {
-                          if (vehicleFilter !== 'ALL') e.currentTarget.style.background = D.surfaceHi
-                        }}
-                        onMouseLeave={e => {
-                          if (vehicleFilter !== 'ALL') e.currentTarget.style.background = 'transparent'
-                        }}
-                      >
-                        <div style={{
-                          width: 32, height: 32, borderRadius: 8,
-                          background: D.indigoDim,
-                          color: D.indigo,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0
-                        }}>
-                          <Car size={16} />
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '0.85rem', color: D.text }}>All Vehicles</div>
-                          <div style={{ fontSize: '0.7rem', color: D.textSub }}>Show records for all fleet</div>
-                        </div>
+                      <div style={{ padding: '5px 8px 8px', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub, borderBottom: `1px solid ${D.border}`, marginBottom: 4 }}>
+                        Select Vehicle
                       </div>
-
-                      {/* Map through all vehicles */}
+                      <div
+                        onClick={() => { setVehicleFilter('ALL'); setVehicleDropdownOpen(false) }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 9, cursor: 'pointer', background: vehicleFilter === 'ALL' ? D.indigoDim : 'transparent', border: `1px solid ${vehicleFilter === 'ALL' ? D.borderHi : 'transparent'}`, transition: 'background 0.15s' }}
+                        onMouseEnter={e => { if (vehicleFilter !== 'ALL') e.currentTarget.style.background = D.surfaceHi }}
+                        onMouseLeave={e => { if (vehicleFilter !== 'ALL') e.currentTarget.style.background = 'transparent' }}
+                      >
+                        <div style={{ width: 28, height: 28, borderRadius: 7, background: D.indigoDim, color: D.indigo, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Car size={13} /></div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.82rem', color: D.text }}>All Vehicles</div>
+                          <div style={{ fontSize: '0.67rem', color: D.textSub }}>Entire fleet records</div>
+                        </div>
+                        {vehicleFilter === 'ALL' && <Check size={13} style={{ color: D.indigo }} />}
+                      </div>
                       {allVehicles.map(v => {
-                        const isSelected = vehicleFilter === v.registrationNo
+                        const isSel = vehicleFilter === v.registrationNo
                         return (
                           <div
                             key={v.id}
-                            onClick={() => {
-                              setVehicleFilter(v.registrationNo)
-                              setVehicleDropdownOpen(false)
-                            }}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 12,
-                              padding: '10px 12px',
-                              borderRadius: 8,
-                              cursor: 'pointer',
-                              background: isSelected ? D.indigoDim : 'transparent',
-                              transition: 'background 0.2s',
-                              border: `1px solid ${isSelected ? D.borderHi : 'transparent'}`
-                            }}
-                            onMouseEnter={e => {
-                              if (!isSelected) e.currentTarget.style.background = D.surfaceHi
-                            }}
-                            onMouseLeave={e => {
-                              if (!isSelected) e.currentTarget.style.background = 'transparent'
-                            }}
+                            onClick={() => { setVehicleFilter(v.registrationNo); setVehicleDropdownOpen(false) }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 9, cursor: 'pointer', background: isSel ? D.indigoDim : 'transparent', border: `1px solid ${isSel ? D.borderHi : 'transparent'}`, transition: 'background 0.15s' }}
+                            onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = D.surfaceHi }}
+                            onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = 'transparent' }}
                           >
-                            <div style={{
-                              width: 32, height: 32, borderRadius: 8,
-                              background: D.indigoDim,
-                              color: D.indigo,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              flexShrink: 0
-                            }}>
-                              <Car size={16} />
+                            <div style={{ width: 28, height: 28, borderRadius: 7, background: D.indigoDim, color: D.indigo, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Car size={13} /></div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 700, fontSize: '0.82rem', color: D.text }}>{v.registrationNo}</div>
+                              <div style={{ fontSize: '0.67rem', color: D.textSub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.manufacturer} {v.model}</div>
                             </div>
-                            <div>
-                              <div style={{ fontWeight: 700, fontSize: '0.85rem', color: D.text }}>{v.registrationNo}</div>
-                              <div style={{ fontSize: '0.7rem', color: D.textSub }}>{v.manufacturer} {v.model}</div>
-                            </div>
+                            {isSel && <Check size={13} style={{ color: D.indigo, flexShrink: 0 }} />}
                           </div>
                         )
                       })}
@@ -1241,47 +1811,100 @@ const ServicePage = () => {
                   </>
                 )}
               </div>
+
+              <div style={{ flex: 1 }} />
+
+              {/* Active filter badge + reset */}
+              {(filter !== 'ALL' || vehicleFilter !== 'ALL' || search) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, animation: 'fadeIn 0.2s ease' }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '3px 9px', borderRadius: 999,
+                    background: 'rgba(99,102,241,0.12)', color: '#a5b4fc',
+                    border: '1px solid rgba(99,102,241,0.25)',
+                    fontSize: '0.68rem', fontWeight: 700,
+                  }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#6366f1' }} />
+                    {[filter !== 'ALL', vehicleFilter !== 'ALL', !!search].filter(Boolean).length} active
+                  </span>
+                  <button
+                    onClick={() => { setFilter('ALL'); setVehicleFilter('ALL'); setSearch('') }}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '3px 9px', borderRadius: 999, fontSize: '0.68rem', fontWeight: 700,
+                      background: 'rgba(239,68,68,0.08)', color: '#ef4444',
+                      border: '1px solid rgba(239,68,68,0.2)', cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.18)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+                  >
+                    <X size={10} /> Reset all
+                  </button>
+                </div>
+              )}
+
+              {/* Deleted Records button */}
+              {!isDriver && (
+                <button
+                  id="view-deleted-records-btn"
+                  onClick={() => setDeletedDrawer(true)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '5px 12px', borderRadius: 999,
+                    fontSize: '0.72rem', fontWeight: 700,
+                    background: 'rgba(239,68,68,0.07)', color: '#ef4444',
+                    border: '1px solid rgba(239,68,68,0.2)',
+                    cursor: 'pointer', transition: 'all 0.15s ease', whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.16)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.07)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)' }}
+                >
+                  <Archive size={12} /> Deleted Records
+                </button>
+              )}
             </div>
-            <div style={{ flex: 1 }} />
-            {/* ── Deleted Records Button ──────────────────── */}
-            {!isDriver && (
-              <button
-                id="view-deleted-records-btn"
-                onClick={() => setDeletedDrawer(true)}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 7,
-                  padding: '7px 16px', borderRadius: 10,
-                  fontSize: '0.78rem', fontWeight: 700,
-                  background: 'rgba(239,68,68,0.08)',
-                  color: '#ef4444',
-                  border: '1px solid rgba(239,68,68,0.25)',
-                  cursor: 'pointer', transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.16)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
-              >
-                <Archive size={14} />
-                Deleted Records
-              </button>
-            )}
-            <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: D.textSub, display: 'flex', alignItems: 'center' }}><Search size={16} /></span>
-              <input
-                id="service-search"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search by vehicle, type, date, workshop, cost, mileage, user..."
-                style={{
-                  padding: '8px 14px 8px 32px',
-                  borderRadius: 10, fontSize: '0.82rem',
-                  background: D.inputBg,
-                  border: `1px solid ${D.inputBorder}`,
-                  color: D.text, outline: 'none', minWidth: 240,
-                  transition: 'border-color 0.15s',
-                }}
-                onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)' }}
-                onBlur={e => { e.target.style.borderColor = D.inputBorder }}
-              />
+
+            {/* Row 2: Search */}
+            <div style={{ padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: D.textSub, display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                  <Search size={14} />
+                </span>
+                <input
+                  id="service-search"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search by vehicle, type, date, workshop, cost, mileage, user..."
+                  style={{
+                    width: '100%', padding: '8px 36px 8px 34px',
+                    borderRadius: 10, fontSize: '0.82rem',
+                    background: D.inputBg,
+                    border: `1px solid ${search ? 'rgba(99,102,241,0.4)' : D.inputBorder}`,
+                    color: D.text, outline: 'none',
+                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                    boxShadow: search ? '0 0 0 3px rgba(99,102,241,0.08)' : 'none',
+                    boxSizing: 'border-box',
+                  }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)' }}
+                  onBlur={e => { e.target.style.borderColor = search ? 'rgba(99,102,241,0.4)' : D.inputBorder; e.target.style.boxShadow = search ? '0 0 0 3px rgba(99,102,241,0.08)' : 'none' }}
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}
+                    onMouseEnter={e => e.currentTarget.style.color = D.text}
+                    onMouseLeave={e => e.currentTarget.style.color = D.textSub}
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+              <div style={{ fontSize: '0.73rem', color: D.textSub, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <strong style={{ color: D.text }}>{filtered.length}</strong>
+                <span>/</span>
+                <span>{services.length} records</span>
+              </div>
             </div>
           </div>
 
@@ -1308,17 +1931,19 @@ const ServicePage = () => {
               }}>
                 <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center', opacity: 0.5, color: D.textSub }}><Search size={48} /></div>
                 <p style={{ color: D.textSub, fontSize: '0.95rem', fontWeight: 500 }}>No service records found.</p>
-                <button
-                  onClick={openAddModal}
-                  style={{
-                    marginTop: 16, padding: '9px 22px', borderRadius: 10,
-                    background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
-                    color: '#fff', border: 'none', cursor: 'pointer',
-                    fontSize: '0.85rem', fontWeight: 700,
-                  }}
-                >
-                  + Add First Record
-                </button>
+                  {!isAdmin && (
+                    <button
+                      onClick={openAddModal}
+                      style={{
+                        marginTop: 16, padding: '9px 22px', borderRadius: 10,
+                        background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                        color: '#fff', border: 'none', cursor: 'pointer',
+                        fontSize: '0.85rem', fontWeight: 700,
+                      }}
+                    >
+                      + Add First Record
+                    </button>
+                  )}
               </div>
             ) : viewMode === 'calendar' ? (
               <ServiceCalendar
@@ -1330,33 +1955,45 @@ const ServicePage = () => {
                 D={D}
               />
             ) : viewMode === 'grid' ? (
-              filtered.map((record, i) => (
-                <ServiceGridCard
-                  key={record.id}
-                  record={record}
-                  index={i}
-                  isDriver={isDriver}
-                  currentUsername={user?.userName}
-                  onEdit={openEditModal}
-                  onDelete={confirmDelete}
-                  onView={r => setDetailModal({ isOpen: true, record: r })}
-                  D={D}
-                />
-              ))
+              filtered.map((record, i) => {
+                const vc = allVehicles.find(v => v.registrationNo === record.vehicleRegNumber)
+                return (
+                  <ServiceGridCard
+                    key={record.id}
+                    record={record}
+                    index={i}
+                    isDriver={isDriver}
+                    isAdmin={isAdmin}
+                    currentUsername={user?.userName}
+                    vehicleCurrentKm={vc?.currentMileageKm}
+                    onEdit={openEditModal}
+                    onDelete={confirmDelete}
+                    onView={r => setDetailModal({ isOpen: true, record: r })}
+                    onViewAttachment={handleViewAttachment}
+                    D={D}
+                  />
+                )
+              })
             ) : (
-              filtered.map((record, i) => (
-                <ServiceListCard
-                  key={record.id}
-                  record={record}
-                  index={i}
-                  isDriver={isDriver}
-                  currentUsername={user?.userName}
-                  onEdit={openEditModal}
-                  onDelete={confirmDelete}
-                  onView={r => setDetailModal({ isOpen: true, record: r })}
-                  D={D}
-                />
-              ))
+              filtered.map((record, i) => {
+                const vc = allVehicles.find(v => v.registrationNo === record.vehicleRegNumber)
+                return (
+                  <ServiceListCard
+                    key={record.id}
+                    record={record}
+                    index={i}
+                    isDriver={isDriver}
+                    isAdmin={isAdmin}
+                    currentUsername={user?.userName}
+                    vehicleCurrentKm={vc?.currentMileageKm}
+                    onEdit={openEditModal}
+                    onDelete={confirmDelete}
+                    onView={r => setDetailModal({ isOpen: true, record: r })}
+                    onViewAttachment={handleViewAttachment}
+                    D={D}
+                  />
+                )
+              })
             )}
           </div>
 
@@ -1582,6 +2219,7 @@ const ServicePage = () => {
                           ['Mileage', r.currentMileageKm ? `${Number(r.currentMileageKm).toLocaleString()} km` : null],
                           ['Cost', r.serviceCost ? `Rs. ${Number(r.serviceCost).toLocaleString()}` : null],
                           ['Technician / Workshop', r.technicianWorkshop],
+                          ['Classification', r.serviceClassification === 'AD_HOC' ? '🛠️ Ad-hoc Repair / Breakdown' : '🟢 Routine Maintenance'],
                           r.nextServiceDue ? ['Next Service Due', new Date(r.nextServiceDue).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })] : null,
                           r.nextServiceMileageKm ? ['Next Service Mileage', `${Number(r.nextServiceMileageKm).toLocaleString()} km`] : null,
                         ].filter(Boolean).map(([label, value]) => (
@@ -1591,6 +2229,25 @@ const ServicePage = () => {
                           </div>
                         ))}
                       </div>
+
+                      {/* Parts Replaced */}
+                      {r.partsReplaced && (
+                        <div style={{ marginBottom: 16 }}>
+                          <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+                            Parts Replaced <div style={{ flex: 1, height: 1, background: D.border }} />
+                          </div>
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            {r.partsReplaced.split(',').map((part, pi) => (
+                              <span key={pi} style={{
+                                background: D.surfaceHi, border: `1px solid ${D.border}`,
+                                color: D.text, borderRadius: 6, padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600
+                              }}>
+                                {part.trim()}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Description */}
                       <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1807,6 +2464,7 @@ const ServicePage = () => {
                     ['Current Mileage', r.currentMileageKm ? `${Number(r.currentMileageKm).toLocaleString()} km` : null],
                     ['Service Cost', r.serviceCost ? `Rs. ${Number(r.serviceCost).toLocaleString()}` : null],
                     ['Technician / Workshop', r.technicianWorkshop],
+                    ['Classification', r.serviceClassification === 'AD_HOC' ? '🛠️ Ad-hoc Repair / Breakdown' : '🟢 Routine Maintenance'],
                     r.nextServiceDue ? ['Next Service Due', new Date(r.nextServiceDue).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })] : null,
                     r.nextServiceMileageKm ? ['Next Service Mileage', `${Number(r.nextServiceMileageKm).toLocaleString()} km`] : null,
                   ].filter(Boolean).map(([label, value]) => (
@@ -1826,14 +2484,98 @@ const ServicePage = () => {
                   {r.description || 'No description provided.'}
                 </p>
 
+                {/* Parts Replaced */}
+                {r.partsReplaced && (
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Parts Replaced</span>
+                      <div style={{ flex: 1, height: 1, background: D.border }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {r.partsReplaced.split(',').map((part, pi) => (
+                        <span key={pi} style={{
+                          background: D.surfaceHi, border: `1px solid ${D.border}`,
+                          color: D.text, borderRadius: 8, padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600
+                        }}>
+                          {part.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Attached Bill Section */}
+                {r.attachmentPath && (
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Document Attachment</span>
+                      <div style={{ flex: 1, height: 1, background: D.border }} />
+                    </div>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      background: D.surfaceHi, border: `1px solid ${D.border}`,
+                      borderRadius: 12, padding: '12px 18px',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{
+                          width: 36, height: 36, borderRadius: 8,
+                          background: 'rgba(16,185,129,0.1)',
+                          border: '1px solid rgba(16,185,129,0.2)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: '#10b981'
+                        }}>
+                          <Paperclip size={18} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: D.text }}>Service Bill / Invoice</div>
+                          <div style={{ fontSize: '0.72rem', color: D.textSub }}>
+                            {(() => {
+                              const path = r.attachmentPath || '';
+                              let filename = path.substring(path.lastIndexOf('/') + 1);
+                              if (filename.length > 37 && filename.substring(8, 9) === '-' && filename.substring(13, 14) === '-') {
+                                return filename.substring(37);
+                              }
+                              return filename || 'bill_document';
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleViewAttachment(r)}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          padding: '6px 16px', borderRadius: 8, fontSize: '0.78rem',
+                          fontWeight: 700, background: '#10b981', color: '#fff',
+                          border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                          boxShadow: '0 4px 12px rgba(16,185,129,0.25)'
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#059669'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = '#10b981'; e.currentTarget.style.transform = 'translateY(0)' }}
+                      >
+                        <Eye size={14} /> View Bill
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* ── Record Activity & Change History ───────────────── */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                   <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Record Activity</span>
                   <div style={{ flex: 1, height: 1, background: D.border }} />
                   {r.attachmentPath && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: '#10b981', background: 'rgba(16,185,129,0.08)', padding: '3px 10px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)' }}>
-                      <Paperclip size={12} /> Bill Attached
-                    </span>
+                    <button 
+                      onClick={() => handleViewAttachment(r)}
+                      style={{ 
+                        display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', 
+                        color: '#10b981', background: 'rgba(16,185,129,0.1)', 
+                        padding: '4px 12px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.3)',
+                        cursor: 'pointer', fontWeight: 700, transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#10b981'; e.currentTarget.style.color = '#fff' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.1)'; e.currentTarget.style.color = '#10b981' }}
+                    >
+                      <Eye size={12} /> View Attached Bill
+                    </button>
                   )}
                 </div>
 
@@ -1931,8 +2673,8 @@ const ServicePage = () => {
 
               {/* Footer */}
               <div style={{ padding: '16px 28px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 10, background: D.surfaceHi, flexShrink: 0 }}>
-                {/* Admin/Controller: always show Edit + Delete */}
-                {!isDriver && (
+                {/* Controller only: show Edit + Delete; Admin is view-only */}
+                {!isDriver && !isAdmin && (
                   <>
                     <button
                       onClick={() => { closeDetail(); openEditModal(r.id) }}
@@ -2026,7 +2768,7 @@ const ServicePage = () => {
 
                 <div>
                   <label style={fieldLabel}>Service Date <span style={{ color: D.red }}>*</span></label>
-                  <input type="date" name="serviceDate" value={formData.serviceDate} onChange={handleAddChange} style={fieldInput(errors.serviceDate)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceDate)} />
+                  <input type="date" name="serviceDate" value={formData.serviceDate} onChange={handleAddChange} max={new Date().toISOString().split('T')[0]} style={fieldInput(errors.serviceDate)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceDate)} />
                   {errors.serviceDate && <p style={fieldError}>{errors.serviceDate}</p>}
                 </div>
                 <div>
@@ -2048,6 +2790,40 @@ const ServicePage = () => {
                   <input type="text" name="technicianWorkshop" value={formData.technicianWorkshop} onChange={handleAddChange} placeholder="e.g. Auto Care Center" style={fieldInput(errors.technicianWorkshop)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.technicianWorkshop)} />
                   {errors.technicianWorkshop && <p style={fieldError}>{errors.technicianWorkshop}</p>}
                 </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={fieldLabel}>Service Classification</label>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, serviceClassification: 'ROUTINE' }))}
+                      style={{
+                        flex: 1, padding: '10px 14px', borderRadius: 8,
+                        border: `1.5px solid ${formData.serviceClassification === 'ROUTINE' ? '#10b981' : D.inputBorder}`,
+                        background: formData.serviceClassification === 'ROUTINE' ? 'rgba(16,185,129,0.1)' : D.inputBg,
+                        color: formData.serviceClassification === 'ROUTINE' ? '#10b981' : D.textSub,
+                        fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.15s',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                      }}
+                    >
+                      <CheckCircle size={15} /> 🟢 Routine Maintenance
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, serviceClassification: 'AD_HOC' }))}
+                      style={{
+                        flex: 1, padding: '10px 14px', borderRadius: 8,
+                        border: `1.5px solid ${formData.serviceClassification === 'AD_HOC' ? '#ef4444' : D.inputBorder}`,
+                        background: formData.serviceClassification === 'AD_HOC' ? 'rgba(239,68,68,0.1)' : D.inputBg,
+                        color: formData.serviceClassification === 'AD_HOC' ? '#ef4444' : D.textSub,
+                        fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.15s',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                      }}
+                    >
+                      <AlertTriangle size={15} /> ⚠️ Ad-hoc Repair / Breakdown
+                    </button>
+                  </div>
+                </div>
+
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0 16px' }}>
@@ -2103,6 +2879,143 @@ const ServicePage = () => {
                   {formLoading ? 'Saving...' : <><Check size={16} /> Add Record</>}
                 </button>
                 <button type="button" onClick={closeAddModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Schedule Modal ───────────────────────────────────────────── */}
+      {isScheduleModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease' }}>
+          <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 640, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden' }}>
+            <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: D.indigoDim, color: D.indigo, border: `1px solid ${D.indigo}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Clock size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Schedule Future Service</h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: D.textSub }}>Set a reminder or trigger-point for next service.</p>
+                </div>
+              </div>
+              <button onClick={closeScheduleModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
+            </div>
+
+            {submitError && (
+              <div style={{ margin: '20px 28px 0', background: D.redDim, border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, padding: '10px 16px', color: D.red, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertTriangle size={18} /> {submitError}
+              </div>
+            )}
+
+            <form onSubmit={handleScheduleSubmit} style={{ padding: '24px 28px' }} noValidate>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Schedule Criteria</span>
+                <div style={{ flex: 1, height: 1, background: D.border }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+                <div>
+                  <label style={fieldLabel}>Vehicle (License Plate) <span style={{ color: D.red }}>*</span></label>
+                  <input type="text" list="vehiclesListSchedule" name="vehicleRegNumber" value={scheduleFormData.vehicleRegNumber} onChange={handleScheduleChange} placeholder="e.g. WP-CAB-1234" style={fieldInput(scheduleErrors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, scheduleErrors.vehicleRegNumber)} />
+                  <datalist id="vehiclesListSchedule">
+                    {allVehicles.map(v => <option key={v.id} value={v.registrationNo} />)}
+                  </datalist>
+                  {scheduleErrors.vehicleRegNumber && <p style={fieldError}>{scheduleErrors.vehicleRegNumber}</p>}
+                </div>
+                <div>
+                  <label style={fieldLabel}>Service Type <span style={{ color: D.red }}>*</span></label>
+                  <select name="serviceType" value={scheduleFormData.serviceType} onChange={handleScheduleChange} style={{ ...fieldInput(scheduleErrors.serviceType), cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '18px', paddingRight: 38 }} onFocus={focusBorder} onBlur={e => blurBorder(e, scheduleErrors.serviceType)}>
+                    <option value="" disabled style={{ background: D.surfaceHi }}>Select service type</option>
+                    {SERVICE_TYPES.map(t => <option key={t.value} value={t.value} style={{ background: D.surfaceHi }}>{t.label}</option>)}
+                  </select>
+                  {scheduleErrors.serviceType && <p style={fieldError}>{scheduleErrors.serviceType}</p>}
+                </div>
+
+                {scheduleFormData.serviceType === 'OTHER' && (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={fieldLabel}>Service Type Detail <span style={{ color: D.red }}>*</span></label>
+                    <input type="text" name="serviceTypeDetail" value={scheduleFormData.serviceTypeDetail} onChange={handleScheduleChange} placeholder="Describe the service…" style={fieldInput(scheduleErrors.serviceTypeDetail)} onFocus={focusBorder} onBlur={e => blurBorder(e, scheduleErrors.serviceTypeDetail)} />
+                    {scheduleErrors.serviceTypeDetail && <p style={fieldError}>{scheduleErrors.serviceTypeDetail}</p>}
+                  </div>
+                )}
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={fieldLabel}>Scheduling Mode</label>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {['date', 'mileage', 'both'].map(mode => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => {
+                          setScheduleFormData(prev => ({ ...prev, scheduleMode: mode }))
+                          // Clear dynamic validation errors on mode change
+                          setScheduleErrors(prev => ({ ...prev, scheduledDate: undefined, targetMileageKm: undefined }))
+                        }}
+                        style={{
+                          flex: 1, padding: '10px 0', borderRadius: 10,
+                          border: `1.5px solid ${scheduleFormData.scheduleMode === mode ? D.indigo : D.border}`,
+                          background: scheduleFormData.scheduleMode === mode ? D.indigoDim : 'transparent',
+                          color: scheduleFormData.scheduleMode === mode ? D.indigo : D.textSub,
+                          fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s'
+                        }}
+                      >
+                        {mode === 'date' ? '📅 By Date' : mode === 'mileage' ? '🛣️ By Mileage' : '🔄 Both (Whichever first)'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {(scheduleFormData.scheduleMode === 'date' || scheduleFormData.scheduleMode === 'both') && (
+                  <div>
+                    <label style={fieldLabel}>Scheduled Due Date <span style={{ color: D.red }}>*</span></label>
+                    <input type="date" name="scheduledDate" value={scheduleFormData.scheduledDate} onChange={handleScheduleChange} style={fieldInput(scheduleErrors.scheduledDate)} onFocus={focusBorder} onBlur={e => blurBorder(e, scheduleErrors.scheduledDate)} />
+                    {scheduleErrors.scheduledDate && <p style={fieldError}>{scheduleErrors.scheduledDate}</p>}
+                  </div>
+                )}
+
+                {(scheduleFormData.scheduleMode === 'mileage' || scheduleFormData.scheduleMode === 'both') && (
+                  <div>
+                    <label style={fieldLabel}>Target Mileage (km) <span style={{ color: D.red }}>*</span></label>
+                    <input type="number" name="targetMileageKm" value={scheduleFormData.targetMileageKm} onChange={handleScheduleChange} placeholder="e.g. 55000" style={fieldInput(scheduleErrors.targetMileageKm)} onFocus={focusBorder} onBlur={e => blurBorder(e, scheduleErrors.targetMileageKm)} />
+                    {scheduleErrors.targetMileageKm ? (
+                      <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.red, fontWeight: 800 }}>⚠ {scheduleErrors.targetMileageKm}</p>
+                    ) : (() => {
+                      const vObj = allVehicles.find(v => v.registrationNo === scheduleFormData.vehicleRegNumber)
+                      if (!vObj?.currentMileageKm) return null
+                      return <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.textFaint, fontWeight: 600 }}>Vehicle's current: <span style={{ color: D.purple }}>{vObj.currentMileageKm.toLocaleString()} km</span></p>
+                    })()}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0 16px' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Optional Estimations</span>
+                <div style={{ flex: 1, height: 1, background: D.border }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 28 }}>
+                <div>
+                  <label style={fieldLabel}>Estimated Cost (Rs.)</label>
+                  <input type="number" name="estimatedCost" value={scheduleFormData.estimatedCost} onChange={handleScheduleChange} placeholder="e.g. 10000" style={fieldInput(false)} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                </div>
+                <div>
+                  <label style={fieldLabel}>Preferred Workshop</label>
+                  <input type="text" name="preferredWorkshop" value={scheduleFormData.preferredWorkshop} onChange={handleScheduleChange} placeholder="e.g. SpeedBay Center" style={fieldInput(false)} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={fieldLabel}>Scheduling Notes / Notes</label>
+                  <textarea name="description" value={scheduleFormData.description} onChange={handleScheduleChange} rows={2} placeholder="Add any details about this scheduled work…" style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button type="submit" disabled={formLoading} style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: formLoading ? 'rgba(99,102,241,0.6)' : 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: formLoading ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: formLoading ? 'none' : '0 4px 16px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  {formLoading ? 'Scheduling...' : <><Check size={16} /> Schedule Service</>}
+                </button>
+                <button type="button" onClick={closeScheduleModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
                   Cancel
                 </button>
               </div>
@@ -2168,7 +3081,7 @@ const ServicePage = () => {
 
                 <div>
                   <label style={fieldLabel}>Service Date <span style={{ color: D.red }}>*</span></label>
-                  <input type="date" name="serviceDate" value={editFormData.serviceDate} onChange={handleEditChange} style={fieldInput(errors.serviceDate)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceDate)} />
+                  <input type="date" name="serviceDate" value={editFormData.serviceDate} onChange={handleEditChange} max={new Date().toISOString().split('T')[0]} style={fieldInput(errors.serviceDate)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.serviceDate)} />
                   {errors.serviceDate && <p style={fieldError}>{errors.serviceDate}</p>}
                 </div>
                 <div>
@@ -2185,6 +3098,43 @@ const ServicePage = () => {
                   <label style={fieldLabel}>Technician / Workshop <span style={{ color: D.red }}>*</span></label>
                   <input type="text" name="technicianWorkshop" value={editFormData.technicianWorkshop} onChange={handleEditChange} placeholder="e.g. Auto Care Center" style={fieldInput(errors.technicianWorkshop)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.technicianWorkshop)} />
                   {errors.technicianWorkshop && <p style={fieldError}>{errors.technicianWorkshop}</p>}
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={fieldLabel}>Service Classification</label>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => setEditFormData(prev => ({ ...prev, serviceClassification: 'ROUTINE' }))}
+                      style={{
+                        flex: 1, padding: '10px 14px', borderRadius: 8,
+                        border: `1.5px solid ${editFormData.serviceClassification === 'ROUTINE' ? '#10b981' : D.inputBorder}`,
+                        background: editFormData.serviceClassification === 'ROUTINE' ? 'rgba(16,185,129,0.1)' : D.inputBg,
+                        color: editFormData.serviceClassification === 'ROUTINE' ? '#10b981' : D.textSub,
+                        fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.15s',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                      }}
+                    >
+                      <CheckCircle size={15} /> 🟢 Routine Maintenance
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditFormData(prev => ({ ...prev, serviceClassification: 'AD_HOC' }))}
+                      style={{
+                        flex: 1, padding: '10px 14px', borderRadius: 8,
+                        border: `1.5px solid ${editFormData.serviceClassification === 'AD_HOC' ? '#ef4444' : D.inputBorder}`,
+                        background: editFormData.serviceClassification === 'AD_HOC' ? 'rgba(239,68,68,0.1)' : D.inputBg,
+                        color: editFormData.serviceClassification === 'AD_HOC' ? '#ef4444' : D.textSub,
+                        fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.15s',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                      }}
+                    >
+                      <AlertTriangle size={15} /> ⚠️ Ad-hoc Repair / Breakdown
+                    </button>
+                  </div>
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={fieldLabel}>Parts Replaced (comma-separated)</label>
+                  <textarea name="partsReplaced" value={editFormData.partsReplaced} onChange={handleEditChange} rows={2} placeholder="e.g. Oil Filter, Air Filter, Brake Pads" style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }} onFocus={focusBorder} onBlur={e => blurBorder(e, false)} />
                 </div>
               </div>
 
@@ -2270,6 +3220,115 @@ const ServicePage = () => {
                 Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Attachment Lightbox Modal ─────────────────────────────────── */}
+      {attachmentViewer.isOpen && (
+        <div
+          onClick={() => setAttachmentViewer(prev => ({ ...prev, isOpen: false }))}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(10px)', zIndex: 9999,
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', padding: '24px', animation: 'fadeIn 0.2s ease',
+          }}
+        >
+          {/* Header controls */}
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'absolute', top: 24, left: 24, right: 24,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              color: '#fff', zIndex: 10,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Paperclip size={18} color="#10b981" />
+              <div>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  Attached Bill
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>
+                  {attachmentViewer.filename}
+                </p>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: 8 }}>
+              {/* Download button */}
+              <a
+                href={attachmentViewer.url}
+                download={attachmentViewer.filename}
+                style={{
+                  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 10, color: '#fff', padding: '8px 16px', fontSize: '0.8rem',
+                  fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center',
+                  gap: 6, textDecoration: 'none', transition: 'all 0.15s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              >
+                Download
+              </a>
+              {/* Close button */}
+              <button
+                onClick={() => setAttachmentViewer(prev => ({ ...prev, isOpen: false }))}
+                style={{
+                  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 10, color: '#fff', padding: '8px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Image Container */}
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'relative', width: '100%', height: '100%',
+              maxWidth: '85vw', maxHeight: '75vh', marginTop: '40px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              animation: 'scaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            }}
+          >
+            <img
+              src={attachmentViewer.url}
+              alt="Bill Attachment"
+              style={{
+                maxWidth: '100%', maxHeight: '100%', borderRadius: 16,
+                boxShadow: '0 24px 60px rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)',
+                objectFit: 'contain', background: '#000',
+              }}
+            />
+          </div>
+        </div>
+      )}
+      
+      {/* ── Global Loading Spinner overlay for fetching attachment ── */}
+      {attachmentViewer.loading && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(3px)', zIndex: 10000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          animation: 'fadeIn 0.1s ease'
+        }}>
+          <div style={{
+            background: D.surface, border: `1px solid ${D.border}`,
+            borderRadius: 16, padding: '24px 32px', display: 'flex',
+            flexDirection: 'column', alignItems: 'center', gap: 12,
+            boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+          }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: '#10b981', animation: 'spin 0.8s linear infinite' }}>
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+            </svg>
+            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: D.text }}>Retrieving attachment...</span>
           </div>
         </div>
       )}

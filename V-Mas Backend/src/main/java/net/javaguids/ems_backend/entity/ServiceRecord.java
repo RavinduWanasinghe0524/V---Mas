@@ -67,6 +67,14 @@ public class ServiceRecord {
     @Column(name = "attachment_path", length = 500)
     private String attachmentPath;
 
+    /** Optional — list of parts replaced */
+    @Column(name = "parts_replaced", columnDefinition = "TEXT")
+    private String partsReplaced;
+
+    /** Classification: ROUTINE or AD_HOC */
+    @Column(name = "service_classification", nullable = false, length = 50)
+    private String serviceClassification = "ROUTINE";
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

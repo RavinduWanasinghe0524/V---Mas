@@ -53,4 +53,7 @@ public interface ServiceRecordService {
      * vehicle assigned to the given driver.
      */
     net.javaguids.ems_backend.dto.ServiceRecordStatsDto getServiceStatsForDriver(String driverUsername);
+
+    /** Returns the file attachment resource for a specific service record */
+    org.springframework.core.io.Resource getAttachment(Long id);
 }

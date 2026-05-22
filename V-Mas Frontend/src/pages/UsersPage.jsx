@@ -16,6 +16,8 @@ import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
 import { userAPI } from '../services/api'
 import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck } from 'lucide-react'
+import { jsPDF } from 'jspdf'
+import 'jspdf-autotable'
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(99,102,241,0.5)'
@@ -77,12 +79,14 @@ const UsersPage = () => {
   })
   const [searchTerm,   setSearchTerm]   = useState('')
   const [roleFilter,   setRoleFilter]   = useState('ALL')
+  const [statusFilter, setStatusFilter] = useState('ALL')
 
   const filteredUsers = users.filter(u => {
     const matchSearch = (u.userName || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
                         (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
     const matchRole = roleFilter === 'ALL' || u.role === roleFilter
-    return matchSearch && matchRole
+    const matchStatus = statusFilter === 'ALL' || u.accountStatus === statusFilter
+    return matchSearch && matchRole && matchStatus
   })
 
   const totalUsersCount = users.length
@@ -122,6 +126,7 @@ const UsersPage = () => {
   }
 
   const handleApprove = async (id, username) => {
+    if (!window.confirm(`Approve user "${username}" and activate their account?`)) return
     setError('')
     setActionMsg('')
     try {
@@ -185,10 +190,115 @@ const UsersPage = () => {
     }
   }
 
+  const handleExportCSV = () => {
+    if (filteredUsers.length === 0) {
+      setError('No users to export')
+      setTimeout(() => setError(''), 4000)
+      return
+    }
+    setError('')
+    try {
+      const headers = ['ID', 'Username', 'Email', 'Role', 'Status']
+      const rows = filteredUsers.map(u => [
+        u.id,
+        u.userName,
+        u.email,
+        u.role,
+        u.accountStatus
+      ])
+      
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+      ].join('\n')
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.setAttribute("href", url)
+      link.setAttribute("download", `users_export_${new Date().toISOString().split('T')[0]}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      setActionMsg('Users exported to CSV successfully.')
+      setTimeout(() => setActionMsg(''), 4000)
+    } catch (e) {
+      setError('Failed to export CSV')
+      setTimeout(() => setError(''), 4000)
+    }
+  }
+
+  const handleExportPDF = () => {
+    if (filteredUsers.length === 0) {
+      setError('No users to export')
+      setTimeout(() => setError(''), 4000)
+      return
+    }
+    setError('')
+    try {
+      const doc = new jsPDF()
+      
+      // Branding Header Banner in Indigo
+      doc.setFillColor(67, 56, 202)
+      doc.rect(0, 0, 210, 38, 'F')
+      
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(22)
+      doc.setFont('helvetica', 'bold')
+      doc.text('V-MAS System Users Report', 14, 22)
+      
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'normal')
+      doc.text(`Generated on: ${new Date().toLocaleString()} | Total Users: ${filteredUsers.length}`, 14, 30)
+      
+      const tableData = filteredUsers.map(u => [
+        u.id,
+        u.userName,
+        u.email,
+        u.role,
+        u.accountStatus || 'ACTIVE'
+      ])
+      
+      doc.autoTable({
+        startY: 46,
+        head: [['ID', 'Username', 'Email', 'Role', 'Status']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: [67, 56, 202], fontSize: 10, fontStyle: 'bold' },
+        styles: { fontSize: 9 },
+        margin: { left: 14, right: 14 },
+      })
+      
+      doc.save(`users_report_${new Date().toISOString().split('T')[0]}.pdf`)
+      setActionMsg('Users exported to PDF successfully.')
+      setTimeout(() => setActionMsg(''), 4000)
+    } catch (e) {
+      setError('Failed to export PDF')
+      setTimeout(() => setError(''), 4000)
+    }
+  }
+
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value })
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setError('')
+    
+    // Client-side validations
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid email address.')
+      return
+    }
+    if (!editingUser && (!formData.password || formData.password.length < 6)) {
+      setError('Password must be at least 6 characters long.')
+      return
+    }
+    if (editingUser && formData.password && formData.password.length < 6) {
+      setError('Password must be at least 6 characters long.')
+      return
+    }
+
     try {
       const submitData = { ...formData }
       if (!submitData.profilePicture)
@@ -405,9 +515,47 @@ const UsersPage = () => {
                       <span style={{ background: 'rgba(255,255,255,0.1)', color: D.text, padding: '2px 8px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 800 }}>{users.length}</span>
                     )}
                   </div>
-                  <button onClick={loadUsers} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 4 }} title="Refresh users list">
-                    <RefreshCw size={16} />
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button onClick={handleExportCSV} style={{
+                      padding: '6px 12px',
+                      borderRadius: 8,
+                      border: `1px solid ${D.border}`,
+                      background: 'rgba(255,255,255,0.03)',
+                      color: D.textSub,
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      transition: 'all 0.15s'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.color=D.text }}
+                    onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.03)'; e.currentTarget.style.color=D.textSub }}>
+                      Export CSV
+                    </button>
+                    <button onClick={handleExportPDF} style={{
+                      padding: '6px 12px',
+                      borderRadius: 8,
+                      border: `1px solid ${D.border}`,
+                      background: 'rgba(255,255,255,0.03)',
+                      color: D.textSub,
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      transition: 'all 0.15s'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.color=D.text }}
+                    onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.03)'; e.currentTarget.style.color=D.textSub }}>
+                      Export PDF
+                    </button>
+                    <button onClick={loadUsers} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 4 }} title="Refresh users list">
+                      <RefreshCw size={16} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Search and filter row */}
@@ -448,10 +596,30 @@ const UsersPage = () => {
                     <option value="CONTROLLER">Controller</option>
                     <option value="DRIVER">Driver</option>
                   </select>
+                  <select
+                    value={statusFilter}
+                    onChange={e => setStatusFilter(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      border: `1px solid ${D.border}`,
+                      background: D.bg,
+                      color: D.text,
+                      fontSize: '0.8rem',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="ALL">All Statuses</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="INACTIVE">Inactive</option>
+                    <option value="SUSPENDED">Suspended</option>
+                  </select>
 
-                  {(searchTerm || roleFilter !== 'ALL') && (
+                  {(searchTerm || roleFilter !== 'ALL' || statusFilter !== 'ALL') && (
                     <button
-                      onClick={() => { setSearchTerm(''); setRoleFilter('ALL'); }}
+                      onClick={() => { setSearchTerm(''); setRoleFilter('ALL'); setStatusFilter('ALL'); }}
                       style={{
                         padding: '8px 16px',
                         borderRadius: 8,
@@ -478,6 +646,27 @@ const UsersPage = () => {
                     >
                       <X size={14} /> Clear Filters
                     </button>
+                  )}
+                </div>
+
+                {/* Filter status sub-banner */}
+                <div style={{
+                  padding: '10px 24px',
+                  fontSize: '0.78rem',
+                  color: D.textSub,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderBottom: `1px solid ${D.border}`,
+                  background: D.surfaceHi,
+                  fontWeight: 500
+                }}>
+                  <span>Showing <strong>{filteredUsers.length}</strong> of <strong>{users.length}</strong> registered users</span>
+                  {(searchTerm || roleFilter !== 'ALL' || statusFilter !== 'ALL') && (
+                    <span style={{ color: D.purple, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: D.purple }}></span>
+                      Active filters matching your search
+                    </span>
                   )}
                 </div>
 

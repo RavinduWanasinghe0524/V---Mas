@@ -32,19 +32,17 @@ public interface ServiceRecordRepository
     List<Object[]> countServicesByType();
 
     /**
-     * Finds the latest ACTIVE service record per vehicle that has a nextServiceDue or nextServiceMileageKm set.
+     * Finds the absolute latest ACTIVE service record per (vehicle, serviceType) combination.
      * Used for dashboard service-due alert checking.
      */
     @org.springframework.data.jpa.repository.Query(
         "SELECT sr FROM ServiceRecord sr " +
         "WHERE sr.deleted = false " +
-        "AND (sr.nextServiceDue IS NOT NULL OR sr.nextServiceMileageKm IS NOT NULL) " +
-        "AND sr.id = (SELECT MAX(sr2.id) FROM ServiceRecord sr2 " +
-        "             WHERE sr2.vehicleRegNumber = sr.vehicleRegNumber " +
-        "             AND sr2.deleted = false " +
-        "             AND (sr2.nextServiceDue IS NOT NULL OR sr2.nextServiceMileageKm IS NOT NULL))"
+        "AND sr.id IN (SELECT MAX(sr2.id) FROM ServiceRecord sr2 " +
+        "              WHERE sr2.deleted = false " +
+        "              GROUP BY sr2.vehicleRegNumber, sr2.serviceType)"
     )
-    List<ServiceRecord> findLatestServiceRecordWithDueDatePerVehicle();
+    List<ServiceRecord> findLatestServiceRecordPerVehicleAndServiceType();
 
     // ── Soft-deleted records ────────────────────────────────────────────────
 

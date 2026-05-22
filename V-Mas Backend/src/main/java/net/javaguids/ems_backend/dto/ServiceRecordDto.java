@@ -34,6 +34,8 @@ public class ServiceRecordDto {
     private Integer nextServiceMileageKm; // optional
     private String description;         // optional
     private String attachmentPath;      // optional — path/URL of bill attachment
+    private String partsReplaced;       // optional
+    private String serviceClassification; // ROUTINE or AD_HOC
 
     /** Auto-populated by backend — username of whoever created this record */
     private String createdBy;
