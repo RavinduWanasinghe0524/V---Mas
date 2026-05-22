@@ -263,7 +263,8 @@ const FuelManagementPage = () => {
         }
       }
     } catch (err) {
-      showToast('Failed to add fuel log', 'error')
+      console.error('Add fuel log error:', err?.response?.data || err);
+      showToast(err?.response?.data?.message || 'Failed to add fuel log', 'error')
     } finally { setSubmitting(false) }
   }
 
