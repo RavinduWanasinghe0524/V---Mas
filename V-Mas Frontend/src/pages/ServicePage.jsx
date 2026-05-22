@@ -293,14 +293,14 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
 }
 
 /* ── Service List Card (Old Style) ──────────────────────────────── */
-const ServiceListCard = ({ record, index, isDriver, currentUsername, vehicleCurrentKm, onEdit, onDelete, onView, onViewAttachment, D }) => {
+const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, vehicleCurrentKm, onEdit, onDelete, onView, onViewAttachment, D }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
   const icon = SERVICE_TYPE_ICONS[record.serviceType] || <Wrench size={22} />
 
-  // Drivers may edit only records they personally created
-  const canEdit = !isDriver || record.createdBy === currentUsername
+  // Drivers may edit only records they personally created; Admin is view-only
+  const canEdit = !isDriver && !isAdmin || (!isAdmin && record.createdBy === currentUsername)
 
   return (
     <div
@@ -482,13 +482,13 @@ const ServiceListCard = ({ record, index, isDriver, currentUsername, vehicleCurr
 }
 
 /* ── Service Grid Card (New Style) ──────────────────────────────── */
-const ServiceGridCard = ({ record, index, isDriver, currentUsername, vehicleCurrentKm, onEdit, onDelete, onView, onViewAttachment, D }) => {
+const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, vehicleCurrentKm, onEdit, onDelete, onView, onViewAttachment, D }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
 
-  // Drivers may edit only records they personally created
-  const canEdit = !isDriver || record.createdBy === currentUsername
+  // Drivers may edit only records they personally created; Admin is view-only
+  const canEdit = !isDriver && !isAdmin || (!isAdmin && record.createdBy === currentUsername)
 
   return (
     <div
@@ -745,6 +745,7 @@ const ServicePage = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
   const isDriver = user?.role === 'DRIVER'
+  const isAdmin  = user?.role === 'ADMIN'
 
   const [services, setServices] = useState([])
   const [stats, setStats] = useState(null)
@@ -1545,38 +1546,42 @@ const ServicePage = () => {
                   }}>Calendar</button>
               </div>
 
-              {/* Schedule button — all roles */}
-              <button
-                id="schedule-service-btn"
-                onClick={openScheduleModal}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
-                  background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.4)', cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.1)', transition: 'all 0.2s ease',
-                  backdropFilter: 'blur(4px)',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.3)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.2)'; e.currentTarget.style.color = '#a5b4fc'; e.currentTarget.style.transform = 'translateY(0)' }}
-              >
-                <Clock size={18} /> Schedule Service
-              </button>
+              {/* Schedule button — hidden for admin (read-only monitor) */}
+              {!isAdmin && (
+                <button
+                  id="schedule-service-btn"
+                  onClick={openScheduleModal}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
+                    background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.4)', cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.1)', transition: 'all 0.2s ease',
+                    backdropFilter: 'blur(4px)',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.3)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.2)'; e.currentTarget.style.color = '#a5b4fc'; e.currentTarget.style.transform = 'translateY(0)' }}
+                >
+                  <Clock size={18} /> Schedule Service
+                </button>
+              )}
 
-              {/* Add button — all roles; drivers add for their own vehicle */}
-              <button
-                id="add-service-btn"
-                onClick={openAddModal}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
-                  background: '#ffffff', color: '#4338ca', border: 'none', cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.1)', transition: 'all 0.2s ease',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.transform = 'translateY(0)' }}
-              >
-                <Calendar size={18} /> Add New Service
-              </button>
+              {/* Add button — hidden for admin (read-only monitor) */}
+              {!isAdmin && (
+                <button
+                  id="add-service-btn"
+                  onClick={openAddModal}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
+                    background: '#ffffff', color: '#4338ca', border: 'none', cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.1)', transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.transform = 'translateY(0)' }}
+                >
+                  <Calendar size={18} /> Add New Service
+                </button>
+              )}
             </div>
           </div>
 
@@ -1584,7 +1589,7 @@ const ServicePage = () => {
           {!loading && alertRecords.length > 0 && (
             <ServiceDueAlertStrip 
               alertRecords={alertRecords} 
-              onCompleteAlert={r => openAddModal({ 
+              onCompleteAlert={isAdmin ? null : r => openAddModal({ 
                 id: r.id, 
                 vehicleRegNumber: r.vehicleRegNumber, 
                 serviceType: r.serviceType,
@@ -1657,160 +1662,148 @@ const ServicePage = () => {
             </div>
           )}
 
-          {/* ── Filter Tabs + Search ───────────────────────────────── */}
+          {/* ── Filter Bar ───────────────────────────────────────────── */}
           <div style={{
             background: D.surface,
             border: `1px solid ${D.border}`,
-            borderRadius: 14, padding: '14px 18px',
-            display: 'flex', alignItems: 'center',
-            gap: 10, flexWrap: 'wrap', marginBottom: 20,
+            borderRadius: 16, marginBottom: 20,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+            position: 'relative', zIndex: 40
           }}>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+
+            {/* Row 1: pills + vehicle + actions */}
+            <div style={{
+              padding: '12px 18px',
+              display: 'flex', alignItems: 'center',
+              gap: 8, flexWrap: 'wrap',
+              borderBottom: `1px solid ${D.border}`,
+              background: D.surfaceHi,
+              borderTopLeftRadius: 16, borderTopRightRadius: 16,
+            }}>
+
+              {/* Label */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: D.textSub, flexShrink: 0, marginRight: 2 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Filters</span>
+              </div>
+              <div style={{ width: 1, height: 18, background: D.border, flexShrink: 0 }} />
+
+              {/* Status pills */}
               {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
-                const count = key === 'ALL' ? total : 
-                              key === 'SCHEDULED' ? scheduled : 
+                const count = key === 'ALL' ? total :
+                              key === 'SCHEDULED' ? scheduled :
                               key === 'COMPLETED' ? completed :
                               key === 'UPCOMING' ? upcomingCount :
                               key === 'OVERDUE' ? overdueCount : 0
                 const active = filter === key
+                const pc = {
+                  ALL:       { grad: 'linear-gradient(135deg,#3b82f6,#6366f1)', shadow: 'rgba(99,102,241,0.4)', dot: '#6366f1' },
+                  SCHEDULED: { grad: 'linear-gradient(135deg,#d97706,#f59e0b)', shadow: 'rgba(245,158,11,0.4)',  dot: '#f59e0b' },
+                  COMPLETED: { grad: 'linear-gradient(135deg,#059669,#10b981)', shadow: 'rgba(16,185,129,0.4)',  dot: '#10b981' },
+                  UPCOMING:  { grad: 'linear-gradient(135deg,#d97706,#f59e0b)', shadow: 'rgba(245,158,11,0.4)',  dot: '#f59e0b' },
+                  OVERDUE:   { grad: 'linear-gradient(135deg,#dc2626,#ef4444)', shadow: 'rgba(239,68,68,0.4)',   dot: '#ef4444' },
+                }[key] || { grad: 'linear-gradient(135deg,#3b82f6,#6366f1)', shadow: 'rgba(99,102,241,0.4)', dot: '#6366f1' }
                 return (
                   <button
                     key={key}
                     id={`filter-${key.toLowerCase()}`}
                     onClick={() => setFilter(key)}
                     style={{
-                      padding: '6px 14px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 700,
+                      padding: '5px 11px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700,
                       border: active ? 'none' : `1px solid ${D.border}`,
-                      background: active ? `linear-gradient(135deg, #3b82f6, #6366f1)` : 'transparent',
+                      background: active ? pc.grad : 'transparent',
                       color: active ? '#fff' : D.textSub,
-                      cursor: 'pointer', transition: 'all 0.15s ease',
-                      boxShadow: active ? '0 2px 12px rgba(99,102,241,0.4)' : 'none',
+                      cursor: 'pointer', transition: 'all 0.18s ease',
+                      boxShadow: active ? `0 2px 12px ${pc.shadow}` : 'none',
+                      display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap',
                     }}
+                    onMouseEnter={e => { if (!active) { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.color = D.text } }}
+                    onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = D.textSub } }}
                   >
-                    {cfg.label} <span style={{ opacity: 0.8, marginLeft: 2 }}>{count}</span>
+                    {key !== 'ALL' && !active && (
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: pc.dot, flexShrink: 0 }} />
+                    )}
+                    {cfg.label}
+                    <span style={{
+                      background: active ? 'rgba(255,255,255,0.22)' : D.surfaceHi,
+                      color: active ? '#fff' : D.textSub,
+                      borderRadius: 999, padding: '1px 6px',
+                      fontSize: '0.67rem', fontWeight: 800,
+                      border: active ? 'none' : `1px solid ${D.border}`,
+                    }}>{count}</span>
                   </button>
                 )
               })}
+
+              <div style={{ width: 1, height: 18, background: D.border, flexShrink: 0 }} />
+
+              {/* Vehicle dropdown */}
               <div style={{ position: 'relative', zIndex: 50 }}>
                 <button
                   onClick={() => setVehicleDropdownOpen(!vehicleDropdownOpen)}
                   style={{
-                    padding: '6px 14px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 700,
+                    padding: '5px 11px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700,
                     border: vehicleFilter !== 'ALL' ? 'none' : `1px solid ${D.border}`,
-                    background: vehicleFilter !== 'ALL' ? `linear-gradient(135deg, #3b82f6, #6366f1)` : 'transparent',
+                    background: vehicleFilter !== 'ALL' ? 'linear-gradient(135deg,#3b82f6,#6366f1)' : 'transparent',
                     color: vehicleFilter !== 'ALL' ? '#fff' : D.textSub,
-                    cursor: 'pointer', transition: 'all 0.15s ease',
+                    cursor: 'pointer', transition: 'all 0.18s ease',
                     boxShadow: vehicleFilter !== 'ALL' ? '0 2px 12px rgba(99,102,241,0.4)' : 'none',
-                    display: 'flex', alignItems: 'center', gap: 6
+                    display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap',
                   }}
+                  onMouseEnter={e => { if (vehicleFilter === 'ALL') { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.color = D.text } }}
+                  onMouseLeave={e => { if (vehicleFilter === 'ALL') { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = D.textSub } }}
                 >
-                  <span>{vehicleFilter === 'ALL' ? 'Vehicle: All' : `Vehicle: ${vehicleFilter}`}</span>
-                  <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>▼</span>
+                  <Car size={12} />
+                  <span>{vehicleFilter === 'ALL' ? 'All Vehicles' : vehicleFilter}</span>
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                    style={{ opacity: 0.7, transform: vehicleDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
                 </button>
 
                 {vehicleDropdownOpen && (
                   <>
-                    <div 
-                      onClick={() => setVehicleDropdownOpen(false)} 
-                      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 }} 
-                    />
+                    <div onClick={() => setVehicleDropdownOpen(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 }} />
                     <div style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 8px)',
-                      left: 0,
-                      width: 280,
-                      background: D.surface,
-                      border: `1px solid ${D.border}`,
-                      borderRadius: 12,
-                      boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                      zIndex: 999,
-                      padding: 8,
-                      maxHeight: 320,
-                      overflowY: 'auto',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 4
+                      position: 'absolute', top: 'calc(100% + 8px)', left: 0,
+                      width: 290, background: D.surface,
+                      border: `1px solid ${D.border}`, borderRadius: 14,
+                      boxShadow: '0 16px 40px rgba(0,0,0,0.35)', zIndex: 999,
+                      padding: 8, maxHeight: 320, overflowY: 'auto',
+                      display: 'flex', flexDirection: 'column', gap: 3,
                     }}>
-                      {/* Option: All Vehicles */}
-                      <div
-                        onClick={() => {
-                          setVehicleFilter('ALL')
-                          setVehicleDropdownOpen(false)
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 12,
-                          padding: '10px 12px',
-                          borderRadius: 8,
-                          cursor: 'pointer',
-                          background: vehicleFilter === 'ALL' ? D.indigoDim : 'transparent',
-                          transition: 'background 0.2s',
-                          border: `1px solid ${vehicleFilter === 'ALL' ? D.borderHi : 'transparent'}`
-                        }}
-                        onMouseEnter={e => {
-                          if (vehicleFilter !== 'ALL') e.currentTarget.style.background = D.surfaceHi
-                        }}
-                        onMouseLeave={e => {
-                          if (vehicleFilter !== 'ALL') e.currentTarget.style.background = 'transparent'
-                        }}
-                      >
-                        <div style={{
-                          width: 32, height: 32, borderRadius: 8,
-                          background: D.indigoDim,
-                          color: D.indigo,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0
-                        }}>
-                          <Car size={16} />
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '0.85rem', color: D.text }}>All Vehicles</div>
-                          <div style={{ fontSize: '0.7rem', color: D.textSub }}>Show records for all fleet</div>
-                        </div>
+                      <div style={{ padding: '5px 8px 8px', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub, borderBottom: `1px solid ${D.border}`, marginBottom: 4 }}>
+                        Select Vehicle
                       </div>
-
-                      {/* Map through all vehicles */}
+                      <div
+                        onClick={() => { setVehicleFilter('ALL'); setVehicleDropdownOpen(false) }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 9, cursor: 'pointer', background: vehicleFilter === 'ALL' ? D.indigoDim : 'transparent', border: `1px solid ${vehicleFilter === 'ALL' ? D.borderHi : 'transparent'}`, transition: 'background 0.15s' }}
+                        onMouseEnter={e => { if (vehicleFilter !== 'ALL') e.currentTarget.style.background = D.surfaceHi }}
+                        onMouseLeave={e => { if (vehicleFilter !== 'ALL') e.currentTarget.style.background = 'transparent' }}
+                      >
+                        <div style={{ width: 28, height: 28, borderRadius: 7, background: D.indigoDim, color: D.indigo, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Car size={13} /></div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.82rem', color: D.text }}>All Vehicles</div>
+                          <div style={{ fontSize: '0.67rem', color: D.textSub }}>Entire fleet records</div>
+                        </div>
+                        {vehicleFilter === 'ALL' && <Check size={13} style={{ color: D.indigo }} />}
+                      </div>
                       {allVehicles.map(v => {
-                        const isSelected = vehicleFilter === v.registrationNo
+                        const isSel = vehicleFilter === v.registrationNo
                         return (
                           <div
                             key={v.id}
-                            onClick={() => {
-                              setVehicleFilter(v.registrationNo)
-                              setVehicleDropdownOpen(false)
-                            }}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 12,
-                              padding: '10px 12px',
-                              borderRadius: 8,
-                              cursor: 'pointer',
-                              background: isSelected ? D.indigoDim : 'transparent',
-                              transition: 'background 0.2s',
-                              border: `1px solid ${isSelected ? D.borderHi : 'transparent'}`
-                            }}
-                            onMouseEnter={e => {
-                              if (!isSelected) e.currentTarget.style.background = D.surfaceHi
-                            }}
-                            onMouseLeave={e => {
-                              if (!isSelected) e.currentTarget.style.background = 'transparent'
-                            }}
+                            onClick={() => { setVehicleFilter(v.registrationNo); setVehicleDropdownOpen(false) }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 9, cursor: 'pointer', background: isSel ? D.indigoDim : 'transparent', border: `1px solid ${isSel ? D.borderHi : 'transparent'}`, transition: 'background 0.15s' }}
+                            onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = D.surfaceHi }}
+                            onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = 'transparent' }}
                           >
-                            <div style={{
-                              width: 32, height: 32, borderRadius: 8,
-                              background: D.indigoDim,
-                              color: D.indigo,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              flexShrink: 0
-                            }}>
-                              <Car size={16} />
+                            <div style={{ width: 28, height: 28, borderRadius: 7, background: D.indigoDim, color: D.indigo, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Car size={13} /></div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 700, fontSize: '0.82rem', color: D.text }}>{v.registrationNo}</div>
+                              <div style={{ fontSize: '0.67rem', color: D.textSub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.manufacturer} {v.model}</div>
                             </div>
-                            <div>
-                              <div style={{ fontWeight: 700, fontSize: '0.85rem', color: D.text }}>{v.registrationNo}</div>
-                              <div style={{ fontSize: '0.7rem', color: D.textSub }}>{v.manufacturer} {v.model}</div>
-                            </div>
+                            {isSel && <Check size={13} style={{ color: D.indigo, flexShrink: 0 }} />}
                           </div>
                         )
                       })}
@@ -1818,47 +1811,100 @@ const ServicePage = () => {
                   </>
                 )}
               </div>
+
+              <div style={{ flex: 1 }} />
+
+              {/* Active filter badge + reset */}
+              {(filter !== 'ALL' || vehicleFilter !== 'ALL' || search) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, animation: 'fadeIn 0.2s ease' }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '3px 9px', borderRadius: 999,
+                    background: 'rgba(99,102,241,0.12)', color: '#a5b4fc',
+                    border: '1px solid rgba(99,102,241,0.25)',
+                    fontSize: '0.68rem', fontWeight: 700,
+                  }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#6366f1' }} />
+                    {[filter !== 'ALL', vehicleFilter !== 'ALL', !!search].filter(Boolean).length} active
+                  </span>
+                  <button
+                    onClick={() => { setFilter('ALL'); setVehicleFilter('ALL'); setSearch('') }}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '3px 9px', borderRadius: 999, fontSize: '0.68rem', fontWeight: 700,
+                      background: 'rgba(239,68,68,0.08)', color: '#ef4444',
+                      border: '1px solid rgba(239,68,68,0.2)', cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.18)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+                  >
+                    <X size={10} /> Reset all
+                  </button>
+                </div>
+              )}
+
+              {/* Deleted Records button */}
+              {!isDriver && (
+                <button
+                  id="view-deleted-records-btn"
+                  onClick={() => setDeletedDrawer(true)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '5px 12px', borderRadius: 999,
+                    fontSize: '0.72rem', fontWeight: 700,
+                    background: 'rgba(239,68,68,0.07)', color: '#ef4444',
+                    border: '1px solid rgba(239,68,68,0.2)',
+                    cursor: 'pointer', transition: 'all 0.15s ease', whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.16)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.07)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)' }}
+                >
+                  <Archive size={12} /> Deleted Records
+                </button>
+              )}
             </div>
-            <div style={{ flex: 1 }} />
-            {/* ── Deleted Records Button ──────────────────── */}
-            {!isDriver && (
-              <button
-                id="view-deleted-records-btn"
-                onClick={() => setDeletedDrawer(true)}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 7,
-                  padding: '7px 16px', borderRadius: 10,
-                  fontSize: '0.78rem', fontWeight: 700,
-                  background: 'rgba(239,68,68,0.08)',
-                  color: '#ef4444',
-                  border: '1px solid rgba(239,68,68,0.25)',
-                  cursor: 'pointer', transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.16)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
-              >
-                <Archive size={14} />
-                Deleted Records
-              </button>
-            )}
-            <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: D.textSub, display: 'flex', alignItems: 'center' }}><Search size={16} /></span>
-              <input
-                id="service-search"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search by vehicle, type, date, workshop, cost, mileage, user..."
-                style={{
-                  padding: '8px 14px 8px 32px',
-                  borderRadius: 10, fontSize: '0.82rem',
-                  background: D.inputBg,
-                  border: `1px solid ${D.inputBorder}`,
-                  color: D.text, outline: 'none', minWidth: 240,
-                  transition: 'border-color 0.15s',
-                }}
-                onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)' }}
-                onBlur={e => { e.target.style.borderColor = D.inputBorder }}
-              />
+
+            {/* Row 2: Search */}
+            <div style={{ padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: D.textSub, display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                  <Search size={14} />
+                </span>
+                <input
+                  id="service-search"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search by vehicle, type, date, workshop, cost, mileage, user..."
+                  style={{
+                    width: '100%', padding: '8px 36px 8px 34px',
+                    borderRadius: 10, fontSize: '0.82rem',
+                    background: D.inputBg,
+                    border: `1px solid ${search ? 'rgba(99,102,241,0.4)' : D.inputBorder}`,
+                    color: D.text, outline: 'none',
+                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                    boxShadow: search ? '0 0 0 3px rgba(99,102,241,0.08)' : 'none',
+                    boxSizing: 'border-box',
+                  }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)' }}
+                  onBlur={e => { e.target.style.borderColor = search ? 'rgba(99,102,241,0.4)' : D.inputBorder; e.target.style.boxShadow = search ? '0 0 0 3px rgba(99,102,241,0.08)' : 'none' }}
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}
+                    onMouseEnter={e => e.currentTarget.style.color = D.text}
+                    onMouseLeave={e => e.currentTarget.style.color = D.textSub}
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+              <div style={{ fontSize: '0.73rem', color: D.textSub, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <strong style={{ color: D.text }}>{filtered.length}</strong>
+                <span>/</span>
+                <span>{services.length} records</span>
+              </div>
             </div>
           </div>
 
@@ -1885,17 +1931,19 @@ const ServicePage = () => {
               }}>
                 <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center', opacity: 0.5, color: D.textSub }}><Search size={48} /></div>
                 <p style={{ color: D.textSub, fontSize: '0.95rem', fontWeight: 500 }}>No service records found.</p>
-                <button
-                  onClick={openAddModal}
-                  style={{
-                    marginTop: 16, padding: '9px 22px', borderRadius: 10,
-                    background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
-                    color: '#fff', border: 'none', cursor: 'pointer',
-                    fontSize: '0.85rem', fontWeight: 700,
-                  }}
-                >
-                  + Add First Record
-                </button>
+                  {!isAdmin && (
+                    <button
+                      onClick={openAddModal}
+                      style={{
+                        marginTop: 16, padding: '9px 22px', borderRadius: 10,
+                        background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                        color: '#fff', border: 'none', cursor: 'pointer',
+                        fontSize: '0.85rem', fontWeight: 700,
+                      }}
+                    >
+                      + Add First Record
+                    </button>
+                  )}
               </div>
             ) : viewMode === 'calendar' ? (
               <ServiceCalendar
@@ -1915,6 +1963,7 @@ const ServicePage = () => {
                     record={record}
                     index={i}
                     isDriver={isDriver}
+                    isAdmin={isAdmin}
                     currentUsername={user?.userName}
                     vehicleCurrentKm={vc?.currentMileageKm}
                     onEdit={openEditModal}
@@ -1934,6 +1983,7 @@ const ServicePage = () => {
                     record={record}
                     index={i}
                     isDriver={isDriver}
+                    isAdmin={isAdmin}
                     currentUsername={user?.userName}
                     vehicleCurrentKm={vc?.currentMileageKm}
                     onEdit={openEditModal}
@@ -2623,8 +2673,8 @@ const ServicePage = () => {
 
               {/* Footer */}
               <div style={{ padding: '16px 28px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 10, background: D.surfaceHi, flexShrink: 0 }}>
-                {/* Admin/Controller: always show Edit + Delete */}
-                {!isDriver && (
+                {/* Controller only: show Edit + Delete; Admin is view-only */}
+                {!isDriver && !isAdmin && (
                   <>
                     <button
                       onClick={() => { closeDetail(); openEditModal(r.id) }}
