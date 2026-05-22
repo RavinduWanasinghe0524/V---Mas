@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { fuelAPI, vehicleAPI } from '../services/api'
 import { addDriverNotification } from '../services/notificationService'
 import { Fuel, CircleDollarSign, BarChart2, Car, Check, X, Plus, Loader2, Calendar } from 'lucide-react'
+import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 
 
@@ -75,6 +76,7 @@ const FuelLogPage = () => {
         let loadedLogs = []
         if (logsRes.status === 'fulfilled') {
           const logs = logsRes.value.data.data || []
+          computeLogsEfficiency(logs)
           // Sort newest-first so logs[0] is always the most recent entry
           const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date))
           setMyVehicleLogs(sorted)
@@ -159,8 +161,10 @@ const FuelLogPage = () => {
       
       // Reload driver's own logs via the correct endpoint
       const logsRes = await fuelAPI.getMyLogs()
+      const rawLogs = logsRes.data.data || []
+      computeLogsEfficiency(rawLogs)
       // Sort newest-first so the latest mileage is always at index 0
-      const updatedLogs = [...(logsRes.data.data || [])].sort((a, b) => new Date(b.date) - new Date(a.date))
+      const updatedLogs = [...rawLogs].sort((a, b) => new Date(b.date) - new Date(a.date))
       setMyVehicleLogs(updatedLogs)
 
       // Update previous mileage hint & pre-fill for next entry

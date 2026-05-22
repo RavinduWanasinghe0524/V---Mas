@@ -4,7 +4,8 @@ import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { fuelAPI } from '../services/api'
-import { Fuel, CircleDollarSign, BarChart2, Check, X, TrendingUp, Edit2, Loader2, Plus, LayoutDashboard, Calendar, User, Search, Filter } from 'lucide-react'
+import { Fuel, CircleDollarSign, BarChart2, Check, X, TrendingUp, Edit2, Loader2, Plus, LayoutDashboard, Calendar, User, Search, Filter, Car, MoreVertical } from 'lucide-react'
+import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 const card = (D) => ({
   background: D.surface,
@@ -161,7 +162,8 @@ const FuelAnalysisPage = () => {
   const [allFuelLogs, setAllFuelLogs] = useState([])
   const [deletedFuelLogs, setDeletedFuelLogs] = useState([])
   const [activeTab, setActiveTab] = useState('audit')
-  const [searchTerm, setSearchTerm] = useState('')
+  const [filterVehicle, setFilterVehicle] = useState('all')
+  const [filterDriver, setFilterDriver] = useState('all')
   const [filterFuelType, setFilterFuelType] = useState('all')
   const [filterAuditStatus, setFilterAuditStatus] = useState('all')
   const [loading, setLoading] = useState(true)
@@ -200,6 +202,9 @@ const FuelAnalysisPage = () => {
           }
           
           const activeLogs = rawLogs.filter(l => !l.isDeleted)
+
+          // Calculate efficiency client-side
+          computeLogsEfficiency(activeLogs)
 
           // Sort for display table (newest first)
           setAllFuelLogs([...activeLogs].sort((a, b) => new Date(b.date) - new Date(a.date)))
@@ -264,7 +269,9 @@ const FuelAnalysisPage = () => {
           ])
           setSummary(summaryRes.data.data || { totalDiesel: 0, totalPetrol: 0, totalVolume: 0, totalCost: 0 })
           setChartData(chartRes.data.data || { months: [], data: { Diesel: [], Petrol: [] } })
-          setMyVehicleLogs(logsRes.data.data || [])
+          const driverLogs = logsRes.data.data || []
+          computeLogsEfficiency(driverLogs)
+          setMyVehicleLogs(driverLogs)
         }
 
       } catch (err) { console.error('Error loading fuel data:', err) }
@@ -284,7 +291,9 @@ const FuelAnalysisPage = () => {
         mileage: parseFloat(formData.mileage), date: formData.date,
       })
       const [sR, cR, lR] = await Promise.all([fuelAPI.getSummary(), fuelAPI.getChartData(), fuelAPI.getMyLogs()])
-      setSummary(sR.data.data); setChartData(cR.data.data); setMyVehicleLogs(lR.data.data || [])
+      const driverLogs = lR.data.data || []
+      computeLogsEfficiency(driverLogs)
+      setSummary(sR.data.data); setChartData(cR.data.data); setMyVehicleLogs(driverLogs)
       setFormData({ vehicleRegNumber: '', fuelType: 'Diesel', liters: '', costPerLiter: '', mileage: '', date: new Date().toISOString().split('T')[0] })
       setShowAddModal(false); showToast('Fuel log added!')
     } catch (err) { showToast('Failed: ' + (err.response?.data?.message || err.message), 'error') }
@@ -300,11 +309,10 @@ const FuelAnalysisPage = () => {
     }
 
     return baseLogs.filter(log => {
-      if (searchTerm) {
-        const term = searchTerm.toLowerCase()
-        const matchVehicle = log.vehicleRegNumber && log.vehicleRegNumber.toLowerCase().includes(term)
-        const matchDriver = (log.driverUsername || log.uploadedBy || '').toLowerCase().includes(term)
-        if (!matchVehicle && !matchDriver) return false
+      if (filterVehicle !== 'all' && log.vehicleRegNumber !== filterVehicle) return false
+      if (filterDriver !== 'all') {
+        const drv = log.driverUsername || log.uploadedBy || ''
+        if (drv !== filterDriver) return false
       }
       if (filterFuelType !== 'all' && log.fuelType !== filterFuelType) return false
       if (filterAuditStatus === 'edited' && !log.isUpdated) return false
@@ -315,6 +323,13 @@ const FuelAnalysisPage = () => {
 
   const displayLogs = getFilteredLogs()
 
+  // Unique vehicles and drivers from the active log source for dropdowns
+  const activeLogSource = (isAdmin && activeTab === 'deleted') ? deletedFuelLogs : allFuelLogs
+  const uniqueVehiclesInLogs = [...new Set(activeLogSource.map(l => l.vehicleRegNumber).filter(Boolean))]
+  const uniqueDriversInLogs = [...new Set(
+    activeLogSource.map(l => l.driverUsername || l.uploadedBy).filter(Boolean)
+  )]
+
   /* chart helpers */
   const monthlyData = (chartData.months || []).map((month, i) => ({
     month, Diesel: chartData.data?.Diesel?.[i] || 0, Petrol: chartData.data?.Petrol?.[i] || 0,
@@ -322,8 +337,24 @@ const FuelAnalysisPage = () => {
   const highlightCount = period === '3M' ? 3 : period === '6M' ? 6 : 12
   const maxVal = Math.max(...(chartData.data?.Diesel || [0]), ...(chartData.data?.Petrol || [0]), 1)
 
-  /* efficiency trend from vehicle stats */
-  const effTrend = vehicleStats.filter(v => v.fuelEfficiency != null).map(v => v.fuelEfficiency)
+  /* efficiency trend — monthly average km/L from all active logs (uses backend-stored fuelEfficiency) */
+  const effTrendData = (() => {
+    const monthMap = {}
+    const targetLogs = (isAdmin || isController) ? allFuelLogs : myVehicleLogs
+    targetLogs.forEach(l => {
+      if (!l.fuelEfficiency || l.fuelEfficiency <= 0) return
+      const d = new Date(l.date)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      if (!monthMap[key]) monthMap[key] = { sum: 0, count: 0, label: d.toLocaleString('default', { month: 'short', year: '2-digit' }) }
+      monthMap[key].sum += l.fuelEfficiency
+      monthMap[key].count += 1
+    })
+    return Object.entries(monthMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-12) // last 12 months
+      .map(([, { sum, count, label }]) => ({ value: Math.round((sum / count) * 100) / 100, label }))
+  })()
+  const effTrend = effTrendData.map(d => d.value)
   const maxEff = Math.max(...effTrend, 1)
   const minEff = Math.min(...effTrend, 0)
 
@@ -534,11 +565,11 @@ const FuelAnalysisPage = () => {
                   </div>
                 </div>
 
-                {/* Fuel Efficiency Trend (line chart using vehicle efficiency values) */}
+                {/* Fuel Efficiency Trend (monthly average line chart) */}
                 <div style={{ ...card(D), padding: '22px 24px' }}>
                   <div style={{ marginBottom: 20 }}>
                     <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel Efficiency Trend</h3>
-                    <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>Avg km/L across vehicles</p>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>Monthly avg km/L across fleet · last 12 months</p>
                   </div>
                   {effTrend.length === 0 ? (
                     <div style={{ height: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.textSub }}>
@@ -550,9 +581,15 @@ const FuelAnalysisPage = () => {
                   ) : (
                     <>
                       <LineChart data={effTrend} maxVal={maxEff} minVal={minEff} D={D} />
-                      <div style={{ display: 'flex', gap: 20, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${D.border}` }}>
+                      {/* Month labels */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, paddingLeft: 10, paddingRight: 10 }}>
+                        {effTrendData.map((d, i) => (
+                          <span key={i} style={{ fontSize: '0.6rem', color: D.textFaint, fontWeight: 600 }}>{d.label}</span>
+                        ))}
+                      </div>
+                      <div style={{ display: 'flex', gap: 20, marginTop: 10, paddingTop: 12, borderTop: `1px solid ${D.border}` }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.72rem', color: D.textSub, fontWeight: 600 }}>
-                          <div style={{ width: 20, height: 2, background: D.teal, borderRadius: 999 }} />km/L per vehicle
+                          <div style={{ width: 20, height: 2, background: D.teal, borderRadius: 999 }} />Monthly avg km/L
                         </div>
                         <div style={{ marginLeft: 'auto', fontSize: '0.72rem', color: D.textSub }}>
                           Avg: <span style={{ color: D.teal, fontWeight: 700 }}>{effTrend.length > 0 ? (effTrend.reduce((a, b) => a + b, 0) / effTrend.length).toFixed(2) : '-'} km/L</span>
@@ -812,31 +849,79 @@ const FuelAnalysisPage = () => {
                     </div>
                     
                     {/* Filters Bar */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                      <div style={{ position: 'relative', flex: 1 }}>
-                        <Search size={18} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: D.textSub, opacity: 0.7 }} />
-                        <input type="text" placeholder="Search by vehicle reg or driver..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ width: '100%', padding: '12px 16px 12px 44px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', transition: 'all 0.2s', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+
+                      {/* Vehicle Dropdown */}
+                      <div style={{ position: 'relative', minWidth: 180 }}>
+                        <Car size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: D.blue, pointerEvents: 'none', opacity: 0.8 }} />
+                        <select
+                          value={filterVehicle}
+                          onChange={e => { setFilterVehicle(e.target.value) }}
+                          style={{ width: '100%', padding: '11px 32px 11px 36px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', cursor: 'pointer', appearance: 'none', fontFamily: 'inherit' }}
+                          onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 3px ${D.purpleDim}` }}
+                          onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }}
+                        >
+                          <option value="all">All Vehicles</option>
+                          {uniqueVehiclesInLogs.map(reg => (
+                            <option key={reg} value={reg}>{reg}</option>
+                          ))}
+                        </select>
+                        <MoreVertical size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
                       </div>
-                      
-                      <div style={{ position: 'relative' }}>
-                        <Filter size={14} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
-                        <select value={filterFuelType} onChange={e => setFilterFuelType(e.target.value)} style={{ padding: '12px 16px 12px 38px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', cursor: 'pointer', appearance: 'none', paddingRight: 32 }} onFocus={e => { e.target.style.borderColor = D.purple }} onBlur={e => { e.target.style.borderColor = D.inputBorder }}>
+
+                      {/* Driver Dropdown */}
+                      <div style={{ position: 'relative', minWidth: 180 }}>
+                        <User size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: D.purple, pointerEvents: 'none', opacity: 0.8 }} />
+                        <select
+                          value={filterDriver}
+                          onChange={e => { setFilterDriver(e.target.value) }}
+                          style={{ width: '100%', padding: '11px 32px 11px 36px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', cursor: 'pointer', appearance: 'none', fontFamily: 'inherit' }}
+                          onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 3px ${D.purpleDim}` }}
+                          onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }}
+                        >
+                          <option value="all">All Drivers</option>
+                          {uniqueDriversInLogs.map(drv => (
+                            <option key={drv} value={drv}>{drv}</option>
+                          ))}
+                        </select>
+                        <MoreVertical size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
+                      </div>
+
+                      {/* Fuel Type Dropdown */}
+                      <div style={{ position: 'relative', minWidth: 150 }}>
+                        <Filter size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
+                        <select value={filterFuelType} onChange={e => setFilterFuelType(e.target.value)} style={{ width: '100%', padding: '11px 32px 11px 36px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', cursor: 'pointer', appearance: 'none', fontFamily: 'inherit' }} onFocus={e => { e.target.style.borderColor = D.purple }} onBlur={e => { e.target.style.borderColor = D.inputBorder }}>
                           <option value="all" style={{ background: D.surface, color: D.text }}>All Fuels</option>
                           <option value="Diesel" style={{ background: D.surface, color: D.text }}>Diesel</option>
                           <option value="Petrol" style={{ background: D.surface, color: D.text }}>Petrol</option>
                         </select>
+                        <MoreVertical size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
                       </div>
-                      
-                      <div style={{ position: 'relative' }}>
-                        <Filter size={14} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
-                        <select value={filterAuditStatus} onChange={e => setFilterAuditStatus(e.target.value)} style={{ padding: '12px 16px 12px 38px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', cursor: 'pointer', appearance: 'none', paddingRight: 32 }} onFocus={e => { e.target.style.borderColor = D.purple }} onBlur={e => { e.target.style.borderColor = D.inputBorder }}>
+
+                      {/* Status Dropdown */}
+                      <div style={{ position: 'relative', minWidth: 150 }}>
+                        <Filter size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
+                        <select value={filterAuditStatus} onChange={e => setFilterAuditStatus(e.target.value)} style={{ width: '100%', padding: '11px 32px 11px 36px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', cursor: 'pointer', appearance: 'none', fontFamily: 'inherit' }} onFocus={e => { e.target.style.borderColor = D.purple }} onBlur={e => { e.target.style.borderColor = D.inputBorder }}>
                           <option value="all" style={{ background: D.surface, color: D.text }}>All Status</option>
                           <option value="original" style={{ background: D.surface, color: D.text }}>Original</option>
                           <option value="edited" style={{ background: D.surface, color: D.text }}>Edited</option>
                         </select>
+                        <MoreVertical size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
                       </div>
-                      
-                      <div style={{ fontSize: '0.8rem', color: D.textSub, fontWeight: 700, background: D.surface, padding: '12px 16px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+
+                      {/* Clear button */}
+                      {(filterVehicle !== 'all' || filterDriver !== 'all' || filterFuelType !== 'all' || filterAuditStatus !== 'all') && (
+                        <button
+                          onClick={() => { setFilterVehicle('all'); setFilterDriver('all'); setFilterFuelType('all'); setFilterAuditStatus('all') }}
+                          style={{ padding: '11px 16px', borderRadius: 12, border: `1px solid ${D.red}40`, background: D.redDim, color: D.red, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', whiteSpace: 'nowrap' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
+                        >
+                          <X size={14} /> Clear
+                        </button>
+                      )}
+
+                      <div style={{ marginLeft: 'auto', fontSize: '0.8rem', color: D.textSub, fontWeight: 700, background: D.surface, padding: '11px 16px', borderRadius: 12, border: `1px solid ${D.border}`, whiteSpace: 'nowrap', flexShrink: 0 }}>
                         <span style={{ color: D.purple }}>{displayLogs.length}</span> Records
                       </div>
                     </div>
