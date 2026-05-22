@@ -1,8 +1,6 @@
 package net.javaguids.ems_backend.service;
 
 import net.javaguids.ems_backend.dto.VehicleDto;
-import org.apache.coyote.BadRequestException;
-
 import java.util.List;
 
 public interface VehicleService {

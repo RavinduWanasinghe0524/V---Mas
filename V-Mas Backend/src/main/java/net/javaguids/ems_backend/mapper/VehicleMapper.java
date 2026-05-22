@@ -1,7 +1,6 @@
 package net.javaguids.ems_backend.mapper;
 
 import net.javaguids.ems_backend.dto.VehicleDto;
-import net.javaguids.ems_backend.entity.User;
 import net.javaguids.ems_backend.entity.Vehicle;
 
 public class VehicleMapper {
