@@ -7,7 +7,6 @@ import net.javaguids.ems_backend.enums.VehicleSatus;
 import net.javaguids.ems_backend.service.VehicleService;
 import net.javaguids.ems_backend.util.ApiResponseUtil;
 
-import org.apache.coyote.BadRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

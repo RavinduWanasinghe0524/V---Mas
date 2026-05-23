@@ -2,16 +2,12 @@ package net.javaguids.ems_backend.service.impl;
 
 import lombok.AllArgsConstructor;
 import net.javaguids.ems_backend.dto.VehicleDto;
-import net.javaguids.ems_backend.entity.User;
 import net.javaguids.ems_backend.entity.Vehicle;
-import net.javaguids.ems_backend.enums.Role;
 import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.mapper.VehicleMapper;
-import net.javaguids.ems_backend.repository.UserRepository;
 import net.javaguids.ems_backend.repository.VehicleRepository;
 import net.javaguids.ems_backend.service.VehicleService;
 import net.javaguids.ems_backend.service.NotificationService;
-import org.apache.coyote.BadRequestException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -23,7 +19,6 @@ import java.util.stream.Collectors;
 public class VehicleServiceImpl implements VehicleService {
 
     private final VehicleRepository vehicleRepository;
-    private final UserRepository userRepository;
     private final NotificationService notificationService;
 
     @Override

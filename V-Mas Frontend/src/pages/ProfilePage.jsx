@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
 import { profileAPI, fuelAPI, serviceAPI, vehicleAPI } from '../services/api'
 import { User, Mail, Key, ShieldCheck, Shield, Globe, Fuel, Ruler, Calendar, Car, Wrench, Edit2, AlertCircle, CheckCircle, Eye, EyeOff, Check } from 'lucide-react'
+import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(99,102,241,0.5)'
@@ -67,6 +68,7 @@ const ProfilePage = () => {
         if (user?.role === 'DRIVER') {
           const res = await fuelAPI.getMyLogs()
           const logs = res.data?.data || []
+          computeLogsEfficiency(logs)
           const avg  = logs.length
             ? (logs.reduce((sum, l) => sum + (l.fuelEfficiency || 0), 0) / logs.length).toFixed(1)
             : 0

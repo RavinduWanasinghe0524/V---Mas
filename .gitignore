@@ -1,4 +1,4 @@
-﻿HELP.md
+HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
@@ -36,3 +36,5 @@ V-Mas Frontend/node_modules/
 V-Mas Frontend/dist/
 V-Mas Frontend/.vite/
 
+### Uploaded Files ###
+V-Mas Backend/uploads/

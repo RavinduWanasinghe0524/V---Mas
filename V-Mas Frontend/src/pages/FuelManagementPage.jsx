@@ -10,6 +10,7 @@ import {
   Edit2, AlertTriangle, Check, X, Loader2, RotateCcw, FileText, ChevronRight, 
   Calendar, Clock, User, ArrowRight, MoreVertical
 } from 'lucide-react'
+import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 /* ── Fuel Management Page ────────────────────────────────────────────────── */
 const FuelManagementPage = () => {
@@ -68,7 +69,8 @@ const FuelManagementPage = () => {
   const [loading, setLoading] = useState(true)
   const [loadingDeleted, setLoadingDeleted] = useState(false)
 
-  const [searchTerm, setSearchTerm] = useState('')
+  const [filterVehicle, setFilterVehicle] = useState('all')
+  const [filterDriver, setFilterDriver] = useState('all')
   const [filterFuelType, setFilterFuelType] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
 
@@ -102,7 +104,7 @@ const FuelManagementPage = () => {
 
   // ── Effects ─────────────────────────────────────────────────────────────
   useEffect(() => { loadData() }, [])
-  useEffect(() => { applyFilters() }, [allLogs, searchTerm, filterFuelType, filterStatus])
+  useEffect(() => { applyFilters() }, [allLogs, filterVehicle, filterDriver, filterFuelType, filterStatus])
 
   const loadData = async () => {
     try {
@@ -114,7 +116,9 @@ const FuelManagementPage = () => {
         fuelAPI.getDeletedLogs()
       ])
       
-      const logs = [...(fuelRes.data.data || [])].sort((a, b) => new Date(b.date) - new Date(a.date))
+      const rawLogs = fuelRes.data.data || []
+      computeLogsEfficiency(rawLogs)
+      const logs = [...rawLogs].sort((a, b) => new Date(b.date) - new Date(a.date))
       setAllLogs(logs)
       setVehicles(vehRes.data.data || [])
       setDriversList(driverRes.data.data || [])
@@ -154,13 +158,8 @@ const FuelManagementPage = () => {
 
   const applyFilters = () => {
     let filtered = allLogs.filter(l => !l.isDeleted)
-    if (searchTerm) {
-      const low = searchTerm.toLowerCase()
-      filtered = filtered.filter(l => 
-        l.vehicleRegNumber.toLowerCase().includes(low) || 
-        (l.driverUsername && l.driverUsername.toLowerCase().includes(low))
-      )
-    }
+    if (filterVehicle !== 'all') filtered = filtered.filter(l => l.vehicleRegNumber === filterVehicle)
+    if (filterDriver !== 'all') filtered = filtered.filter(l => l.driverUsername === filterDriver)
     if (filterFuelType !== 'all') filtered = filtered.filter(l => l.fuelType === filterFuelType)
     if (filterStatus !== 'all') {
       filtered = filtered.filter(l => {
@@ -212,12 +211,17 @@ const FuelManagementPage = () => {
     const lastMil = lastLog ? lastLog.mileage : null
     setPreviousMileage(lastMil)
 
+    // Auto-fill driver from vehicle's assigned driver
+    const autoDriver = selected?.driverName && selected.driverName !== 'Not Assigned'
+      ? driversList.find(d => d.fullName === selected.driverName || d.username === selected.driverName)?.username || selected.driverName
+      : ''
+
     setFormData(p => ({
       ...p,
       vehicleRegNumber: regNo,
       ...(fuelType && { fuelType }),
       mileage: lastMil != null ? String(lastMil) : '',
-      driverUsername: selected?.driverName && selected.driverName !== 'Not Assigned' ? selected.driverName : p.driverUsername,
+      driverUsername: autoDriver || p.driverUsername,
     }))
   }
 
@@ -259,7 +263,8 @@ const FuelManagementPage = () => {
         }
       }
     } catch (err) {
-      showToast('Failed to add fuel log', 'error')
+      console.error('Add fuel log error:', err?.response?.data || err);
+      showToast(err?.response?.data?.message || 'Failed to add fuel log', 'error')
     } finally { setSubmitting(false) }
   }
 
@@ -339,6 +344,14 @@ const FuelManagementPage = () => {
     if (eff > 5) return { label: 'Average', bg: D.goldDim, color: D.gold, border: 'rgba(251,191,36,0.3)' }
     return { label: 'Poor', bg: D.redDim, color: D.red, border: 'rgba(248,113,113,0.3)' }
   }
+
+  // Build unique driver list from actual logs (so dropdown always matches filter)
+  const uniqueDriversInLogs = [...new Set(
+    allLogs.filter(l => !l.isDeleted && l.driverUsername).map(l => l.driverUsername)
+  )].map(username => {
+    const found = driversList.find(d => d.username === username)
+    return { username, displayName: found?.fullName || username }
+  })
 
   // ── Loading ─────────────────────────────────────────────────────────────
   if (loading) return (
@@ -433,34 +446,79 @@ const FuelManagementPage = () => {
 
           {/* -- Controls & List ---------------------------------- */}
           <div style={{ ...card, padding: 0 }}>
-            <div style={{ padding: '28px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: D.surfaceHi }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 28, flex: 1 }}>
-                <div style={{ position: 'relative', width: 380 }}>
-                  <Search size={20} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: D.textSub, opacity: 0.7 }} />
-                  <input type="text" placeholder="Search by vehicle or driver..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ ...inputStyle, paddingLeft: 48 }} onFocus={onFocus} onBlur={onBlur} />
+            <div style={{ padding: '22px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, background: D.surfaceHi, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, flexWrap: 'wrap' }}>
+
+                {/* Vehicle Dropdown */}
+                <div style={{ position: 'relative', minWidth: 190 }}>
+                  <Car size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.blue, pointerEvents: 'none', opacity: 0.8 }} />
+                  <select
+                    value={filterVehicle}
+                    onChange={e => setFilterVehicle(e.target.value)}
+                    style={{ ...inputStyle, paddingLeft: 38, appearance: 'none', paddingRight: 32, cursor: 'pointer' }}
+                    onFocus={onFocus} onBlur={onBlur}
+                  >
+                    <option value="all">All Vehicles</option>
+                    {vehicles.map(v => (
+                      <option key={v.id} value={v.registrationNo}>{v.registrationNo}</option>
+                    ))}
+                  </select>
+                  <MoreVertical size={13} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
                 </div>
-                <div style={{ display: 'flex', gap: 14 }}>
-                  <div style={{ position: 'relative' }}>
-                    <select value={filterFuelType} onChange={e => setFilterFuelType(e.target.value)} style={{ ...inputStyle, width: 170, appearance: 'none' }} onFocus={onFocus} onBlur={onBlur}>
-                      <option value="all">All Fuel Types</option>
-                      <option value="Diesel">Diesel</option>
-                      <option value="Petrol">Petrol</option>
-                    </select>
-                    <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }}><MoreVertical size={14} /></div>
-                  </div>
-                  <div style={{ position: 'relative' }}>
-                    <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inputStyle, width: 190, appearance: 'none' }} onFocus={onFocus} onBlur={onBlur}>
-                      <option value="all">All Efficiency</option>
-                      <option value="excellent">Excellent (&gt;10)</option>
-                      <option value="good">Good (7-10)</option>
-                      <option value="average">Average (5-7)</option>
-                      <option value="poor">Poor (&lt;5)</option>
-                    </select>
-                    <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }}><MoreVertical size={14} /></div>
-                  </div>
+
+                {/* Driver Dropdown */}
+                <div style={{ position: 'relative', minWidth: 190 }}>
+                  <User size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.purple, pointerEvents: 'none', opacity: 0.8 }} />
+                  <select
+                    value={filterDriver}
+                    onChange={e => setFilterDriver(e.target.value)}
+                    style={{ ...inputStyle, paddingLeft: 38, appearance: 'none', paddingRight: 32, cursor: 'pointer' }}
+                    onFocus={onFocus} onBlur={onBlur}
+                  >
+                    <option value="all">All Drivers</option>
+                    {uniqueDriversInLogs.map(d => (
+                      <option key={d.username} value={d.username}>{d.displayName}</option>
+                    ))}
+                  </select>
+                  <MoreVertical size={13} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
                 </div>
+
+                {/* Fuel Type Dropdown */}
+                <div style={{ position: 'relative', minWidth: 160 }}>
+                  <select value={filterFuelType} onChange={e => setFilterFuelType(e.target.value)} style={{ ...inputStyle, appearance: 'none', paddingRight: 32, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
+                    <option value="all">All Fuel Types</option>
+                    <option value="Diesel">Diesel</option>
+                    <option value="Petrol">Petrol</option>
+                  </select>
+                  <MoreVertical size={13} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
+                </div>
+
+                {/* Efficiency Dropdown */}
+                <div style={{ position: 'relative', minWidth: 175 }}>
+                  <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inputStyle, appearance: 'none', paddingRight: 32, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
+                    <option value="all">All Efficiency</option>
+                    <option value="excellent">Excellent (&gt;10)</option>
+                    <option value="good">Good (7–10)</option>
+                    <option value="average">Average (5–7)</option>
+                    <option value="poor">Poor (&lt;5)</option>
+                  </select>
+                  <MoreVertical size={13} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
+                </div>
+
+                {/* Clear Filters */}
+                {(filterVehicle !== 'all' || filterDriver !== 'all' || filterFuelType !== 'all' || filterStatus !== 'all') && (
+                  <button
+                    onClick={() => { setFilterVehicle('all'); setFilterDriver('all'); setFilterFuelType('all'); setFilterStatus('all') }}
+                    style={{ padding: '10px 16px', borderRadius: 12, border: `1px solid ${D.red}40`, background: D.redDim, color: D.red, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', whiteSpace: 'nowrap' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
+                  >
+                    <X size={14} /> Clear
+                  </button>
+                )}
               </div>
-              <div style={{ fontSize: '0.9rem', color: D.textSub, fontWeight: 700, background: D.surface, padding: '8px 16px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+
+              <div style={{ fontSize: '0.9rem', color: D.textSub, fontWeight: 700, background: D.surface, padding: '8px 16px', borderRadius: 12, border: `1px solid ${D.border}`, whiteSpace: 'nowrap', flexShrink: 0 }}>
                 <span style={{ color: D.purple }}>{filteredLogs.length}</span> Active Logs
               </div>
             </div>
@@ -567,57 +625,131 @@ const FuelManagementPage = () => {
             </div>
 
             <form onSubmit={editingLog ? handleEditSubmit : handleAddSubmit} style={{ padding: '36px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 40 }}>
-                {!editingLog ? (
-                  <div>
-                    <label style={labelStyle}>Vehicle Identification <span style={{ color: D.red }}>*</span></label>
-                    <select name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={handleVehicleSelect} required style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
-                      <option value="">Select a Vehicle</option>
-                      {vehicles.map(v => <option key={v.id} value={v.registrationNo}>{v.registrationNo}</option>)}
-                    </select>
+              {/* derive selected vehicle for info strip */}
+              {(() => {
+                const selectedVehicle = !editingLog && formData.vehicleRegNumber
+                  ? vehicles.find(v => v.registrationNo === formData.vehicleRegNumber)
+                  : null
+                const fuelTypeValue = editingLog ? editingLog.fuelType : formData.fuelType
+                const fuelColor = fuelTypeValue === 'Diesel' ? D.indigo : D.gold
+                const fuelBg = fuelTypeValue === 'Diesel' ? D.indigoDim : D.goldDim
+
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 40 }}>
+
+                    {/* Vehicle Select / Read-only reg */}
+                    {!editingLog ? (
+                      <div style={{ gridColumn: selectedVehicle ? '1' : '1' }}>
+                        <label style={labelStyle}>Vehicle Identification <span style={{ color: D.red }}>*</span></label>
+                        <select name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={handleVehicleSelect} required style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
+                          <option value="">Select a Vehicle</option>
+                          {vehicles.map(v => <option key={v.id} value={v.registrationNo}>{v.registrationNo}</option>)}
+                        </select>
+                      </div>
+                    ) : (
+                      <div>
+                        <label style={labelStyle}>Vehicle Identification</label>
+                        <input type="text" value={editingLog.vehicleRegNumber} readOnly style={{ ...inputStyle, background: D.surfaceHi, color: D.textSub, cursor: 'not-allowed', opacity: 0.7 }} />
+                      </div>
+                    )}
+
+                    {/* Date */}
+                    <div>
+                      <label style={labelStyle}>Transaction Date <span style={{ color: D.red }}>*</span></label>
+                      <input type="date" name="date" value={editingLog ? editingLog.date : formData.date} onChange={handleInputChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                    </div>
+
+                    {/* Vehicle Info Strip — shown when a vehicle is selected (add mode only) */}
+                    {selectedVehicle && (
+                      <div style={{ gridColumn: 'span 2', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 14, padding: '14px 18px', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', animation: 'fadeIn 0.2s ease' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 900, color: D.indigo, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.7 }}>Vehicle Info</span>
+                        <div style={{ width: 1, height: 16, background: D.border }} />
+                        {selectedVehicle.manufacturer && (
+                          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.text }}>{selectedVehicle.manufacturer} {selectedVehicle.model}</span>
+                        )}
+                        {selectedVehicle.year && (
+                          <span style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600 }}>· {selectedVehicle.year}</span>
+                        )}
+                        {/* Locked fuel type badge */}
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', background: fuelBg, color: fuelColor, padding: '3px 10px', borderRadius: 20, border: `1px solid ${fuelColor}30`, display: 'flex', alignItems: 'center', gap: 5 }}>
+                          🔒 {fuelTypeValue}
+                        </span>
+                        {selectedVehicle.currentMileageKm && (
+                          <span style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600 }}>· {Number(selectedVehicle.currentMileageKm).toLocaleString()} km on odometer</span>
+                        )}
+                        {selectedVehicle.driverName && selectedVehicle.driverName !== 'Not Assigned' && (
+                          <span style={{ fontSize: '0.78rem', color: D.purple, fontWeight: 700, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <User size={12} /> {selectedVehicle.driverName}
+                          </span>
+                        )}
+                        {/* Status chip */}
+                        {selectedVehicle.status && (
+                          <span style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 20,
+                            background: selectedVehicle.status === 'ACTIVE' ? D.greenDim : selectedVehicle.status === 'AVAILABLE' ? D.blueDim : D.orangeDim,
+                            color: selectedVehicle.status === 'ACTIVE' ? D.green : selectedVehicle.status === 'AVAILABLE' ? D.blue : D.orange,
+                          }}>{selectedVehicle.status}</span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Fuel Grade — locked read-only when vehicle selected (add mode), editable in edit mode */}
+                    <div>
+                      <label style={labelStyle}>Fuel Grade <span style={{ color: D.red }}>*</span></label>
+                      {selectedVehicle ? (
+                        // Locked: vehicle dictates fuel type
+                        <div style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: 10, background: D.surfaceHi, cursor: 'not-allowed', opacity: 0.85, padding: '14px 18px' }}>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', background: fuelBg, color: fuelColor, padding: '3px 10px', borderRadius: 20, border: `1px solid ${fuelColor}30` }}>{fuelTypeValue}</span>
+                          <span style={{ fontSize: '0.75rem', color: D.textFaint, fontWeight: 600 }}>Auto-set from vehicle</span>
+                          <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: D.textFaint }}>🔒</span>
+                        </div>
+                      ) : (
+                        <select name="fuelType" value={editingLog ? editingLog.fuelType : formData.fuelType} onChange={handleInputChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
+                          <option value="Diesel">Diesel</option>
+                          <option value="Petrol">Petrol</option>
+                        </select>
+                      )}
+                    </div>
+
+                    {/* Volume */}
+                    <div>
+                      <label style={labelStyle}>Volume Dispensed (L) <span style={{ color: D.red }}>*</span></label>
+                      <input type="number" name="liters" value={editingLog ? editingLog.liters : formData.liters} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                    </div>
+
+                    {/* Unit Price */}
+                    <div>
+                      <label style={labelStyle}>Unit Price (LKR/L) <span style={{ color: D.red }}>*</span></label>
+                      <input type="number" name="costPerLiter" value={editingLog ? editingLog.costPerLiter : formData.costPerLiter} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                    </div>
+
+                    {/* Odometer */}
+                    <div>
+                      <label style={labelStyle}>Odometer Reading (km) <span style={{ color: D.red }}>*</span></label>
+                      <input type="number" name="mileage" value={editingLog ? editingLog.mileage : formData.mileage} onChange={handleMileageChange} step="0.1" required placeholder="0.0" style={{ ...inputStyle, ...(mileageError ? { borderColor: D.red, boxShadow: `0 0 0 4px ${D.red}20` } : {}) }} onFocus={onFocus} onBlur={onBlur} />
+                      {mileageError ? (
+                        <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.red, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>⚠ {mileageError}</p>
+                      ) : previousMileage != null && !editingLog && (
+                        <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.textFaint, fontWeight: 600 }}>Last reading: <span style={{ color: D.purple }}>{previousMileage.toLocaleString()} km</span></p>
+                      )}
+                    </div>
+
+                    {/* Assigned Operator */}
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <label style={labelStyle}>Assigned Operator <span style={{ textTransform: 'none', color: D.textFaint, fontWeight: 500, marginLeft: 6, opacity: 0.8 }}>(Optional)</span></label>
+                      <select name="driverUsername" value={editingLog ? (editingLog.driverUsername || '') : (formData.driverUsername || '')} onChange={handleInputChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
+                        <option value="">System Generated / Unassigned</option>
+                        {driversList.map(d => <option key={d.id} value={d.username}>{d.fullName || d.username}</option>)}
+                      </select>
+                      {selectedVehicle?.driverName && selectedVehicle.driverName !== 'Not Assigned' && (
+                        <p style={{ margin: '7px 0 0', fontSize: '0.72rem', color: D.purple, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <User size={11} /> Auto-filled from vehicle assignment
+                        </p>
+                      )}
+                    </div>
+
                   </div>
-                ) : (
-                  <div>
-                    <label style={labelStyle}>Vehicle Identification</label>
-                    <input type="text" value={editingLog.vehicleRegNumber} readOnly style={{ ...inputStyle, background: D.surfaceHi, color: D.textSub, cursor: 'not-allowed', opacity: 0.7 }} />
-                  </div>
-                )}
-                <div>
-                  <label style={labelStyle}>Transaction Date <span style={{ color: D.red }}>*</span></label>
-                  <input type="date" name="date" value={editingLog ? editingLog.date : formData.date} onChange={handleInputChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Fuel Grade <span style={{ color: D.red }}>*</span></label>
-                  <select name="fuelType" value={editingLog ? editingLog.fuelType : formData.fuelType} onChange={handleInputChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
-                    <option value="Diesel">Diesel</option>
-                    <option value="Petrol">Petrol</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle}>Volume Dispensed (L) <span style={{ color: D.red }}>*</span></label>
-                  <input type="number" name="liters" value={editingLog ? editingLog.liters : formData.liters} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Unit Price (LKR/L) <span style={{ color: D.red }}>*</span></label>
-                  <input type="number" name="costPerLiter" value={editingLog ? editingLog.costPerLiter : formData.costPerLiter} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Odometer Reading (km) <span style={{ color: D.red }}>*</span></label>
-                  <input type="number" name="mileage" value={editingLog ? editingLog.mileage : formData.mileage} onChange={handleMileageChange} step="0.1" required placeholder="0.0" style={{ ...inputStyle, ...(mileageError ? { borderColor: D.red, boxShadow: `0 0 0 4px ${D.red}20` } : {}) }} onFocus={onFocus} onBlur={onBlur} />
-                  {mileageError ? (
-                     <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.red, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>⚠ {mileageError}</p>
-                  ) : previousMileage != null && !editingLog && (
-                     <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.textFaint, fontWeight: 600 }}>Last reading: <span style={{ color: D.purple }}>{previousMileage.toLocaleString()} km</span></p>
-                  )}
-                </div>
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={labelStyle}>Assigned Operator <span style={{ textTransform: 'none', color: D.textFaint, fontWeight: 500, marginLeft: 6, opacity: 0.8 }}>(Optional)</span></label>
-                  <select name="driverUsername" value={editingLog ? (editingLog.driverUsername || '') : (formData.driverUsername || '')} onChange={handleInputChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
-                    <option value="">System Generated / Unassigned</option>
-                    {driversList.map(d => <option key={d.id} value={d.username}>{d.fullName || d.username}</option>)}
-                  </select>
-                </div>
-              </div>
+                )
+              })()}
 
               <div style={{ display: 'flex', gap: 20 }}>
                 <button type="submit" disabled={submitting} style={{ flex: 2, padding: '16px', borderRadius: 18, border: 'none', background: submitting ? 'rgba(99,102,241,0.5)' : 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff', fontSize: '1.05rem', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: submitting ? 'none' : '0 10px 25px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }} onMouseEnter={e => { if(!submitting) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 15px 35px rgba(99,102,241,0.5)' } }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 10px 25px rgba(99,102,241,0.4)' }}>

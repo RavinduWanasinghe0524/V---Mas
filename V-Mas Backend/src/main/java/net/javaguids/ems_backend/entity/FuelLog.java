@@ -36,7 +36,7 @@ public class FuelLog {
     @Column(nullable = false)
     private Double totalCost;
 
-    @Column(name = "current_mileage", nullable = false)
+    @Column(nullable = false)
     private Double mileage;
 
     @Column(nullable = false)
@@ -52,7 +52,7 @@ public class FuelLog {
     private String uploadedBy;
 
     /** True if this log has ever been edited after creation. */
-    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @Column(nullable = true, columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isUpdated = false;
 
     /** Timestamp of the most recent update (null if never updated). */
@@ -64,7 +64,7 @@ public class FuelLog {
     private String updatedBy;
 
     /** True if this log has been soft-deleted by a controller/admin. */
-    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @Column(nullable = true, columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isDeleted = false;
 
     /** Timestamp of when this log was soft-deleted (null if not deleted). */
