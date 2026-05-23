@@ -109,21 +109,41 @@ const FuelManagementPage = () => {
   const loadData = async () => {
     try {
       setLoading(true)
-      const [fuelRes, vehRes, driverRes, delRes] = await Promise.all([
+      const [fuelRes, vehRes, driverRes, delRes] = await Promise.allSettled([
         fuelAPI.getAllFuelLogs(),
         vehicleAPI.getAllVehicles(),
         userAPI.getAllDrivers(),
         fuelAPI.getDeletedLogs()
       ])
-      
-      const rawLogs = fuelRes.data.data || []
-      computeLogsEfficiency(rawLogs)
-      const logs = [...rawLogs].sort((a, b) => new Date(b.date) - new Date(a.date))
-      setAllLogs(logs)
-      setVehicles(vehRes.data.data || [])
-      setDriversList(driverRes.data.data || [])
-      setDeletedLogs(delRes.data.data || [])
-      
+
+      let logs = []
+      if (fuelRes.status === 'fulfilled') {
+        const rawLogs = fuelRes.value.data.data || []
+        computeLogsEfficiency(rawLogs)
+        logs = [...rawLogs].sort((a, b) => new Date(b.date) - new Date(a.date))
+        setAllLogs(logs)
+      } else {
+        console.error('Failed to load fuel logs:', fuelRes.reason)
+      }
+
+      if (vehRes.status === 'fulfilled') {
+        setVehicles(vehRes.value.data.data || [])
+      } else {
+        console.error('Failed to load vehicles:', vehRes.reason)
+      }
+
+      if (driverRes.status === 'fulfilled') {
+        setDriversList(driverRes.value.data.data || [])
+      } else {
+        console.error('Failed to load drivers:', driverRes.reason)
+      }
+
+      if (delRes.status === 'fulfilled') {
+        setDeletedLogs(delRes.value.data.data || [])
+      } else {
+        console.error('Failed to load deleted logs:', delRes.reason)
+      }
+
       const activeLogs = logs.filter(l => !l.isDeleted)
       const vehicleCount = [...new Set(activeLogs.map(l => l.vehicleRegNumber))].length
       calculateStats(activeLogs, vehicleCount)
@@ -210,6 +230,7 @@ const FuelManagementPage = () => {
     const lastLog = allLogs.find(l => !l.isDeleted && l.vehicleRegNumber === regNo)
     const lastMil = lastLog ? lastLog.mileage : null
     setPreviousMileage(lastMil)
+    setMileageError('') // reset any stale validation error when switching vehicles
 
     // Auto-fill driver from vehicle's assigned driver
     const autoDriver = selected?.driverName && selected.driverName !== 'Not Assigned'
@@ -220,7 +241,7 @@ const FuelManagementPage = () => {
       ...p,
       vehicleRegNumber: regNo,
       ...(fuelType && { fuelType }),
-      mileage: lastMil != null ? String(lastMil) : '',
+      mileage: '', // always clear so controller must enter a new (higher) odometer reading
       driverUsername: autoDriver || p.driverUsername,
     }))
   }
