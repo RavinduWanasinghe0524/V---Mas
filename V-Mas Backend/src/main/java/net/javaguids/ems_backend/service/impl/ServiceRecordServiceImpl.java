@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.criteria.Predicate;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import net.javaguids.ems_backend.dto.ServiceFilterRequest;
 import net.javaguids.ems_backend.dto.ServiceRecordAuditDto;
 import net.javaguids.ems_backend.dto.ServiceRecordDto;
@@ -39,7 +40,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-@AllArgsConstructor
 public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     private final ServiceRecordRepository serviceRecordRepository;
@@ -47,6 +47,19 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
     private final VehicleRepository vehicleRepository;
     private final NotificationService notificationService;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    @Value("${app.upload.dir:uploads/service-attachments}")
+    private String uploadBaseDir;
+
+    public ServiceRecordServiceImpl(ServiceRecordRepository serviceRecordRepository,
+                                    ServiceRecordAuditRepository auditRepository,
+                                    VehicleRepository vehicleRepository,
+                                    NotificationService notificationService) {
+        this.serviceRecordRepository = serviceRecordRepository;
+        this.auditRepository = auditRepository;
+        this.vehicleRepository = vehicleRepository;
+        this.notificationService = notificationService;
+    }
 
     @Override
     public ServiceRecordDto createServiceRecord(ServiceRecordDto dto) {
@@ -305,7 +318,8 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     /**
      * Stores the uploaded bill attachment file to disk and persists the path on the record.
-     * Files are saved under uploads/service-attachments/{recordId}/{uuid}_{originalFilename}
+     * Files are saved under {app.upload.dir}/{recordId}/{uuid}_{originalFilename}
+     * The base directory is configured via app.upload.dir in application.properties.
      */
     private String getCleanFilename(String path) {
         if (path == null || path.isBlank()) {
@@ -326,8 +340,8 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
                         "Service record not found with id: " + id));
 
         try {
-            // Build a stable directory per record
-            String uploadDir = "uploads/service-attachments/" + id;
+            // Build a stable directory per record, rooted inside the Backend folder
+            String uploadDir = uploadBaseDir + "/" + id;
             Path uploadPath = Paths.get(uploadDir);
             Files.createDirectories(uploadPath);
 
