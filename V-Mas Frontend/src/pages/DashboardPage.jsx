@@ -128,7 +128,7 @@ const AdminDashboard = ({ stats, loading, navigate, isDark }) => {
         <FeatureCard icon={<Wrench size={24}/>} title="Service" desc="Schedule and track vehicle service appointments and maintenance records." onClick={() => navigate('/service')} />
         <FeatureCard icon={<Users size={24}/>} title="Users" desc="Create, view, edit, and delete users. Manage roles and account status." onClick={() => navigate('/users')} />
         <FeatureCard icon={<Fuel size={24}/>} title="Fuel Analysis" desc="Monitor fuel consumption trends and cost analysis across the entire fleet." onClick={() => navigate('/fuel-analysis')} />
-        <FeatureCard icon={<MapPin size={24}/>} title="Location" desc="Real-time GPS tracking for all fleet vehicles. Monitor routes and positions." onClick={() => navigate('/location')} />
+
         <FeatureCard icon={<BarChart3 size={24}/>} title="Reports" desc="Generate comprehensive reports on fleet performance and system activity." onClick={() => navigate('/reports')} />
       </div>
     </>
@@ -150,7 +150,7 @@ const ControllerDashboard = ({ navigate, isDark }) => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
         <FeatureCard icon={<Car size={24}/>} title="Vehicle Management" desc="Monitor, track, and manage all fleet vehicles." onClick={() => navigate('/vehicles')} />
         <FeatureCard icon={<UserCog size={24}/>} title="Driver Assignment" desc="Assign and manage drivers to vehicles and routes." onClick={() => navigate('/users')} />
-        <FeatureCard icon={<MapPin size={24}/>} title="Live Tracking" desc="Real-time GPS tracking and vehicle monitoring." onClick={() => navigate('/location')} />
+
         <FeatureCard icon={<Wrench size={24}/>} title="Maintenance Schedule" desc="Schedule and track vehicle service appointments." onClick={() => navigate('/service')} />
         <FeatureCard icon={<Fuel size={24}/>} title="Fuel Management" desc="Record and track fuel consumption and costs." onClick={() => navigate('/fuel-management')} />
         <FeatureCard icon={<AlertTriangle size={24}/>} title="Alerts & Incidents" desc="Monitor vehicle alerts and emergency incidents." onClick={() => navigate('/reports')} />
@@ -245,7 +245,7 @@ const DriverDashboard = ({ navigate, isDark }) => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
         <FeatureCard icon={<Car size={24}/>} title="My Vehicle" desc="View status and information about your assigned vehicle." onClick={() => navigate('/vehicles')} />
         <FeatureCard icon={<ClipboardList size={24}/>} title="Task List" desc="View and manage your assigned tasks and schedules." disabled />
-        <FeatureCard icon={<MapPin size={24}/>} title="Location" desc="View your current location relative to fleet bounds." onClick={() => navigate('/location')} />
+
         <FeatureCard icon={<Fuel size={24}/>} title="Fuel Log" desc="Record fuel consumption and view usage history." onClick={() => navigate('/fuel-log')} />
         <FeatureCard icon={<Wrench size={24}/>} title="Service History" desc="View maintenance history for your vehicle." onClick={() => navigate('/service')} />
         <FeatureCard icon={<BarChart3 size={24}/>} title="My Performance" desc="View driving stats, performance metrics, and history." onClick={() => navigate('/profile')} />
