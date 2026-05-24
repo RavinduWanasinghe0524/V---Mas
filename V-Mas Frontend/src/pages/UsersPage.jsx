@@ -672,7 +672,7 @@ const UsersPage = () => {
 
                 <div style={{ overflowX: 'auto' }}>
                   {loading ? (
-                    <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>Loading users...</div>
+                    <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>Fetching user records...</div>
                   ) : filteredUsers.length === 0 ? (
                     <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>No users found matching filters.</div>
                   ) : (
