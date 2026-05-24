@@ -438,7 +438,7 @@ const ReportsPage = () => {
     <div className="app-shell" style={{ background: D.bg }}>
       <Sidebar />
       <div className="main-content" style={{ background: D.bg }}>
-        <Topbar title="Reports" subtitle="Home / Reports" />
+        <Topbar title="Reports" subtitle="Dashboard / Reports" />
         <div className="page-body">
 
           {/* Hero Banner */}
