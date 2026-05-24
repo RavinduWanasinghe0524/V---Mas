@@ -661,7 +661,7 @@ const UsersPage = () => {
                   background: D.surfaceHi,
                   fontWeight: 500
                 }}>
-                  <span>Showing <strong>{filteredUsers.length}</strong> of <strong>{users.length}</strong> registered users</span>
+                  <span>Showing <strong>{filteredUsers.length}</strong> of <strong>{users.length}</strong> total registered users</span>
                   {(searchTerm || roleFilter !== 'ALL' || statusFilter !== 'ALL') && (
                     <span style={{ color: D.purple, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: D.purple }}></span>
