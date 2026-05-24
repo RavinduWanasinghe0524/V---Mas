@@ -469,7 +469,7 @@ const UsersPage = () => {
                     <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>
                       <UserCheck size={36} style={{ marginBottom: 12, opacity: 0.3 }} />
                       <p style={{ margin: 0, fontWeight: 700, color: D.text }}>No accounts awaiting approval</p>
-                      <p style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>New self-registered accounts will appear here.</p>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>New user registrations will appear here for review.</p>
                     </div>
                   ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
