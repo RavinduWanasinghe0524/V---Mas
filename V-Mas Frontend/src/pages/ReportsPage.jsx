@@ -12,10 +12,10 @@ import 'jspdf-autotable'
 import { vehicleAPI, fuelAPI, serviceAPI, userAPI } from '../services/api'
 
 const recentReports = [
-  { name: 'Vehicle Summary – Mar 2026',   generated: '2026-03-20', format: 'PDF',  size: '245 KB' },
-  { name: 'Fuel Consumption – Feb 2026',  generated: '2026-03-01', format: 'Excel', size: '118 KB' },
-  { name: 'User Activity – Q1 2026',      generated: '2026-03-15', format: 'PDF',  size: '312 KB' },
-  { name: 'Service Summary – Feb 2026',   generated: '2026-03-02', format: 'PDF',  size: '198 KB' },
+  { name: 'Vehicle Summary – May 2026',   generated: '2026-05-20', format: 'PDF',  size: '245 KB' },
+  { name: 'Fuel Consumption – Apr 2026',  generated: '2026-05-01', format: 'Excel', size: '118 KB' },
+  { name: 'User Activity – Q2 2026',      generated: '2026-05-15', format: 'PDF',  size: '312 KB' },
+  { name: 'Service Summary – Apr 2026',   generated: '2026-05-02', format: 'PDF',  size: '198 KB' },
 ]
 
 const SectionHeader = ({ title, D }) => (
@@ -438,7 +438,7 @@ const ReportsPage = () => {
     <div className="app-shell" style={{ background: D.bg }}>
       <Sidebar />
       <div className="main-content" style={{ background: D.bg }}>
-        <Topbar title="Reports" subtitle="Home / Reports" />
+        <Topbar title="Reports" subtitle="Dashboard / Reports" />
         <div className="page-body">
 
           {/* Hero Banner */}
@@ -462,7 +462,7 @@ const ReportsPage = () => {
               </div>
               <div>
                 <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  Reports & Analytics
+                  Reports and Analytics Dashboard
                 </h1>
                 <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
                   Generate and download comprehensive reports on fleet performance, fuel consumption, maintenance costs, and system-wide activity.
@@ -486,9 +486,9 @@ const ReportsPage = () => {
           {/* Quick stats */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
             {[
-              { label: 'Reports Generated', value: '38',    icon: <FileText size={20} strokeWidth={1.5} />, colorDim: D.purpleDim, colorHex: D.purple },
-              { label: 'This Month',        value: '12',    icon: <Calendar size={20} strokeWidth={1.5} />, colorDim: D.blueDim,   colorHex: D.blue   },
-              { label: 'Total Downloads',   value: '127',   icon: <Download size={20} strokeWidth={1.5} />, colorDim: D.greenDim,  colorHex: D.green  },
+              { label: 'Reports Generated', value: '42',    icon: <FileText size={20} strokeWidth={1.5} />, colorDim: D.purpleDim, colorHex: D.purple },
+              { label: 'This Month',        value: '15',    icon: <Calendar size={20} strokeWidth={1.5} />, colorDim: D.blueDim,   colorHex: D.blue   },
+              { label: 'Total Downloads',   value: '145',   icon: <Download size={20} strokeWidth={1.5} />, colorDim: D.greenDim,  colorHex: D.green  },
               { label: 'Report Types',      value: reportTypes.length.toString(), icon: <ClipboardList size={20} strokeWidth={1.5} />, colorDim: D.indigoDim, colorHex: D.indigo },
             ].map(s => (
               <div key={s.label} style={{
@@ -647,7 +647,7 @@ const ReportsPage = () => {
                       transition: 'all 0.2s ease', boxShadow: generating === r.id ? 'none' : `0 4px 14px ${r.bg}`
                     }}
                   >
-                    {generating === r.id ? <><Loader2 size={14} className="animate-spin" style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}/> Generating…</> : <><Download size={14} style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}/> Generate PDF</>}
+                    {generating === r.id ? <><Loader2 size={14} className="animate-spin" style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}/> Generating…</> : <><Download size={14} style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}/> Download PDF</>}
                   </button>
                   <button
                     onClick={() => handleGenerateExcel(r.id)}

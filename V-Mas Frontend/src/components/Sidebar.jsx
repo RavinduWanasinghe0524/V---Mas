@@ -23,7 +23,7 @@ const navItems = {
     { label: 'Service',       icon: <Wrench size={20} strokeWidth={1.5} />,          to: '/service'       },
     { label: 'Users',         icon: <Users size={20} strokeWidth={1.5} />,           to: '/users'         },
     { label: 'Fuel Analysis', icon: <Fuel size={20} strokeWidth={1.5} />,            to: '/fuel-analysis' },
-    { label: 'Location',      icon: <MapPin size={20} strokeWidth={1.5} />,          to: '/location'      },
+
     { label: 'Reports',       icon: <BarChart2 size={20} strokeWidth={1.5} />,       to: '/reports'       },
     { label: 'My Profile',    icon: <User size={20} strokeWidth={1.5} />,            to: '/profile'       },
   ],
@@ -31,7 +31,7 @@ const navItems = {
     { label: 'Dashboard',       icon: <LayoutDashboard size={20} strokeWidth={1.5} />, to: '/dashboard'       },
     { label: 'Vehicles',        icon: <Truck size={20} strokeWidth={1.5} />,           to: '/vehicles'        },
     { label: 'Users',           icon: <Users size={20} strokeWidth={1.5} />,           to: '/users'           },
-    { label: 'Live Tracking',   icon: <MapPin size={20} strokeWidth={1.5} />,          to: '/location'        },
+
     { label: 'Fuel Management', icon: <Fuel size={20} strokeWidth={1.5} />,             to: '/fuel-management' },
     { label: 'Service',         icon: <Wrench size={20} strokeWidth={1.5} />,           to: '/service'         },
     { label: 'My Profile',      icon: <User size={20} strokeWidth={1.5} />,             to: '/profile'         },

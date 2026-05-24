@@ -323,7 +323,7 @@ const UsersPage = () => {
         <Sidebar />
         <div className="main-content" style={{ background: D.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ color: D.red, background: D.redDim, padding: '16px 24px', borderRadius: 12, border: `1px solid ${D.red}30` }}>
-            Access Denied: Admin or Controller privileges required
+            Access Restricted: You need Admin or Controller privileges to view this page.
           </div>
         </div>
       </div>
@@ -335,7 +335,7 @@ const UsersPage = () => {
       <div className="app-shell" style={{ background: D.bg }}>
         <Sidebar />
         <div className="main-content" style={{ background: D.bg }}>
-          <Topbar title="User Management" subtitle="Home / Users" />
+          <Topbar title="User Management" subtitle="Dashboard / User Management" />
           <div className="page-body">
 
             {/* Hero Banner */}
@@ -381,7 +381,7 @@ const UsersPage = () => {
                 }}
                 onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)' }}
                 onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 4px 14px rgba(0,0,0,0.2)' }}>
-                  <UserPlus size={16} /> Add User
+                  <UserPlus size={16} /> Create New User
                 </button>
               )}
             </div>
@@ -469,7 +469,7 @@ const UsersPage = () => {
                     <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>
                       <UserCheck size={36} style={{ marginBottom: 12, opacity: 0.3 }} />
                       <p style={{ margin: 0, fontWeight: 700, color: D.text }}>No accounts awaiting approval</p>
-                      <p style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>New self-registered accounts will appear here.</p>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>New user registrations will appear here for review.</p>
                     </div>
                   ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
@@ -644,7 +644,7 @@ const UsersPage = () => {
                         e.currentTarget.style.transform = 'scale(1)';
                       }}
                     >
-                      <X size={14} /> Clear Filters
+                      <X size={14} /> Reset Filters
                     </button>
                   )}
                 </div>
@@ -661,7 +661,7 @@ const UsersPage = () => {
                   background: D.surfaceHi,
                   fontWeight: 500
                 }}>
-                  <span>Showing <strong>{filteredUsers.length}</strong> of <strong>{users.length}</strong> registered users</span>
+                  <span>Showing <strong>{filteredUsers.length}</strong> of <strong>{users.length}</strong> total registered users</span>
                   {(searchTerm || roleFilter !== 'ALL' || statusFilter !== 'ALL') && (
                     <span style={{ color: D.purple, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: D.purple }}></span>
@@ -672,7 +672,7 @@ const UsersPage = () => {
 
                 <div style={{ overflowX: 'auto' }}>
                   {loading ? (
-                    <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>Loading users...</div>
+                    <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>Fetching user records...</div>
                   ) : filteredUsers.length === 0 ? (
                     <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>No users found matching filters.</div>
                   ) : (
