@@ -9,7 +9,7 @@
  * - Dynamic role badges and account status indicators.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
@@ -80,6 +80,22 @@ const UsersPage = () => {
   const [searchTerm,   setSearchTerm]   = useState('')
   const [roleFilter,   setRoleFilter]   = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const fileInputRef = useRef(null)
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > 1024 * 1024) {
+      setError('Image must be under 1 MB')
+      setTimeout(() => setError(''), 4000)
+      return
+    }
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setFormData(prev => ({ ...prev, profilePicture: reader.result }))
+    }
+    reader.readAsDataURL(file)
+  }
 
   const filteredUsers = users.filter(u => {
     const matchSearch = (u.userName || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -785,9 +801,60 @@ const UsersPage = () => {
                       <option value="SUSPENDED" style={{ background: D.surfaceHi }}>Suspended</option>
                     </select>
                   </div>
-                  <div>
-                    <label style={labelStyle}>Profile Picture URL <span style={{ color: D.textFaint, fontWeight: 400, textTransform: 'none' }}>(optional)</span></label>
-                    <input type="url" name="profilePicture" value={formData.profilePicture} onChange={handleChange} placeholder="https://..." style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={labelStyle}>Profile Picture <span style={{ color: D.textFaint, fontWeight: 400, textTransform: 'none' }}>(optional — upload an image)</span></label>
+                    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                      <img
+                        src={formData.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.userName || 'U')}&background=6366f1&color=fff&size=128&bold=true`}
+                        alt="preview"
+                        style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${D.surfaceHi}`, boxShadow: `0 0 0 1px ${D.border}`, flexShrink: 0 }}
+                        onError={e => {
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.userName || 'U')}&background=6366f1&color=fff&size=128&bold=true`
+                        }}
+                      />
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={handleFileChange}
+                        />
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            style={{
+                              padding: '8px 16px', borderRadius: 8,
+                              border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)',
+                              color: D.text, cursor: 'pointer',
+                              fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 700,
+                              transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor='rgba(99,102,241,0.4)' }}
+                            onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor=D.border }}
+                          >
+                            Upload Image
+                          </button>
+                          {formData.profilePicture && (
+                            <button
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, profilePicture: '' }))}
+                              style={{
+                                padding: '8px 12px', borderRadius: 8,
+                                border: `1px solid ${D.red}40`, background: D.redDim,
+                                color: D.red, cursor: 'pointer',
+                                fontFamily: 'inherit', fontSize: '0.75rem', fontWeight: 700,
+                                transition: 'all 0.15s'
+                              }}
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                        <span style={{ fontSize: '0.72rem', color: D.textSub }}>JPG, PNG — max 1 MB. Image will be stored directly in the system.</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
