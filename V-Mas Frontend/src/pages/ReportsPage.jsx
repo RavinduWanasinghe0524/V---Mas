@@ -486,9 +486,9 @@ const ReportsPage = () => {
           {/* Quick stats */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
             {[
-              { label: 'Reports Generated', value: '38',    icon: <FileText size={20} strokeWidth={1.5} />, colorDim: D.purpleDim, colorHex: D.purple },
-              { label: 'This Month',        value: '12',    icon: <Calendar size={20} strokeWidth={1.5} />, colorDim: D.blueDim,   colorHex: D.blue   },
-              { label: 'Total Downloads',   value: '127',   icon: <Download size={20} strokeWidth={1.5} />, colorDim: D.greenDim,  colorHex: D.green  },
+              { label: 'Reports Generated', value: '42',    icon: <FileText size={20} strokeWidth={1.5} />, colorDim: D.purpleDim, colorHex: D.purple },
+              { label: 'This Month',        value: '15',    icon: <Calendar size={20} strokeWidth={1.5} />, colorDim: D.blueDim,   colorHex: D.blue   },
+              { label: 'Total Downloads',   value: '145',   icon: <Download size={20} strokeWidth={1.5} />, colorDim: D.greenDim,  colorHex: D.green  },
               { label: 'Report Types',      value: reportTypes.length.toString(), icon: <ClipboardList size={20} strokeWidth={1.5} />, colorDim: D.indigoDim, colorHex: D.indigo },
             ].map(s => (
               <div key={s.label} style={{
