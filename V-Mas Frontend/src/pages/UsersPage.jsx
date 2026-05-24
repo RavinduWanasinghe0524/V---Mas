@@ -121,9 +121,11 @@ const UsersPage = () => {
     try {
       setError('')
       const res = await userAPI.getAllUsers()
-      setUsers(res.data.data)
+      const data = res.data?.data || res.data || []
+      setUsers(Array.isArray(data) ? data : [])
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to load users')
+      setUsers([])
     } finally {
       setLoading(false)
     }
@@ -236,6 +238,7 @@ const UsersPage = () => {
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
+      URL.revokeObjectURL(url)
       
       setActionMsg('Users exported to CSV successfully.')
       setTimeout(() => setActionMsg(''), 4000)
@@ -322,9 +325,12 @@ const UsersPage = () => {
       if (editingUser) {
         if (!submitData.password) delete submitData.password
         await userAPI.updateUser(editingUser.id, submitData)
+        setActionMsg(`User "${submitData.userName}" has been updated successfully.`)
       } else {
         await userAPI.createUser(submitData)
+        setActionMsg(`User "${submitData.userName}" has been created successfully.`)
       }
+      setTimeout(() => setActionMsg(''), 4000)
       setShowModal(false)
       if (isAdmin) loadUsers()
       loadPending()
