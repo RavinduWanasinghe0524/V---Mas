@@ -335,7 +335,7 @@ const UsersPage = () => {
       <div className="app-shell" style={{ background: D.bg }}>
         <Sidebar />
         <div className="main-content" style={{ background: D.bg }}>
-          <Topbar title="User Management" subtitle="Home / Users" />
+          <Topbar title="User Management" subtitle="Dashboard / User Management" />
           <div className="page-body">
 
             {/* Hero Banner */}
