@@ -644,7 +644,7 @@ const UsersPage = () => {
                         e.currentTarget.style.transform = 'scale(1)';
                       }}
                     >
-                      <X size={14} /> Clear Filters
+                      <X size={14} /> Reset Filters
                     </button>
                   )}
                 </div>
