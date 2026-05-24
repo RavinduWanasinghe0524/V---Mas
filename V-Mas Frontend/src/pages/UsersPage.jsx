@@ -381,7 +381,7 @@ const UsersPage = () => {
                 }}
                 onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)' }}
                 onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 4px 14px rgba(0,0,0,0.2)' }}>
-                  <UserPlus size={16} /> Add User
+                  <UserPlus size={16} /> Create New User
                 </button>
               )}
             </div>
