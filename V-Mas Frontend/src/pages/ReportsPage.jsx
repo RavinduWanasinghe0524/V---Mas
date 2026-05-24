@@ -430,6 +430,63 @@ const ReportsPage = () => {
           u.role || 'N/A',
           u.accountStatus || 'ACTIVE'
         ])
+      } else if (id === 'fuel-efficiency') {
+        const { data: effRes } = await fuelAPI.getFuelEfficiencyReport()
+        const report = effRes.data || effRes
+        headers = []
+        rows = [
+          ['Fleet Summary'],
+          ['Metric', 'Value'],
+          ['Fleet Average Efficiency', report.fleetAverageEfficiency != null ? report.fleetAverageEfficiency : 'N/A'],
+          ['Total Vehicles', report.totalVehicles || 0],
+          ['Good Efficiency', report.goodEfficiencyCount || 0],
+          ['Moderate Efficiency', report.moderateEfficiencyCount || 0],
+          ['Low Efficiency', report.lowEfficiencyCount || 0],
+          [],
+          ['Per-Vehicle Efficiency Breakdown'],
+          ['Reg No', 'Latest km/L', 'Avg km/L', 'Status', 'Total Liters', 'Total Cost', 'Cost/km', 'Fill-ups'],
+          ...(report.vehicles || []).map(v => [
+            v.vehicleRegNumber || 'N/A',
+            v.latestEfficiency != null ? v.latestEfficiency : 'N/A',
+            v.averageEfficiency != null ? v.averageEfficiency : 'N/A',
+            v.efficiencyStatus || 'N/A',
+            v.totalLiters || 'N/A',
+            v.totalCost || 'N/A',
+            v.costPerKm || 'N/A',
+            v.fillUps ? v.fillUps.length : 0
+          ])
+        ]
+      } else if (id === 'cost-report') {
+        const { data: fuelLogs } = await fuelAPI.getAllFuelLogs()
+        const { data: services } = await serviceAPI.getAllServices()
+        headers = []
+        rows = [
+          ['Operational Expenses Summary'],
+          ['Cost Category', 'Amount'],
+          ['Total Fuel Expenses', fuelLogs.reduce((sum, f) => sum + (f.cost || 0), 0)],
+          ['Total Maintenance Expenses', services.reduce((sum, s) => sum + (s.cost || 0), 0)],
+          ['Total Fleet Operational Expenses', fuelLogs.reduce((sum, f) => sum + (f.cost || 0), 0) + services.reduce((sum, s) => sum + (s.cost || 0), 0)],
+          [],
+          ['Fuel Expenditure Breakdown'],
+          ['Date', 'Vehicle', 'Driver', 'Volume', 'Cost'],
+          ...[...fuelLogs].sort((a, b) => (b.cost || 0) - (a.cost || 0)).map(f => [
+            f.date ? new Date(f.date).toLocaleDateString() : 'N/A',
+            f.vehicleRegNo || 'N/A',
+            f.driverName || 'N/A',
+            f.liters || 0,
+            f.cost || 0
+          ]),
+          [],
+          ['Maintenance Expenditure Breakdown'],
+          ['Date', 'Vehicle', 'Service Type', 'Status', 'Cost'],
+          ...[...services].sort((a, b) => (b.cost || 0) - (a.cost || 0)).map(s => [
+            s.date ? new Date(s.date).toLocaleDateString() : 'N/A',
+            s.vehicleRegNo || 'N/A',
+            s.serviceType || 'N/A',
+            s.status || 'N/A',
+            s.cost || 0
+          ])
+        ]
       } else {
         setError('Excel export for this category is under development.')
         setTimeout(() => setError(''), 4000)
