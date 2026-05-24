@@ -75,6 +75,20 @@ const ReportsPage = () => {
         doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30)
       }
 
+      const addPageFooters = () => {
+        const totalPages = doc.internal.getNumberOfPages()
+        for (let i = 1; i <= totalPages; i++) {
+          doc.setPage(i)
+          const pageWidth = doc.internal.pageSize.getWidth()
+          const pageHeight = doc.internal.pageSize.getHeight()
+          doc.setFontSize(8)
+          doc.setTextColor(150)
+          doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
+          doc.text('V-Mas Fleet Management System', 14, pageHeight - 10)
+          doc.text(new Date().toLocaleDateString(), pageWidth - 14, pageHeight - 10, { align: 'right' })
+        }
+      }
+
       if (id === 'vehicle-summary' || id === 'master-report') {
         if (id === 'vehicle-summary') addHeader('Vehicle Summary Report')
         if (id === 'master-report') {
@@ -325,8 +339,25 @@ const ReportsPage = () => {
 
       if (id === 'location-report') {
         addHeader('Location & Route Report')
-        doc.setFontSize(12)
-        doc.text('This feature is currently under development.', 14, 40)
+        const { data: vehicles } = await vehicleAPI.getAllVehicles()
+        const locationData = vehicles.map(v => [
+          v.registrationNumber || 'N/A',
+          v.brand ? `${v.brand} ${v.model || ''}`.trim() : 'N/A',
+          v.status || 'N/A',
+          v.mileage ? `${Number(v.mileage).toLocaleString()} km` : '0 km',
+          v.assignedDriver || 'Unassigned'
+        ])
+        doc.autoTable({
+          startY: 40,
+          head: [['Reg No', 'Vehicle', 'Status', 'Total Distance', 'Assigned Driver']],
+          body: locationData,
+          theme: 'grid',
+          headStyles: { fillColor: headerColor }
+        })
+        const afterTable = doc.lastAutoTable ? doc.lastAutoTable.finalY + 12 : 80
+        doc.setFontSize(9)
+        doc.setTextColor(130)
+        doc.text('Note: Detailed GPS route tracking will be available in a future update.', 14, afterTable)
       }
 
       if (id === 'master-report') {
@@ -334,13 +365,24 @@ const ReportsPage = () => {
         addHeader('Comprehensive Master Report')
       }
 
+      addPageFooters()
+
       const filename = `${id}-${new Date().toISOString().split('T')[0]}.pdf`
       doc.save(filename)
       setSuccessMsg(`Report "${filename}" generated and downloaded successfully.`)
       setTimeout(() => setSuccessMsg(''), 5000)
     } catch (err) {
       console.error('Error generating PDF:', err)
-      setError(err.response?.data?.message || 'Failed to generate report. Make sure you have the required permissions.')
+      const reportName = reportTypes.find(r => r.id === id)?.title || id
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setError(`Permission denied: You do not have access to generate the "${reportName}" report.`)
+      } else if (err.response?.status === 404) {
+        setError(`Data not found: The data required for "${reportName}" could not be retrieved from the server.`)
+      } else if (err.code === 'ERR_NETWORK') {
+        setError('Network error: Unable to reach the server. Please check your connection and try again.')
+      } else {
+        setError(err.response?.data?.message || `Failed to generate "${reportName}". Please try again later.`)
+      }
     } finally {
       setGenerating(null)
     }
@@ -508,13 +550,20 @@ const ReportsPage = () => {
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
+      URL.revokeObjectURL(url)
 
       setSuccessMsg(`Excel (CSV) report "${filename}" generated and downloaded successfully.`)
       setTimeout(() => setSuccessMsg(''), 5000)
     } catch (err) {
       console.error('Error generating Excel:', err)
-      setError('Failed to generate Excel report.')
-      setTimeout(() => setError(''), 4000)
+      const reportName = reportTypes.find(r => r.id === id)?.title || id
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setError(`Permission denied: You do not have access to generate the "${reportName}" Excel report.`)
+      } else if (err.code === 'ERR_NETWORK') {
+        setError('Network error: Unable to reach the server. Please check your connection and try again.')
+      } else {
+        setError(err.response?.data?.message || `Failed to generate "${reportName}" Excel report. Please try again.`)
+      }
     } finally {
       setGenerating(null)
     }
