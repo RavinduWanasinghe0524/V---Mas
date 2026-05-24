@@ -12,10 +12,10 @@ import 'jspdf-autotable'
 import { vehicleAPI, fuelAPI, serviceAPI, userAPI } from '../services/api'
 
 const recentReports = [
-  { name: 'Vehicle Summary – Mar 2026',   generated: '2026-03-20', format: 'PDF',  size: '245 KB' },
-  { name: 'Fuel Consumption – Feb 2026',  generated: '2026-03-01', format: 'Excel', size: '118 KB' },
-  { name: 'User Activity – Q1 2026',      generated: '2026-03-15', format: 'PDF',  size: '312 KB' },
-  { name: 'Service Summary – Feb 2026',   generated: '2026-03-02', format: 'PDF',  size: '198 KB' },
+  { name: 'Vehicle Summary – May 2026',   generated: '2026-05-20', format: 'PDF',  size: '245 KB' },
+  { name: 'Fuel Consumption – Apr 2026',  generated: '2026-05-01', format: 'Excel', size: '118 KB' },
+  { name: 'User Activity – Q2 2026',      generated: '2026-05-15', format: 'PDF',  size: '312 KB' },
+  { name: 'Service Summary – Apr 2026',   generated: '2026-05-02', format: 'PDF',  size: '198 KB' },
 ]
 
 const SectionHeader = ({ title, D }) => (
