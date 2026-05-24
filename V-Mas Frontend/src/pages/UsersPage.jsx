@@ -80,6 +80,7 @@ const UsersPage = () => {
   const [searchTerm,   setSearchTerm]   = useState('')
   const [roleFilter,   setRoleFilter]   = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const [sidebarOpen, setSidebarOpen]   = useState(false)
 
   const filteredUsers = users.filter(u => {
     const matchSearch = (u.userName || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -320,7 +321,7 @@ const UsersPage = () => {
   if (!isAdmin && !isController) {
     return (
       <div className="app-shell" style={{ background: D.bg }}>
-        <Sidebar />
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="main-content" style={{ background: D.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ color: D.red, background: D.redDim, padding: '16px 24px', borderRadius: 12, border: `1px solid ${D.red}30` }}>
             Access Denied: Admin or Controller privileges required
@@ -333,9 +334,9 @@ const UsersPage = () => {
   return (
     <>
       <div className="app-shell" style={{ background: D.bg }}>
-        <Sidebar />
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="main-content" style={{ background: D.bg }}>
-          <Topbar title="User Management" subtitle="Home / Users" />
+          <Topbar title="User Management" subtitle="Home / Users" onMenuToggle={() => setSidebarOpen(o => !o)} />
           <div className="page-body">
 
             {/* Hero Banner */}

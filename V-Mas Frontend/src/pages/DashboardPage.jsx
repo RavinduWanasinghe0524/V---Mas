@@ -262,6 +262,7 @@ const DashboardPage = () => {
   const [stats, setStats] = useState({ totalUsers: 0, admins: 0, controllers: 0, drivers: 0, activeUsers: 0, inactiveUsers: 0 })
   const [alerts, setAlerts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -304,9 +305,9 @@ const DashboardPage = () => {
 
   return (
     <div className="app-shell" style={{ background: 'var(--bg-body)' }}>
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: 'var(--bg-body)' }}>
-        <Topbar title="Dashboard" subtitle="Home / Dashboard" />
+        <Topbar title="Dashboard" subtitle="Home / Dashboard" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body">
 
           {/* Hero Banner */}

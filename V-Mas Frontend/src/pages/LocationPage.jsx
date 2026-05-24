@@ -20,12 +20,13 @@ const LocationPage = () => {
     PARKED: { bg: D.indigoDim, color: D.indigo, dot: '#6366f1' },
   }
   const [selected, setSelected] = useState(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
     <div className="app-shell" style={{ background: D.bg }}>
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: D.bg }}>
-        <Topbar title="Location" subtitle="Home / Location" />
+        <Topbar title="Location" subtitle="Home / Location" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body">
 
           {/* Hero Banner */}
@@ -86,7 +87,7 @@ const LocationPage = () => {
             ))}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 20, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'clamp(280px, 30vw, 340px) 1fr', gap: 20, alignItems: 'start', flexWrap: 'wrap' }}>
             {/* Vehicle list */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <h3 style={{ margin: '0 0 4px', fontWeight: 700, color: D.text, fontSize: '0.95rem' }}>Fleet Vehicles</h3>

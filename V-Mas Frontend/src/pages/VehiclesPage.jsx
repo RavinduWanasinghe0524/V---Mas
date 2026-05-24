@@ -66,6 +66,7 @@ const VehiclesPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [editingVehicle, setEditingVehicle] = useState(null)
   const [deletingVehicle, setDeletingVehicle] = useState(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const [addError, setAddError] = useState('')
   const [editError, setEditError] = useState('')
@@ -315,9 +316,9 @@ const VehiclesPage = () => {
   return (
     <>
       <div className="app-shell" style={{ background: D.bg }}>
-        <Sidebar />
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="main-content" style={{ background: D.bg }}>
-          <Topbar title="Vehicles" subtitle="Home / Vehicles" />
+          <Topbar title="Vehicles" subtitle="Home / Vehicles" onMenuToggle={() => setSidebarOpen(o => !o)} />
           <div className="page-body">
 
             {/* Hero Banner */}

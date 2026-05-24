@@ -803,6 +803,7 @@ const ServicePage = () => {
     filename: null,
     loading: false
   })
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const handleViewAttachment = async (record) => {
     if (!record || !record.id) return
@@ -1474,11 +1475,12 @@ const ServicePage = () => {
 
   return (
     <div className="app-shell">
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: D.bg, minHeight: '100vh' }}>
         <Topbar
           title={isDriver ? 'Service History' : 'Service'}
           subtitle={`Home / ${isDriver ? 'Service History' : 'Service'}`}
+          onMenuToggle={() => setSidebarOpen(o => !o)}
         />
 
         <div className="page-body" style={{ padding: '28px 32px' }}>

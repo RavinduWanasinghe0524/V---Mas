@@ -168,6 +168,7 @@ const FuelAnalysisPage = () => {
   const [filterAuditStatus, setFilterAuditStatus] = useState('all')
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const [formData, setFormData] = useState({
     vehicleRegNumber: '', fuelType: 'Diesel', liters: '', costPerLiter: '', mileage: '',
@@ -416,9 +417,9 @@ const FuelAnalysisPage = () => {
   /* loading */
   if (loading) return (
     <div className="app-shell" style={{ background: D.bg }}>
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: D.bg }}>
-        <Topbar title="Fuel Analysis" subtitle="Home / Fuel Analysis" />
+        <Topbar title="Fuel Analysis" subtitle="Home / Fuel Analysis" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ width: 50, height: 50, borderRadius: '50%', border: '4px solid rgba(99,102,241,0.2)', borderTopColor: '#a78bfa', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
@@ -431,9 +432,9 @@ const FuelAnalysisPage = () => {
 
   return (
     <div className="app-shell" style={{ background: D.bg }}>
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: D.bg }}>
-        <Topbar title="Fuel Analysis" subtitle="Home / Fuel Analysis" />
+        <Topbar title="Fuel Analysis" subtitle="Home / Fuel Analysis" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body" style={{ padding: '24px 28px' }}>
 
           {/* Toast */}

@@ -62,6 +62,7 @@ const FuelLogPage = () => {
   const [previousMileage, setPreviousMileage] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   // Load fuel logs
   useEffect(() => {
@@ -216,9 +217,9 @@ const FuelLogPage = () => {
   if (loading) {
     return (
       <div className="app-shell" style={{ background: D.bg }}>
-        <Sidebar />
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="main-content" style={{ background: D.bg }}>
-          <Topbar title="Fuel Log" subtitle="Home / Fuel Log" />
+          <Topbar title="Fuel Log" subtitle="Home / Fuel Log" onMenuToggle={() => setSidebarOpen(o => !o)} />
           <div className="page-body" style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'60vh' }}>
             <div style={{ color:D.indigo, fontSize:'1rem', fontWeight:600 }}>Loading fuel logs...</div>
           </div>
@@ -229,9 +230,9 @@ const FuelLogPage = () => {
 
   return (
     <div className="app-shell" style={{ background: D.bg }}>
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: D.bg }}>
-        <Topbar title="Fuel Log" subtitle="Home / Fuel Log" />
+        <Topbar title="Fuel Log" subtitle="Home / Fuel Log" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body">
 
           {/* Welcome Banner */}
