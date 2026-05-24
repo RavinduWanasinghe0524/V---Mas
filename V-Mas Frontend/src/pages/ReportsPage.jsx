@@ -462,7 +462,7 @@ const ReportsPage = () => {
               </div>
               <div>
                 <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  Reports & Analytics
+                  Reports and Analytics Dashboard
                 </h1>
                 <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
                   Generate and download comprehensive reports on fleet performance, fuel consumption, maintenance costs, and system-wide activity.
