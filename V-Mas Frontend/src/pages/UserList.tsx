@@ -21,7 +21,7 @@ const UserList: React.FC = () => {
                 if (response.data.success) {
                     setUsers(response.data.data);
                 }
-            } catch (err: any) {
+            } catch {
                 setError('Failed to fetch users. You might not have permission.');
             } finally {
                 setLoading(false);
