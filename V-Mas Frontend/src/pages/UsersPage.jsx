@@ -323,7 +323,7 @@ const UsersPage = () => {
         <Sidebar />
         <div className="main-content" style={{ background: D.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ color: D.red, background: D.redDim, padding: '16px 24px', borderRadius: 12, border: `1px solid ${D.red}30` }}>
-            Access Denied: Admin or Controller privileges required
+            Access Restricted: You need Admin or Controller privileges to view this page.
           </div>
         </div>
       </div>
