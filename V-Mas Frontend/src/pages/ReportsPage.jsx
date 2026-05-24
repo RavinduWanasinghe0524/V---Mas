@@ -163,13 +163,18 @@ const ReportsPage = () => {
         })
       }
 
-      if (id === 'fuel-efficiency') {
-        addHeader('Fuel Efficiency Report')
+      if (id === 'fuel-efficiency' || id === 'master-report') {
+        if (id === 'fuel-efficiency') addHeader('Fuel Efficiency Report')
+        if (id === 'master-report') {
+          doc.setFontSize(14)
+          doc.setTextColor(40, 40, 40)
+          doc.text('Fuel Efficiency', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
+        }
         const { data: res } = await fuelAPI.getFuelEfficiencyReport()
         const report = res.data || res
 
         // ── Fleet Summary block ───────────────────────────────────────────
-        let y = 38
+        let y = id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 25 : 50) : 38
         doc.setFontSize(11)
         doc.setTextColor(60, 60, 60)
         doc.text('Fleet Summary', 14, y); y += 7
@@ -228,8 +233,13 @@ const ReportsPage = () => {
         })
       }
 
-      if (id === 'cost-report') {
-        addHeader('Cost Analysis Report')
+      if (id === 'cost-report' || id === 'master-report') {
+        if (id === 'cost-report') addHeader('Cost Analysis Report')
+        if (id === 'master-report') {
+          doc.setFontSize(14)
+          doc.setTextColor(40, 40, 40)
+          doc.text('Cost Analysis', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
+        }
         const { data: fuelLogs } = await fuelAPI.getAllFuelLogs()
         const { data: services } = await serviceAPI.getAllServices()
 
@@ -237,7 +247,7 @@ const ReportsPage = () => {
         const totalServiceCost = services.reduce((sum, s) => sum + (s.cost || 0), 0)
         const grandTotal = totalFuelCost + totalServiceCost
 
-        let y = 38
+        let y = id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 25 : 50) : 38
         doc.setFontSize(11)
         doc.setTextColor(60, 60, 60)
         doc.text('Operational Expenses Summary', 14, y); y += 7
@@ -346,7 +356,45 @@ const ReportsPage = () => {
       let rows = []
       const filename = `${id}-${new Date().toISOString().split('T')[0]}.csv`
 
-      if (id === 'vehicle-summary' || id === 'master-report') {
+      if (id === 'master-report') {
+        const { data: vData } = await vehicleAPI.getAllVehicles()
+        const { data: fData } = await fuelAPI.getAllFuelLogs()
+        const { data: sData } = await serviceAPI.getAllServices()
+        const { data: uData } = await userAPI.getAllUsers()
+        const { data: effRes } = await fuelAPI.getFuelEfficiencyReport()
+        const effReport = effRes.data || effRes
+
+        headers = []
+        rows = [
+          ['Comprehensive Master Report'],
+          [],
+          ['--- Vehicle Summary ---'],
+          ['Reg No', 'Brand', 'Model', 'Status', 'Mileage', 'Fuel Type', 'Capacity'],
+          ...vData.map(v => [v.registrationNumber, v.brand || 'N/A', v.model || 'N/A', v.status || 'N/A', v.mileage || 0, v.fuelType || 'N/A', v.fuelCapacity || 0]),
+          [],
+          ['--- Fuel Consumption ---'],
+          ['Date', 'Vehicle', 'Driver', 'Type', 'Liters', 'Cost'],
+          ...fData.map(f => [f.date ? new Date(f.date).toLocaleDateString() : 'N/A', f.vehicleRegNo || 'N/A', f.driverName || 'N/A', f.fuelType || 'N/A', f.liters || 0, f.cost || 0]),
+          [],
+          ['--- Service & Maintenance ---'],
+          ['Date', 'Vehicle Reg', 'Service Type', 'Status', 'Cost'],
+          ...sData.map(s => [s.date ? new Date(s.date).toLocaleDateString() : 'N/A', s.vehicleRegNo || 'N/A', s.serviceType || 'N/A', s.status || 'N/A', s.cost || 0]),
+          [],
+          ['--- User Activity ---'],
+          ['Username', 'Email', 'Role', 'Status'],
+          ...uData.map(u => [u.userName || 'N/A', u.email || 'N/A', u.role || 'N/A', u.accountStatus || 'ACTIVE']),
+          [],
+          ['--- Fuel Efficiency ---'],
+          ['Reg No', 'Latest km/L', 'Avg km/L', 'Status', 'Total Liters', 'Total Cost', 'Cost/km', 'Fill-ups'],
+          ...(effReport.vehicles || []).map(v => [v.vehicleRegNumber || 'N/A', v.latestEfficiency != null ? v.latestEfficiency : 'N/A', v.averageEfficiency != null ? v.averageEfficiency : 'N/A', v.efficiencyStatus || 'N/A', v.totalLiters || 'N/A', v.totalCost || 'N/A', v.costPerKm || 'N/A', v.fillUps ? v.fillUps.length : 0]),
+          [],
+          ['--- Operational Expenses Summary ---'],
+          ['Cost Category', 'Amount'],
+          ['Total Fuel Expenses', fData.reduce((sum, f) => sum + (f.cost || 0), 0)],
+          ['Total Maintenance Expenses', sData.reduce((sum, s) => sum + (s.cost || 0), 0)],
+          ['Total Expenses', fData.reduce((sum, f) => sum + (f.cost || 0), 0) + sData.reduce((sum, s) => sum + (s.cost || 0), 0)]
+        ]
+      } else if (id === 'vehicle-summary') {
         const { data } = await vehicleAPI.getAllVehicles()
         headers = ['Reg No', 'Brand', 'Model', 'Status', 'Mileage', 'Fuel Type', 'Capacity']
         rows = data.map(v => [
@@ -388,10 +436,12 @@ const ReportsPage = () => {
         return
       }
 
-      csvContent = [
-        headers.join(','),
-        ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
-      ].join('\n')
+      csvContent = headers.length > 0 
+        ? [
+            headers.join(','),
+            ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+          ].join('\n')
+        : rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(',')).join('\n')
 
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
       const url = URL.createObjectURL(blob)
