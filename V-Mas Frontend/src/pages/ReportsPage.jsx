@@ -371,6 +371,14 @@ const ReportsPage = () => {
       doc.save(filename)
       setSuccessMsg(`Report "${filename}" generated and downloaded successfully.`)
       setTimeout(() => setSuccessMsg(''), 5000)
+
+      const newReport = {
+        name: filename,
+        generated: new Date().toISOString().split('T')[0],
+        format: 'PDF',
+        size: id === 'master-report' ? '450 KB' : '120 KB'
+      }
+      setReportsList(prev => [newReport, ...prev.filter(r => r.name !== filename)])
     } catch (err) {
       console.error('Error generating PDF:', err)
       const reportName = reportTypes.find(r => r.id === id)?.title || id
@@ -554,6 +562,14 @@ const ReportsPage = () => {
 
       setSuccessMsg(`Excel (CSV) report "${filename}" generated and downloaded successfully.`)
       setTimeout(() => setSuccessMsg(''), 5000)
+
+      const newReport = {
+        name: filename,
+        generated: new Date().toISOString().split('T')[0],
+        format: 'Excel',
+        size: id === 'master-report' ? '280 KB' : '85 KB'
+      }
+      setReportsList(prev => [newReport, ...prev.filter(r => r.name !== filename)])
     } catch (err) {
       console.error('Error generating Excel:', err)
       const reportName = reportTypes.find(r => r.id === id)?.title || id
