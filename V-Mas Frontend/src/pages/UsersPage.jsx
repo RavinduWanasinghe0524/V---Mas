@@ -135,7 +135,8 @@ const UsersPage = () => {
     setPendingLoad(true)
     try {
       const res = await userAPI.getPendingUsers()
-      setPendingUsers(res.data.data || [])
+      const data = res.data?.data || res.data || []
+      setPendingUsers(Array.isArray(data) ? data : [])
     } catch {
       setPendingUsers([])
     } finally {
