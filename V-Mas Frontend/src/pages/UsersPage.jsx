@@ -796,8 +796,12 @@ const UsersPage = () => {
                     <label style={labelStyle}>Role</label>
                     <select name="role" value={formData.role} onChange={handleChange} style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
                       <option value="DRIVER" style={{ background: D.surfaceHi }}>Driver</option>
-                      <option value="CONTROLLER" style={{ background: D.surfaceHi }}>Controller</option>
-                      <option value="ADMIN" style={{ background: D.surfaceHi }}>Admin</option>
+                      {!isController && (
+                        <>
+                          <option value="CONTROLLER" style={{ background: D.surfaceHi }}>Controller</option>
+                          <option value="ADMIN" style={{ background: D.surfaceHi }}>Admin</option>
+                        </>
+                      )}
                     </select>
                   </div>
                   <div>
