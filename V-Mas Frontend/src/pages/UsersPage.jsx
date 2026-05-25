@@ -365,13 +365,8 @@ const UsersPage = () => {
             {/* Hero Banner */}
             <div style={{
               background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
-              borderRadius: 20,
-              padding: '32px 36px',
-              marginBottom: 28,
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-              border: `1px solid ${D.border}`,
+              borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
+              boxShadow: '0 16px 48px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`,
               display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16
             }}>
               {/* decorative circles */}
@@ -401,11 +396,11 @@ const UsersPage = () => {
               </div>
               {isAdmin && (
                 <button onClick={handleCreate} style={{
-                  position: 'relative', padding: '11px 22px', borderRadius: 10, border: 'none', background: '#fff', color: '#4338ca', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s', boxShadow: '0 4px 14px rgba(0,0,0,0.2)', whiteSpace: 'nowrap'
+                  position: 'relative', padding: '14px 28px', borderRadius: 16, border: 'none', background: '#fff', color: '#312e81', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 8px 30px rgba(0,0,0,0.25)', whiteSpace: 'nowrap'
                 }}
-                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)' }}
-                onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 4px 14px rgba(0,0,0,0.2)' }}>
-                  <UserPlus size={16} /> Create New User
+                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 12px 40px rgba(255,255,255,0.3)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 8px 30px rgba(0,0,0,0.25)' }}>
+                  <UserPlus size={20} strokeWidth={3} /> Create New User
                 </button>
               )}
             </div>
@@ -426,44 +421,28 @@ const UsersPage = () => {
 
             {/* Interactive User Statistics Dashboard */}
             {isAdmin && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 28 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
                 {[
-                  { label: 'Total Users', count: totalUsersCount, icon: <Users size={20} />, color: D.blue, bg: D.blueDim, desc: 'Registered accounts' },
-                  { label: 'Active Users', count: activeUsersCount, icon: <UserCheck size={20} />, color: D.green, bg: D.greenDim, desc: 'Active in system' },
-                  { label: 'Pending Approvals', count: pendingUsersCount, icon: <Clock size={20} />, color: D.gold, bg: D.goldDim, desc: 'Awaiting review' },
-                  { label: 'Suspended', count: suspendedUsersCount, icon: <AlertCircle size={20} />, color: D.red, bg: D.redDim, desc: 'Restricted access' },
+                  { label: 'Total Users', count: totalUsersCount, icon: <Users size={24} />, color: D.blue, bg: D.blueDim },
+                  { label: 'Active Users', count: activeUsersCount, icon: <UserCheck size={24} />, color: D.green, bg: D.greenDim },
+                  { label: 'Pending Approvals', count: pendingUsersCount, icon: <Clock size={24} />, color: D.gold, bg: D.goldDim },
+                  { label: 'Suspended', count: suspendedUsersCount, icon: <AlertCircle size={24} />, color: D.red, bg: D.redDim },
                 ].map((card, idx) => (
                   <div
                     key={idx}
                     style={{
-                      background: D.surface,
-                      borderRadius: 16,
-                      border: `1px solid ${D.border}`,
-                      padding: '20px 22px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-                      transition: 'all 0.2s ease',
+                      background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 4px 24px rgba(0,0,0,0.25)', overflow: 'hidden', padding: '28px', display: 'flex', alignItems: 'center', gap: 24,
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', cursor: 'default'
                     }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.transform = 'translateY(-4px)';
-                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.18)';
-                      e.currentTarget.style.borderColor = D.borderHi;
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
-                      e.currentTarget.style.borderColor = D.border;
-                    }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.borderColor = card.color + '50'; e.currentTarget.style.boxShadow = `0 16px 32px ${card.color}20` }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)' }}
                   >
-                    <div>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{card.label}</span>
-                      <h2 style={{ margin: '6px 0 2px', fontSize: '1.8rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{card.count}</h2>
-                      <span style={{ fontSize: '0.7rem', color: D.textFaint }}>{card.desc}</span>
-                    </div>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: card.bg, border: `1px solid ${card.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: card.color }}>
+                    <div style={{ width: 60, height: 60, borderRadius: 18, background: card.bg, color: card.color, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${card.color}30`, flexShrink: 0 }}>
                       {card.icon}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{card.label}</div>
+                      <div style={{ fontSize: '1.6rem', fontWeight: 900, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.1 }}>{card.count}</div>
                     </div>
                   </div>
                 ))}
@@ -473,48 +452,56 @@ const UsersPage = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
               {/* Pending Approvals */}
-              <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
-                <div style={{ padding: '18px 24px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: D.goldDim, border: `1px solid ${D.gold}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.gold }}>
-                      <Clock size={18} />
+              <div style={{ background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.25)' }}>
+                <div style={{ padding: '22px 32px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: D.goldDim, border: `1px solid ${D.gold}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.gold }}>
+                      <Clock size={20} />
                     </div>
-                    <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem' }}>Pending Approvals</h3>
+                    <div>
+                      <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.1rem' }}>Pending Approvals</h3>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: D.textSub }}>Accounts awaiting access review</p>
+                    </div>
                     {!pendingLoad && pendingUsers.length > 0 && (
-                      <span style={{ background: D.gold, color: '#000', padding: '2px 8px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 800 }}>{pendingUsers.length}</span>
+                      <span style={{ background: D.gold, color: '#000', padding: '4px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 800, marginLeft: 8 }}>{pendingUsers.length}</span>
                     )}
                   </div>
-                  <button onClick={loadPending} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 4 }}><RefreshCw size={16} /></button>
+                  <button onClick={loadPending} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 8, borderRadius: 8, transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}><RefreshCw size={18} /></button>
                 </div>
-                <div style={{ padding: '24px' }}>
+                <div style={{ padding: '32px' }}>
                   {pendingLoad ? (
                     <div style={{ textAlign: 'center', color: D.textSub, padding: 20 }}>Loading...</div>
                   ) : pendingUsers.length === 0 ? (
                     <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>
-                      <UserCheck size={36} style={{ marginBottom: 12, opacity: 0.3 }} />
-                      <p style={{ margin: 0, fontWeight: 700, color: D.text }}>No accounts awaiting approval</p>
-                      <p style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>New user registrations will appear here for review.</p>
+                      <UserCheck size={48} style={{ marginBottom: 16, opacity: 0.3 }} />
+                      <p style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.1rem' }}>No accounts awaiting approval</p>
+                      <p style={{ margin: '8px 0 0', fontSize: '0.9rem' }}>New user registrations will appear here for review.</p>
                     </div>
                   ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-                      {pendingUsers.map(u => (
-                        <div key={u.id} style={{ background: D.bg, border: `1px solid ${D.borderHi}`, borderRadius: 14, padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=fff&bold=true`} alt={u.userName} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+                      {pendingUsers.map((u, i) => (
+                        <div key={u.id} style={{ 
+                          background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', gap: 20,
+                          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = D.gold + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                            <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=fff&bold=true`} alt={u.userName} style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${D.border}` }} onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=fff&bold=true`; }} />
                             <div>
-                              <p style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem' }}>{u.userName}</p>
-                              <p style={{ margin: '2px 0 6px', fontSize: '0.75rem', color: D.textSub }}>{u.email}</p>
+                              <p style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.05rem' }}>{u.userName}</p>
+                              <p style={{ margin: '2px 0 8px', fontSize: '0.8rem', color: D.textSub }}>{u.email}</p>
                               <RoleBadge role={u.role} D={D} />
                             </div>
                           </div>
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <button onClick={() => handleApprove(u.id, u.userName)} style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', background: D.greenDim, color: D.green, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                              onMouseEnter={e => e.currentTarget.style.background='rgba(74,222,128,0.25)'} onMouseLeave={e => e.currentTarget.style.background=D.greenDim}>
-                              <Check size={14} /> Approve
+                          <div style={{ display: 'flex', gap: 12 }}>
+                            <button onClick={() => handleApprove(u.id, u.userName)} style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: D.greenDim, color: D.green, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}
+                              onMouseEnter={e => { e.currentTarget.style.background = D.green; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = D.greenDim; e.currentTarget.style.color = D.green }}>
+                              <Check size={18} /> Approve
                             </button>
-                            <button onClick={() => handleReject(u.id, u.userName)} style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', background: D.redDim, color: D.red, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                              onMouseEnter={e => e.currentTarget.style.background='rgba(248,113,113,0.25)'} onMouseLeave={e => e.currentTarget.style.background=D.redDim}>
-                              <X size={14} /> Reject
+                            <button onClick={() => handleReject(u.id, u.userName)} style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: D.redDim, color: D.red, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}
+                              onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}>
+                              <X size={18} /> Reject
                             </button>
                           </div>
                         </div>
@@ -524,95 +511,56 @@ const UsersPage = () => {
                 </div>
               </div>
 
-              {/* All Users Table */}
-              <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
-                <div style={{ padding: '18px 24px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: D.blueDim, border: `1px solid ${D.blue}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.blue }}>
-                      <Users size={18} />
+              {/* All Users List */}
+              <div style={{ background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.25)' }}>
+                <div style={{ padding: '22px 32px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: D.blueDim, border: `1px solid ${D.blue}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.blue }}>
+                      <Users size={20} />
                     </div>
                     <div>
-                      <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem' }}>All Users</h3>
-                      <p style={{ margin: '2px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Last refreshed: {new Date().toLocaleTimeString()}</p>
+                      <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.1rem' }}>All Users</h3>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: D.textSub }}>System user directory</p>
                     </div>
                     {!loading && (
-                      <span style={{ background: 'rgba(255,255,255,0.1)', color: D.text, padding: '2px 8px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 800 }}>{users.length}</span>
+                      <span style={{ background: 'rgba(255,255,255,0.1)', color: D.text, padding: '4px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 800, marginLeft: 8 }}>{users.length}</span>
                     )}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <button onClick={handleExportCSV} style={{
-                      padding: '6px 12px',
-                      borderRadius: 8,
-                      border: `1px solid ${D.border}`,
-                      background: 'rgba(255,255,255,0.03)',
-                      color: D.textSub,
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      transition: 'all 0.15s'
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.color=D.text }}
-                    onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.03)'; e.currentTarget.style.color=D.textSub }}>
+                      padding: '10px 16px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.03)', color: D.textSub, fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s'
+                    }} onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.color=D.text }} onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.03)'; e.currentTarget.style.color=D.textSub }}>
                       Export CSV
                     </button>
                     <button onClick={handleExportPDF} style={{
-                      padding: '6px 12px',
-                      borderRadius: 8,
-                      border: `1px solid ${D.border}`,
-                      background: 'rgba(255,255,255,0.03)',
-                      color: D.textSub,
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      transition: 'all 0.15s'
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.color=D.text }}
-                    onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.03)'; e.currentTarget.style.color=D.textSub }}>
+                      padding: '10px 16px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.03)', color: D.textSub, fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s'
+                    }} onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.color=D.text }} onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.03)'; e.currentTarget.style.color=D.textSub }}>
                       Export PDF
                     </button>
-                    <button onClick={loadUsers} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 4 }} title="Refresh users list">
-                      <RefreshCw size={16} />
+                    <button onClick={loadUsers} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 8, borderRadius: 8, transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background='none'} title="Refresh users list">
+                      <RefreshCw size={18} />
                     </button>
                   </div>
                 </div>
 
                 {/* Search and filter row */}
-                <div style={{ padding: '14px 24px', borderBottom: `1px solid ${D.border}`, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', background: D.surface }}>
+                <div style={{ padding: '20px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', background: D.surface }}>
                   <input
                     type="text"
                     placeholder="Search by name or email..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                     style={{
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      border: `1px solid ${D.border}`,
-                      background: D.bg,
-                      color: D.text,
-                      fontSize: '0.8rem',
-                      outline: 'none',
-                      flex: 1,
-                      minWidth: 200
+                      padding: '12px 16px', borderRadius: 12, border: `1px solid ${D.border}`, background: D.bg, color: D.text, fontSize: '0.85rem', outline: 'none', flex: 1, minWidth: 200, transition: 'all 0.2s'
                     }}
+                    onFocus={e => { e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.boxShadow = `0 0 0 3px ${D.purple}20` }}
+                    onBlur={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = 'none' }}
                   />
                   <select
                     value={roleFilter}
                     onChange={e => setRoleFilter(e.target.value)}
                     style={{
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      border: `1px solid ${D.border}`,
-                      background: D.bg,
-                      color: D.text,
-                      fontSize: '0.8rem',
-                      outline: 'none',
-                      cursor: 'pointer'
+                      padding: '12px 16px', borderRadius: 12, border: `1px solid ${D.border}`, background: D.bg, color: D.text, fontSize: '0.85rem', outline: 'none', cursor: 'pointer', transition: 'all 0.2s'
                     }}
                   >
                     <option value="ALL">All Roles</option>
@@ -624,14 +572,7 @@ const UsersPage = () => {
                     value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
                     style={{
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      border: `1px solid ${D.border}`,
-                      background: D.bg,
-                      color: D.text,
-                      fontSize: '0.8rem',
-                      outline: 'none',
-                      cursor: 'pointer'
+                      padding: '12px 16px', borderRadius: 12, border: `1px solid ${D.border}`, background: D.bg, color: D.text, fontSize: '0.85rem', outline: 'none', cursor: 'pointer', transition: 'all 0.2s'
                     }}
                   >
                     <option value="ALL">All Statuses</option>
@@ -645,114 +586,95 @@ const UsersPage = () => {
                     <button
                       onClick={() => { setSearchTerm(''); setRoleFilter('ALL'); setStatusFilter('ALL'); }}
                       style={{
-                        padding: '8px 16px',
-                        borderRadius: 8,
-                        border: `1px solid ${D.red}40`,
-                        background: D.redDim,
-                        color: D.red,
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        transition: 'all 0.15s ease',
-                        animation: 'fadeIn 0.2s ease',
+                        padding: '12px 20px', borderRadius: 12, border: `1px solid ${D.red}40`, background: D.redDim, color: D.red, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s ease', animation: 'fadeIn 0.2s ease',
                       }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.background = 'rgba(248,113,113,0.2)';
-                        e.currentTarget.style.transform = 'scale(1.02)';
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.background = D.redDim;
-                        e.currentTarget.style.transform = 'scale(1)';
-                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
                     >
-                      <X size={14} /> Reset Filters
+                      <X size={16} /> Reset Filters
                     </button>
                   )}
                 </div>
 
                 {/* Filter status sub-banner */}
                 <div style={{
-                  padding: '10px 24px',
-                  fontSize: '0.78rem',
-                  color: D.textSub,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  borderBottom: `1px solid ${D.border}`,
-                  background: D.surfaceHi,
-                  fontWeight: 500
+                  padding: '14px 32px', fontSize: '0.8rem', color: D.textSub, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, fontWeight: 600
                 }}>
                   <span>Showing <strong>{filteredUsers.length}</strong> of <strong>{users.length}</strong> total registered users</span>
                   {(searchTerm || roleFilter !== 'ALL' || statusFilter !== 'ALL') && (
-                    <span style={{ color: D.purple, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: D.purple }}></span>
-                      Active filters matching your search
+                    <span style={{ color: D.purple, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: D.purple }}></span>
+                      Active filters applied
                     </span>
                   )}
                 </div>
 
-                <div style={{ overflowX: 'auto' }}>
+                <div style={{ padding: '32px', background: D.bg }}>
                   {loading ? (
                     <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>Fetching user records...</div>
                   ) : filteredUsers.length === 0 ? (
                     <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>No users found matching filters.</div>
                   ) : (
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                      <thead style={{ background: D.surfaceHi }}>
-                        <tr>
-                          {['User', 'Email', 'Role', 'Status', 'Actions'].map(h => (
-                            <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: D.textSub, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${D.border}`, whiteSpace: 'nowrap' }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredUsers.map((u, i) => (
-                          <tr key={u.id} style={{ borderBottom: `1px solid ${D.border}`, background: u.accountStatus === 'PENDING' ? D.goldDim : (i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'), transition: 'background 0.15s' }}
-                              onMouseEnter={e => { if(u.accountStatus !== 'PENDING') e.currentTarget.style.background='rgba(99,102,241,0.08)' }}
-                              onMouseLeave={e => { if(u.accountStatus !== 'PENDING') e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>
-                            <td style={{ padding: '12px 16px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=fff&bold=true`} alt={u.userName} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
-                                <div>
-                                  <p style={{ margin: 0, fontWeight: 700, color: D.text }}>{u.userName}</p>
-                                  <p style={{ margin: '2px 0 0', fontSize: '0.7rem', color: D.textSub }}>ID #{u.id}</p>
-                                </div>
-                              </div>
-                            </td>
-                            <td style={{ padding: '12px 16px', color: D.text }}>{u.email}</td>
-                            <td style={{ padding: '12px 16px' }}><RoleBadge role={u.role} D={D} /></td>
-                            <td style={{ padding: '12px 16px' }}><StatusBadge status={u.accountStatus} D={D} /></td>
-                            <td style={{ padding: '12px 16px' }}>
-                              <div style={{ display: 'flex', gap: 6 }}>
-                                {u.accountStatus === 'PENDING' && (
-                                  <>
-                                    <button onClick={() => handleApprove(u.id, u.userName)} style={{ padding: '5px 8px', borderRadius: 8, border: 'none', background: D.green, color: '#fff', cursor: 'pointer' }}><Check size={14} /></button>
-                                    <button onClick={() => handleReject(u.id, u.userName)} style={{ padding: '5px 8px', borderRadius: 8, border: 'none', background: D.red, color: '#fff', cursor: 'pointer' }}><X size={14} /></button>
-                                  </>
-                                )}
-                                  {(!isController || u.role === 'DRIVER') && (
-                                    <>
-                                      <button onClick={() => handleEdit(u)} style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
-                                        onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.color='#a5b4fc' }}
-                                        onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.color=D.text }}>
-                                        Edit
-                                      </button>
-                                      <button onClick={() => handleDelete(u.id)} style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700 }}
-                                        onMouseEnter={e => e.currentTarget.style.background='rgba(248,113,113,0.2)'}
-                                        onMouseLeave={e => e.currentTarget.style.background='rgba(248,113,113,0.1)'}>
-                                        Delete
-                                      </button>
-                                    </>
-                                  )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
+                      {filteredUsers.map((u, i) => (
+                        <div key={u.id} style={{ 
+                          background: D.surface, border: `1px solid ${D.borderHi}`, borderRadius: 20, padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap',
+                          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = D.borderHi; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)' }}>
+                          
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 20, flex: '1 1 300px' }}>
+                            <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=fff&bold=true`} alt={u.userName} style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${D.border}` }} onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=fff&bold=true`; }} />
+                            <div>
+                              <p style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.2rem', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{u.userName}</p>
+                              <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: D.textSub }}>{u.email}</p>
+                              <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: D.textFaint }}>User ID: #{u.id}</p>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 32, flex: '1 1 200px' }}>
+                            <div>
+                              <p style={{ margin: '0 0 8px', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Role</p>
+                              <RoleBadge role={u.role} D={D} />
+                            </div>
+                            <div>
+                              <p style={{ margin: '0 0 8px', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</p>
+                              <StatusBadge status={u.accountStatus} D={D} />
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: 12, flex: '0 0 180px', justifyContent: 'flex-end' }}>
+                            {u.accountStatus === 'PENDING' && (
+                              <>
+                                <button onClick={() => handleApprove(u.id, u.userName)} style={{ padding: '10px 16px', borderRadius: 12, border: 'none', background: D.green, color: '#fff', cursor: 'pointer', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.green}40` }}
+                                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                                  <Check size={16} /> Approve
+                                </button>
+                                <button onClick={() => handleReject(u.id, u.userName)} style={{ padding: '10px 16px', borderRadius: 12, border: 'none', background: D.red, color: '#fff', cursor: 'pointer', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.red}40` }}
+                                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                                  <X size={16} /> Reject
+                                </button>
+                              </>
+                            )}
+                            {(!isController || u.role === 'DRIVER') && (
+                              <>
+                                <button onClick={() => handleEdit(u)} style={{ padding: '10px 20px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.85rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor=D.purple; e.currentTarget.style.color='#a5b4fc' }}
+                                  onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor=D.border; e.currentTarget.style.color=D.text }}>
+                                  Edit
+                                </button>
+                                <button onClick={() => handleDelete(u.id)} style={{ padding: '10px 20px', borderRadius: 12, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.85rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background=D.red; e.currentTarget.style.color='#fff' }}
+                                  onMouseLeave={e => { e.currentTarget.style.background='rgba(248,113,113,0.1)'; e.currentTarget.style.color=D.red }}>
+                                  Delete
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
@@ -764,24 +686,29 @@ const UsersPage = () => {
 
         {/* ── Modal ─────────────────────────────────────────────────── */}
         {showModal && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease' }}>
-            <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 540, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden' }}>
-              <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 10, background: D.purpleDim, border: `1px solid ${D.purple}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.purple }}>
-                    <Users size={18} />
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={() => setShowModal(false)}>
+            <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+              <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
+                    <Users size={24} />
                   </div>
-                  <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.05rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
-                    {editingUser ? 'Edit User' : 'Create New User'}
-                  </h3>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>
+                      {editingUser ? 'Edit User' : 'Create New User'}
+                    </h2>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#a5b4fc', fontWeight: 600, opacity: 0.9 }}>
+                      {editingUser ? `Refining details for ${editingUser.userName}` : 'Register a new account in the system'}
+                    </p>
+                  </div>
                 </div>
-                <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 4 }}>
-                  <X size={20} />
+                <button onClick={() => setShowModal(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}>
+                  <X size={22} />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} style={{ padding: '24px 28px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+              <form onSubmit={handleSubmit} style={{ padding: '36px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 32 }}>
                   <div>
                     <label style={labelStyle}>Username</label>
                     <input type="text" name="userName" value={formData.userName} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
@@ -817,16 +744,17 @@ const UsersPage = () => {
                   </div>
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label style={labelStyle}>Profile Picture <span style={{ color: D.textFaint, fontWeight: 400, textTransform: 'none' }}>(optional — upload an image)</span></label>
-                    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
                       <img
                         src={formData.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.userName || 'U')}&background=6366f1&color=fff&size=128&bold=true`}
                         alt="preview"
-                        style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${D.surfaceHi}`, boxShadow: `0 0 0 1px ${D.border}`, flexShrink: 0 }}
+                        style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${D.surfaceHi}`, boxShadow: `0 0 0 1px ${D.border}`, flexShrink: 0 }}
                         onError={e => {
+                          e.target.onerror = null;
                           e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.userName || 'U')}&background=6366f1&color=fff&size=128&bold=true`
                         }}
                       />
-                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
                         <input
                           ref={fileInputRef}
                           type="file"
@@ -834,16 +762,16 @@ const UsersPage = () => {
                           style={{ display: 'none' }}
                           onChange={handleFileChange}
                         />
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                           <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
                             style={{
-                              padding: '8px 16px', borderRadius: 8,
+                              padding: '10px 20px', borderRadius: 12,
                               border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)',
                               color: D.text, cursor: 'pointer',
-                              fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 700,
-                              transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6
+                              fontFamily: 'inherit', fontSize: '0.85rem', fontWeight: 800,
+                              transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 8
                             }}
                             onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor='rgba(99,102,241,0.4)' }}
                             onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor=D.border }}
@@ -855,10 +783,10 @@ const UsersPage = () => {
                               type="button"
                               onClick={() => setFormData(prev => ({ ...prev, profilePicture: '' }))}
                               style={{
-                                padding: '8px 12px', borderRadius: 8,
+                                padding: '10px 16px', borderRadius: 12,
                                 border: `1px solid ${D.red}40`, background: D.redDim,
                                 color: D.red, cursor: 'pointer',
-                                fontFamily: 'inherit', fontSize: '0.75rem', fontWeight: 700,
+                                fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 800,
                                 transition: 'all 0.15s'
                               }}
                             >
@@ -866,17 +794,19 @@ const UsersPage = () => {
                             </button>
                           )}
                         </div>
-                        <span style={{ fontSize: '0.72rem', color: D.textSub }}>JPG, PNG — max 1 MB. Image will be stored directly in the system.</span>
+                        <span style={{ fontSize: '0.8rem', color: D.textSub }}>JPG, PNG — max 1 MB. Image will be stored directly in the system.</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    <Check size={16}/> {editingUser ? 'Save Changes' : 'Create User'}
+                <div style={{ display: 'flex', gap: 16 }}>
+                  <button type="submit" style={{ flex: 1, padding: '14px 24px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 800, transition: 'all 0.25s', boxShadow: '0 8px 24px rgba(99,102,241,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(99,102,241,0.4)' }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.3)' }}>
+                    <Check size={18}/> {editingUser ? 'Save Changes' : 'Create User'}
                   </button>
-                  <button type="button" onClick={() => setShowModal(false)} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
+                  <button type="button" onClick={() => setShowModal(false)} style={{ flex: 0.4, padding: '14px 24px', borderRadius: 16, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.95rem', fontWeight: 800, transition: 'all 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>
                     Cancel
                   </button>
                 </div>
