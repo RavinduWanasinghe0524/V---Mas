@@ -3,7 +3,6 @@ package net.javaguids.ems_backend.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.criteria.Predicate;
-import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import net.javaguids.ems_backend.dto.ServiceFilterRequest;
 import net.javaguids.ems_backend.dto.ServiceRecordAuditDto;

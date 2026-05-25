@@ -174,15 +174,15 @@ const ProfilePage = () => {
   }
 
   const roleDescription = {
-    ADMIN:      'Full system access ÔÇö manage users, view reports, and configure the system.',
-    CONTROLLER: 'Fleet control access ÔÇö manage vehicles, assign drivers, and monitor operations.',
-    DRIVER:     'Driver access ÔÇö view assigned vehicles, tasks, and log fuel consumption.',
+    ADMIN:      'Executive Fleet Administrator — Orchestrate the entire V-MAS platform, overseeing user roles, comprehensive system analytics, and master configurations.',
+    CONTROLLER: 'Fleet Operations Controller — Direct daily fleet logistics, coordinate vehicle assignments, and monitor real-time fuel and maintenance metrics.',
+    DRIVER:     'V-MAS Fleet Driver — Access personal vehicle assignments, log daily fuel consumption, and monitor vehicle performance on the road.',
   }[user?.role] || ''
 
   const permissions = {
-    ADMIN:      ['Manage all users', 'View system stats', 'Configure settings', 'Access all modules'],
-    CONTROLLER: ['Manage fleet vehicles', 'Assign drivers', 'Live vehicle tracking', 'Schedule maintenance'],
-    DRIVER:     ['View assigned vehicle', 'Manage tasks', 'Log fuel usage', 'Report vehicle issues'],
+    ADMIN:      ['Orchestrate user management & security', 'Analyze comprehensive fleet reports', 'Configure system-wide V-MAS settings', 'Full operational override capabilities'],
+    CONTROLLER: ['Monitor live vehicle performance metrics', 'Assign & coordinate fleet drivers', 'Schedule critical vehicle maintenance', 'Analyze & approve fuel logs'],
+    DRIVER:     ['Access real-time assigned vehicle data', 'Submit precise daily fuel entries', 'Review personal efficiency analytics', 'Report operational vehicle issues'],
   }[user?.role] || []
 
   const tabs = [
@@ -361,8 +361,8 @@ const ProfilePage = () => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {[
-                        { icon: <Shield size={20}/>, title: 'Authentication',  sub: 'JWT Token-based authentication active', badge: 'Secure', badgeColor: D.green, badgeDim: D.greenDim },
-                        { icon: <Globe size={20}/>, title: 'Backend API',     sub: 'Connected to V-MAS Spring Boot backend', badge: 'Connected', badgeColor: D.blue, badgeDim: D.blueDim },
+                        { icon: <Shield size={20}/>, title: 'System Security',  sub: 'V-MAS Enterprise Authentication Active', badge: 'Secure', badgeColor: D.green, badgeDim: D.greenDim },
+                        { icon: <Globe size={20}/>, title: 'Fleet Network',     sub: 'Connected to V-MAS Central Command API', badge: 'Online', badgeColor: D.blue, badgeDim: D.blueDim },
                       ].map(item => (
                         <div key={item.title} style={{
                           display: 'flex', alignItems: 'center', gap: 10, padding: 14,

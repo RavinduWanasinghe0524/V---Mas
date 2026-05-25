@@ -28,4 +28,7 @@ public class VehicleDto {
     private FuelTypes fuelType;
     private java.time.LocalDate insuranceExpiryDate;
     private java.time.LocalDate licenseExpiryDate;
+
+    private Long driverId;
+    private String driverUsername;
 }
