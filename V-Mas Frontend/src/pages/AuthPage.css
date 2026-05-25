@@ -39,13 +39,28 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
   font-family: 'Inter', sans-serif;
   padding: 2rem 1rem;
   box-sizing: border-box;
   overflow: hidden;
+}
+
+/* breathing parallax background */
+.ag-container-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 0;
+  transform: scale(1.02);
+  animation: ag-bg-zoom 24s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes ag-bg-zoom {
+  0%, 100% { transform: scale(1.02); }
+  50% { transform: scale(1.08); }
 }
 
 /* Dark + indigo-tinted overlay on the photo */
@@ -95,17 +110,52 @@
   z-index: 2;
   width: 100%;
   max-width: 420px;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(28px) saturate(160%);
-  -webkit-backdrop-filter: blur(28px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(14, 18, 42, 0.45);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 22px;
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.55),
-    0 2px 8px  rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    0 24px 64px rgba(0, 0, 0, 0.7),
+    0 8px 24px  rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   overflow: hidden;
-  animation: ag-card-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ag-card-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Mouse-tracking border glow pseudo-element */
+.ag-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 22px;
+  padding: 1.5px;
+  background: radial-gradient(
+    320px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(99, 102, 241, 0.55),
+    rgba(56, 189, 248, 0.15) 50%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Mouse-tracking face glow pseudo-element */
+.ag-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 22px;
+  background: radial-gradient(
+    400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(99, 102, 241, 0.05),
+    transparent 80%
+  );
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* Card header — logo */
@@ -170,18 +220,26 @@
 
 .ag-track {
   display: flex;
-  width: 200%;        /* two slides side-by-side */
-  transition: transform 0.52s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 300%;        /* three slides side-by-side */
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform;
 }
 
-.ag-track--signup {
-  transform: translateX(-50%); /* shift by half = show 2nd slide */
+.ag-track--login {
+  transform: translateX(0);
 }
 
-/* Each slide = 50% of 200% track = 100% of visible area */
+.ag-track--signup {
+  transform: translateX(-33.3333%); /* shift to 2nd slide */
+}
+
+.ag-track--forgot {
+  transform: translateX(-66.6666%); /* shift to 3rd slide */
+}
+
+/* Each slide = 33.3333% of 300% track = 100% of visible area */
 .ag-slide {
-  width: 50%;
+  width: 33.3333%;
   flex-shrink: 0;
   padding: 1.4rem 2rem 2rem;
   box-sizing: border-box;
@@ -233,28 +291,60 @@
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
 }
 
 .ag-input {
   width: 100%;
-  padding: 0.82rem 2.7rem 0.82rem 1rem;
-  background: rgba(255, 255, 255, 0.10);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 1.15rem 2.7rem 0.6rem 1rem; /* altered padding to accommodate floating label */
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   font-size: 0.875rem;
   font-family: 'Inter', sans-serif;
   color: #ffffff;
   outline: none;
-  transition: all 0.22s ease;
+  transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
   box-sizing: border-box;
 }
+
 .ag-input::placeholder {
-  color: rgba(255, 255, 255, 0.42);
+  color: transparent; /* hide native placeholder to let our floating label shine */
 }
+
 .ag-input:focus {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(99, 102, 241, 0.65);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Floating Label elements */
+.ag-floating-label {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.38);
+  transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Floating Label trigger on focus or has-value */
+.ag-field--active .ag-floating-label {
+  top: 0.52rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #a5b4fc;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* Icon focus highlights */
+.ag-field:focus-within .ag-field-icon {
+  color: #a5b4fc;
+  filter: drop-shadow(0 0 4px rgba(165, 180, 252, 0.4));
 }
 
 /* Select special padding */
@@ -264,8 +354,14 @@
   appearance: none;
   cursor: pointer;
 }
+.ag-field--select .ag-floating-label {
+  left: 2.4rem;
+}
+.ag-field--select.ag-field--active .ag-floating-label {
+  left: 2.4rem;
+}
 .ag-select option {
-  background: #1e1b4b;
+  background: #0f1122;
   color: #fff;
 }
 
@@ -548,6 +644,144 @@
   height: 14px;
   background: rgba(255,255,255,0.12);
   margin-left: 5px;
+}
+
+/* ── Quick Demo Login drawer ────────────────────────── */
+.ag-demo-drawer {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(14, 18, 42, 0.3);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-top: 1.25rem;
+}
+.ag-demo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 2rem;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.02em;
+  transition: all 0.2s;
+}
+.ag-demo-header:hover {
+  color: rgba(165, 180, 252, 0.95);
+  background: rgba(255, 255, 255, 0.02);
+}
+.ag-demo-header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.ag-demo-caret {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  color: rgba(255, 255, 255, 0.35);
+}
+.ag-demo-drawer--open .ag-demo-caret {
+  transform: rotate(180deg);
+  color: #a5b4fc;
+}
+.ag-demo-content {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0 2rem;
+}
+.ag-demo-drawer--open .ag-demo-content {
+  max-height: 180px;
+  opacity: 1;
+  padding: 0 2rem 1.4rem;
+}
+.ag-demo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.65rem;
+  margin-top: 0.45rem;
+}
+.ag-demo-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.65rem 0.4rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ag-demo-btn:hover {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.38);
+  transform: translateY(-2px);
+}
+.ag-demo-btn-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(165, 180, 252, 0.85);
+  transition: all 0.25s;
+}
+.ag-demo-btn:hover .ag-demo-btn-icon {
+  background: #6366f1;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+}
+.ag-demo-btn-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+}
+.ag-demo-btn-role {
+  font-size: 0.58rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ── Live API Status Badge ──────────────────────────── */
+.ag-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.75rem;
+  background: rgba(10, 14, 42, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  margin-top: 0.75rem;
+  animation: ag-status-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes ag-status-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ag-status-dot {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+.ag-status-pulse {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1.5px solid #22c55e;
+  animation: ag-pulse-ring 2s infinite ease-out;
 }
 
 /* ── Mobile ────────────────────────────────────────────── */
