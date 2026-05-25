@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import {
   Eye, EyeOff, User, Lock, LogIn, AlertCircle, UserPlus, Car, Settings,
-  Users, CheckCircle, ChevronDown, Clock, ArrowLeft, Mail
+  Users, CheckCircle, ChevronDown, Clock, ArrowLeft, Mail, Sun, Moon
 } from 'lucide-react';
 import logo from '../assets/logo.png';
 import loginBg from '../assets/login-bg.jpg';
+import loginBgWhite from '../assets/Login bg image (White).png';
 import './AuthPage.css';
 
 /* ─────────────────────────────────────────────────────
@@ -581,6 +583,10 @@ const AuthPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const { theme, setTheme } = useTheme();
+  
+  // Local theme initialized based on global context (Day is light, Night is blue/dark)
+  const [themeMode, setThemeModeState] = useState(theme === 'light' ? 'day' : 'night');
   const [isForgot, setIsForgot] = useState(false);
   const isSignup = location.pathname === '/signup';
 
@@ -595,6 +601,15 @@ const AuthPage = () => {
 
   const goSignup = useCallback(() => navigate('/signup', { replace: true }), [navigate]);
   const goLogin  = useCallback(() => navigate('/login',  { replace: true }), [navigate]);
+
+  const handleThemeChange = (mode) => {
+    setThemeModeState(mode);
+    if (mode === 'day') {
+      setTheme('light');
+    } else {
+      setTheme('blue');
+    }
+  };
 
   // Card cursor glow coordinates calculations
   const handleMouseMove = (e) => {
@@ -614,12 +629,31 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="ag-container" onMouseMove={handleMouseMove}>
+    <div className={`ag-container theme-lime${themeMode === 'day' ? ' theme-light' : ''}`} onMouseMove={handleMouseMove}>
       {/* Zoom parallax background element */}
-      <div className="ag-container-bg" style={{ backgroundImage: `url(${loginBg})` }} />
+      <div className="ag-container-bg" style={{ backgroundImage: `url(${themeMode === 'day' ? loginBgWhite : loginBg})` }} />
 
       {/* Full-screen dark overlay */}
       <div className="ag-overlay" />
+
+      {/* Floating Day/Night Theme Switcher */}
+      <div className="ag-theme-toggle-container">
+        <div 
+          className={`ag-theme-pill ${themeMode === 'day' ? 'ag-theme-pill--day' : 'ag-theme-pill--night'}`}
+          onClick={() => handleThemeChange(themeMode === 'day' ? 'night' : 'day')}
+          title={themeMode === 'day' ? 'Switch to Night Theme' : 'Switch to Day Theme'}
+        >
+          <div className="ag-theme-knob">
+            {themeMode === 'day' ? <Sun size={14} color="#2563eb" /> : <Moon size={14} color="#84cc16" />}
+          </div>
+          <div className="ag-theme-icon-placeholder ag-theme-icon-left">
+            <Moon size={13} />
+          </div>
+          <div className="ag-theme-icon-placeholder ag-theme-icon-right">
+            <Sun size={13} />
+          </div>
+        </div>
+      </div>
 
       {/* System Status Badge */}
       <div className="ag-status-badge">
