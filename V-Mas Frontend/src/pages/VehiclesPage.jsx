@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
@@ -67,6 +68,10 @@ const VehiclesPage = () => {
   const [editingVehicle, setEditingVehicle] = useState(null)
   const [deletingVehicle, setDeletingVehicle] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const location = useLocation()
+  const navigate = useNavigate()
+
+
 
   const [addError, setAddError] = useState('')
   const [editError, setEditError] = useState('')
@@ -101,6 +106,16 @@ const VehiclesPage = () => {
     setSelectedProfileVehicle(null)
     setProfileFuelLogs([])
   }
+
+  useEffect(() => {
+    if (!loading && vehicles.length > 0 && location.state?.openVehicleProfile) {
+      const v = vehicles.find(veh => veh.registrationNo === location.state.openVehicleProfile)
+      if (v) {
+        openProfile(v)
+        navigate(location.pathname, { replace: true, state: {} })
+      }
+    }
+  }, [loading, vehicles, location.state, navigate, location.pathname])
 
   const [formData, setFormData] = useState({
     model: '',
