@@ -23,7 +23,9 @@ public class VehicleMapper {
                 vehicle.getStatus(),
                 vehicle.getFuelType(),
                 vehicle.getInsuranceExpiryDate(),
-                vehicle.getLicenseExpiryDate()
+                vehicle.getLicenseExpiryDate(),
+                vehicle.getDriver() != null ? vehicle.getDriver().getId() : null,
+                vehicle.getDriver() != null ? vehicle.getDriver().getUserName() : null
         );
     }
 

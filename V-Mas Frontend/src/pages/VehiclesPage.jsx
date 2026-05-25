@@ -3,9 +3,9 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
-import { vehicleAPI, userAPI, serviceAPI } from '../services/api'
+import { vehicleAPI, userAPI, serviceAPI, fuelAPI } from '../services/api'
 import { getAlertLevel, computeMileageProgress, computeDateAlert, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
-import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar } from 'lucide-react'
+import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info } from 'lucide-react'
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(99,102,241,0.5)'
@@ -71,6 +71,36 @@ const VehiclesPage = () => {
   const [editError, setEditError] = useState('')
   const [vehicles, setVehicles] = useState([])
   const [serviceRecords, setServiceRecords] = useState([])
+
+  // --- VEHICLE PROFILE STATE ---
+  const [selectedProfileVehicle, setSelectedProfileVehicle] = useState(null)
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [profileActiveTab, setProfileActiveTab] = useState('overview')
+  const [profileFuelLogs, setProfileFuelLogs] = useState([])
+  const [loadingProfileFuel, setLoadingProfileFuel] = useState(false)
+
+  const openProfile = async (vehicle) => {
+    setSelectedProfileVehicle(vehicle)
+    setProfileActiveTab('overview')
+    setIsProfileOpen(true)
+    setLoadingProfileFuel(true)
+    try {
+      const res = await fuelAPI.getLogsByVehicle(vehicle.registrationNo)
+      setProfileFuelLogs(res.data.data || [])
+    } catch (err) {
+      console.error('Error fetching fuel logs for profile:', err)
+      setProfileFuelLogs([])
+    } finally {
+      setLoadingProfileFuel(false)
+    }
+  }
+
+  const closeProfile = () => {
+    setIsProfileOpen(false)
+    setSelectedProfileVehicle(null)
+    setProfileFuelLogs([])
+  }
+
   const [formData, setFormData] = useState({
     model: '',
     registrationNo: '',
@@ -95,13 +125,13 @@ const VehiclesPage = () => {
   })
 
   useEffect(() => {
-    if (isModalOpen || isEditModalOpen || isDeleteModalOpen) {
+    if (isModalOpen || isEditModalOpen || isDeleteModalOpen || isProfileOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
     }
     return () => { document.body.style.overflow = '' }
-  }, [isModalOpen, isEditModalOpen, isDeleteModalOpen])
+  }, [isModalOpen, isEditModalOpen, isDeleteModalOpen, isProfileOpen])
 
   useEffect(() => {
     const loadData = async () => {
@@ -503,7 +533,27 @@ const VehiclesPage = () => {
                         <tr key={v.id} style={{ borderBottom: `1px solid ${D.border}`, background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)', transition: 'background 0.15s' }}
                           onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.08)'}
                           onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'}>
-                          <td style={{ padding: '14px 16px', fontWeight: 700, color: D.blue }}>{v.registrationNo ?? 'N/A'}</td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <button
+                              onClick={() => openProfile(v)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                padding: 0,
+                                fontWeight: 800,
+                                color: D.blue,
+                                cursor: 'pointer',
+                                outline: 'none',
+                                textAlign: 'left',
+                                transition: 'all 0.15s ease',
+                                fontFamily: 'inherit'
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.color = '#818cf8'; e.currentTarget.style.textDecoration = 'underline' }}
+                              onMouseLeave={e => { e.currentTarget.style.color = D.blue; e.currentTarget.style.textDecoration = 'none' }}
+                            >
+                              {v.registrationNo ?? 'N/A'}
+                            </button>
+                          </td>
                           <td style={{ padding: '14px 16px', color: D.text, fontWeight: 600 }}>{v.manufacturer ?? 'N/A'} {v.model ?? 'N/A'}</td>
                           <td style={{ padding: '14px 16px', color: D.textSub }}>{v.year ?? 'N/A'}</td>
                           <td style={{ padding: '14px 16px', color: D.textSub }}>{v.fuelType ?? 'N/A'}</td>
@@ -559,6 +609,11 @@ const VehiclesPage = () => {
                           {!isDriver && (
                             <td style={{ padding: '14px 16px' }}>
                               <div style={{ display: 'flex', gap: 6 }}>
+                                <button onClick={() => openProfile(v)} style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; e.currentTarget.style.color = '#a5b4fc' }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
+                                  <Eye size={14} style={{ marginRight: 6 }} /> Profile
+                                </button>
                                 <button onClick={() => openEditModal(v)} style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
                                   onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; e.currentTarget.style.color = '#a5b4fc' }}
                                   onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
@@ -758,8 +813,440 @@ const VehiclesPage = () => {
         )}
       </div>
 
-    </>
-  )
-}
+      {/* ── Vehicle Profile Side Drawer ── */}
+      {isProfileOpen && selectedProfileVehicle && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', justifyContent: 'flex-end', animation: 'fadeIn 0.2s ease' }}>
+          {/* Backdrop */}
+          <div onClick={closeProfile} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', transition: 'opacity 0.2s ease' }} />
+          
+          {/* Drawer Container */}
+          <div style={{
+            position: 'relative',
+            width: '100%',
+            maxWidth: 480,
+            height: '100vh',
+            background: D.surface,
+            borderLeft: `1px solid ${D.border}`,
+            boxShadow: '-10px 0 40px rgba(0,0,0,0.4)',
+            display: 'flex',
+            flexDirection: 'column',
+            zIndex: 10,
+            animation: 'slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+            overflow: 'hidden'
+          }}>
+            {/* Header section */}
+            <div style={{ padding: '24px 28px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                <div style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 14,
+                  background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem',
+                  boxShadow: '0 4px 14px rgba(99,102,241,0.3)',
+                  flexShrink: 0
+                }}>
+                  <Car size={26} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>
+                    {selectedProfileVehicle.registrationNo}
+                  </h3>
+                  <p style={{ margin: '2px 0 0', color: D.textSub, fontSize: '0.85rem', fontWeight: 600 }}>
+                    {selectedProfileVehicle.manufacturer} {selectedProfileVehicle.model}
+                  </p>
+                </div>
+              </div>
+              <button onClick={closeProfile} style={{ background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.15s ease' }} onMouseEnter={e => e.currentTarget.style.transform = 'rotate(90deg)'} onMouseLeave={e => e.currentTarget.style.transform = 'rotate(0deg)'}>
+                <X size={22} />
+              </button>
+            </div>
+
+            {/* Status & Badges row */}
+            <div style={{ padding: '12px 28px', background: D.surface, display: 'flex', gap: 10, borderBottom: `1px solid ${D.border}` }}>
+              {(() => {
+                const s = statusColors[selectedProfileVehicle.status] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
+                return (
+                  <span style={{ background: s.bg, color: s.color, padding: '4px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', border: `1px solid ${s.border}` }}>
+                    {selectedProfileVehicle.status}
+                  </span>
+                )
+              })()}
+              <span style={{ background: D.blueDim, color: D.blue, padding: '4px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', border: `1px solid ${D.blue}30` }}>
+                {selectedProfileVehicle.fuelType || 'UNKNOWN'}
+              </span>
+            </div>
+
+            {/* Tab Navigation */}
+            <div style={{ display: 'flex', padding: '16px 28px 10px', background: D.surface, gap: 8, borderBottom: `1px solid ${D.border}` }}>
+              {['overview', 'services', 'fuel'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setProfileActiveTab(tab)}
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    borderRadius: 10,
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    background: profileActiveTab === tab ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'rgba(255,255,255,0.04)',
+                    color: profileActiveTab === tab ? '#fff' : D.textSub,
+                    boxShadow: profileActiveTab === tab ? '0 4px 10px rgba(99,102,241,0.25)' : 'none',
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  {tab === 'overview' ? 'Overview' : tab === 'services' ? 'Services' : 'Fuel & Usage'}
+                </button>
+              ))}
+            </div>
+
+            {/* Drawer Content Area (Scrollable) */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', background: D.bg }}>
+              {profileActiveTab === 'overview' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  {/* Specs Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    {[
+                      { label: 'Manufacturer', value: selectedProfileVehicle.manufacturer || 'N/A', icon: <Car size={14} color={D.blue} /> },
+                      { label: 'Model', value: selectedProfileVehicle.model || 'N/A', icon: <Car size={14} color={D.blue} /> },
+                      { label: 'Year', value: selectedProfileVehicle.year || 'N/A', icon: <Calendar size={14} color={D.purple} /> },
+                      { label: 'Current Mileage', value: selectedProfileVehicle.currentMileageKm ? `${selectedProfileVehicle.currentMileageKm.toLocaleString()} km` : 'N/A', icon: <Gauge size={14} color={D.green} /> }
+                    ].map((item, idx) => (
+                      <div key={idx} style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <span style={{ fontSize: '0.65rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {item.icon} {item.label}
+                        </span>
+                        <span style={{ fontSize: '0.88rem', color: D.text, fontWeight: 700 }}>
+                          {item.value}
+                        </span>
+                      </div>
+                    ))}
+                    <div style={{ gridColumn: '1 / -1', background: D.surface, border: `1px solid ${D.border}`, borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <span style={{ fontSize: '0.65rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Info size={14} color={D.orange} /> Chassis Number
+                      </span>
+                      <span style={{ fontSize: '0.88rem', color: D.text, fontWeight: 700, fontFamily: 'monospace', letterSpacing: '0.02em' }}>
+                        {selectedProfileVehicle.chassisNumber || 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Expiry / Compliance Section */}
+                  <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: D.text, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${D.border}`, paddingBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Clock size={15} color={D.purple} /> Compliance & Expiries
+                    </h4>
+                    
+                    {/* Insurance Card */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: D.text }}>Insurance Expiry</p>
+                        <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: D.textSub }}>
+                          {selectedProfileVehicle.insuranceExpiryDate ? new Date(selectedProfileVehicle.insuranceExpiryDate).toLocaleDateString() : 'Not Set'}
+                        </p>
+                      </div>
+                      {selectedProfileVehicle.insuranceExpiryDate ? (() => {
+                        const diff = Math.ceil((new Date(selectedProfileVehicle.insuranceExpiryDate) - new Date()) / (1000 * 60 * 60 * 24))
+                        const isExpiring = diff <= 30
+                        return (
+                          <span style={{
+                            background: isExpiring ? 'rgba(239,68,68,0.1)' : D.greenDim,
+                            color: isExpiring ? '#ef4444' : D.green,
+                            border: `1px solid ${isExpiring ? '#ef444450' : D.green + '50'}`,
+                            padding: '4px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800
+                          }}>
+                            {diff < 0 ? 'Expired' : `${diff} days left`}
+                          </span>
+                        )
+                      })() : <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>}
+                    </div>
+
+                    {/* License Card */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${D.border}`, paddingTop: 12 }}>
+                      <div>
+                        <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: D.text }}>License Expiry</p>
+                        <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: D.textSub }}>
+                          {selectedProfileVehicle.licenseExpiryDate ? new Date(selectedProfileVehicle.licenseExpiryDate).toLocaleDateString() : 'Not Set'}
+                        </p>
+                      </div>
+                      {selectedProfileVehicle.licenseExpiryDate ? (() => {
+                        const diff = Math.ceil((new Date(selectedProfileVehicle.licenseExpiryDate) - new Date()) / (1000 * 60 * 60 * 24))
+                        const isExpiring = diff <= 30
+                        return (
+                          <span style={{
+                            background: isExpiring ? 'rgba(239,68,68,0.1)' : D.greenDim,
+                            color: isExpiring ? '#ef4444' : D.green,
+                            border: `1px solid ${isExpiring ? '#ef444450' : D.green + '50'}`,
+                            padding: '4px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800
+                          }}>
+                            {diff < 0 ? 'Expired' : `${diff} days left`}
+                          </span>
+                        )
+                      })() : <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>}
+                    </div>
+                  </div>
+
+                  {/* Driver Card */}
+                  <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16, padding: '18px 20px' }}>
+                    <h4 style={{ margin: '0 0 12px', fontSize: '0.8rem', fontWeight: 800, color: D.text, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${D.border}`, paddingBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <User size={15} color={D.blue} /> Active Assignee
+                    </h4>
+                    {selectedProfileVehicle.driverUsername ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: '50%',
+                          background: D.blueDim,
+                          color: D.blue,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.85rem',
+                          fontWeight: 800,
+                          border: `1px solid ${D.blue}30`
+                        }}>
+                          {selectedProfileVehicle.driverUsername.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: D.text }}>
+                            {selectedProfileVehicle.driverUsername}
+                          </p>
+                          <p style={{ margin: 0, fontSize: '0.72rem', color: D.textSub }}>Driver / Assignee</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: D.textFaint, fontSize: '0.8rem', fontStyle: 'italic', padding: '6px 0' }}>
+                        <Info size={14} /> No driver currently assigned.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {profileActiveTab === 'services' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  {/* Next Service Due block */}
+                  {(() => {
+                    const alertInfo = vehicleAlerts[selectedProfileVehicle.registrationNo]
+                    if (alertInfo) {
+                      const ac = ALERT_COLORS[alertInfo.level] || ALERT_COLORS.OK
+                      const mileage = computeMileageProgress(alertInfo.record, alertInfo.vehicleKm)
+                      const date    = computeDateAlert(alertInfo.record)
+                      return (
+                        <div style={{
+                          background: ac.bg,
+                          border: `1px solid ${ac.border}`,
+                          borderRadius: 16,
+                          padding: '16px 20px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 12,
+                          boxShadow: `0 4px 16px ${ac.bg}`
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: ac.color }}>Next Service Target</span>
+                            <span style={{ background: ac.bg, color: ac.color, border: `1px solid ${ac.border}`, fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 99 }}>
+                              {ac.label}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            <p style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text }}>
+                              {alertInfo.record.nextServiceMileageKm ? `${alertInfo.record.nextServiceMileageKm.toLocaleString()} km` : '—'}
+                            </p>
+                            <p style={{ margin: 0, fontSize: '0.72rem', color: D.textSub }}>
+                              Due Date: {alertInfo.record.nextServiceDue ? new Date(alertInfo.record.nextServiceDue).toLocaleDateString() : '—'}
+                            </p>
+                          </div>
+                          {mileage && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden' }}>
+                                <div style={{ width: `${Math.min(mileage.pct, 100)}%`, height: '100%', background: ac.color }} />
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, color: ac.color }}>
+                                <span>{mileage.pct}% Threshold reached</span>
+                                <span>{fmtKmRemaining(mileage.remaining)}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    }
+                    return (
+                      <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16, padding: '16px 20px', color: D.textSub, fontSize: '0.8rem', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Info size={14} /> No upcoming service scheduled.
+                      </div>
+                    )
+                  })()}
+
+                  {/* Service Records Timeline */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: D.text, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Past Maintenance History
+                    </h4>
+                    {(() => {
+                      const records = serviceRecords.filter(r => r.vehicleRegNumber === selectedProfileVehicle.registrationNo)
+                      if (records.length === 0) {
+                        return (
+                          <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 14, padding: '36px 20px', textAlign: 'center', color: D.textFaint }}>
+                            <Wrench size={32} style={{ margin: '0 auto 10px', opacity: 0.3 }} />
+                            <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.85rem', color: D.textSub }}>No service records found</p>
+                            <p style={{ margin: 0, fontSize: '0.75rem' }}>History will populate here once services are added.</p>
+                          </div>
+                        )
+                      }
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {records.sort((a,b) => new Date(b.serviceDate) - new Date(a.serviceDate)).map(rec => (
+                            <div key={rec.id} style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 14, padding: '14px 16px', display: 'flex', gap: 12 }}>
+                              <div style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: 8,
+                                background: D.purpleDim,
+                                color: D.purple,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                border: `1px solid ${D.purple}20`
+                              }}>
+                                <Wrench size={15} />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                                  <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 750, color: D.text, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                    {rec.serviceType?.replace(/_/g, ' ')}
+                                  </p>
+                                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: D.green }}>
+                                    {rec.serviceCost ? `Rs. ${Number(rec.serviceCost).toLocaleString()}` : '—'}
+                                  </span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: '0.7rem', color: D.textSub }}>
+                                  <span>Date: {new Date(rec.serviceDate).toLocaleDateString()}</span>
+                                  <span>Mileage: {rec.currentMileageKm ? `${rec.currentMileageKm.toLocaleString()} km` : '—'}</span>
+                                </div>
+                                {rec.partsReplaced && (
+                                  <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: D.textSub, background: D.surfaceHi, padding: '4px 8px', borderRadius: 6, fontStyle: 'italic' }}>
+                                    Parts: {rec.partsReplaced}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {profileActiveTab === 'fuel' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  {loadingProfileFuel ? (
+                    <div style={{ padding: '60px 0', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', color: D.textSub }}>
+                      <div style={{ width: 32, height: 32, border: `3px solid ${D.border}`, borderTopColor: D.blue, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Loading fuel data…</span>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                      {/* Stats Widgets */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        {(() => {
+                          const totalCost = profileFuelLogs.reduce((sum, log) => sum + (log.totalCost || 0), 0)
+                          const totalLiters = profileFuelLogs.reduce((sum, log) => sum + (log.liters || 0), 0)
+                          const avgPrice = profileFuelLogs.length > 0 ? profileFuelLogs.reduce((sum, log) => sum + (log.pricePerLiter || 0), 0) / profileFuelLogs.length : 0
+                          return (
+                            <>
+                              <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 14, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <span style={{ fontSize: '0.65rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Fuel size={12} color={D.green} /> Fuel Cost
+                                </span>
+                                <span style={{ fontSize: '1.15rem', color: D.text, fontWeight: 800 }}>
+                                  Rs. {Math.round(totalCost).toLocaleString()}
+                                </span>
+                                <span style={{ fontSize: '0.68rem', color: D.textSub }}>Across {profileFuelLogs.length} fill-ups</span>
+                              </div>
+                              <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 14, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <span style={{ fontSize: '0.65rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Gauge size={12} color={D.blue} /> Total Liters
+                                </span>
+                                <span style={{ fontSize: '1.15rem', color: D.text, fontWeight: 800 }}>
+                                  {totalLiters.toFixed(1)} L
+                                </span>
+                                <span style={{ fontSize: '0.68rem', color: D.textSub }}>Avg Price: Rs. {avgPrice.toFixed(1)}/L</span>
+                              </div>
+                            </>
+                          )
+                        })()}
+                      </div>
+
+                      {/* Fuel Logs Timeline */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: D.text, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Fuel log history
+                        </h4>
+                        {profileFuelLogs.length === 0 ? (
+                          <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 14, padding: '36px 20px', textAlign: 'center', color: D.textFaint }}>
+                            <Fuel size={32} style={{ margin: '0 auto 10px', opacity: 0.3 }} />
+                            <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.85rem', color: D.textSub }}>No fuel logs found</p>
+                            <p style={{ margin: 0, fontSize: '0.75rem' }}>Logs added by drivers or controllers will appear here.</p>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {profileFuelLogs.sort((a,b) => new Date(b.date) - new Date(a.date)).map(log => (
+                              <div key={log.id} style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 14, padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'center' }}>
+                                <div style={{
+                                  width: 32,
+                                  height: 32,
+                                  borderRadius: 8,
+                                  background: D.greenDim,
+                                  color: D.green,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                  border: `1px solid ${D.green}20`
+                                }}>
+                                  <Fuel size={15} />
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 750, color: D.text }}>
+                                      {log.liters ? `${log.liters.toFixed(1)} Liters` : '—'}
+                                    </p>
+                                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: D.text }}>
+                                      Rs. {log.totalCost ? log.totalCost.toLocaleString() : '—'}
+                                    </span>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: '0.7rem', color: D.textSub }}>
+                                    <span>Date: {new Date(log.date).toLocaleDateString()}</span>
+                                    <span>Odometer: {log.currentMileageKm ? `${log.currentMileageKm.toLocaleString()} km` : '—'}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      </>
+    )
+  }
 
 export default VehiclesPage
