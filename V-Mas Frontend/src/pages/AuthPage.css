@@ -1,0 +1,579 @@
+/* ═══════════════════════════════════════════════════════════
+   V-MAS — AuthPage.css
+   Style: Centered glassmorphism card on full-screen bg image
+   Colors: System indigo #6366f1 / #4f46e5 on dark glass
+═══════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* ── Keyframes ─────────────────────────────────────────── */
+@keyframes ag-card-in {
+  from { opacity: 0; transform: translateY(28px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+@keyframes ag-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes ag-pulse-ring {
+  0%,100% { transform: scale(1);    opacity: 0.4; }
+  50%      { transform: scale(1.28); opacity: 1;   }
+}
+@keyframes ag-pending-in {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+@keyframes ag-stars {
+  0%   { opacity: 0.3; }
+  50%  { opacity: 0.7; }
+  100% { opacity: 0.3; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE WRAPPER — full-screen bg image
+═══════════════════════════════════════════════════════════ */
+.ag-container {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  font-family: 'Inter', sans-serif;
+  padding: 2rem 1rem;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Dark + indigo-tinted overlay on the photo */
+.ag-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    155deg,
+    rgba(6,  8,  28,  0.80) 0%,
+    rgba(10, 14, 45,  0.75) 40%,
+    rgba(4,  6,  20,  0.85) 100%
+  );
+  z-index: 0;
+}
+
+/* Subtle animated star-dots over the overlay */
+.ag-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.55) 1px, transparent 1px),
+    radial-gradient(circle, rgba(255,255,255,0.35) 1px, transparent 1px),
+    radial-gradient(circle, rgba(255,255,255,0.25) 1px, transparent 1px);
+  background-size: 180px 180px, 120px 120px, 240px 240px;
+  background-position: 0 0, 60px 60px, 30px 90px;
+  animation: ag-stars 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Page footer below card */
+.ag-page-footer {
+  position: relative;
+  z-index: 2;
+  margin-top: 1.5rem;
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.28);
+  text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GLASS CARD
+═══════════════════════════════════════════════════════════ */
+.ag-card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 420px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 22px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.55),
+    0 2px 8px  rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  animation: ag-card-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Card header — logo */
+.ag-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 1.6rem 2rem 0;
+}
+
+.ag-logo-box {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 12px rgba(99,102,241,0.5);
+}
+.ag-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ag-logo-name {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.1em;
+}
+
+/* Swipe indicator dots */
+.ag-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.9rem 0 0;
+}
+.ag-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.25);
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.3s ease;
+}
+.ag-dot--on {
+  width: 22px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #818cf8, #6366f1);
+  box-shadow: 0 0 8px rgba(99,102,241,0.7);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SWIPE TRACK — horizontal slider inside the card
+═══════════════════════════════════════════════════════════ */
+.ag-track-outer {
+  overflow: hidden;   /* clips the off-screen slide */
+  width: 100%;
+}
+
+.ag-track {
+  display: flex;
+  width: 200%;        /* two slides side-by-side */
+  transition: transform 0.52s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.ag-track--signup {
+  transform: translateX(-50%); /* shift by half = show 2nd slide */
+}
+
+/* Each slide = 50% of 200% track = 100% of visible area */
+.ag-slide {
+  width: 50%;
+  flex-shrink: 0;
+  padding: 1.4rem 2rem 2rem;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.ag-slide--pending {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2rem;
+}
+
+/* ── Title ────────────────────────────────────────────── */
+.ag-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+  margin: 0 0 1.25rem;
+  letter-spacing: -0.01em;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+
+/* ── Error ────────────────────────────────────────────── */
+.ag-error {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+/* ── Form & Fields ────────────────────────────────────── */
+.ag-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ag-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ag-input {
+  width: 100%;
+  padding: 0.82rem 2.7rem 0.82rem 1rem;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-family: 'Inter', sans-serif;
+  color: #ffffff;
+  outline: none;
+  transition: all 0.22s ease;
+  box-sizing: border-box;
+}
+.ag-input::placeholder {
+  color: rgba(255, 255, 255, 0.42);
+}
+.ag-input:focus {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(99, 102, 241, 0.65);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+}
+
+/* Select special padding */
+.ag-select {
+  padding-left: 2.4rem;
+  padding-right: 2.4rem;
+  appearance: none;
+  cursor: pointer;
+}
+.ag-select option {
+  background: #1e1b4b;
+  color: #fff;
+}
+
+/* Right-side icon */
+.ag-field-icon {
+  position: absolute;
+  right: 0.85rem;
+  color: rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+.ag-field:focus-within .ag-field-icon {
+  color: rgba(165, 180, 252, 0.85);
+}
+
+.ag-field-btn {
+  pointer-events: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.ag-field-btn:hover { color: rgba(255,255,255,0.85) !important; }
+
+/* Select: left icon + right caret */
+.ag-field--select .ag-select-icon {
+  position: absolute;
+  left: 0.85rem;
+  color: rgba(255,255,255,0.45);
+  pointer-events: none;
+  z-index: 1;
+}
+.ag-caret {
+  right: 0.85rem !important;
+  pointer-events: none !important;
+}
+
+/* Password strength */
+.ag-strength {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: -0.3rem;
+}
+.ag-strength-bar {
+  flex: 1;
+  height: 3px;
+  border-radius: 999px;
+  transition: background 0.3s;
+}
+.ag-strength span {
+  font-size: 0.68rem;
+  font-weight: 700;
+  min-width: 50px;
+  text-align: right;
+}
+
+/* Password match */
+.ag-match {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin-top: -0.3rem;
+}
+
+/* ── Options row (remember + forgot) ─────────────────── */
+.ag-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.1rem 0;
+}
+
+.ag-remember {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  user-select: none;
+}
+.ag-remember span {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.65);
+}
+
+.ag-checkbox {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.ag-checkbox--on {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  border-color: transparent;
+  box-shadow: 0 0 8px rgba(99,102,241,0.5);
+}
+.ag-checkbox-dot {
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 2px;
+}
+
+.ag-forgot {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.65);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.ag-forgot:hover { color: #a5b4fc; }
+
+/* ── Info banner (signup) ─────────────────────────────── */
+.ag-info-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  background: rgba(99,102,241,0.14);
+  border: 1px solid rgba(99,102,241,0.28);
+  border-radius: 9px;
+  font-size: 0.76rem;
+  color: rgba(196, 202, 255, 0.9);
+  margin-top: -0.1rem;
+}
+.ag-info-banner strong { color: #a5b4fc; }
+
+/* ── Submit button ────────────────────────────────────── */
+.ag-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.88rem;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1e1b4b;
+  font-size: 0.92rem;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.015em;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  margin-top: 0.15rem;
+}
+.ag-btn:hover:not(:disabled) {
+  background: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+.ag-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+.ag-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Loading spinner inside button */
+.ag-btn-spinner {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(30, 27, 75, 0.3);
+  border-top-color: #1e1b4b;
+  border-radius: 50%;
+  animation: ag-spin 0.7s linear infinite;
+}
+
+/* ── Switch line ──────────────────────────────────────── */
+.ag-switch {
+  text-align: center;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.5);
+  margin-top: 1.1rem;
+  margin-bottom: 0;
+}
+.ag-switch-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 800;
+  font-family: 'Inter', sans-serif;
+  color: #ffffff;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.2s;
+  letter-spacing: 0.01em;
+}
+.ag-switch-btn:hover { color: #a5b4fc; }
+
+/* ═══════════════════════════════════════════════════════════
+   PENDING APPROVAL (inside signup slide)
+═══════════════════════════════════════════════════════════ */
+.ag-pending-ring {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.2rem;
+}
+.ag-pending-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99,102,241,0.35), transparent);
+  animation: ag-pulse-ring 2.2s ease-in-out infinite;
+}
+.ag-pending-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(99,102,241,0.5);
+  position: relative;
+  z-index: 1;
+  animation: ag-pending-in 0.5s ease both;
+}
+
+.ag-pending-sub {
+  font-size: 0.86rem;
+  color: rgba(255,255,255,0.65);
+  margin: 0.3rem 0 0.5rem;
+}
+.ag-pending-hl { color: #a5b4fc; font-weight: 700; }
+
+.ag-pending-desc {
+  font-size: 0.77rem;
+  color: rgba(255,255,255,0.4);
+  line-height: 1.6;
+  margin-bottom: 1.4rem;
+}
+
+.ag-pending-steps {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.4rem;
+  text-align: left;
+}
+.ag-pstep {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.25rem 0;
+}
+.ag-pstep--done { color: #4ade80; }
+.ag-pstep--wait { color: #facc15; }
+.ag-pstep--off  { color: rgba(255,255,255,0.25); }
+.ag-pstep-line {
+  width: 2px;
+  height: 14px;
+  background: rgba(255,255,255,0.12);
+  margin-left: 5px;
+}
+
+/* ── Mobile ────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .ag-card { border-radius: 18px; }
+  .ag-slide { padding: 1.2rem 1.4rem 1.75rem; }
+  .ag-card-header { padding: 1.25rem 1.4rem 0; }
+  .ag-title { font-size: 1.3rem; }
+}
+
+/* ── Desktop/Widescreen ─────────────────────────────────── */
+@media (min-width: 768px) {
+  .ag-card {
+    max-width: 500px;
+  }
+  .ag-slide {
+    padding: 2rem 2.5rem 2.5rem;
+  }
+  .ag-card-header {
+    padding: 2.2rem 2.5rem 0;
+  }
+  .ag-title {
+    font-size: 1.65rem;
+    margin-bottom: 1.5rem;
+  }
+  .ag-form {
+    gap: 0.9rem;
+  }
+}

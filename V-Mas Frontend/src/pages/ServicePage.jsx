@@ -845,13 +845,13 @@ const ServicePage = () => {
   }
 
   useEffect(() => {
-    if (isAddModalOpen || isEditModalOpen || deleteModal.isOpen || detailModal.isOpen || attachmentViewer.isOpen) {
+    if (isAddModalOpen || isEditModalOpen || isScheduleModalOpen || deleteModal.isOpen || detailModal.isOpen || deletedDrawer || attachmentViewer.isOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
     }
     return () => { document.body.style.overflow = '' }
-  }, [isAddModalOpen, isEditModalOpen, deleteModal.isOpen, detailModal.isOpen, attachmentViewer.isOpen])
+  }, [isAddModalOpen, isEditModalOpen, isScheduleModalOpen, deleteModal.isOpen, detailModal.isOpen, deletedDrawer, attachmentViewer.isOpen])
 
   // Fetch audit history whenever detail modal opens for a record
   useEffect(() => {
