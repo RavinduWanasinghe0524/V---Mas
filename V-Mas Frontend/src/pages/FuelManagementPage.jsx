@@ -101,6 +101,7 @@ const FuelManagementPage = () => {
 
   const [previousMileage, setPreviousMileage] = useState(null)
   const [mileageError, setMileageError] = useState('')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   // ── Effects ─────────────────────────────────────────────────────────────
   useEffect(() => { loadData() }, [])
@@ -377,9 +378,9 @@ const FuelManagementPage = () => {
   // ── Loading ─────────────────────────────────────────────────────────────
   if (loading) return (
     <div className="app-shell" style={{ background: D.bg }}>
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: D.bg }}>
-        <Topbar title="Fuel Management" subtitle="Home / Fuel Management" />
+        <Topbar title="Fuel Management" subtitle="Home / Fuel Management" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ width: 52, height: 52, borderRadius: '50%', border: '4px solid rgba(167,139,250,0.2)', borderTopColor: D.purple, animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
@@ -395,9 +396,9 @@ const FuelManagementPage = () => {
   // ── Main Render ─────────────────────────────────────────────────────────
   return (
     <div className="app-shell" style={{ background: D.bg, minHeight: '100vh' }}>
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: D.bg }}>
-        <Topbar title="Fuel Management" subtitle="Home / Fuel Management" />
+        <Topbar title="Fuel Management" subtitle="Home / Fuel Management" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body">
 
           {/* -- Hero Section ------------------------------------ */}

@@ -46,7 +46,7 @@ const navItems = {
   ],
 }
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
   const { user, logout } = useAuth()
   const { theme } = useTheme()
   const navigate = useNavigate()
@@ -143,6 +143,7 @@ const Sidebar = () => {
       <NavLink
         key={item.label}
         to={item.to}
+        onClick={onClose}
         className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
       >
         <span className="nav-icon">{item.icon}</span>
@@ -152,7 +153,21 @@ const Sidebar = () => {
   }
 
   return (
-    <aside className="sidebar">
+    <>
+      {/* Backdrop overlay — only visible on mobile when sidebar is open */}
+      {isOpen && (
+        <div className="sidebar-overlay" onClick={onClose} />
+      )}
+    <aside className={`sidebar${isOpen ? ' sidebar-open' : ''}`}>
+      {/* Close button (visible only on mobile) */}
+      <button
+        className="sidebar-close-btn"
+        onClick={onClose}
+        aria-label="Close sidebar"
+      >
+        ✕
+      </button>
+
       <div className="sidebar-header">
         <div className="sidebar-brand">
           <div className="sidebar-logo" style={{ padding: 0, overflow: 'hidden', background: 'transparent', boxShadow: 'none' }}>
@@ -271,6 +286,7 @@ const Sidebar = () => {
         }
       `}</style>
     </aside>
+    </>
   )
 }
 

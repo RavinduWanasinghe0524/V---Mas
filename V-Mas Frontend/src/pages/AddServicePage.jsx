@@ -55,6 +55,7 @@ const AddServicePage = () => {
   const [loadingData, setLoadingData] = useState(isEditing)
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     if (!isEditing) return
@@ -119,9 +120,9 @@ const AddServicePage = () => {
   if (loadingData) {
     return (
       <div className="app-shell">
-        <Sidebar />
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="main-content" style={{ background: D.bg }}>
-          <Topbar title="Service" subtitle="Home / Service" />
+          <Topbar title="Service" subtitle="Home / Service" onMenuToggle={() => setSidebarOpen(o => !o)} />
           <div className="page-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
             <div style={{ color: D.indigo, fontSize: '1rem', fontWeight: 600 }}>Loading recordÔÇª</div>
           </div>
@@ -132,11 +133,12 @@ const AddServicePage = () => {
 
   return (
     <div className="app-shell" style={{ background: D.bg }}>
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: D.bg }}>
         <Topbar
           title={isEditing ? 'Edit Service Record' : 'Add Service Record'}
           subtitle={`Home / Service / ${isEditing ? 'Edit' : 'Add'}`}
+          onMenuToggle={() => setSidebarOpen(o => !o)}
         />
 
         <div className="page-body">

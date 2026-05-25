@@ -9,7 +9,7 @@
  * - Dynamic role badges and account status indicators.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
@@ -80,6 +80,23 @@ const UsersPage = () => {
   const [searchTerm,   setSearchTerm]   = useState('')
   const [roleFilter,   setRoleFilter]   = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const [sidebarOpen, setSidebarOpen]   = useState(false)
+  const fileInputRef = useRef(null)
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > 1024 * 1024) {
+      setError('Image must be under 1 MB')
+      setTimeout(() => setError(''), 4000)
+      return
+    }
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setFormData(prev => ({ ...prev, profilePicture: reader.result }))
+    }
+    reader.readAsDataURL(file)
+  }
 
   const filteredUsers = users.filter(u => {
     const matchSearch = (u.userName || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -105,9 +122,11 @@ const UsersPage = () => {
     try {
       setError('')
       const res = await userAPI.getAllUsers()
-      setUsers(res.data.data)
+      const data = res.data?.data || res.data || []
+      setUsers(Array.isArray(data) ? data : [])
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to load users')
+      setUsers([])
     } finally {
       setLoading(false)
     }
@@ -117,7 +136,8 @@ const UsersPage = () => {
     setPendingLoad(true)
     try {
       const res = await userAPI.getPendingUsers()
-      setPendingUsers(res.data.data || [])
+      const data = res.data?.data || res.data || []
+      setPendingUsers(Array.isArray(data) ? data : [])
     } catch {
       setPendingUsers([])
     } finally {
@@ -220,6 +240,7 @@ const UsersPage = () => {
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
+      URL.revokeObjectURL(url)
       
       setActionMsg('Users exported to CSV successfully.')
       setTimeout(() => setActionMsg(''), 4000)
@@ -306,9 +327,12 @@ const UsersPage = () => {
       if (editingUser) {
         if (!submitData.password) delete submitData.password
         await userAPI.updateUser(editingUser.id, submitData)
+        setActionMsg(`User "${submitData.userName}" has been updated successfully.`)
       } else {
         await userAPI.createUser(submitData)
+        setActionMsg(`User "${submitData.userName}" has been created successfully.`)
       }
+      setTimeout(() => setActionMsg(''), 4000)
       setShowModal(false)
       if (isAdmin) loadUsers()
       loadPending()
@@ -320,10 +344,10 @@ const UsersPage = () => {
   if (!isAdmin && !isController) {
     return (
       <div className="app-shell" style={{ background: D.bg }}>
-        <Sidebar />
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="main-content" style={{ background: D.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ color: D.red, background: D.redDim, padding: '16px 24px', borderRadius: 12, border: `1px solid ${D.red}30` }}>
-            Access Restricted: You need Admin or Controller privileges to view this page.
+            Access Denied: Admin or Controller privileges required
           </div>
         </div>
       </div>
@@ -333,9 +357,9 @@ const UsersPage = () => {
   return (
     <>
       <div className="app-shell" style={{ background: D.bg }}>
-        <Sidebar />
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="main-content" style={{ background: D.bg }}>
-          <Topbar title="User Management" subtitle="Dashboard / User Management" />
+          <Topbar title="User Management" subtitle="Dashboard / User Management" onMenuToggle={() => setSidebarOpen(o => !o)} />
           <div className="page-body">
 
             {/* Hero Banner */}
@@ -709,18 +733,20 @@ const UsersPage = () => {
                                     <button onClick={() => handleReject(u.id, u.userName)} style={{ padding: '5px 8px', borderRadius: 8, border: 'none', background: D.red, color: '#fff', cursor: 'pointer' }}><X size={14} /></button>
                                   </>
                                 )}
-                                  <>
-                                    <button onClick={() => handleEdit(u)} style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
-                                      onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.color='#a5b4fc' }}
-                                      onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.color=D.text }}>
-                                      Edit
-                                    </button>
-                                    <button onClick={() => handleDelete(u.id)} style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700 }}
-                                      onMouseEnter={e => e.currentTarget.style.background='rgba(248,113,113,0.2)'}
-                                      onMouseLeave={e => e.currentTarget.style.background='rgba(248,113,113,0.1)'}>
-                                      Delete
-                                    </button>
-                                  </>
+                                  {(!isController || u.role === 'DRIVER') && (
+                                    <>
+                                      <button onClick={() => handleEdit(u)} style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
+                                        onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.color='#a5b4fc' }}
+                                        onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.color=D.text }}>
+                                        Edit
+                                      </button>
+                                      <button onClick={() => handleDelete(u.id)} style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700 }}
+                                        onMouseEnter={e => e.currentTarget.style.background='rgba(248,113,113,0.2)'}
+                                        onMouseLeave={e => e.currentTarget.style.background='rgba(248,113,113,0.1)'}>
+                                        Delete
+                                      </button>
+                                    </>
+                                  )}
                               </div>
                             </td>
                           </tr>
@@ -772,8 +798,12 @@ const UsersPage = () => {
                     <label style={labelStyle}>Role</label>
                     <select name="role" value={formData.role} onChange={handleChange} style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
                       <option value="DRIVER" style={{ background: D.surfaceHi }}>Driver</option>
-                      <option value="CONTROLLER" style={{ background: D.surfaceHi }}>Controller</option>
-                      <option value="ADMIN" style={{ background: D.surfaceHi }}>Admin</option>
+                      {!isController && (
+                        <>
+                          <option value="CONTROLLER" style={{ background: D.surfaceHi }}>Controller</option>
+                          <option value="ADMIN" style={{ background: D.surfaceHi }}>Admin</option>
+                        </>
+                      )}
                     </select>
                   </div>
                   <div>
@@ -785,9 +815,60 @@ const UsersPage = () => {
                       <option value="SUSPENDED" style={{ background: D.surfaceHi }}>Suspended</option>
                     </select>
                   </div>
-                  <div>
-                    <label style={labelStyle}>Profile Picture URL <span style={{ color: D.textFaint, fontWeight: 400, textTransform: 'none' }}>(optional)</span></label>
-                    <input type="url" name="profilePicture" value={formData.profilePicture} onChange={handleChange} placeholder="https://..." style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={labelStyle}>Profile Picture <span style={{ color: D.textFaint, fontWeight: 400, textTransform: 'none' }}>(optional — upload an image)</span></label>
+                    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                      <img
+                        src={formData.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.userName || 'U')}&background=6366f1&color=fff&size=128&bold=true`}
+                        alt="preview"
+                        style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${D.surfaceHi}`, boxShadow: `0 0 0 1px ${D.border}`, flexShrink: 0 }}
+                        onError={e => {
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.userName || 'U')}&background=6366f1&color=fff&size=128&bold=true`
+                        }}
+                      />
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={handleFileChange}
+                        />
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            style={{
+                              padding: '8px 16px', borderRadius: 8,
+                              border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)',
+                              color: D.text, cursor: 'pointer',
+                              fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 700,
+                              transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor='rgba(99,102,241,0.4)' }}
+                            onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor=D.border }}
+                          >
+                            Upload Image
+                          </button>
+                          {formData.profilePicture && (
+                            <button
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, profilePicture: '' }))}
+                              style={{
+                                padding: '8px 12px', borderRadius: 8,
+                                border: `1px solid ${D.red}40`, background: D.redDim,
+                                color: D.red, cursor: 'pointer',
+                                fontFamily: 'inherit', fontSize: '0.75rem', fontWeight: 700,
+                                transition: 'all 0.15s'
+                              }}
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                        <span style={{ fontSize: '0.72rem', color: D.textSub }}>JPG, PNG — max 1 MB. Image will be stored directly in the system.</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
