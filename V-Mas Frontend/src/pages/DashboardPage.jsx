@@ -205,7 +205,13 @@ const AlertSection = ({ alerts, navigate, isDark }) => {
               </p>
             </div>
             <button 
-              onClick={() => navigate(alert.type === 'SERVICE_DUE' ? '/service' : '/vehicles')}
+              onClick={() => {
+                if (alert.type === 'SERVICE_DUE') {
+                  navigate('/service')
+                } else {
+                  navigate('/vehicles', { state: { openVehicleProfile: alert.vehicleRegNumber } })
+                }
+              }}
               style={{
                 padding: '6px 14px', borderRadius: 8, border: 'none',
                 background: 'rgba(255,255,255,0.1)', color: 'var(--text-primary)',

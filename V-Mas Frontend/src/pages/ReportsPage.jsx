@@ -34,7 +34,6 @@ const ReportsPage = () => {
     { id: 'fuel-efficiency',    icon: <TrendingUp size={24} strokeWidth={1.5} />,  title: 'Fuel Efficiency Report',        desc: 'Computed km/L efficiency per vehicle by comparing fill-up records with distance covered.', category: 'Fuel',     color: D.green,  bg: D.greenDim  },
     { id: 'service-report',     icon: <Wrench size={24} strokeWidth={1.5} />,      title: 'Service & Maintenance Report',  desc: 'Summary of all service records, costs, and upcoming maintenance schedules.',            category: 'Maintenance', color: D.green,  bg: D.greenDim  },
     { id: 'user-report',        icon: <Users size={24} strokeWidth={1.5} />,       title: 'User Activity Report',          desc: 'User registration, role distribution, login history, and account statuses.',            category: 'Users',       color: D.blue,   bg: D.blueDim   },
-    { id: 'location-report',    icon: <MapPin size={24} strokeWidth={1.5} />,      title: 'Location & Route Report',       desc: 'Vehicle location history, routes taken, and distance covered per vehicle.',             category: 'Fleet',       color: D.purple, bg: D.purpleDim },
     { id: 'cost-report',        icon: <DollarSign size={24} strokeWidth={1.5} />,  title: 'Cost Analysis Report',          desc: 'Full cost breakdown including fuel, maintenance, and operational expenses.',             category: 'Finance',     color: D.indigo, bg: D.indigoDim },
   ]
   const [generating, setGenerating] = useState(null)
@@ -365,29 +364,6 @@ const ReportsPage = () => {
         })
       }
 
-      if (id === 'location-report') {
-        addHeader('Location & Route Report')
-        const { data: vehicles } = await vehicleAPI.getAllVehicles()
-        const locationData = vehicles.map(v => [
-          v.registrationNumber || 'N/A',
-          v.brand ? `${v.brand} ${v.model || ''}`.trim() : 'N/A',
-          v.status || 'N/A',
-          v.mileage ? `${Number(v.mileage).toLocaleString()} km` : '0 km',
-          v.assignedDriver || 'Unassigned'
-        ])
-        doc.autoTable({
-          startY: 40,
-          head: [['Reg No', 'Vehicle', 'Status', 'Total Distance', 'Assigned Driver']],
-          body: locationData,
-          theme: 'grid',
-          headStyles: { fillColor: headerColor }
-        })
-        const afterTable = doc.lastAutoTable ? doc.lastAutoTable.finalY + 12 : 80
-        doc.setFontSize(9)
-        doc.setTextColor(130)
-        doc.text('Note: Detailed GPS route tracking will be available in a future update.', 14, afterTable)
-      }
-
       if (id === 'master-report') {
         doc.setPage(1)
         addHeader('Comprehensive Master Report')
@@ -600,16 +576,6 @@ const ReportsPage = () => {
             s.cost || 0
           ])
         ]
-      } else if (id === 'location-report') {
-        const { data: vehicles } = await vehicleAPI.getAllVehicles()
-        headers = ['Reg No', 'Vehicle', 'Status', 'Total Distance', 'Assigned Driver']
-        rows = vehicles.map(v => [
-          v.registrationNumber || 'N/A',
-          v.brand ? `${v.brand} ${v.model || ''}`.trim() : 'N/A',
-          v.status || 'N/A',
-          v.mileage ? `${Number(v.mileage).toLocaleString()} km` : '0 km',
-          v.assignedDriver || 'Unassigned'
-        ])
       } else {
         setError('Excel export for this category is under development.')
         setTimeout(() => setError(''), 4000)
