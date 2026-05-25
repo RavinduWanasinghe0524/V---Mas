@@ -44,6 +44,8 @@ const ReportsPage = () => {
   const [pdfTheme, setPdfTheme] = useState('indigo')
   const [reportsList, setReportsList] = useState(recentReports)
   const [activeCategory, setActiveCategory] = useState('All')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
 
   const pdfThemeColors = {
     indigo: { primary: [67, 56, 202] },
@@ -115,7 +117,14 @@ const ReportsPage = () => {
           doc.text('Fuel Records', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
         }
         const { data } = await fuelAPI.getAllFuelLogs()
-        const tableData = data.map(f => [
+        let filteredFuel = data || []
+        if (startDate) {
+          filteredFuel = filteredFuel.filter(f => f.date && new Date(f.date) >= new Date(startDate))
+        }
+        if (endDate) {
+          filteredFuel = filteredFuel.filter(f => f.date && new Date(f.date) <= new Date(endDate))
+        }
+        const tableData = filteredFuel.map(f => [
           f.date ? new Date(f.date).toLocaleDateString() : 'N/A',
           f.vehicleRegNo || 'N/A',
           f.driverName || 'N/A',
@@ -139,7 +148,14 @@ const ReportsPage = () => {
           doc.text('Service & Maintenance Records', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
         }
         const { data } = await serviceAPI.getAllServices()
-        const tableData = data.map(s => [
+        let filteredServices = data || []
+        if (startDate) {
+          filteredServices = filteredServices.filter(s => s.date && new Date(s.date) >= new Date(startDate))
+        }
+        if (endDate) {
+          filteredServices = filteredServices.filter(s => s.date && new Date(s.date) <= new Date(endDate))
+        }
+        const tableData = filteredServices.map(s => [
           s.date ? new Date(s.date).toLocaleDateString() : 'N/A',
           s.vehicleRegNo || 'N/A',
           s.serviceType || 'N/A',
@@ -254,8 +270,19 @@ const ReportsPage = () => {
           doc.setTextColor(40, 40, 40)
           doc.text('Cost Analysis', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
         }
-        const { data: fuelLogs } = await fuelAPI.getAllFuelLogs()
-        const { data: services } = await serviceAPI.getAllServices()
+        const { data: fuelLogsRes } = await fuelAPI.getAllFuelLogs()
+        const { data: servicesRes } = await serviceAPI.getAllServices()
+
+        let fuelLogs = fuelLogsRes || []
+        let services = servicesRes || []
+        if (startDate) {
+          fuelLogs = fuelLogs.filter(f => f.date && new Date(f.date) >= new Date(startDate))
+          services = services.filter(s => s.date && new Date(s.date) >= new Date(startDate))
+        }
+        if (endDate) {
+          fuelLogs = fuelLogs.filter(f => f.date && new Date(f.date) <= new Date(endDate))
+          services = services.filter(s => s.date && new Date(s.date) <= new Date(endDate))
+        }
 
         const totalFuelCost = fuelLogs.reduce((sum, f) => sum + (f.cost || 0), 0)
         const totalServiceCost = services.reduce((sum, s) => sum + (s.cost || 0), 0)
@@ -371,6 +398,14 @@ const ReportsPage = () => {
       doc.save(filename)
       setSuccessMsg(`Report "${filename}" generated and downloaded successfully.`)
       setTimeout(() => setSuccessMsg(''), 5000)
+
+      const newReport = {
+        name: filename,
+        generated: new Date().toISOString().split('T')[0],
+        format: 'PDF',
+        size: id === 'master-report' ? '450 KB' : '120 KB'
+      }
+      setReportsList(prev => [newReport, ...prev.filter(r => r.name !== filename)])
     } catch (err) {
       console.error('Error generating PDF:', err)
       const reportName = reportTypes.find(r => r.id === id)?.title || id
@@ -400,11 +435,22 @@ const ReportsPage = () => {
 
       if (id === 'master-report') {
         const { data: vData } = await vehicleAPI.getAllVehicles()
-        const { data: fData } = await fuelAPI.getAllFuelLogs()
-        const { data: sData } = await serviceAPI.getAllServices()
+        const { data: fuelRes } = await fuelAPI.getAllFuelLogs()
+        const { data: serviceRes } = await serviceAPI.getAllServices()
         const { data: uData } = await userAPI.getAllUsers()
         const { data: effRes } = await fuelAPI.getFuelEfficiencyReport()
         const effReport = effRes.data || effRes
+
+        let fData = fuelRes || []
+        let sData = serviceRes || []
+        if (startDate) {
+          fData = fData.filter(f => f.date && new Date(f.date) >= new Date(startDate))
+          sData = sData.filter(s => s.date && new Date(s.date) >= new Date(startDate))
+        }
+        if (endDate) {
+          fData = fData.filter(f => f.date && new Date(f.date) <= new Date(endDate))
+          sData = sData.filter(s => s.date && new Date(s.date) <= new Date(endDate))
+        }
 
         headers = []
         rows = [
@@ -444,8 +490,15 @@ const ReportsPage = () => {
         ])
       } else if (id === 'fuel-report') {
         const { data } = await fuelAPI.getAllFuelLogs()
+        let filteredFuel = data || []
+        if (startDate) {
+          filteredFuel = filteredFuel.filter(f => f.date && new Date(f.date) >= new Date(startDate))
+        }
+        if (endDate) {
+          filteredFuel = filteredFuel.filter(f => f.date && new Date(f.date) <= new Date(endDate))
+        }
         headers = ['Date', 'Vehicle', 'Driver', 'Type', 'Liters', 'Cost']
-        rows = data.map(f => [
+        rows = filteredFuel.map(f => [
           f.date ? new Date(f.date).toLocaleDateString() : 'N/A',
           f.vehicleRegNo || 'N/A',
           f.driverName || 'N/A',
@@ -455,8 +508,15 @@ const ReportsPage = () => {
         ])
       } else if (id === 'service-report') {
         const { data } = await serviceAPI.getAllServices()
+        let filteredServices = data || []
+        if (startDate) {
+          filteredServices = filteredServices.filter(s => s.date && new Date(s.date) >= new Date(startDate))
+        }
+        if (endDate) {
+          filteredServices = filteredServices.filter(s => s.date && new Date(s.date) <= new Date(endDate))
+        }
         headers = ['Date', 'Vehicle Reg', 'Service Type', 'Status', 'Cost']
-        rows = data.map(s => [
+        rows = filteredServices.map(s => [
           s.date ? new Date(s.date).toLocaleDateString() : 'N/A',
           s.vehicleRegNo || 'N/A',
           s.serviceType || 'N/A',
@@ -499,8 +559,18 @@ const ReportsPage = () => {
           ])
         ]
       } else if (id === 'cost-report') {
-        const { data: fuelLogs } = await fuelAPI.getAllFuelLogs()
-        const { data: services } = await serviceAPI.getAllServices()
+        const { data: fuelLogsRes } = await fuelAPI.getAllFuelLogs()
+        const { data: servicesRes } = await serviceAPI.getAllServices()
+        let fuelLogs = fuelLogsRes || []
+        let services = servicesRes || []
+        if (startDate) {
+          fuelLogs = fuelLogs.filter(f => f.date && new Date(f.date) >= new Date(startDate))
+          services = services.filter(s => s.date && new Date(s.date) >= new Date(startDate))
+        }
+        if (endDate) {
+          fuelLogs = fuelLogs.filter(f => f.date && new Date(f.date) <= new Date(endDate))
+          services = services.filter(s => s.date && new Date(s.date) <= new Date(endDate))
+        }
         headers = []
         rows = [
           ['Operational Expenses Summary'],
@@ -529,6 +599,16 @@ const ReportsPage = () => {
             s.cost || 0
           ])
         ]
+      } else if (id === 'location-report') {
+        const { data: vehicles } = await vehicleAPI.getAllVehicles()
+        headers = ['Reg No', 'Vehicle', 'Status', 'Total Distance', 'Assigned Driver']
+        rows = vehicles.map(v => [
+          v.registrationNumber || 'N/A',
+          v.brand ? `${v.brand} ${v.model || ''}`.trim() : 'N/A',
+          v.status || 'N/A',
+          v.mileage ? `${Number(v.mileage).toLocaleString()} km` : '0 km',
+          v.assignedDriver || 'Unassigned'
+        ])
       } else {
         setError('Excel export for this category is under development.')
         setTimeout(() => setError(''), 4000)
@@ -554,6 +634,14 @@ const ReportsPage = () => {
 
       setSuccessMsg(`Excel (CSV) report "${filename}" generated and downloaded successfully.`)
       setTimeout(() => setSuccessMsg(''), 5000)
+
+      const newReport = {
+        name: filename,
+        generated: new Date().toISOString().split('T')[0],
+        format: 'Excel',
+        size: id === 'master-report' ? '280 KB' : '85 KB'
+      }
+      setReportsList(prev => [newReport, ...prev.filter(r => r.name !== filename)])
     } catch (err) {
       console.error('Error generating Excel:', err)
       const reportName = reportTypes.find(r => r.id === id)?.title || id
@@ -586,8 +674,28 @@ const ReportsPage = () => {
 
 
   const handleRedownloadRecent = (name, format) => {
-    setSuccessMsg(`Starting re-download of "${name}" in ${format} format...`)
-    setTimeout(() => setSuccessMsg(''), 4000)
+    const matchedType = reportTypes.find(t => name.toLowerCase().startsWith(t.id.toLowerCase()))
+    const targetId = matchedType ? matchedType.id : null
+
+    if (!targetId) {
+      let fallbackId = 'vehicle-summary'
+      if (name.toLowerCase().includes('fuel')) fallbackId = 'fuel-report'
+      else if (name.toLowerCase().includes('user')) fallbackId = 'user-report'
+      else if (name.toLowerCase().includes('service')) fallbackId = 'service-report'
+      
+      if (format === 'PDF') {
+        handleGenerate(fallbackId)
+      } else {
+        handleGenerateExcel(fallbackId)
+      }
+      return
+    }
+
+    if (format === 'PDF') {
+      handleGenerate(targetId)
+    } else {
+      handleGenerateExcel(targetId)
+    }
   }
 
   return (
@@ -718,6 +826,78 @@ const ReportsPage = () => {
                   {t.name}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Date Range Filters */}
+          <div style={{
+            background: D.surface,
+            borderRadius: 12,
+            border: `1px solid ${D.border}`,
+            padding: '12px 20px',
+            marginBottom: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+            flexWrap: 'wrap',
+            fontSize: '0.85rem',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Calendar size={16} style={{ color: D.indigo }} />
+              <span style={{ fontWeight: 600, color: D.text }}>Report Date Range (Optional):</span>
+            </div>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <input
+                type="date"
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 8,
+                  border: `1px solid ${D.border}`,
+                  background: D.bg,
+                  color: D.text,
+                  fontSize: '0.75rem',
+                  outline: 'none'
+                }}
+              />
+              <span style={{ color: D.textSub, fontSize: '0.75rem' }}>to</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={e => setEndDate(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 8,
+                  border: `1px solid ${D.border}`,
+                  background: D.bg,
+                  color: D.text,
+                  fontSize: '0.75rem',
+                  outline: 'none'
+                }}
+              />
+              {(startDate || endDate) && (
+                <button
+                  onClick={() => { setStartDate(''); setEndDate(''); }}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 8,
+                    border: `1px solid ${D.red}40`,
+                    background: D.redDim,
+                    color: D.red,
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(248,113,113,0.2)'}
+                  onMouseLeave={e => e.currentTarget.style.background = D.redDim}
+                >
+                  Clear Dates
+                </button>
+              )}
             </div>
           </div>
 

@@ -135,7 +135,8 @@ const UsersPage = () => {
     setPendingLoad(true)
     try {
       const res = await userAPI.getPendingUsers()
-      setPendingUsers(res.data.data || [])
+      const data = res.data?.data || res.data || []
+      setPendingUsers(Array.isArray(data) ? data : [])
     } catch {
       setPendingUsers([])
     } finally {
@@ -731,18 +732,20 @@ const UsersPage = () => {
                                     <button onClick={() => handleReject(u.id, u.userName)} style={{ padding: '5px 8px', borderRadius: 8, border: 'none', background: D.red, color: '#fff', cursor: 'pointer' }}><X size={14} /></button>
                                   </>
                                 )}
-                                  <>
-                                    <button onClick={() => handleEdit(u)} style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
-                                      onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.color='#a5b4fc' }}
-                                      onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.color=D.text }}>
-                                      Edit
-                                    </button>
-                                    <button onClick={() => handleDelete(u.id)} style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700 }}
-                                      onMouseEnter={e => e.currentTarget.style.background='rgba(248,113,113,0.2)'}
-                                      onMouseLeave={e => e.currentTarget.style.background='rgba(248,113,113,0.1)'}>
-                                      Delete
-                                    </button>
-                                  </>
+                                  {(!isController || u.role === 'DRIVER') && (
+                                    <>
+                                      <button onClick={() => handleEdit(u)} style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
+                                        onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.color='#a5b4fc' }}
+                                        onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.color=D.text }}>
+                                        Edit
+                                      </button>
+                                      <button onClick={() => handleDelete(u.id)} style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700 }}
+                                        onMouseEnter={e => e.currentTarget.style.background='rgba(248,113,113,0.2)'}
+                                        onMouseLeave={e => e.currentTarget.style.background='rgba(248,113,113,0.1)'}>
+                                        Delete
+                                      </button>
+                                    </>
+                                  )}
                               </div>
                             </td>
                           </tr>
@@ -794,8 +797,12 @@ const UsersPage = () => {
                     <label style={labelStyle}>Role</label>
                     <select name="role" value={formData.role} onChange={handleChange} style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
                       <option value="DRIVER" style={{ background: D.surfaceHi }}>Driver</option>
-                      <option value="CONTROLLER" style={{ background: D.surfaceHi }}>Controller</option>
-                      <option value="ADMIN" style={{ background: D.surfaceHi }}>Admin</option>
+                      {!isController && (
+                        <>
+                          <option value="CONTROLLER" style={{ background: D.surfaceHi }}>Controller</option>
+                          <option value="ADMIN" style={{ background: D.surfaceHi }}>Admin</option>
+                        </>
+                      )}
                     </select>
                   </div>
                   <div>
