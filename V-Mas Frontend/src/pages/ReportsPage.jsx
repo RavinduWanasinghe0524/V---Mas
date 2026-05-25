@@ -537,6 +537,16 @@ const ReportsPage = () => {
             s.cost || 0
           ])
         ]
+      } else if (id === 'location-report') {
+        const { data: vehicles } = await vehicleAPI.getAllVehicles()
+        headers = ['Reg No', 'Vehicle', 'Status', 'Total Distance', 'Assigned Driver']
+        rows = vehicles.map(v => [
+          v.registrationNumber || 'N/A',
+          v.brand ? `${v.brand} ${v.model || ''}`.trim() : 'N/A',
+          v.status || 'N/A',
+          v.mileage ? `${Number(v.mileage).toLocaleString()} km` : '0 km',
+          v.assignedDriver || 'Unassigned'
+        ])
       } else {
         setError('Excel export for this category is under development.')
         setTimeout(() => setError(''), 4000)
