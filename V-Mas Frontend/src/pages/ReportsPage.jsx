@@ -44,6 +44,7 @@ const ReportsPage = () => {
   const [pdfTheme, setPdfTheme] = useState('indigo')
   const [reportsList, setReportsList] = useState(recentReports)
   const [activeCategory, setActiveCategory] = useState('All')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
 
@@ -700,9 +701,9 @@ const ReportsPage = () => {
 
   return (
     <div className="app-shell" style={{ background: D.bg }}>
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: D.bg }}>
-        <Topbar title="Reports" subtitle="Dashboard / Reports" />
+        <Topbar title="Reports" subtitle="Dashboard / Reports" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body">
 
           {/* Hero Banner */}

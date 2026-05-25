@@ -803,6 +803,7 @@ const ServicePage = () => {
     filename: null,
     loading: false
   })
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const handleViewAttachment = async (record) => {
     if (!record || !record.id) return
@@ -844,13 +845,13 @@ const ServicePage = () => {
   }
 
   useEffect(() => {
-    if (isAddModalOpen || isEditModalOpen || deleteModal.isOpen || detailModal.isOpen || attachmentViewer.isOpen) {
+    if (isAddModalOpen || isEditModalOpen || isScheduleModalOpen || deleteModal.isOpen || detailModal.isOpen || deletedDrawer || attachmentViewer.isOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
     }
     return () => { document.body.style.overflow = '' }
-  }, [isAddModalOpen, isEditModalOpen, deleteModal.isOpen, detailModal.isOpen, attachmentViewer.isOpen])
+  }, [isAddModalOpen, isEditModalOpen, isScheduleModalOpen, deleteModal.isOpen, detailModal.isOpen, deletedDrawer, attachmentViewer.isOpen])
 
   // Fetch audit history whenever detail modal opens for a record
   useEffect(() => {
@@ -1474,11 +1475,12 @@ const ServicePage = () => {
 
   return (
     <div className="app-shell">
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: D.bg, minHeight: '100vh' }}>
         <Topbar
           title={isDriver ? 'Service History' : 'Service'}
           subtitle={`Home / ${isDriver ? 'Service History' : 'Service'}`}
+          onMenuToggle={() => setSidebarOpen(o => !o)}
         />
 
         <div className="page-body" style={{ padding: '28px 32px' }}>

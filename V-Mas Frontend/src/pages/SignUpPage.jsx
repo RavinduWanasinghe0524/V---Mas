@@ -2,14 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  Eye, EyeOff, Mail, Lock, User, Users, Settings,
-  Car, AlertCircle, CheckCircle, ChevronDown, Clock, ArrowLeft,
-  Shield, BarChart3, MapPin, Moon, Sun
+  Eye, EyeOff, AlertCircle, CheckCircle, ChevronDown,
+  Clock, ArrowLeft, UserPlus, Car, Settings, Users
 } from 'lucide-react';
-import bgImageDark from '../assets/login-bg.jpg';
-import bgImageLight from '../assets/Login bg image (White).png';
 import logo from '../assets/logo.png';
-import { useTheme } from '../context/ThemeContext';
+import fleetHero from '../assets/fleet-hero.png';
 import './SignUpPage.css';
 
 const SignUpPage = () => {
@@ -29,9 +26,7 @@ const SignUpPage = () => {
   const [registered, setRegistered]     = useState(false);
 
   const { register, isAuthenticated } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
-  const isDark = theme === 'blue';
 
   useEffect(() => {
     if (isAuthenticated) navigate('/dashboard');
@@ -54,14 +49,8 @@ const SignUpPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
+    if (formData.password !== formData.confirmPassword) { setError('Passwords do not match'); return; }
+    if (formData.password.length < 6)                   { setError('Password must be at least 6 characters'); return; }
     setLoading(true);
     const { confirmPassword, ...submitData } = formData;
     if (!submitData.profilePicture) {
@@ -69,11 +58,7 @@ const SignUpPage = () => {
     }
     const result = await register(submitData);
     if (result.success) {
-      if (result.pending) {
-        setRegistered(true);
-      } else {
-        navigate('/dashboard');
-      }
+      result.pending ? setRegistered(true) : navigate('/dashboard');
     } else {
       setError(result.error || 'Registration failed. Please try again.');
     }
@@ -82,258 +67,178 @@ const SignUpPage = () => {
 
   const strengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
   const strengthColor = ['', '#ef4444', '#f97316', '#eab308', '#22c55e', '#10b981'];
-  const roleIcons = {
-    DRIVER:     <Car size={14} />,
-    CONTROLLER: <Settings size={14} />,
-    ADMIN:      <Users size={14} />,
-  };
+  const roleIcons = { DRIVER: <Car size={14} />, CONTROLLER: <Settings size={14} />, ADMIN: <Users size={14} /> };
 
-  // ── PENDING APPROVAL SCREEN ──────────────────────────────────────────────
+  /* ── PENDING APPROVAL SCREEN ── */
   if (registered) {
     return (
-      <div className="split-signup-container">
-        <img src={isDark ? bgImageDark : bgImageLight} alt="background" className="split-signup-bg-image" />
-        <button onClick={toggleTheme} className="auth-theme-toggle" title={isDark ? 'Switch to Day Theme' : 'Switch to Night Theme'}>
-          {isDark ? <Sun size={16} /> : <Moon size={16} />}
-          {isDark ? 'Day Theme' : 'Night Theme'}
-        </button>
-
-        <div className="split-pending-card">
-          <div className="split-pending-icon-ring">
-            <div className="split-pending-icon-pulse" />
-            <div className="split-pending-icon-inner">
-              <Clock size={32} color="white" />
-            </div>
+      <div className="su-pending-overlay">
+        <div className="su-pending-card">
+          <div className="su-pending-ring">
+            <div className="su-pending-pulse" />
+            <div className="su-pending-inner"><Clock size={30} color="#fff" /></div>
           </div>
-
-          <h2 className="split-pending-title">Account Created!</h2>
-          <p className="split-pending-sub">
-            Your account is <span className="split-pending-highlight">pending admin approval</span>.
-          </p>
-          <p className="split-pending-desc">
-            An administrator will review your request and activate your account shortly.
-            You will be able to sign in once your account has been approved.
-          </p>
-
-          <div className="split-pending-steps">
-            <div className="split-pending-step done">
-              <CheckCircle size={16} className="split-pending-step-icon" />
-              <span>Account registered</span>
-            </div>
-            <div className="split-pending-step-line" />
-            <div className="split-pending-step waiting">
-              <Clock size={16} className="split-pending-step-icon" />
-              <span>Awaiting admin approval</span>
-            </div>
-            <div className="split-pending-step-line" />
-            <div className="split-pending-step inactive">
-              <CheckCircle size={16} className="split-pending-step-icon" />
-              <span>Access granted</span>
-            </div>
+          <h2 className="su-pending-title">Account Created!</h2>
+          <p className="su-pending-sub">Your account is <span className="su-pending-hl">pending admin approval</span>.</p>
+          <p className="su-pending-desc">An administrator will review your request and activate your account shortly. You will be able to sign in once approved.</p>
+          <div className="su-pending-steps">
+            <div className="su-pstep done"><CheckCircle size={15} /><span>Account registered</span></div>
+            <div className="su-pstep-line" />
+            <div className="su-pstep waiting"><Clock size={15} /><span>Awaiting admin approval</span></div>
+            <div className="su-pstep-line" />
+            <div className="su-pstep inactive"><CheckCircle size={15} /><span>Access granted</span></div>
           </div>
-
-          <Link to="/login" className="split-pending-btn">
-            <ArrowLeft size={16} />
-            Back to Sign In
-          </Link>
-
-          <p className="split-pending-footer">
-            © 2026 V-MAS. All rights reserved.
-          </p>
+          <Link to="/login" className="su-pending-btn"><ArrowLeft size={15} /> Back to Sign In</Link>
+          <p className="su-pending-copy">© 2026 V-MAS. All rights reserved.</p>
         </div>
       </div>
     );
   }
 
-  // ── SIGN UP FORM ─────────────────────────────────────────────────────────
+  /* ── SIGN UP FORM ── */
   return (
-    <div className="split-signup-container">
-      <img src={isDark ? bgImageDark : bgImageLight} alt="Background image" className="split-signup-bg-image" />
-      <button onClick={toggleTheme} className="auth-theme-toggle" title={isDark ? 'Switch to Day Theme' : 'Switch to Night Theme'}>
-        {isDark ? <Sun size={16} /> : <Moon size={16} />}
-        {isDark ? 'Day Theme' : 'Night Theme'}
-      </button>
+    <div className="su-container">
 
-      <div className="split-signup-main-card">
+      {/* LEFT */}
+      <div className="su-left">
+        <p className="su-left-tagline">Vehicle fleet management — simplified.</p>
+        <div className="su-left-hero">
+          <h1 className="su-left-headline">Start your<br />fleet journey</h1>
+          <p className="su-left-sub">Join the platform trusted by fleet operators for smarter, safer, and more efficient vehicle management.</p>
+        </div>
+        <div className="su-left-img-wrap">
+          <img src={fleetHero} alt="V-MAS Dashboard" className="su-left-img" />
+        </div>
+        <p className="su-left-copy">© 2026 V-MAS. All rights reserved.</p>
+      </div>
 
-        {/* Left Panel */}
-        <div className="split-signup-left">
-          <div className="split-signup-circle-1" />
-          <div className="split-signup-circle-2" />
-
-          <div className="split-signup-left-content">
-            <div className="split-signup-logo-container">
-              <div className="split-signup-logo-box" style={{ background: 'transparent', padding: 0, overflow: 'hidden' }}>
-                <img
-                  src={logo}
-                  alt="V-MAS"
-                  style={{
-                    width: '100%', height: '100%',
-                    objectFit: 'cover', display: 'block',
-                    filter: 'drop-shadow(0 0 10px rgba(99,102,241,0.7))',
-                  }}
-                />
-              </div>
-              <span className="split-signup-logo-text">V-MAS</span>
-            </div>
-
-            <h2 className="split-signup-heading">
-              Start Your<br />Fleet Journey
-            </h2>
-            <p className="split-signup-subheading">
-              Join thousands of fleet operators who trust V-MAS for smarter, safer, and more efficient vehicle management.
-            </p>
-
-            <div className="split-signup-features">
-              <div className="split-signup-feature-item">
-                <div className="split-signup-feature-icon"><Shield size={16} /></div>
-                <span className="split-signup-feature-text">Enterprise-grade Security</span>
-              </div>
-              <div className="split-signup-feature-item">
-                <div className="split-signup-feature-icon"><BarChart3 size={16} /></div>
-                <span className="split-signup-feature-text">Real-time Analytics</span>
-              </div>
-              <div className="split-signup-feature-item">
-                <div className="split-signup-feature-icon"><MapPin size={16} /></div>
-                <span className="split-signup-feature-text">Live GPS Tracking</span>
-              </div>
-            </div>
+      {/* RIGHT */}
+      <div className="su-right">
+        {/* Logo row */}
+        <div className="su-logo-row">
+          <div className="su-logo-box">
+            <img src={logo} alt="V-MAS" className="su-logo-img" />
           </div>
-
-          <p className="split-signup-copyright">© 2026 V-MAS. All rights reserved.</p>
+          <span className="su-logo-name">V-MAS</span>
+          <Link to="/login" className="su-signin-link">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            Sign In
+          </Link>
         </div>
 
-        {/* Right Panel */}
-        <div className="split-signup-right">
-          <div className="split-signup-mobile-logo">
-            <div className="split-signup-mobile-logo-box" style={{ background: 'transparent', padding: 0, overflow: 'hidden' }}>
-              <img
-                src={logo}
-                alt="V-MAS"
-                style={{
-                  width: '100%', height: '100%',
-                  objectFit: 'cover', display: 'block',
-                  filter: 'drop-shadow(0 0 8px rgba(99,102,241,0.6))',
-                }}
-              />
-            </div>
-            <span className="split-signup-title" style={{ marginBottom: 0 }}>V-MAS</span>
-          </div>
-
-          <h3 className="split-signup-title">Create Account</h3>
-          <p className="split-signup-subtitle">Fill in your details to get started</p>
+        {/* Form */}
+        <div className="su-form-wrap">
+          <h2 className="su-heading">Create Account</h2>
+          <p className="su-sub">Fill in your details to get started</p>
 
           {error && (
-            <div className="split-signup-error">
-              <AlertCircle size={16} />{error}
-            </div>
+            <div className="su-error"><AlertCircle size={15} />{error}</div>
           )}
 
-          <form className="split-signup-form" onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="su-form" noValidate>
 
             {/* Username */}
-            <div className="split-signup-input-wrapper">
-              <label className="split-signup-label">Username</label>
-              <div className="split-signup-input-group">
-                <User className="split-signup-input-icon" size={16} />
-                <input type="text" name="userName" value={formData.userName}
-                  onChange={handleChange} placeholder="Choose a username"
-                  className="split-signup-input" required />
-              </div>
+            <div className="su-field">
+              <input
+                type="text" name="userName" value={formData.userName}
+                onChange={handleChange} placeholder="Username"
+                className="su-input" required id="reg-username"
+                autoComplete="username"
+              />
             </div>
 
             {/* Email */}
-            <div className="split-signup-input-wrapper">
-              <label className="split-signup-label">Email Address</label>
-              <div className="split-signup-input-group">
-                <Mail className="split-signup-input-icon" size={16} />
-                <input type="email" name="email" value={formData.email}
-                  onChange={handleChange} placeholder="your@email.com"
-                  className="split-signup-input" required />
-              </div>
+            <div className="su-field">
+              <input
+                type="email" name="email" value={formData.email}
+                onChange={handleChange} placeholder="Email address"
+                className="su-input" required id="reg-email"
+                autoComplete="email"
+              />
             </div>
 
             {/* Password row */}
-            <div className="split-signup-row">
-              <div className="split-signup-input-wrapper">
-                <label className="split-signup-label">Password</label>
-                <div className="split-signup-input-group">
-                  <Lock className="split-signup-input-icon" size={16} />
-                  <input type={showPassword ? 'text' : 'password'} name="password"
+            <div className="su-row">
+              <div className="su-field">
+                <div className="su-pw-wrap">
+                  <input
+                    type={showPassword ? 'text' : 'password'} name="password"
                     value={formData.password} onChange={handleChange}
-                    placeholder="Min. 6 characters" className="split-signup-input" required />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="split-signup-input-btn">
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    placeholder="Password" className="su-input" required
+                    id="reg-password" autoComplete="new-password"
+                  />
+                  <button type="button" className="su-pw-toggle" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}>
+                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
                 {formData.password && (
-                  <div className="split-signup-strength">
-                    <div className="split-signup-strength-bars">
+                  <div className="su-strength">
+                    <div className="su-strength-bars">
                       {[1,2,3,4,5].map(n => (
-                        <div key={n} className="split-signup-strength-bar"
-                          style={{ background: n <= passwordStrength ? strengthColor[passwordStrength] : 'rgba(255,255,255,0.1)' }} />
+                        <div key={n} className="su-strength-bar"
+                          style={{ background: n <= passwordStrength ? strengthColor[passwordStrength] : '#ebebeb' }} />
                       ))}
                     </div>
-                    <span className="split-signup-strength-label" style={{ color: strengthColor[passwordStrength] }}>
+                    <span style={{ color: strengthColor[passwordStrength], fontSize: '0.72rem', fontWeight: 600 }}>
                       {strengthLabel[passwordStrength]}
                     </span>
                   </div>
                 )}
               </div>
 
-              <div className="split-signup-input-wrapper">
-                <label className="split-signup-label">Confirm Password</label>
-                <div className="split-signup-input-group">
-                  <Lock className="split-signup-input-icon" size={16} />
-                  <input type={showConfirm ? 'text' : 'password'} name="confirmPassword"
+              <div className="su-field">
+                <div className="su-pw-wrap">
+                  <input
+                    type={showConfirm ? 'text' : 'password'} name="confirmPassword"
                     value={formData.confirmPassword} onChange={handleChange}
-                    placeholder="Repeat password" className="split-signup-input" required />
-                  <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="split-signup-input-btn">
-                    {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                    placeholder="Confirm password" className="su-input" required
+                    id="reg-confirm-password" autoComplete="new-password"
+                  />
+                  <button type="button" className="su-pw-toggle" onClick={() => setShowConfirm(!showConfirm)} tabIndex={-1}>
+                    {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
                 {formData.confirmPassword && (
-                  <div className="split-signup-match-hint">
-                    {formData.password === formData.confirmPassword ? (
-                      <><CheckCircle size={12} color="#22c55e" /><span style={{ color:'#22c55e' }}>Passwords match</span></>
-                    ) : (
-                      <><AlertCircle size={12} color="#ef4444" /><span style={{ color:'#ef4444' }}>Passwords do not match</span></>
-                    )}
+                  <div className="su-match-hint">
+                    {formData.password === formData.confirmPassword
+                      ? <><CheckCircle size={11} color="#22c55e" /><span style={{color:'#22c55e'}}>Passwords match</span></>
+                      : <><AlertCircle size={11} color="#ef4444" /><span style={{color:'#ef4444'}}>Passwords do not match</span></>}
                   </div>
                 )}
               </div>
             </div>
 
             {/* Role */}
-            <div className="split-signup-input-wrapper">
-              <label className="split-signup-label">Role</label>
-              <div className="split-signup-input-group split-signup-select-group">
-                <span className="split-signup-input-icon">{roleIcons[formData.role]}</span>
-                <select name="role" value={formData.role} onChange={handleChange}
-                  className="split-signup-input split-signup-select">
+            <div className="su-field">
+              <div className="su-select-wrap">
+                <span className="su-select-icon">{roleIcons[formData.role]}</span>
+                <select name="role" value={formData.role} onChange={handleChange} className="su-select" id="reg-role">
                   <option value="DRIVER">Driver</option>
                   <option value="CONTROLLER">Controller</option>
                   <option value="ADMIN">Admin</option>
                 </select>
-                <ChevronDown className="split-signup-select-caret" size={16} />
+                <ChevronDown size={15} className="su-select-caret" />
               </div>
             </div>
 
             {/* Info banner */}
-            <div className="split-signup-info-banner">
-              <Clock size={14} />
+            <div className="su-info-banner">
+              <Clock size={13} />
               <span>New accounts require <strong>admin approval</strong> before you can sign in.</span>
             </div>
 
             {/* Submit */}
-            <button type="submit" className="split-signup-submit" disabled={loading}>
-              {loading ? <span>Creating account...</span> : <span>Create Account</span>}
+            <button type="submit" className="su-submit-btn" disabled={loading} id="reg-submit">
+              <UserPlus size={16} />
+              {loading ? 'Creating account…' : 'Create Account'}
             </button>
           </form>
+        </div>
 
-          <p className="split-signup-footer">
-            Already have an account?{' '}<Link to="/login">Sign in</Link>
-          </p>
+        {/* Footer */}
+        <div className="su-footer">
+          <span>© 2026 V-MAS</span>
+          <Link to="/login">Already have an account? Sign in</Link>
         </div>
       </div>
     </div>
