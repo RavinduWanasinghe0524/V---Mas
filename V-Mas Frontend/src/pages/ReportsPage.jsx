@@ -602,8 +602,28 @@ const ReportsPage = () => {
 
 
   const handleRedownloadRecent = (name, format) => {
-    setSuccessMsg(`Starting re-download of "${name}" in ${format} format...`)
-    setTimeout(() => setSuccessMsg(''), 4000)
+    const matchedType = reportTypes.find(t => name.toLowerCase().startsWith(t.id.toLowerCase()))
+    const targetId = matchedType ? matchedType.id : null
+
+    if (!targetId) {
+      let fallbackId = 'vehicle-summary'
+      if (name.toLowerCase().includes('fuel')) fallbackId = 'fuel-report'
+      else if (name.toLowerCase().includes('user')) fallbackId = 'user-report'
+      else if (name.toLowerCase().includes('service')) fallbackId = 'service-report'
+      
+      if (format === 'PDF') {
+        handleGenerate(fallbackId)
+      } else {
+        handleGenerateExcel(fallbackId)
+      }
+      return
+    }
+
+    if (format === 'PDF') {
+      handleGenerate(targetId)
+    } else {
+      handleGenerateExcel(targetId)
+    }
   }
 
   return (
