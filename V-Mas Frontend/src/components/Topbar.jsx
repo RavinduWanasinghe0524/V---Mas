@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
-import { Search, Bell, Moon, Sun, User, Check, Info, Fuel, Wrench, Trash2, AlertTriangle } from 'lucide-react'
+import { Bell, Moon, Sun, User, Check, Info, Fuel, Wrench, Trash2, AlertTriangle } from 'lucide-react'
 import { notificationAPI } from '../services/api'
 import * as notifService from '../services/notificationService'
 
@@ -49,7 +49,7 @@ const drvNotifIconEl = (type) => {
   return <Info size={14} />
 }
 
-const Topbar = () => {
+const Topbar = ({ onMenuToggle }) => {
   const { user } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const isDark = theme === 'blue'
@@ -145,22 +145,26 @@ const Topbar = () => {
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: '16px 32px', background: 'var(--topbar-bg)',
       borderBottom: '1px solid var(--topbar-border)', height: 80, boxSizing: 'border-box', width: '100%',
+      gap: 12,
     }}>
-      {/* Left: Search */}
-      <div style={{ flex: 1, maxWidth: 500 }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(59,130,246,0.04)',
-          border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(59,130,246,0.12)'}`,
-          borderRadius: 14, padding: '10px 18px',
-        }}>
-          <Search size={18} color={isDark ? '#64748b' : '#94a3b8'} />
-          <input type="text" placeholder="Search..." style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', width: '100%', fontSize: '0.95rem', outline: 'none' }} />
-        </div>
-      </div>
+      {/* Hamburger menu button (mobile only) */}
+      {onMenuToggle && (
+        <button
+          className="topbar-hamburger"
+          onClick={onMenuToggle}
+          aria-label="Open navigation menu"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+      )}
+
 
       {/* Right Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 28, marginLeft: 'auto' }}>
         {/* Theme Toggle */}
         <button onClick={toggleTheme} style={{
           display: 'flex', alignItems: 'center', background: isDark ? '#3b82f6' : '#e0e7ff',
@@ -270,21 +274,21 @@ const Topbar = () => {
         )}
 
         {/* User Profile */}
-        <Link to="/profile" style={{ textDecoration: 'none' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <a href="/profile" style={{ textDecoration: 'none' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {user?.profilePicture ? (
-              <img src={user?.profilePicture} alt={user?.userName} style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }} />
+              <img src={user?.profilePicture} alt={user?.userName} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
             ) : (
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <User size={22} color="#ffffff" strokeWidth={2} />
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <User size={20} color="#ffffff" strokeWidth={2} />
               </div>
             )}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{user?.userName || 'User'}</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{roleText[user?.role] || 'Member'}</span>
+              <span className="topbar-username-text" style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{user?.userName || 'User'}</span>
+              <span className="topbar-role-text" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{roleText[user?.role] || 'Member'}</span>
             </div>
           </div>
-        </Link>
+        </a>
       </div>
     </header>
   )

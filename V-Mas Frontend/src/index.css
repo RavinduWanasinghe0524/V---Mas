@@ -1404,24 +1404,406 @@ select.form-control option { background: #fff; }
 .btn-lg   { padding: 12px 24px; font-size: 0.95rem; }
 
 /* ═══════════════════════════════════════════════════════════════════
-   RESPONSIVE
+   MOBILE SIDEBAR DRAWER SYSTEM
+═══════════════════════════════════════════════════════════════════ */
+
+/* Sidebar overlay backdrop (mobile only) */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+  z-index: 99;
+  animation: fadeIn 0.2s ease;
+}
+
+/* Hamburger button in topbar (hidden on desktop) */
+.topbar-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-gray-50);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--t-fast);
+}
+.topbar-hamburger:hover {
+  background: var(--primary-muted);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* Sidebar close button (mobile only) */
+.sidebar-close-btn {
+  display: none;
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-gray-100);
+  color: var(--text-muted);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all var(--t-fast);
+}
+.sidebar-close-btn:hover {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   RESPONSIVE — TABLET (≤1024px)
 ═══════════════════════════════════════════════════════════════════ */
 @media (max-width: 1024px) {
   .auth-left { display: none; }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   RESPONSIVE — MOBILE (≤768px)
+═══════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); }
-  .main-content { margin-left: 0; }
-  .page-body { padding: 16px; }
-  .form-grid { grid-template-columns: 1fr; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .features-grid { grid-template-columns: 1fr; }
-  .welcome-banner { flex-direction: column; }
-  .auth-right { padding: 36px 24px; }
+
+  /* ── Layout ─────────────────────────────────────────────────── */
+  .main-content {
+    margin-left: 0 !important;
+  }
+  .page-body {
+    padding: 16px;
+  }
+
+  /* ── Sidebar drawer ─────────────────────────────────────────── */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 200;
+    position: fixed;
+  }
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+    box-shadow: 4px 0 32px rgba(0, 0, 0, 0.35);
+  }
+  .sidebar-overlay {
+    display: block;
+  }
+  .sidebar-close-btn {
+    display: flex;
+  }
+  .sidebar-header {
+    padding-right: 52px; /* make room for close button */
+  }
+
+  /* ── Topbar ─────────────────────────────────────────────────── */
+  .topbar-hamburger {
+    display: flex;
+  }
+  .topbar {
+    padding: 0 16px;
+    gap: 10px;
+  }
+  /* Hide search bar on mobile to save space */
+  .topbar-search {
+    display: none !important;
+  }
+  /* Collapse user name/role text */
+  .topbar-username-text,
+  .topbar-role-text {
+    display: none;
+  }
+
+  /* ── Page header ────────────────────────────────────────────── */
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .page-header .btn,
+  .page-header button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* ── Grids ──────────────────────────────────────────────────── */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* ── Welcome banner ─────────────────────────────────────────── */
+  .welcome-banner {
+    flex-direction: column;
+    padding: 20px;
+    gap: 12px;
+  }
+  .welcome-text h1 {
+    font-size: 1.1rem;
+  }
+  .welcome-icon {
+    font-size: 1.8rem;
+  }
+
+  /* ── Tables — horizontal scroll ─────────────────────────────── */
+  .table-wrapper,
+  .users-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .v-table,
+  .users-table table {
+    min-width: 600px;
+  }
+
+  /* ── Modals — near full-screen on mobile ────────────────────── */
+  .modal-overlay {
+    padding: 12px;
+    align-items: flex-end;
+  }
+  .modal {
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  /* ── Auth pages ─────────────────────────────────────────────── */
+  .auth-right {
+    padding: 32px 20px 40px;
+  }
+  .auth-left {
+    display: none !important;
+  }
+
+  /* ── Dashboard hero banner ──────────────────────────────────── */
+  .dashboard-hero {
+    padding: 20px !important;
+    border-radius: 16px !important;
+  }
+  .dashboard-hero h1 {
+    font-size: 1.3rem !important;
+  }
+  .dashboard-hero-icon {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  /* ── Notification dropdown ──────────────────────────────────── */
+  .notif-dropdown {
+    right: -80px !important;
+    width: calc(100vw - 32px) !important;
+    max-width: 360px;
+  }
+
+  /* ── Stat card font sizes ───────────────────────────────────── */
+  .stat-card-value,
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  /* ── Section headers ────────────────────────────────────────── */
+  .section-header {
+    margin-bottom: 12px;
+  }
+
+  /* ── Button groups stack on mobile ─────────────────────────── */
+  .btn-group-mobile {
+    flex-direction: column;
+    width: 100%;
+  }
+  .btn-group-mobile .btn {
+    width: 100%;
+  }
+
+  /* ── Overflow containment ───────────────────────────────────── */
+  .app-shell {
+    overflow-x: hidden;
+  }
+  .main-content {
+    overflow-x: hidden;
+    width: 100%;
+  }
+  .page-body {
+    overflow-x: hidden;
+  }
+
+  /* ── Hero banners — compact + stack on mobile ───────────────── */
+  .page-body [style*="linear-gradient"] {
+    padding: 20px 18px !important;
+    border-radius: 16px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 14px !important;
+  }
+  .page-body [style*="linear-gradient"] h1 {
+    font-size: 1.25rem !important;
+    line-height: 1.3 !important;
+  }
+  .page-body [style*="linear-gradient"] p {
+    font-size: 0.82rem !important;
+  }
+  /* Hero banner icons — smaller */
+  .page-body [style*="linear-gradient"] [style*="width: 64px"] {
+    width: 48px !important;
+    height: 48px !important;
+  }
+  /* Action button groups inside hero — wrap */
+  .page-body [style*="linear-gradient"] > [style*="display: flex"] {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  /* ── Inline 2-column grids — stack on mobile ────────────────── */
+  .page-body [style*="1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Stat card rows — 2 per row on mobile ───────────────────── */
+  .page-body [style*="flex-wrap"] > [style*="flex: 1"] {
+    flex: 1 1 calc(50% - 10px) !important;
+    min-width: calc(50% - 10px) !important;
+  }
+
+  /* ── Topbar — compact on mobile ─────────────────────────────── */
+  header[style*="padding: 16px 32px"] {
+    padding: 12px 16px !important;
+    height: auto !important;
+    min-height: 56px !important;
+  }
+
+  /* ── Profile page / form cards — reduce padding ─────────────── */
+  .page-body [style*="padding: 36px 40px"],
+  .page-body [style*="padding: 32px 36px"] {
+    padding: 20px 16px !important;
+  }
+  .page-body [style*="padding: 28px 32px"] {
+    padding: 16px !important;
+  }
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   RESPONSIVE — SMALL PHONES (≤480px)
+═══════════════════════════════════════════════════════════════════ */
 @media (max-width: 480px) {
-  .stats-grid { grid-template-columns: 1fr; }
-  .topbar { padding: 0 16px; }
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .page-body {
+    padding: 12px;
+  }
+
+  .page-title {
+    font-size: 1.2rem;
+  }
+
+  /* Hero banners on detail pages */
+  .page-hero {
+    padding: 18px !important;
+    border-radius: 14px !important;
+  }
+  .page-hero h1 {
+    font-size: 1.2rem !important;
+  }
+
+  /* Cards take full width */
+  .feature-card,
+  .stat-card {
+    padding: 16px;
+  }
+
+  /* Modal full screen on tiny phones */
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .modal {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-height: 95vh;
+  }
+
+  /* Login/signup full width inputs */
+  .split-login-right,
+  .split-login-container {
+    padding: 20px 16px !important;
+  }
+
+  /* Sidebar width shrinks on tiny phones */
+  .sidebar {
+    width: 85vw;
+    max-width: 280px;
+  }
+
+  /* Topbar slimmer */
+  .topbar {
+    height: 60px;
+    padding: 0 12px;
+  }
+
+  /* Stat cards — single column on tiny phones */
+  .page-body [style*="flex-wrap"] > [style*="flex: 1"] {
+    flex: 1 1 100% !important;
+    min-width: 100% !important;
+  }
+
+  /* Hero banners — even more compact */
+  .page-body [style*="linear-gradient"] {
+    padding: 16px 14px !important;
+    border-radius: 14px !important;
+  }
+  .page-body [style*="linear-gradient"] h1 {
+    font-size: 1.1rem !important;
+  }
+
+  /* Topbar compact via inline style override */
+  header[style*="padding: 16px 32px"],
+  header[style*="padding: 12px 16px"] {
+    padding: 10px 12px !important;
+    gap: 8px !important;
+  }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   TOUCH IMPROVEMENTS
+═══════════════════════════════════════════════════════════════════ */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger tap targets */
+  .nav-item {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .btn {
+    min-height: 44px;
+  }
+  .btn-sm {
+    min-height: 36px;
+    padding: 8px 14px;
+  }
+  /* Remove hover transforms that don't make sense on touch */
+  .stat-card:hover,
+  .feature-card:hover {
+    transform: none;
+  }
+}
+

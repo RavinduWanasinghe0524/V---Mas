@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
 import { vehicleAPI, userAPI, serviceAPI, fuelAPI } from '../services/api'
 import { getAlertLevel, computeMileageProgress, computeDateAlert, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
-import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info } from 'lucide-react'
+import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus } from 'lucide-react'
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(99,102,241,0.5)'
@@ -19,20 +20,17 @@ const onBlur = e => {
 
 const StatBadge = ({ label, value, icon, colorDim, colorHex, D }) => (
   <div style={{
-    background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`,
-    padding: '20px 22px', transition: 'all 0.25s ease', boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-    flex: 1, minWidth: 200, cursor: 'default'
+    background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 4px 24px rgba(0,0,0,0.25)', overflow: 'hidden', padding: '28px', display: 'flex', alignItems: 'center', gap: 24,
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', cursor: 'default'
   }}
-    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = D.borderHi; e.currentTarget.style.boxShadow = `0 8px 24px ${colorDim}` }}
-    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.2)' }}>
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-      <div>
-        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>{label}</p>
-        <p style={{ fontSize: '1.55rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif", lineHeight: 1 }}>{value}</p>
-      </div>
-      <div style={{ width: 44, height: 44, borderRadius: 12, background: colorDim, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', boxShadow: `0 4px 12px ${colorDim}`, flexShrink: 0, border: `1px solid ${colorHex}30` }}>
-        {icon}
-      </div>
+    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.borderColor = colorHex + '50'; e.currentTarget.style.boxShadow = `0 16px 32px ${colorHex}20` }}
+    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)' }}>
+    <div style={{ width: 60, height: 60, borderRadius: 18, background: colorDim, color: colorHex, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${colorHex}30`, flexShrink: 0 }}>
+      {icon}
+    </div>
+    <div>
+      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: '1.6rem', fontWeight: 900, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.1 }}>{value}</div>
     </div>
   </div>
 )
@@ -66,6 +64,11 @@ const VehiclesPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [editingVehicle, setEditingVehicle] = useState(null)
   const [deletingVehicle, setDeletingVehicle] = useState(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const location = useLocation()
+  const navigate = useNavigate()
+
+
 
   const [addError, setAddError] = useState('')
   const [editError, setEditError] = useState('')
@@ -101,9 +104,21 @@ const VehiclesPage = () => {
     setProfileFuelLogs([])
   }
 
+  useEffect(() => {
+    if (!loading && vehicles.length > 0 && location.state?.openVehicleProfile) {
+      const v = vehicles.find(veh => veh.registrationNo === location.state.openVehicleProfile)
+      if (v) {
+        openProfile(v)
+        navigate(location.pathname, { replace: true, state: {} })
+      }
+    }
+  }, [loading, vehicles, location.state, navigate, location.pathname])
+
+
   const [formData, setFormData] = useState({
     model: '',
     registrationNo: '',
+    chassisNumber: '',
     manufacturer: '',
     year: '',
     fuelType: '',
@@ -115,6 +130,7 @@ const VehiclesPage = () => {
   const [editFormData, setEditFormData] = useState({
     model: '',
     registrationNo: '',
+    chassisNumber: '',
     manufacturer: '',
     year: '',
     fuelType: '',
@@ -213,6 +229,7 @@ const VehiclesPage = () => {
     setEditFormData({
       model: vehicle.model || '',
       registrationNo: vehicle.registrationNo || '',
+      chassisNumber: vehicle.chassisNumber || '',
       manufacturer: vehicle.manufacturer || '',
       year: vehicle.year || '',
       fuelType: vehicle.fuelType?.toUpperCase() || '',
@@ -231,6 +248,7 @@ const VehiclesPage = () => {
     setEditFormData({
       model: '',
       registrationNo: '',
+      chassisNumber: '',
       manufacturer: '',
       year: '',
       fuelType: '',
@@ -259,6 +277,7 @@ const VehiclesPage = () => {
       await vehicleAPI.updateVehicle(editingVehicle.id, {
         model: editFormData.model,
         registrationNo: editFormData.registrationNo,
+        chassisNumber: editFormData.chassisNumber,
         manufacturer: editFormData.manufacturer,
         year: editFormData.year,
         fuelType: editFormData.fuelType.toUpperCase(),
@@ -345,39 +364,45 @@ const VehiclesPage = () => {
   return (
     <>
       <div className="app-shell" style={{ background: D.bg }}>
-        <Sidebar />
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="main-content" style={{ background: D.bg }}>
-          <Topbar title="Vehicles" subtitle="Home / Vehicles" />
+          <Topbar title="Vehicles" subtitle="Home / Vehicles" onMenuToggle={() => setSidebarOpen(o => !o)} />
           <div className="page-body">
 
             {/* Hero Banner */}
             <div style={{
               background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
-              borderRadius: 20,
-              padding: '32px 36px',
-              marginBottom: 28,
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-              border: `1px solid ${D.border}`
+              borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
+              boxShadow: '0 16px 48px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`
             }}>
-              {/* decorative circles */}
-              {[['80%', '−20px', '180px', 'rgba(255,255,255,0.03)'], ['20%', '60%', '120px', 'rgba(255,255,255,0.04)'], ['55%', '80%', '90px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
-                <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
-              ))}
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  <Car size={32} strokeWidth={1.5} />
-                </div>
+              <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 30 }}>
                 <div>
-                  <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                    Vehicle Fleet
-                  </h1>
-                  <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
-                    Manage and monitor all fleet vehicles in the system.
-                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 16 }}>
+                    <div style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(12px)', borderRadius: 20, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
+                      <Car size={32} strokeWidth={1.5} />
+                    </div>
+                    <div>
+                      <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Vehicle Fleet</h1>
+                      <p style={{ margin: '6px 0 0', color: '#a5b4fc', fontSize: '1rem', fontWeight: 500, opacity: 0.9 }}>Manage and monitor all fleet vehicles in the system.</p>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 16, flexShrink: 0 }}>
+                  {!isDriver && (
+                    <button onClick={openModal} style={{ 
+                      padding: '14px 28px', borderRadius: 16, border: 'none', 
+                      background: '#fff', color: '#312e81', cursor: 'pointer', 
+                      fontWeight: 800, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 10,
+                      boxShadow: '0 8px 30px rgba(0,0,0,0.25)', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+                    }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}>
+                      <Plus size={20} strokeWidth={3} /> Add Vehicle
+                    </button>
+                  )}
                 </div>
               </div>
+              {/* decoration */}
+              <div style={{ position: 'absolute', top: '-40%', right: '-10%', width: 400, height: 400, background: 'radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', bottom: '-20%', left: '10%', width: 250, height: 250, background: 'radial-gradient(circle, rgba(165,180,252,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
             </div>
 
             {/* Service Due Alert Strip */}
@@ -453,185 +478,152 @@ const VehiclesPage = () => {
             )}
 
             {/* Stats row */}
-            <div style={{ display: 'flex', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
-              <StatBadge label="Total Vehicles" value={vehicles.length} icon={<Car size={20} />} colorDim={D.purpleDim} colorHex={D.purple} D={D} />
-              <StatBadge label="Active" value={counts.ACTIVE} icon={<CheckCircle size={20} />} colorDim={D.greenDim} colorHex={D.green} D={D} />
-              <StatBadge label="In Service" value={counts.SERVICE} icon={<Wrench size={20} />} colorDim={D.orangeDim} colorHex={D.orange} D={D} />
-              <StatBadge label="Available" value={counts.AVAILABLE} icon={<Circle size={20} />} colorDim={D.blueDim} colorHex={D.blue} D={D} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
+              <StatBadge label="Total Vehicles" value={vehicles.length} icon={<Car size={24} />} colorDim={D.purpleDim} colorHex={D.purple} D={D} />
+              <StatBadge label="Active" value={counts.ACTIVE} icon={<CheckCircle size={24} />} colorDim={D.greenDim} colorHex={D.green} D={D} />
+              <StatBadge label="In Service" value={counts.SERVICE} icon={<Wrench size={24} />} colorDim={D.orangeDim} colorHex={D.orange} D={D} />
+              <StatBadge label="Available" value={counts.AVAILABLE} icon={<Circle size={24} />} colorDim={D.blueDim} colorHex={D.blue} D={D} />
             </div>
 
-            {/* Toolbar */}
-            <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center', background: D.surface, padding: '14px 18px', borderRadius: 14, border: `1px solid ${D.border}` }}>
-              <div style={{ flex: 1, position: 'relative', minWidth: 200 }}>
-                <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: D.textSub, pointerEvents: 'none', display: 'flex', alignItems: 'center' }}><Search size={16} /></span>
-                <input
-                  type="text"
-                  placeholder="Search by reg, make or model…"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  style={{ ...inputStyle, paddingLeft: 36 }}
-                  onFocus={onFocus} onBlur={onBlur}
-                />
+            {/* Toolbar & List Container */}
+            <div style={{ background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 4px 24px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
+              <div style={{ padding: '22px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, background: D.surfaceHi, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, flexWrap: 'wrap' }}>
+                  <div style={{ position: 'relative', minWidth: 200 }}>
+                    <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, pointerEvents: 'none' }} />
+                    <input
+                      type="text"
+                      placeholder="Search by reg, make or model…"
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      style={{ ...inputStyle, paddingLeft: 38 }}
+                      onFocus={onFocus} onBlur={onBlur}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {['ALL', 'ACTIVE', 'AVAILABLE', 'SERVICE', 'INACTIVE'].map(s => (
+                      <button
+                        key={s}
+                        onClick={() => setFilter(s)}
+                        style={{
+                          padding: '10px 18px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800,
+                          border: filter === s ? 'none' : `1px solid ${D.border}`,
+                          background: filter === s ? 'linear-gradient(135deg, #3b82f6, #6366f1)' : 'rgba(255,255,255,0.05)',
+                          color: filter === s ? '#fff' : D.textSub,
+                          cursor: 'pointer', transition: 'all 0.15s ease',
+                          boxShadow: filter === s ? '0 4px 12px rgba(99,102,241,0.3)' : 'none',
+                        }}
+                      >
+                        {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ fontSize: '0.9rem', color: D.textSub, fontWeight: 700, background: D.surface, padding: '8px 16px', borderRadius: 12, border: `1px solid ${D.border}`, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  <span style={{ color: D.purple }}>{filtered.length}</span> Vehicles
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {['ALL', 'ACTIVE', 'AVAILABLE', 'SERVICE', 'INACTIVE'].map(s => (
-                  <button
-                    key={s}
-                    onClick={() => setFilter(s)}
-                    style={{
-                      padding: '8px 16px', borderRadius: 10, fontSize: '0.78rem', fontWeight: 700,
-                      border: filter === s ? 'none' : `1px solid ${D.border}`,
-                      background: filter === s ? 'linear-gradient(135deg, #3b82f6, #6366f1)' : 'rgba(255,255,255,0.05)',
-                      color: filter === s ? '#fff' : D.textSub,
-                      cursor: 'pointer', transition: 'all 0.15s ease',
-                      boxShadow: filter === s ? '0 4px 12px rgba(99,102,241,0.3)' : 'none',
-                    }}
-                  >
-                    {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
-                  </button>
-                ))}
-              </div>
-              {!isDriver && (
-                <button
-                  onClick={openModal}
-                  style={{
-                    padding: '9px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                    color: '#fff', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-                    boxShadow: '0 4px 14px rgba(99,102,241,0.4)', transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(99,102,241,0.5)' }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.4)' }}
-                >
-                  + Add Vehicle
-                </button>
-              )}
-            </div>
 
-            {/* Table */}
-            <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                  <thead style={{ background: D.surfaceHi }}>
-                    <tr>
-                      {['Reg. No.', 'Make / Model', 'Year', 'Fuel Type', 'Mileage (km)', 'Next Service', 'Status', ...(isAdmin ? ['Last Modified'] : []), ...(!isDriver ? ['Actions'] : [])].map(h => (
-                        <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: D.textSub, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${D.border}`, whiteSpace: 'nowrap' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.length === 0 ? (
-                      <tr>
-                        <td colSpan={isAdmin ? 9 : 8} style={{ padding: '60px 32px', textAlign: 'center', color: D.textSub }}>
-                          <div style={{ marginBottom: 12, opacity: 0.3, display: 'flex', justifyContent: 'center' }}><Car size={48} /></div>
-                          <p style={{ fontWeight: 700, fontSize: '1rem', color: D.text, margin: '0 0 6px' }}>No vehicles found.</p>
-                          <p style={{ margin: 0, fontSize: '0.85rem' }}>Try adjusting your search or filters.</p>
-                        </td>
-                      </tr>
-                    ) : filtered.map((v, i) => {
+              {/* Data List */}
+              <div style={{ padding: '24px 32px 40px' }}>
+                {filtered.length === 0 ? (
+                  <div style={{ padding: '100px 0', textAlign: 'center' }}>
+                    <div style={{ background: D.surfaceHi, width: 90, height: 90, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: D.textSub, border: `1px solid ${D.border}` }}>
+                      <Search size={36} opacity={0.3} />
+                    </div>
+                    <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.2rem' }}>No matching vehicles</h3>
+                    <p style={{ margin: '10px 0 0', color: D.textSub, fontSize: '1rem', fontWeight: 500 }}>Adjust your search terms or filters to find what you're looking for.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
+                    {filtered.map((v, i) => {
                       const s = statusColors[v.status] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
+                      const alertInfo = vehicleAlerts[v.registrationNo]
+                      const ac = alertInfo ? (ALERT_COLORS[alertInfo.level] || ALERT_COLORS.OK) : null
                       return (
-                        <tr key={v.id} style={{ borderBottom: `1px solid ${D.border}`, background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)', transition: 'background 0.15s' }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.08)'}
-                          onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'}>
-                          <td style={{ padding: '14px 16px' }}>
+                        <div key={v.id} style={{
+                          background: D.surface, borderRadius: 20, border: `1px solid ${D.border}`,
+                          padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 24,
+                          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`,
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        }} onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateX(6px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }} onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)' }}>
+                          
+                          {/* Reg No & Fuel Type */}
+                          <div style={{ width: 140, flexShrink: 0 }}>
                             <button
                               onClick={() => openProfile(v)}
                               style={{
-                                background: 'none',
-                                border: 'none',
-                                padding: 0,
-                                fontWeight: 800,
-                                color: D.blue,
-                                cursor: 'pointer',
-                                outline: 'none',
-                                textAlign: 'left',
-                                transition: 'all 0.15s ease',
-                                fontFamily: 'inherit'
+                                background: 'none', border: 'none', padding: 0, margin: 0,
+                                fontSize: '1.1rem', fontWeight: 950, color: D.blue, letterSpacing: '0.02em',
+                                cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+                                transition: 'color 0.15s ease'
                               }}
-                              onMouseEnter={e => { e.currentTarget.style.color = '#818cf8'; e.currentTarget.style.textDecoration = 'underline' }}
-                              onMouseLeave={e => { e.currentTarget.style.color = D.blue; e.currentTarget.style.textDecoration = 'none' }}
+                              onMouseEnter={e => e.currentTarget.style.color = '#818cf8'}
+                              onMouseLeave={e => e.currentTarget.style.color = D.blue}
                             >
                               {v.registrationNo ?? 'N/A'}
                             </button>
-                          </td>
-                          <td style={{ padding: '14px 16px', color: D.text, fontWeight: 600 }}>{v.manufacturer ?? 'N/A'} {v.model ?? 'N/A'}</td>
-                          <td style={{ padding: '14px 16px', color: D.textSub }}>{v.year ?? 'N/A'}</td>
-                          <td style={{ padding: '14px 16px', color: D.textSub }}>{v.fuelType ?? 'N/A'}</td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                              <span style={{ fontSize: '0.72rem', color: D.textSub, fontWeight: 800, textTransform: 'uppercase', background: D.surfaceHi, padding: '2px 8px', borderRadius: 6, border: `1px solid ${D.border}` }}>
+                                {v.fuelType ?? 'N/A'}
+                              </span>
+                            </div>
+                          </div>
 
-                          <td style={{ padding: '14px 16px', color: D.textSub }}>{v.currentMileageKm ? `${v.currentMileageKm} km` : 'N/A'}</td>
+                          {/* Make, Model, Year, Mileage */}
+                          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 48 }}>
+                            <div>
+                              <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Vehicle</div>
+                              <div style={{ fontSize: '1rem', fontWeight: 800, color: D.text }}>
+                                {v.manufacturer ?? 'N/A'} {v.model ?? ''} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>{v.year ? `(${v.year})` : ''}</span>
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Mileage</div>
+                              <div style={{ fontSize: '1rem', fontWeight: 800, color: D.text }}>
+                                {v.currentMileageKm ? v.currentMileageKm.toLocaleString() : '0'} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>km</span>
+                              </div>
+                            </div>
+                          </div>
+
                           {/* Next Service Status */}
-                          <td style={{ padding: '14px 16px' }}>
-                            {(() => {
-                              const info = vehicleAlerts[v.registrationNo]
-                              if (!info) return <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>
-                              const ac = ALERT_COLORS[info.level] || ALERT_COLORS.OK
-                              const mileage = computeMileageProgress(info.record, info.vehicleKm)
-                              const date    = computeDateAlert(info.record)
-                              return (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                  <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: 999, background: ac.bg, color: ac.color, border: `1px solid ${ac.border}`, display: 'inline-block', width: 'fit-content' }}>
-                                    {ac.label}
-                                  </span>
-                                  {mileage && (
-                                    <div style={{ minWidth: 100 }}>
-                                      <div style={{ height: 4, background: 'rgba(128,128,128,0.2)', borderRadius: 999, overflow: 'hidden' }}>
-                                        <div style={{ width: `${Math.min(mileage.pct, 100)}%`, height: '100%', background: ac.color, borderRadius: 999 }} />
-                                      </div>
-                                      <span style={{ fontSize: '0.62rem', color: ac.color, fontWeight: 700 }}>{fmtKmRemaining(mileage.remaining)}</span>
-                                    </div>
-                                  )}
-                                  {date && !mileage && (
-                                    <span style={{ fontSize: '0.62rem', color: ac.color, fontWeight: 700 }}>{fmtDaysRemaining(date.daysRemaining)}</span>
-                                  )}
-                                </div>
-                              )
-                            })()}
-                          </td>
-                          <td style={{ padding: '14px 16px' }}>
-                            <span style={{ background: s.bg, color: s.color, padding: '4px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', border: `1px solid ${s.border}` }}>
+                          <div style={{ width: 140, flexShrink: 0 }}>
+                            <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Service Due</div>
+                            {ac ? (
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 8, background: ac.bg, color: ac.color, border: `1px solid ${ac.border}` }}>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>{ac.label}</span>
+                              </div>
+                            ) : (
+                              <span style={{ color: D.textFaint, fontSize: '0.75rem', fontWeight: 600 }}>Up to date</span>
+                            )}
+                          </div>
+
+                          {/* Status */}
+                          <div style={{ width: 100, textAlign: 'right', flexShrink: 0 }}>
+                            <span style={{ display: 'inline-block', background: s.bg, color: s.color, padding: '6px 12px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', border: `1px solid ${s.border}` }}>
                               {v.status ?? 'N/A'}
                             </span>
-                          </td>
-                          {isAdmin && (
-                            <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
-                              {v.updatedBy ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                  <span style={{ fontWeight: 700, fontSize: '0.78rem', color: D.purple }}>{v.updatedBy}</span>
-                                  <span style={{ fontSize: '0.7rem', color: D.textSub }}>
-                                    {v.updatedAt ? new Date(v.updatedAt).toLocaleString() : ''}
-                                  </span>
-                                </div>
-                              ) : (
-                                <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>
-                              )}
-                            </td>
-                          )}
+                          </div>
+
+                          {/* Actions */}
                           {!isDriver && (
-                            <td style={{ padding: '14px 16px' }}>
-                              <div style={{ display: 'flex', gap: 6 }}>
-                                <button onClick={() => openProfile(v)} style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
-                                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; e.currentTarget.style.color = '#a5b4fc' }}
-                                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
-                                  <Eye size={14} style={{ marginRight: 6 }} /> Profile
-                                </button>
-                                <button onClick={() => openEditModal(v)} style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
-                                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; e.currentTarget.style.color = '#a5b4fc' }}
-                                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
-                                  <Edit2 size={14} style={{ marginRight: 6 }} /> Edit
-                                </button>
-                                <button onClick={() => openDeleteModal(v)} style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
-                                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.2)' }}
-                                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)' }}>
-                                  <Trash2 size={14} style={{ marginRight: 6 }} /> Delete
-                                </button>
-                              </div>
-                            </td>
+                            <div style={{ display: 'flex', gap: 10, marginLeft: 16 }}>
+                              <button onClick={() => openProfile(v)} title="Profile" style={{ width: 42, height: 42, borderRadius: 12, border: `1px solid ${D.border}`, background: D.surface, color: D.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.25s' }} onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = D.blue; e.currentTarget.style.background = D.blue }} onMouseLeave={e => { e.currentTarget.style.color = D.blue; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface }}>
+                                <Eye size={18} />
+                              </button>
+                              <button onClick={() => openEditModal(v)} title="Edit" style={{ width: 42, height: 42, borderRadius: 12, border: `1px solid ${D.border}`, background: D.surface, color: D.textSub, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.25s' }} onMouseEnter={e => { e.currentTarget.style.color = D.purple; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.background = D.purpleDim }} onMouseLeave={e => { e.currentTarget.style.color = D.textSub; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface }}>
+                                <Edit2 size={18} />
+                              </button>
+                              <button onClick={() => openDeleteModal(v)} title="Delete" style={{ width: 42, height: 42, borderRadius: 12, border: `1px solid ${D.border}`, background: D.surface, color: D.red, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.25s' }} onMouseEnter={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.borderColor = D.red }} onMouseLeave={e => { e.currentTarget.style.background = D.surface; e.currentTarget.style.borderColor = D.border }}>
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
                           )}
-                        </tr>
+                        </div>
                       )
                     })}
-                  </tbody>
-                </table>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -640,20 +632,23 @@ const VehiclesPage = () => {
 
         {/* ── Add Modal ──────────────────────────────────────────────── */}
         {isModalOpen && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease' }}>
-            <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 540, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden' }}>
-              <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 10, background: D.purpleDim, color: D.purple, border: `1px solid ${D.purple}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Car size={20} />
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={closeModal}>
+            <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+              <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
+                    <Plus size={24} />
                   </div>
-                  <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Add New Vehicle</h3>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>Add New Vehicle</h2>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#a5b4fc', fontWeight: 600, opacity: 0.9 }}>Register a new vehicle in the system.</p>
+                  </div>
                 </div>
-                <button onClick={closeModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
+                <button onClick={closeModal} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
               </div>
 
-              <form onSubmit={handleSubmit} style={{ padding: '24px 28px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+              <form onSubmit={handleSubmit} style={{ padding: '36px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 32 }}>
                   <div>
                     <label style={labelStyle}>Manufacturer <span style={{ color: D.red }}>*</span></label>
                     <input type="text" name="manufacturer" value={formData.manufacturer} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. Toyota" />
@@ -666,6 +661,10 @@ const VehiclesPage = () => {
                     <label style={labelStyle}>Registration Number <span style={{ color: D.red }}>*</span></label>
                     <input type="text" name="registrationNo" value={formData.registrationNo} onChange={(e) => setFormData({ ...formData, registrationNo: e.target.value.toUpperCase() })} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. WP-CAB-1234, 24-2345, 112-2345" />
                     <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Format: WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, ABC-1234</p>
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={labelStyle}>Chassis Number</label>
+                    <input type="text" name="chassisNumber" value={formData.chassisNumber} onChange={handleChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. JT164B623" />
                   </div>
                   <div>
                     <label style={labelStyle}>Year <span style={{ color: D.red }}>*</span></label>
@@ -715,23 +714,23 @@ const VehiclesPage = () => {
 
         {/* ── Edit Modal ─────────────────────────────────────────────── */}
         {isEditModalOpen && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease' }}>
-            <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 540, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden' }}>
-              <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 10, background: D.indigoDim, color: D.indigo, border: `1px solid ${D.indigo}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Edit2 size={18} />
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={closeEditModal}>
+            <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+              <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
+                    <Edit2 size={24} />
                   </div>
                   <div>
-                    <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Edit Vehicle</h3>
-                    <p style={{ margin: 0, fontSize: '0.75rem', color: D.textSub }}>{editingVehicle?.registrationNo}</p>
+                    <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>Edit Vehicle</h2>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#a5b4fc', fontWeight: 600, opacity: 0.9 }}>Refining details for {editingVehicle?.registrationNo}</p>
                   </div>
                 </div>
-                <button onClick={closeEditModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
+                <button onClick={closeEditModal} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
               </div>
 
-              <form onSubmit={handleEditSubmit} style={{ padding: '24px 28px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+              <form onSubmit={handleEditSubmit} style={{ padding: '36px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 32 }}>
                   <div>
                     <label style={labelStyle}>Manufacturer</label>
                     <input type="text" name="manufacturer" value={editFormData.manufacturer} onChange={handleEditChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
@@ -744,6 +743,10 @@ const VehiclesPage = () => {
                     <label style={labelStyle}>Registration Number</label>
                     <input type="text" name="registrationNo" value={editFormData.registrationNo} onChange={(e) => setEditFormData({ ...editFormData, registrationNo: e.target.value.toUpperCase() })} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                     <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Format: WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, ABC-1234</p>
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={labelStyle}>Chassis Number</label>
+                    <input type="text" name="chassisNumber" value={editFormData.chassisNumber} onChange={handleEditChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                   </div>
                   <div>
                     <label style={labelStyle}>Year</label>
@@ -793,19 +796,19 @@ const VehiclesPage = () => {
 
         {/* ── Delete Modal ───────────────────────────────────────────── */}
         {isDeleteModalOpen && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, animation: 'fadeIn 0.15s ease' }}>
-            <div style={{ background: D.surface, borderRadius: 20, padding: 36, width: '90%', maxWidth: 420, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', textAlign: 'center' }}>
-              <div style={{ width: 64, height: 64, borderRadius: 20, background: D.redDim, color: D.red, border: '1px solid rgba(248,113,113,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                <AlertTriangle size={32} />
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, animation: 'fadeIn 0.25s ease' }} onClick={closeDeleteModal}>
+            <div style={{ background: D.surface, borderRadius: 32, padding: 40, width: '90%', maxWidth: 460, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+              <div style={{ width: 72, height: 72, borderRadius: 24, background: D.redDim, color: D.red, border: '1px solid rgba(248,113,113,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                <AlertTriangle size={36} />
               </div>
-              <h3 style={{ margin: '0 0 10px', fontWeight: 800, color: D.text, fontSize: '1.1rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Confirm Deletion</h3>
-              <p style={{ margin: '0 0 24px', color: D.textSub, fontSize: '0.9rem', lineHeight: 1.6 }}>
+              <h3 style={{ margin: '0 0 12px', fontWeight: 900, color: D.text, fontSize: '1.4rem', fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: '-0.02em' }}>Confirm Deletion</h3>
+              <p style={{ margin: '0 0 32px', color: D.textSub, fontSize: '0.95rem', lineHeight: 1.6 }}>
                 Are you sure you want to delete vehicle <strong style={{ color: D.text }}>{deletingVehicle?.registrationNo}</strong> ({deletingVehicle?.manufacturer} {deletingVehicle?.model})? This action cannot be undone.
               </p>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <button type="button" onClick={closeDeleteModal} style={{ flex: 1, padding: '10px 20px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.15s' }}>Cancel</button>
-                <button type="button" onClick={handleDeleteConfirm} style={{ flex: 1, padding: '10px 20px', borderRadius: 8, border: 'none', background: D.red, color: '#fff', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s', boxShadow: '0 4px 12px rgba(239,68,68,0.35)' }}>
-                  <Trash2 size={16} style={{ marginRight: 6 }} /> Delete
+              <div style={{ display: 'flex', gap: 16 }}>
+                <button type="button" onClick={closeDeleteModal} style={{ flex: 1, padding: '14px 24px', borderRadius: 16, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.95rem', fontWeight: 800, transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>Cancel</button>
+                <button type="button" onClick={handleDeleteConfirm} style={{ flex: 1, padding: '14px 24px', borderRadius: 16, border: 'none', background: D.red, color: '#fff', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 8px 24px rgba(239,68,68,0.4)' }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(239,68,68,0.5)' }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(239,68,68,0.4)' }}>
+                  <Trash2 size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Delete
                 </button>
               </div>
             </div>

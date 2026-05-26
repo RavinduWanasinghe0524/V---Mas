@@ -5,9 +5,8 @@ import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import PrivateRoute from './components/PrivateRoute'
 
-// ── Eagerly loaded (entry points — always needed immediately) ──────────────
-import LoginPage    from './pages/LoginPage'
-import SignUpPage from './pages/SignUpPage'
+// ── Eagerly loaded (entry points — always needed immediately) ────────────
+import AuthPage from './pages/AuthPage'
 
 // ── Lazily loaded (code-split per page) ───────────────────────────────────
 const DashboardPage     = lazy(() => import('./pages/DashboardPage'))
@@ -107,8 +106,8 @@ function App() {
       <Router>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            <Route path="/login"            element={<LoginPage />} />
-            <Route path="/signup"           element={<SignUpPage />} />
+            <Route path="/login"            element={<AuthPage />} />
+            <Route path="/signup"           element={<AuthPage />} />
             <Route path="/dashboard"        element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
             <Route path="/users"            element={<PrivateRoute><UsersPage /></PrivateRoute>} />
             <Route path="/profile"          element={<PrivateRoute><ProfilePage /></PrivateRoute>} />

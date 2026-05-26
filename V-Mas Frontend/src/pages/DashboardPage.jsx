@@ -205,7 +205,13 @@ const AlertSection = ({ alerts, navigate, isDark }) => {
               </p>
             </div>
             <button 
-              onClick={() => navigate(alert.type === 'SERVICE_DUE' ? '/service' : '/vehicles')}
+              onClick={() => {
+                if (alert.type === 'SERVICE_DUE') {
+                  navigate('/service')
+                } else {
+                  navigate('/vehicles', { state: { openVehicleProfile: alert.vehicleRegNumber } })
+                }
+              }}
               style={{
                 padding: '6px 14px', borderRadius: 8, border: 'none',
                 background: 'rgba(255,255,255,0.1)', color: 'var(--text-primary)',
@@ -262,6 +268,7 @@ const DashboardPage = () => {
   const [stats, setStats] = useState({ totalUsers: 0, admins: 0, controllers: 0, drivers: 0, activeUsers: 0, inactiveUsers: 0 })
   const [alerts, setAlerts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -304,9 +311,9 @@ const DashboardPage = () => {
 
   return (
     <div className="app-shell" style={{ background: 'var(--bg-body)' }}>
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: 'var(--bg-body)' }}>
-        <Topbar title="Dashboard" subtitle="Home / Dashboard" />
+        <Topbar title="Dashboard" subtitle="Home / Dashboard" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body">
 
           {/* Hero Banner */}

@@ -50,6 +50,7 @@ const ProfilePage = () => {
 
   // ÔöÇÔöÇ Active tab ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
   const [activeTab, setActiveTab] = useState('info')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   // Populate form when user loads
   useEffect(() => {
@@ -193,9 +194,9 @@ const ProfilePage = () => {
 
   return (
     <div className="app-shell" style={{ background: D.bg }}>
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: D.bg }}>
-        <Topbar title="My Profile" subtitle="Home / Profile" />
+        <Topbar title="My Profile" subtitle="Home / Profile" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body">
 
           {/* Hero Banner */}
@@ -229,7 +230,7 @@ const ProfilePage = () => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 24, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'min(300px, 100%) 1fr', gap: 24, alignItems: 'start' }}>
 
             {/* ÔöÇÔöÇ Left: Profile Card ÔöÇÔöÇ */}
             <div style={{ background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`, padding: 24, textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
