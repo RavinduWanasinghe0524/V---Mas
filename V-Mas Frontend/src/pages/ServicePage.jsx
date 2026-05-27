@@ -84,7 +84,7 @@ const getStatus = (s) => {
 }
 
 const STATUS_CONFIG = {
-  ALL: { label: 'All', color: '#6366f1', bg: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.3)' },
+  ALL: { label: 'All', color: '#2563eb', bg: 'rgba(37, 99, 235,0.15)', border: 'rgba(37, 99, 235,0.3)' },
   SCHEDULED: { label: 'Scheduled', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' },
   COMPLETED: { label: 'Completed', color: '#10b981', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)' },
   UPCOMING: { label: 'Upcoming', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' },
@@ -1470,7 +1470,7 @@ const ServicePage = () => {
   })
   const fieldError = { color: D.red, fontSize: '0.72rem', margin: '4px 0 0 0' }
 
-  const focusBorder = (e) => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)' }
+  const focusBorder = (e) => { e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235,0.1)' }
   const blurBorder = (e, hasErr) => { e.target.style.borderColor = hasErr ? 'rgba(248,113,113,0.5)' : D.inputBorder; e.target.style.boxShadow = 'none' }
 
   return (
@@ -1487,7 +1487,7 @@ const ServicePage = () => {
 
           {/* Hero Banner */}
           <div style={{
-            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
+            background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
             borderRadius: 20,
             padding: '32px 36px',
             marginBottom: 28,
@@ -1509,7 +1509,7 @@ const ServicePage = () => {
                 <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                   {isDriver ? 'Service History' : 'Service Management'}
                 </h1>
-                <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
+                <p style={{ margin: '4px 0 0', color: '#60a5fa', fontSize: '0.9rem' }}>
                   {isDriver ? 'View your vehicle service and maintenance history.' : 'Add and track vehicle maintenance records.'}
                 </p>
               </div>
@@ -1528,21 +1528,21 @@ const ServicePage = () => {
                 <button
                   onClick={() => setViewMode('list')}
                   style={{
-                    background: viewMode === 'list' ? '#ffffff' : 'transparent', color: viewMode === 'list' ? '#4338ca' : '#a5b4fc', border: 'none', borderRadius: 10,
+                    background: viewMode === 'list' ? '#ffffff' : 'transparent', color: viewMode === 'list' ? '#1e40af' : '#60a5fa', border: 'none', borderRadius: 10,
                     padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
                     cursor: 'pointer', transition: 'all 0.15s ease'
                   }}>List</button>
                 <button
                   onClick={() => setViewMode('grid')}
                   style={{
-                    background: viewMode === 'grid' ? '#ffffff' : 'transparent', color: viewMode === 'grid' ? '#4338ca' : '#a5b4fc', border: 'none', borderRadius: 10,
+                    background: viewMode === 'grid' ? '#ffffff' : 'transparent', color: viewMode === 'grid' ? '#1e40af' : '#60a5fa', border: 'none', borderRadius: 10,
                     padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
                     cursor: 'pointer', transition: 'all 0.15s ease'
                   }}>Grid</button>
                 <button
                   onClick={() => setViewMode('calendar')}
                   style={{
-                    background: viewMode === 'calendar' ? '#ffffff' : 'transparent', color: viewMode === 'calendar' ? '#4338ca' : '#a5b4fc', border: 'none', borderRadius: 10,
+                    background: viewMode === 'calendar' ? '#ffffff' : 'transparent', color: viewMode === 'calendar' ? '#1e40af' : '#60a5fa', border: 'none', borderRadius: 10,
                     padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
                     cursor: 'pointer', transition: 'all 0.15s ease'
                   }}>Calendar</button>
@@ -1556,12 +1556,12 @@ const ServicePage = () => {
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8,
                     padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
-                    background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.4)', cursor: 'pointer',
+                    background: 'rgba(37, 99, 235,0.2)', color: '#60a5fa', border: '1px solid rgba(37, 99, 235,0.4)', cursor: 'pointer',
                     boxShadow: '0 4px 14px rgba(0,0,0,0.1)', transition: 'all 0.2s ease',
                     backdropFilter: 'blur(4px)',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.3)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.2)'; e.currentTarget.style.color = '#a5b4fc'; e.currentTarget.style.transform = 'translateY(0)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.3)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.2)'; e.currentTarget.style.color = '#60a5fa'; e.currentTarget.style.transform = 'translateY(0)' }}
                 >
                   <Clock size={18} /> Schedule Service
                 </button>
@@ -1575,7 +1575,7 @@ const ServicePage = () => {
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8,
                     padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
-                    background: '#ffffff', color: '#4338ca', border: 'none', cursor: 'pointer',
+                    background: '#ffffff', color: '#1e40af', border: 'none', cursor: 'pointer',
                     boxShadow: '0 4px 14px rgba(0,0,0,0.1)', transition: 'all 0.2s ease',
                   }}
                   onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.transform = 'translateY(-1px)' }}
@@ -1612,10 +1612,10 @@ const ServicePage = () => {
               <div style={statCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <p style={{ fontSize: '2rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{total}</p>
-                  <span style={{ display: 'flex', alignItems: 'center', color: '#6366f1' }}><ClipboardList size={28} /></span>
+                  <span style={{ display: 'flex', alignItems: 'center', color: '#2563eb' }}><ClipboardList size={28} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Total Records</p>
-                <ProgressBar value={total} max={total || 1} color="#6366f1" D={D} />
+                <ProgressBar value={total} max={total || 1} color="#2563eb" D={D} />
               </div>
 
               {/* Scheduled */}
@@ -1699,12 +1699,12 @@ const ServicePage = () => {
                               key === 'OVERDUE' ? overdueCount : 0
                 const active = filter === key
                 const pc = {
-                  ALL:       { grad: 'linear-gradient(135deg,#3b82f6,#6366f1)', shadow: 'rgba(99,102,241,0.4)', dot: '#6366f1' },
+                  ALL:       { grad: 'linear-gradient(135deg,#3b82f6,#2563eb)', shadow: 'rgba(37, 99, 235,0.4)', dot: '#2563eb' },
                   SCHEDULED: { grad: 'linear-gradient(135deg,#d97706,#f59e0b)', shadow: 'rgba(245,158,11,0.4)',  dot: '#f59e0b' },
                   COMPLETED: { grad: 'linear-gradient(135deg,#059669,#10b981)', shadow: 'rgba(16,185,129,0.4)',  dot: '#10b981' },
                   UPCOMING:  { grad: 'linear-gradient(135deg,#d97706,#f59e0b)', shadow: 'rgba(245,158,11,0.4)',  dot: '#f59e0b' },
                   OVERDUE:   { grad: 'linear-gradient(135deg,#dc2626,#ef4444)', shadow: 'rgba(239,68,68,0.4)',   dot: '#ef4444' },
-                }[key] || { grad: 'linear-gradient(135deg,#3b82f6,#6366f1)', shadow: 'rgba(99,102,241,0.4)', dot: '#6366f1' }
+                }[key] || { grad: 'linear-gradient(135deg,#3b82f6,#2563eb)', shadow: 'rgba(37, 99, 235,0.4)', dot: '#2563eb' }
                 return (
                   <button
                     key={key}
@@ -1746,10 +1746,10 @@ const ServicePage = () => {
                   style={{
                     padding: '5px 11px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700,
                     border: vehicleFilter !== 'ALL' ? 'none' : `1px solid ${D.border}`,
-                    background: vehicleFilter !== 'ALL' ? 'linear-gradient(135deg,#3b82f6,#6366f1)' : 'transparent',
+                    background: vehicleFilter !== 'ALL' ? 'linear-gradient(135deg,#3b82f6,#2563eb)' : 'transparent',
                     color: vehicleFilter !== 'ALL' ? '#fff' : D.textSub,
                     cursor: 'pointer', transition: 'all 0.18s ease',
-                    boxShadow: vehicleFilter !== 'ALL' ? '0 2px 12px rgba(99,102,241,0.4)' : 'none',
+                    boxShadow: vehicleFilter !== 'ALL' ? '0 2px 12px rgba(37, 99, 235,0.4)' : 'none',
                     display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap',
                   }}
                   onMouseEnter={e => { if (vehicleFilter === 'ALL') { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.color = D.text } }}
@@ -1822,11 +1822,11 @@ const ServicePage = () => {
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5,
                     padding: '3px 9px', borderRadius: 999,
-                    background: 'rgba(99,102,241,0.12)', color: '#a5b4fc',
-                    border: '1px solid rgba(99,102,241,0.25)',
+                    background: 'rgba(37, 99, 235,0.12)', color: '#60a5fa',
+                    border: '1px solid rgba(37, 99, 235,0.25)',
                     fontSize: '0.68rem', fontWeight: 700,
                   }}>
-                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#6366f1' }} />
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#2563eb' }} />
                     {[filter !== 'ALL', vehicleFilter !== 'ALL', !!search].filter(Boolean).length} active
                   </span>
                   <button
@@ -1882,14 +1882,14 @@ const ServicePage = () => {
                     width: '100%', padding: '8px 36px 8px 34px',
                     borderRadius: 10, fontSize: '0.82rem',
                     background: D.inputBg,
-                    border: `1px solid ${search ? 'rgba(99,102,241,0.4)' : D.inputBorder}`,
+                    border: `1px solid ${search ? 'rgba(37, 99, 235,0.4)' : D.inputBorder}`,
                     color: D.text, outline: 'none',
                     transition: 'border-color 0.15s, box-shadow 0.15s',
-                    boxShadow: search ? '0 0 0 3px rgba(99,102,241,0.08)' : 'none',
+                    boxShadow: search ? '0 0 0 3px rgba(37, 99, 235,0.08)' : 'none',
                     boxSizing: 'border-box',
                   }}
-                  onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)' }}
-                  onBlur={e => { e.target.style.borderColor = search ? 'rgba(99,102,241,0.4)' : D.inputBorder; e.target.style.boxShadow = search ? '0 0 0 3px rgba(99,102,241,0.08)' : 'none' }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235,0.1)' }}
+                  onBlur={e => { e.target.style.borderColor = search ? 'rgba(37, 99, 235,0.4)' : D.inputBorder; e.target.style.boxShadow = search ? '0 0 0 3px rgba(37, 99, 235,0.08)' : 'none' }}
                 />
                 {search && (
                   <button
@@ -1938,7 +1938,7 @@ const ServicePage = () => {
                       onClick={openAddModal}
                       style={{
                         marginTop: 16, padding: '9px 22px', borderRadius: 10,
-                        background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                        background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
                         color: '#fff', border: 'none', cursor: 'pointer',
                         fontSize: '0.85rem', fontWeight: 700,
                       }}
@@ -2428,7 +2428,7 @@ const ServicePage = () => {
               style={{ background: D.surface, borderRadius: 20, width: '100%', maxWidth: 660, boxShadow: '0 28px 70px rgba(0,0,0,0.5)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
             >
               {/* Header — indigo gradient */}
-              <div style={{ background: 'linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#4338ca 100%)', padding: '22px 28px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexShrink: 0 }}>
+              <div style={{ background: 'linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#1e40af 100%)', padding: '22px 28px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexShrink: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                   <div style={{ width: 52, height: 52, borderRadius: 14, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
                     {icon}
@@ -2442,7 +2442,7 @@ const ServicePage = () => {
                         {sc.label}
                       </span>
                     </div>
-                    <div style={{ color: '#a5b4fc', fontSize: '0.85rem', marginTop: 4 }}>
+                    <div style={{ color: '#60a5fa', fontSize: '0.85rem', marginTop: 4 }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Car size={13} /> {r.vehicleRegNumber || '—'}</span>
                       {r.serviceTypeDetail && <span style={{ marginLeft: 10, opacity: 0.8 }}>· {r.serviceTypeDetail}</span>}
                     </div>
@@ -2632,14 +2632,14 @@ const ServicePage = () => {
                       return (
                         <div key={entry.id} style={{ position: 'relative', marginBottom: idx < serviceHistory.length - 1 ? 14 : 4 }}>
                           {/* Timeline dot */}
-                          <div style={{ position: 'absolute', left: -28, top: 6, width: 18, height: 18, borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 3px ' + D.bg }}>
+                          <div style={{ position: 'absolute', left: -28, top: 6, width: 18, height: 18, borderRadius: '50%', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 3px ' + D.bg }}>
                             <Edit2 size={8} color="#fff" />
                           </div>
 
-                          <div style={{ background: D.surfaceHi, border: `1px solid ${D.border}`, borderRadius: 10, padding: '12px 16px', borderLeft: '3px solid #6366f1' }}>
+                          <div style={{ background: D.surfaceHi, border: `1px solid ${D.border}`, borderRadius: 10, padding: '12px 16px', borderLeft: '3px solid #2563eb' }}>
                             {/* Edit header */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Edited</span>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Edited</span>
                               <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.text }}>by {entry.changedBy || '—'}</span>
                               <span style={{ fontSize: '0.75rem', color: D.textSub, marginLeft: 'auto' }}>
                                 {entry.changedAt ? new Date(entry.changedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
@@ -2680,7 +2680,7 @@ const ServicePage = () => {
                   <>
                     <button
                       onClick={() => { closeDetail(); openEditModal(r.id) }}
-                      style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(99,102,241,0.35)' }}
+                      style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
                     >
                       <Edit2 size={15} /> Edit Record
                     </button>
@@ -2696,7 +2696,7 @@ const ServicePage = () => {
                 {isDriver && r.createdBy === user?.userName && (
                   <button
                     onClick={() => { closeDetail(); openEditModal(r.id) }}
-                    style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(99,102,241,0.35)' }}
+                    style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
                   >
                     <Edit2 size={15} /> Edit Record
                   </button>
@@ -2877,7 +2877,7 @@ const ServicePage = () => {
               </div>
 
               <div style={{ display: 'flex', gap: 12 }}>
-                <button type="submit" disabled={formLoading} style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: formLoading ? 'rgba(99,102,241,0.6)' : 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: formLoading ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: formLoading ? 'none' : '0 4px 16px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <button type="submit" disabled={formLoading} style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: formLoading ? 'rgba(37, 99, 235,0.6)' : 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: formLoading ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: formLoading ? 'none' : '0 4px 16px rgba(37, 99, 235,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                   {formLoading ? 'Saving...' : <><Check size={16} /> Add Record</>}
                 </button>
                 <button type="button" onClick={closeAddModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
@@ -3014,7 +3014,7 @@ const ServicePage = () => {
               </div>
 
               <div style={{ display: 'flex', gap: 12 }}>
-                <button type="submit" disabled={formLoading} style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: formLoading ? 'rgba(99,102,241,0.6)' : 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: formLoading ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: formLoading ? 'none' : '0 4px 16px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <button type="submit" disabled={formLoading} style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: formLoading ? 'rgba(37, 99, 235,0.6)' : 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: formLoading ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: formLoading ? 'none' : '0 4px 16px rgba(37, 99, 235,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                   {formLoading ? 'Scheduling...' : <><Check size={16} /> Schedule Service</>}
                 </button>
                 <button type="button" onClick={closeScheduleModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
@@ -3189,7 +3189,7 @@ const ServicePage = () => {
               </div>
 
               <div style={{ display: 'flex', gap: 12 }}>
-                <button type="submit" disabled={formLoading} style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: formLoading ? 'rgba(99,102,241,0.6)' : 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: formLoading ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: formLoading ? 'none' : '0 4px 16px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <button type="submit" disabled={formLoading} style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: formLoading ? 'rgba(37, 99, 235,0.6)' : 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: formLoading ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: formLoading ? 'none' : '0 4px 16px rgba(37, 99, 235,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                   {formLoading ? 'Saving...' : <><Check size={16} /> Save Changes</>}
                 </button>
                 <button type="button" onClick={closeEditModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>

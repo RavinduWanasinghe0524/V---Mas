@@ -114,7 +114,7 @@ const AddServicePage = () => {
     }
   }
 
-  const focusBorder = (e) => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)' }
+  const focusBorder = (e) => { e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235,0.1)' }
   const blurBorder = (e, hasErr) => { e.target.style.borderColor = hasErr ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none' }
 
   if (loadingData) {
@@ -145,7 +145,7 @@ const AddServicePage = () => {
 
           {/* Hero Banner */}
           <div style={{
-            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
+            background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
             borderRadius: 20,
             padding: '32px 36px',
             marginBottom: 28,
@@ -166,7 +166,7 @@ const AddServicePage = () => {
                 <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                   {isEditing ? 'Edit Service Record' : 'Add Service Record'}
                 </h1>
-                <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
+                <p style={{ margin: '4px 0 0', color: '#60a5fa', fontSize: '0.9rem' }}>
                   {isEditing ? 'Update the details of an existing vehicle service record.' : 'Create a new maintenance and service record.'}
                 </p>
               </div>
@@ -183,7 +183,7 @@ const AddServicePage = () => {
               color: D.text, fontSize: '0.83rem', fontWeight: 600,
               cursor: 'pointer', marginBottom: 24, transition: 'all 0.15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = '#a5b4fc'; e.currentTarget.style.background = 'rgba(99,102,241,0.1)' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(37, 99, 235,0.5)'; e.currentTarget.style.color = '#60a5fa'; e.currentTarget.style.background = 'rgba(37, 99, 235,0.1)' }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text; e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
           >
             <ArrowLeft size={16} /> Back to Service History
@@ -205,7 +205,7 @@ const AddServicePage = () => {
                   width: 44, height: 44, borderRadius: 10,
                   background: D.indigoDim, display: 'flex', alignItems: 'center',
                   justifyContent: 'center', color: D.indigo, flexShrink: 0,
-                  border: `1px solid rgba(129,140,248,0.3)`,
+                  border: `1px solid rgba(59, 130, 246,0.3)`,
                 }}><Wrench size={20} /></div>
                 <div>
                   <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 800, color: D.text, letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -391,10 +391,10 @@ const AddServicePage = () => {
                   type="submit" disabled={loading}
                   style={{
                     padding: '10px 28px', borderRadius: 8, border: 'none', display: 'flex', alignItems: 'center', gap: 8,
-                    background: loading ? 'rgba(99,102,241,0.6)' : 'linear-gradient(135deg,#6366f1,#4f46e5)',
+                    background: loading ? 'rgba(37, 99, 235,0.6)' : 'linear-gradient(135deg,#2563eb,#1d4ed8)',
                     color: '#fff', fontSize: '0.875rem', fontWeight: 700,
                     cursor: loading ? 'not-allowed' : 'pointer',
-                    boxShadow: loading ? 'none' : '0 4px 16px rgba(99,102,241,0.4)',
+                    boxShadow: loading ? 'none' : '0 4px 16px rgba(37, 99, 235,0.4)',
                     transition: 'all 0.15s',
                   }}
                   onMouseEnter={e => { if (!loading) { e.currentTarget.style.transform = 'translateY(-1px)' } }}

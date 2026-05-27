@@ -56,24 +56,24 @@ export const useD = () => {
 
   return {
     // Backgrounds
-    bg: isDark ? '#0d1117' : 'var(--bg-body)',
-    surface: isDark ? '#161b27' : '#ffffff',
-    surfaceHi: isDark ? '#1e2535' : '#f8faff',
+    bg: isDark ? '#0b132b' : '#f3f4f6',
+    surface: isDark ? '#1c2541' : '#ffffff',
+    surfaceHi: isDark ? '#212b4a' : '#f9fafb',
 
     // Borders
-    border: isDark ? 'rgba(255,255,255,0.07)' : '#e2e8f0',
+    border: isDark ? 'rgba(255,255,255,0.07)' : '#e5e7eb',
     borderHi: isDark ? 'rgba(255,255,255,0.13)' : '#bfdbfe',
 
     // Text
-    text: isDark ? '#e2e8f0' : '#111827',
-    textSub: isDark ? '#64748b' : '#6b7280',
-    textFaint: isDark ? '#374151' : '#9ca3af',
+    text: isDark ? '#f3f4f6' : '#111827',
+    textSub: isDark ? '#9ca3af' : '#4b5563',
+    textFaint: isDark ? '#6b7280' : '#9ca3af',
 
     // Accent colours (same saturation, lighter in dark)
-    purple: isDark ? '#a78bfa' : '#7c3aed',
-    purpleDim: isDark ? 'rgba(167,139,250,0.15)' : 'rgba(124,58,237,0.1)',
-    indigo: isDark ? '#818cf8' : '#4f46e5',
-    indigoDim: isDark ? 'rgba(129,140,248,0.15)' : 'rgba(79,70,229,0.1)',
+    purple: isDark ? '#60a5fa' : '#2563eb',
+    purpleDim: isDark ? 'rgba(96, 165, 250,0.15)' : 'rgba(37, 99, 235,0.1)',
+    indigo: isDark ? '#3b82f6' : '#1d4ed8',
+    indigoDim: isDark ? 'rgba(59, 130, 246,0.15)' : 'rgba(29, 78, 216,0.1)',
     blue: isDark ? '#60a5fa' : '#2563eb',
     blueDim: isDark ? 'rgba(96,165,250,0.15)' : 'rgba(37,99,235,0.1)',
     green: isDark ? '#4ade80' : '#16a34a',

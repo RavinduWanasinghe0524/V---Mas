@@ -76,7 +76,7 @@ const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "
       ) : (
         <button style={{
           padding: '8px 18px', borderRadius: 10, border: 'none',
-          background: 'linear-gradient(135deg, #6366f1, #3b82f6)',
+          background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
           color: '#fff', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
         }}>
           {btnText}
@@ -88,10 +88,10 @@ const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "
 
 /* ── Accent colors (theme-aware) ─────────────────────────────── */
 const useAccents = (isDark) => ({
-  purple:    isDark ? '#a78bfa' : '#7c3aed',
-  purpleDim: isDark ? 'rgba(167,139,250,0.15)' : 'rgba(124,58,237,0.1)',
-  indigo:    isDark ? '#818cf8' : '#4f46e5',
-  indigoDim: isDark ? 'rgba(129,140,248,0.15)' : 'rgba(79,70,229,0.1)',
+  purple:    isDark ? '#60a5fa' : '#2563eb',
+  purpleDim: isDark ? 'rgba(96, 165, 250,0.15)' : 'rgba(37, 99, 235,0.1)',
+  indigo:    isDark ? '#3b82f6' : '#1d4ed8',
+  indigoDim: isDark ? 'rgba(59, 130, 246,0.15)' : 'rgba(29, 78, 216,0.1)',
   blue:      isDark ? '#60a5fa' : '#2563eb',
   blueDim:   isDark ? 'rgba(96,165,250,0.15)' : 'rgba(37,99,235,0.1)',
   green:     isDark ? '#4ade80' : '#16a34a',
@@ -318,7 +318,7 @@ const DashboardPage = () => {
 
           {/* Hero Banner */}
           <div style={{
-            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
+            background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
             borderRadius: 20, padding: '32px 36px', marginBottom: 32,
             position: 'relative', overflow: 'hidden',
             boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
