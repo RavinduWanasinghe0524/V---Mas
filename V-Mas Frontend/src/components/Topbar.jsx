@@ -165,18 +165,51 @@ const Topbar = ({ onMenuToggle }) => {
 
       {/* Right Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 28, marginLeft: 'auto' }}>
-        {/* Theme Toggle */}
-        <button onClick={toggleTheme} style={{
-          display: 'flex', alignItems: 'center', background: isDark ? '#3b82f6' : '#dbeafe',
-          borderRadius: 24, padding: 4, cursor: 'pointer', gap: 4, width: 64, justifyContent: 'space-between', border: 'none',
-          boxShadow: isDark ? '0 2px 8px rgba(59,130,246,0.4)' : '0 2px 8px rgba(37, 99, 235,0.15)',
-        }}>
-          <div style={{ background: isDark ? '#fff' : 'transparent', borderRadius: '50%', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Moon size={14} color={isDark ? '#3b82f6' : '#9ca3af'} />
-          </div>
-          <div style={{ background: !isDark ? '#2563eb' : 'transparent', borderRadius: '50%', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Sun size={14} color={!isDark ? '#fff' : 'rgba(255,255,255,0.5)'} />
-          </div>
+        {/* Theme Toggle — Premium pill with animated knob */}
+        <button
+          onClick={toggleTheme}
+          title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          style={{
+            position: 'relative',
+            display: 'flex', alignItems: 'center',
+            width: 56, height: 30,
+            borderRadius: 999,
+            padding: 3,
+            border: 'none',
+            cursor: 'pointer',
+            background: isDark
+              ? 'linear-gradient(135deg, #1e1b4b, #312e81)'
+              : 'linear-gradient(135deg, #e0e7ff, #c7d2fe)',
+            boxShadow: isDark
+              ? '0 0 0 1px rgba(99,102,241,0.4), 0 4px 16px rgba(99,102,241,0.3), inset 0 1px 0 rgba(255,255,255,0.08)'
+              : '0 0 0 1px rgba(79,70,229,0.2), 0 2px 8px rgba(79,70,229,0.12), inset 0 1px 0 rgba(255,255,255,0.8)',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            outline: 'none',
+          }}
+        >
+          {/* Sliding knob */}
+          <span style={{
+            position: 'absolute',
+            left: isDark ? 'calc(100% - 27px)' : '3px',
+            width: 24, height: 24,
+            borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: isDark
+              ? 'linear-gradient(135deg, #6366f1, #818cf8)'
+              : 'linear-gradient(135deg, #ffffff, #f0f4ff)',
+            boxShadow: isDark
+              ? '0 2px 8px rgba(99,102,241,0.6), 0 0 12px rgba(99,102,241,0.4)'
+              : '0 2px 6px rgba(79,70,229,0.25), 0 1px 2px rgba(0,0,0,0.08)',
+            transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease, box-shadow 0.3s ease',
+          }}>
+            {isDark
+              ? <Moon size={12} color="#fff" />
+              : <Sun size={12} color="#4f46e5" />
+            }
+          </span>
+          {/* Background icon hints */}
+          <Sun size={10} color={isDark ? 'rgba(255,255,255,0.2)' : 'rgba(79,70,229,0.3)'} style={{ marginLeft: 4, flexShrink: 0 }} />
+          <Moon size={10} color={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(79,70,229,0.2)'} style={{ marginLeft: 'auto', marginRight: 4, flexShrink: 0 }} />
         </button>
 
         {/* Unified Notification Bell */}
