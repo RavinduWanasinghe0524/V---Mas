@@ -250,8 +250,6 @@ const DriverDashboard = ({ navigate, isDark }) => {
       <SectionHeader title="Driver Tools" />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
         <FeatureCard icon={<Car size={24}/>} title="My Vehicle" desc="View status and information about your assigned vehicle." onClick={() => navigate('/vehicles')} />
-        <FeatureCard icon={<ClipboardList size={24}/>} title="Task List" desc="View and manage your assigned tasks and schedules." disabled />
-
         <FeatureCard icon={<Fuel size={24}/>} title="Fuel Log" desc="Record fuel consumption and view usage history." onClick={() => navigate('/fuel-log')} />
         <FeatureCard icon={<Wrench size={24}/>} title="Service History" desc="View maintenance history for your vehicle." onClick={() => navigate('/service')} />
         <FeatureCard icon={<BarChart3 size={24}/>} title="My Performance" desc="View driving stats, performance metrics, and history." onClick={() => navigate('/profile')} />
