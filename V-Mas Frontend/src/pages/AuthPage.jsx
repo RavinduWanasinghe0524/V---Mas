@@ -130,7 +130,7 @@ const DemoDrawer = ({ onPopulate }) => {
     <div className={`ag-demo-drawer ${isOpen ? 'ag-demo-drawer--open' : ''}`}>
       <div className="ag-demo-header" onClick={() => setIsOpen(!isOpen)}>
         <span className="ag-demo-header-title">
-          <AlertCircle size={13} style={{ color: '#a5b4fc' }} />
+          <AlertCircle size={13} style={{ color: '#60a5fa' }} />
           Quick-Demo Credentials
         </span>
         <ChevronDown size={14} className="ag-demo-caret" />
@@ -631,7 +631,7 @@ const AuthPage = () => {
   return (
     <div className={`ag-container theme-lime${themeMode === 'day' ? ' theme-light' : ''}`} onMouseMove={handleMouseMove}>
       {/* Zoom parallax background element */}
-      <div className="ag-container-bg" style={{ backgroundImage: `url(${themeMode === 'day' ? loginBgWhite : loginBg})` }} />
+      <div className="ag-container-bg" style={{ backgroundImage: `url("${themeMode === 'day' ? loginBgWhite : loginBg}")` }} />
 
       {/* Full-screen dark overlay */}
       <div className="ag-overlay" />

@@ -76,7 +76,7 @@ const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "
       ) : (
         <button style={{
           padding: '8px 18px', borderRadius: 10, border: 'none',
-          background: 'linear-gradient(135deg, #6366f1, #3b82f6)',
+          background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
           color: '#fff', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
         }}>
           {btnText}
@@ -88,14 +88,14 @@ const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "
 
 /* ── Accent colors (theme-aware) ─────────────────────────────── */
 const useAccents = (isDark) => ({
-  purple:    isDark ? '#a78bfa' : '#7c3aed',
-  purpleDim: isDark ? 'rgba(167,139,250,0.15)' : 'rgba(124,58,237,0.1)',
-  indigo:    isDark ? '#818cf8' : '#4f46e5',
-  indigoDim: isDark ? 'rgba(129,140,248,0.15)' : 'rgba(79,70,229,0.1)',
-  blue:      isDark ? '#60a5fa' : '#2563eb',
-  blueDim:   isDark ? 'rgba(96,165,250,0.15)' : 'rgba(37,99,235,0.1)',
-  green:     isDark ? '#4ade80' : '#16a34a',
-  greenDim:  isDark ? 'rgba(74,222,128,0.15)' : 'rgba(22,163,74,0.1)',
+  purple:    isDark ? '#818cf8' : '#4f46e5',
+  purpleDim: isDark ? 'rgba(99,102,241,0.18)' : 'rgba(79,70,229,0.1)',
+  indigo:    isDark ? '#6366f1' : '#4338ca',
+  indigoDim: isDark ? 'rgba(99,102,241,0.18)' : 'rgba(67,56,202,0.1)',
+  blue:      isDark ? '#38bdf8' : '#0284c7',
+  blueDim:   isDark ? 'rgba(56,189,248,0.15)' : 'rgba(2,132,199,0.1)',
+  green:     isDark ? '#34d399' : '#059669',
+  greenDim:  isDark ? 'rgba(52,211,153,0.15)' : 'rgba(5,150,105,0.1)',
   red:       isDark ? '#f87171' : '#dc2626',
   redDim:    isDark ? 'rgba(248,113,113,0.15)' : 'rgba(220,38,38,0.1)',
   gold:      isDark ? '#fbbf24' : '#d97706',
@@ -250,8 +250,6 @@ const DriverDashboard = ({ navigate, isDark }) => {
       <SectionHeader title="Driver Tools" />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
         <FeatureCard icon={<Car size={24}/>} title="My Vehicle" desc="View status and information about your assigned vehicle." onClick={() => navigate('/vehicles')} />
-        <FeatureCard icon={<ClipboardList size={24}/>} title="Task List" desc="View and manage your assigned tasks and schedules." disabled />
-
         <FeatureCard icon={<Fuel size={24}/>} title="Fuel Log" desc="Record fuel consumption and view usage history." onClick={() => navigate('/fuel-log')} />
         <FeatureCard icon={<Wrench size={24}/>} title="Service History" desc="View maintenance history for your vehicle." onClick={() => navigate('/service')} />
         <FeatureCard icon={<BarChart3 size={24}/>} title="My Performance" desc="View driving stats, performance metrics, and history." onClick={() => navigate('/profile')} />
@@ -316,26 +314,38 @@ const DashboardPage = () => {
         <Topbar title="Dashboard" subtitle="Home / Dashboard" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body">
 
-          {/* Hero Banner */}
+          {/* Hero Banner — Theme-Adaptive */}
           <div style={{
-            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
+            background: isDark
+              ? 'linear-gradient(135deg, #0d0b2e 0%, #1a1560 45%, #1e1b6b 100%)'
+              : 'linear-gradient(135deg, #3730a3 0%, #4f46e5 50%, #6366f1 100%)',
             borderRadius: 20, padding: '32px 36px', marginBottom: 32,
             position: 'relative', overflow: 'hidden',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            boxShadow: isDark
+              ? '0 8px 40px rgba(99,102,241,0.25), 0 0 0 1px rgba(99,102,241,0.15)'
+              : '0 8px 40px rgba(79,70,229,0.35)',
+            border: isDark ? '1px solid rgba(99,102,241,0.2)' : '1px solid rgba(255,255,255,0.15)',
           }}>
-            {[['80%', '-20px', '180px', 'rgba(255,255,255,0.04)'], ['20%', '60%', '120px', 'rgba(255,255,255,0.05)'], ['55%', '80%', '90px', 'rgba(255,255,255,0.03)']].map(([t, l, s, bg], i) => (
-              <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
+            {/* Decorative orbs */}
+            {[['78%', '-30px', '220px', 'rgba(255,255,255,0.05)'], ['10%', '65%', '140px', 'rgba(255,255,255,0.04)'], ['50%', '85%', '100px', 'rgba(165,180,252,0.08)']].map(([t, l, s, bg], i) => (
+              <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none', filter: 'blur(2px)' }} />
             ))}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-              <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)' }}>
+              <div style={{
+                background: 'rgba(255,255,255,0.12)',
+                borderRadius: 16, width: 64, height: 64,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)',
+              }}>
                 {roleEmoji[user?.role] || <Car size={32} color="#fff"/>}
               </div>
               <div>
-                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif", textShadow: '0 2px 12px rgba(0,0,0,0.2)' }}>
                   Good day, {user?.userName}!
                 </h1>
-                <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.75)', fontSize: '0.9rem' }}>
+                <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.78)', fontSize: '0.9rem' }}>
                   Logged in as <strong style={{ color: '#fff' }}>{roleLabel[user?.role] || user?.role}</strong> · Here's your personalized overview
                 </p>
               </div>

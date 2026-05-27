@@ -20,8 +20,8 @@ import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
 
 const onFocus = e => {
-  e.target.style.borderColor = 'rgba(99,102,241,0.5)'
-  e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'
+  e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'
+  e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235,0.1)'
 }
 const onBlur = e => {
   e.target.style.borderColor = ''
@@ -364,7 +364,7 @@ const UsersPage = () => {
 
             {/* Hero Banner */}
             <div style={{
-              background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
+              background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
               borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
               boxShadow: '0 16px 48px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`,
               display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16
@@ -383,12 +383,12 @@ const UsersPage = () => {
                       User Management
                     </h1>
                     {isAdmin && users.length > 0 && (
-                      <span style={{ background: 'rgba(255,255,255,0.15)', color: '#e0e7ff', padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                      <span style={{ background: 'rgba(255,255,255,0.15)', color: '#dbeafe', padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.2)' }}>
                         {users.length} users
                       </span>
                     )}
                   </div>
-                  <p style={{ margin: '6px 0 0', color: '#a5b4fc', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <p style={{ margin: '6px 0 0', color: '#60a5fa', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <ShieldCheck size={14} />
                     {isAdmin ? 'Manage system users, roles, permissions & access approvals across the platform' : 'Review and process pending driver account requests'}
                   </p>
@@ -396,7 +396,7 @@ const UsersPage = () => {
               </div>
               {isAdmin && (
                 <button onClick={handleCreate} style={{
-                  position: 'relative', padding: '14px 28px', borderRadius: 16, border: 'none', background: '#fff', color: '#312e81', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 8px 30px rgba(0,0,0,0.25)', whiteSpace: 'nowrap'
+                  position: 'relative', padding: '14px 28px', borderRadius: 16, border: 'none', background: '#fff', color: '#1e3a8a', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 8px 30px rgba(0,0,0,0.25)', whiteSpace: 'nowrap'
                 }}
                 onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 12px 40px rgba(255,255,255,0.3)' }}
                 onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 8px 30px rgba(0,0,0,0.25)' }}>
@@ -660,7 +660,7 @@ const UsersPage = () => {
                             {(!isController || u.role === 'DRIVER') && (
                               <>
                                 <button onClick={() => handleEdit(u)} style={{ padding: '10px 20px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.85rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
-                                  onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor=D.purple; e.currentTarget.style.color='#a5b4fc' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background='rgba(37, 99, 235,0.15)'; e.currentTarget.style.borderColor=D.purple; e.currentTarget.style.color='#60a5fa' }}
                                   onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor=D.border; e.currentTarget.style.color=D.text }}>
                                   Edit
                                 </button>
@@ -688,7 +688,7 @@ const UsersPage = () => {
         {showModal && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={() => setShowModal(false)}>
             <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-              <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
                   <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
                     <Users size={24} />
@@ -697,7 +697,7 @@ const UsersPage = () => {
                     <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>
                       {editingUser ? 'Edit User' : 'Create New User'}
                     </h2>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#a5b4fc', fontWeight: 600, opacity: 0.9 }}>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600, opacity: 0.9 }}>
                       {editingUser ? `Refining details for ${editingUser.userName}` : 'Register a new account in the system'}
                     </p>
                   </div>
@@ -773,7 +773,7 @@ const UsersPage = () => {
                               fontFamily: 'inherit', fontSize: '0.85rem', fontWeight: 800,
                               transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 8
                             }}
-                            onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor='rgba(99,102,241,0.4)' }}
+                            onMouseEnter={e => { e.currentTarget.style.background='rgba(37, 99, 235,0.15)'; e.currentTarget.style.borderColor='rgba(37, 99, 235,0.4)' }}
                             onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor=D.border }}
                           >
                             Upload Image
@@ -801,8 +801,8 @@ const UsersPage = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: 16 }}>
-                  <button type="submit" style={{ flex: 1, padding: '14px 24px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 800, transition: 'all 0.25s', boxShadow: '0 8px 24px rgba(99,102,241,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(99,102,241,0.4)' }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.3)' }}>
+                  <button type="submit" style={{ flex: 1, padding: '14px 24px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 800, transition: 'all 0.25s', boxShadow: '0 8px 24px rgba(37, 99, 235,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(37, 99, 235,0.4)' }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(37, 99, 235,0.3)' }}>
                     <Check size={18}/> {editingUser ? 'Save Changes' : 'Create User'}
                   </button>
                   <button type="button" onClick={() => setShowModal(false)} style={{ flex: 0.4, padding: '14px 24px', borderRadius: 16, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.95rem', fontWeight: 800, transition: 'all 0.2s' }}
