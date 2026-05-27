@@ -15,12 +15,12 @@ const roleText = {
 // Icon per notification type
 const ctrlNotifIcon = (type, isDark) => {
   const base = { borderRadius: '50%', padding: 6, display: 'flex', color: '#fff' }
-  if (type === 'FUEL_ADD')    return { ...base, background: '#6366f1' }
+  if (type === 'FUEL_ADD')    return { ...base, background: '#2563eb' }
   if (type === 'FUEL_EDIT')   return { ...base, background: '#f59e0b' }
   if (type === 'FUEL_DELETE') return { ...base, background: '#ef4444' }
   if (type === 'LOW_EFF')     return { ...base, background: '#f97316' }
   if (type === 'SERVICE')     return { ...base, background: '#10b981' }
-  return { ...base, background: isDark ? '#334155' : '#94a3b8' }
+  return { ...base, background: isDark ? '#374151' : '#94a3b8' }
 }
 
 const ctrlNotifIconEl = (type) => {
@@ -37,8 +37,8 @@ const drvNotifIcon = (type, isDark) => {
   if (type === 'FUEL_ADD')  return { ...base, background: '#10b981' }
   if (type === 'FUEL_EDIT') return { ...base, background: '#f59e0b' }
   if (type === 'LOW_EFF')   return { ...base, background: '#f97316' }
-  if (type === 'VEHICLE')   return { ...base, background: '#6366f1' }
-  return { ...base, background: isDark ? '#334155' : '#94a3b8' }
+  if (type === 'VEHICLE')   return { ...base, background: '#2563eb' }
+  return { ...base, background: isDark ? '#374151' : '#94a3b8' }
 }
 
 const drvNotifIconEl = (type) => {
@@ -167,14 +167,14 @@ const Topbar = ({ onMenuToggle }) => {
       <div style={{ display: 'flex', alignItems: 'center', gap: 28, marginLeft: 'auto' }}>
         {/* Theme Toggle */}
         <button onClick={toggleTheme} style={{
-          display: 'flex', alignItems: 'center', background: isDark ? '#3b82f6' : '#e0e7ff',
+          display: 'flex', alignItems: 'center', background: isDark ? '#3b82f6' : '#dbeafe',
           borderRadius: 24, padding: 4, cursor: 'pointer', gap: 4, width: 64, justifyContent: 'space-between', border: 'none',
-          boxShadow: isDark ? '0 2px 8px rgba(59,130,246,0.4)' : '0 2px 8px rgba(99,102,241,0.15)',
+          boxShadow: isDark ? '0 2px 8px rgba(59,130,246,0.4)' : '0 2px 8px rgba(37, 99, 235,0.15)',
         }}>
           <div style={{ background: isDark ? '#fff' : 'transparent', borderRadius: '50%', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Moon size={14} color={isDark ? '#3b82f6' : '#9ca3af'} />
           </div>
-          <div style={{ background: !isDark ? '#6366f1' : 'transparent', borderRadius: '50%', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: !isDark ? '#2563eb' : 'transparent', borderRadius: '50%', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Sun size={14} color={!isDark ? '#fff' : 'rgba(255,255,255,0.5)'} />
           </div>
         </button>
@@ -183,7 +183,7 @@ const Topbar = ({ onMenuToggle }) => {
         {user && (
           <div ref={dropdownRef} style={{ position: 'relative', cursor: 'pointer' }}>
             <div onClick={() => setShowNotifications(!showNotifications)} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <Bell size={22} color={isDark ? '#94a3b8' : '#64748b'} />
+              <Bell size={22} color={isDark ? '#94a3b8' : '#9ca3af'} />
               {totalUnread > 0 && (
                 <div style={{
                   position: 'absolute', top: -5, right: -5,
@@ -225,9 +225,9 @@ const Topbar = ({ onMenuToggle }) => {
                     notifications.length === 0 ? <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No recent system activity</div> :
                     notifications.map(n => (
                       <div key={n.id} onClick={() => !n.isRead && handleMarkAsRead(n.id)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)'), cursor: 'pointer' }}>
-                        <div style={{ background: n.isRead ? (isDark ? '#334155' : '#e2e8f0') : '#3b82f6', color: '#fff', borderRadius: '50%', padding: 6, display: 'flex' }}><Info size={14} /></div>
+                        <div style={{ background: n.isRead ? (isDark ? '#374151' : '#f3f4f6') : '#3b82f6', color: '#fff', borderRadius: '50%', padding: 6, display: 'flex' }}><Info size={14} /></div>
                         <div style={{ flex: 1 }}>
-                          <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#e2e8f0' : '#334155', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
+                          <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#f3f4f6' : '#374151', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
                           <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{new Date(n.createdAt).toLocaleString()}</span>
                         </div>
                       </div>
@@ -238,15 +238,15 @@ const Topbar = ({ onMenuToggle }) => {
                   {user.role === 'CONTROLLER' && (
                     ctrlNotifs.length === 0 ? <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No recent activity log</div> :
                     <>
-                      <div style={{ padding: '8px 16px', background: isDark ? 'rgba(167,139,250,0.05)' : '#f8fafc', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#eee'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ padding: '8px 16px', background: isDark ? 'rgba(96, 165, 250,0.05)' : '#f8fafc', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#eee'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase' }}>Recent Activity</span>
                         <button onClick={handleCtrlClearAll} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '0.65rem', cursor: 'pointer' }}>Clear All</button>
                       </div>
                       {ctrlNotifs.map(n => (
-                        <div key={n.id} onClick={() => !n.isRead && handleCtrlMarkRead(n.id)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(167,139,250,0.06)' : 'rgba(167,139,250,0.04)'), cursor: 'pointer' }}>
+                        <div key={n.id} onClick={() => !n.isRead && handleCtrlMarkRead(n.id)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(96, 165, 250,0.06)' : 'rgba(96, 165, 250,0.04)'), cursor: 'pointer' }}>
                           <div style={ctrlNotifIcon(n.type, isDark)}>{ctrlNotifIconEl(n.type)}</div>
                           <div style={{ flex: 1 }}>
-                            <p style={{ margin: 0, fontSize: '0.82rem', color: isDark ? '#e2e8f0' : '#334155', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
+                            <p style={{ margin: 0, fontSize: '0.82rem', color: isDark ? '#f3f4f6' : '#374151', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
                             <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{new Date(n.createdAt).toLocaleString()}</span>
                           </div>
                         </div>
@@ -261,7 +261,7 @@ const Topbar = ({ onMenuToggle }) => {
                       <div key={n.id} onClick={() => !n.isRead && handleDrvMarkRead(n.id)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.04)'), cursor: 'pointer' }}>
                         <div style={drvNotifIcon(n.type, isDark)}>{drvNotifIconEl(n.type)}</div>
                         <div style={{ flex: 1 }}>
-                          <p style={{ margin: 0, fontSize: '0.82rem', color: isDark ? '#e2e8f0' : '#334155', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
+                          <p style={{ margin: 0, fontSize: '0.82rem', color: isDark ? '#f3f4f6' : '#374151', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
                           <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{new Date(n.createdAt).toLocaleString()}</span>
                         </div>
                       </div>
@@ -279,7 +279,7 @@ const Topbar = ({ onMenuToggle }) => {
             {user?.profilePicture ? (
               <img src={user?.profilePicture} alt={user?.userName} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
             ) : (
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <User size={20} color="#ffffff" strokeWidth={2} />
               </div>
             )}

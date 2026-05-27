@@ -130,7 +130,7 @@ const DemoDrawer = ({ onPopulate }) => {
     <div className={`ag-demo-drawer ${isOpen ? 'ag-demo-drawer--open' : ''}`}>
       <div className="ag-demo-header" onClick={() => setIsOpen(!isOpen)}>
         <span className="ag-demo-header-title">
-          <AlertCircle size={13} style={{ color: '#a5b4fc' }} />
+          <AlertCircle size={13} style={{ color: '#60a5fa' }} />
           Quick-Demo Credentials
         </span>
         <ChevronDown size={14} className="ag-demo-caret" />

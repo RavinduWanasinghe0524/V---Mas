@@ -484,7 +484,7 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(99,102,241,0.3), transparent);
+  background: radial-gradient(circle, rgba(37, 99, 235,0.3), transparent);
   animation: su-pulse 2s ease-in-out infinite;
 }
 

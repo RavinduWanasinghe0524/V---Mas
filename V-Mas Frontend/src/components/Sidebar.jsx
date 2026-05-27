@@ -177,7 +177,7 @@ const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
               style={{
                 width: 40, height: 40, borderRadius: 10,
                 objectFit: 'cover',
-                filter: 'drop-shadow(0 0 8px rgba(99,102,241,0.6))',
+                filter: 'drop-shadow(0 0 8px rgba(37, 99, 235,0.6))',
                 display: 'block',
               }}
             />
