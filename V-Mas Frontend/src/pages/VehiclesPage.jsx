@@ -6,11 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
 import { vehicleAPI, userAPI, serviceAPI, fuelAPI } from '../services/api'
 import { getAlertLevel, computeMileageProgress, computeDateAlert, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
-<<<<<<< HEAD
-import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info } from 'lucide-react'
-=======
 import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus } from 'lucide-react'
->>>>>>> dv/check
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(99,102,241,0.5)'
@@ -108,8 +104,6 @@ const VehiclesPage = () => {
     setProfileFuelLogs([])
   }
 
-<<<<<<< HEAD
-=======
   useEffect(() => {
     if (!loading && vehicles.length > 0 && location.state?.openVehicleProfile) {
       const v = vehicles.find(veh => veh.registrationNo === location.state.openVehicleProfile)
@@ -119,8 +113,6 @@ const VehiclesPage = () => {
       }
     }
   }, [loading, vehicles, location.state, navigate, location.pathname])
-
->>>>>>> dv/check
   const [formData, setFormData] = useState({
     model: '',
     registrationNo: '',
@@ -547,35 +539,6 @@ const VehiclesPage = () => {
                       const alertInfo = vehicleAlerts[v.registrationNo]
                       const ac = alertInfo ? (ALERT_COLORS[alertInfo.level] || ALERT_COLORS.OK) : null
                       return (
-<<<<<<< HEAD
-                        <tr key={v.id} style={{ borderBottom: `1px solid ${D.border}`, background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)', transition: 'background 0.15s' }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.08)'}
-                          onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'}>
-                          <td style={{ padding: '14px 16px' }}>
-                            <button
-                              onClick={() => openProfile(v)}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                padding: 0,
-                                fontWeight: 800,
-                                color: D.blue,
-                                cursor: 'pointer',
-                                outline: 'none',
-                                textAlign: 'left',
-                                transition: 'all 0.15s ease',
-                                fontFamily: 'inherit'
-                              }}
-                              onMouseEnter={e => { e.currentTarget.style.color = '#818cf8'; e.currentTarget.style.textDecoration = 'underline' }}
-                              onMouseLeave={e => { e.currentTarget.style.color = D.blue; e.currentTarget.style.textDecoration = 'none' }}
-                            >
-                              {v.registrationNo ?? 'N/A'}
-                            </button>
-                          </td>
-                          <td style={{ padding: '14px 16px', color: D.text, fontWeight: 600 }}>{v.manufacturer ?? 'N/A'} {v.model ?? 'N/A'}</td>
-                          <td style={{ padding: '14px 16px', color: D.textSub }}>{v.year ?? 'N/A'}</td>
-                          <td style={{ padding: '14px 16px', color: D.textSub }}>{v.fuelType ?? 'N/A'}</td>
-=======
                         <div key={v.id} style={{
                             background: D.surface, borderRadius: 20, border: `1px solid ${D.border}`,
                             padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 24,
@@ -620,7 +583,6 @@ const VehiclesPage = () => {
                                 </div>
                               </div>
                             </div>
->>>>>>> dv/check
 
                             {/* Next Service Status */}
                             <div style={{ width: 140, flexShrink: 0 }}>
@@ -643,27 +605,6 @@ const VehiclesPage = () => {
 
                             {/* Actions */}
                             {!isDriver && (
-<<<<<<< HEAD
-                              <td style={{ padding: '14px 16px' }}>
-                                <div style={{ display: 'flex', gap: 6 }}>
-                                  <button onClick={() => openProfile(v)} style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; e.currentTarget.style.color = '#a5b4fc' }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
-                                    <Eye size={14} style={{ marginRight: 6 }} /> Profile
-                                  </button>
-                                  <button onClick={() => openEditModal(v)} style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; e.currentTarget.style.color = '#a5b4fc' }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
-                                    <Edit2 size={14} style={{ marginRight: 6 }} /> Edit
-                                  </button>
-                                  <button onClick={() => openDeleteModal(v)} style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.2)' }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)' }}>
-                                    <Trash2 size={14} style={{ marginRight: 6 }} /> Delete
-                                  </button>
-                                </div>
-                              </td>
-=======
                             <div style={{ display: 'flex', gap: 10, marginLeft: 16 }}>
                               <button onClick={() => openProfile(v)} title="Profile" style={{ width: 42, height: 42, borderRadius: 12, border: `1px solid ${D.border}`, background: D.surface, color: D.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.25s' }} onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = D.blue; e.currentTarget.style.background = D.blue }} onMouseLeave={e => { e.currentTarget.style.color = D.blue; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface }}>
                                 <Eye size={18} />
@@ -675,7 +616,6 @@ const VehiclesPage = () => {
                                 <Trash2 size={18} />
                               </button>
                             </div>
->>>>>>> dv/check
                             )}
                           </div>
                           )
@@ -1176,11 +1116,7 @@ const VehiclesPage = () => {
                                   color: D.purple,
                                   display: 'flex',
                                   alignItems: 'center',
-<<<<<<< HEAD
                                   justifyContent: 'center',
-=======
-                                justify: 'center',
->>>>>>> dv/check
                                   flexShrink: 0,
                                   border: `1px solid ${D.purple}20`
                                 }}>
