@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
-import { useD } from '../context/ThemeContext'
+import { useD, useTheme } from '../context/ThemeContext'
 import api, { vehicleAPI, userAPI, serviceAPI, fuelAPI } from '../services/api'
 import { getAlertLevel, computeMileageProgress, computeDateAlert, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
 import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download } from 'lucide-react'
@@ -20,7 +20,7 @@ const onBlur = e => {
 
 const StatBadge = ({ label, value, icon, colorDim, colorHex, D }) => (
   <div style={{
-    background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 4px 24px rgba(0,0,0,0.25)', overflow: 'hidden', padding: '28px', display: 'flex', alignItems: 'center', gap: 24,
+    background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: 'var(--shadow-sm)', overflow: 'hidden', padding: '28px', display: 'flex', alignItems: 'center', gap: 24,
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', cursor: 'default'
   }}
     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.borderColor = colorHex + '50'; e.currentTarget.style.boxShadow = `0 16px 32px ${colorHex}20` }}
@@ -37,6 +37,8 @@ const StatBadge = ({ label, value, icon, colorDim, colorHex, D }) => (
 
 const VehiclesPage = () => {
   const D = useD()
+  const { theme } = useTheme()
+  const isDark = theme === 'blue'
 
   const statusColors = {
     ACTIVE: { bg: D.greenDim, color: D.green, border: `${D.green}50` },
@@ -501,9 +503,14 @@ const VehiclesPage = () => {
 
             {/* Hero Banner */}
             <div style={{
-              background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
+              background: isDark
+                ? 'linear-gradient(135deg, #0d0b2e 0%, #1e1b4b 45%, #312e81 100%)'
+                : 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
               borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
-              boxShadow: '0 16px 48px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`
+              boxShadow: isDark
+                ? '0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.15)'
+                : '0 16px 48px rgba(30,27,75,0.35)',
+              border: `1px solid ${D.border}`
             }}>
               <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 30 }}>
                 <div>
@@ -691,7 +698,7 @@ const VehiclesPage = () => {
                             padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 24,
                             transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`,
                             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                          }} onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateX(6px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }} onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)' }}>
+                          }} onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)' }} onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'var(--shadow-xs)' }}>
 
                             {/* Reg No & Fuel Type */}
                             <div style={{ width: 140, flexShrink: 0 }}>
