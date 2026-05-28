@@ -76,7 +76,7 @@ const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "
       ) : (
         <button style={{
           padding: '8px 18px', borderRadius: 10, border: 'none',
-          background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+          background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
           color: '#fff', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
         }}>
           {btnText}
@@ -176,7 +176,7 @@ const AlertSection = ({ alerts, navigate, isDark }) => {
               gap: 16,
               padding: '16px 20px',
               borderRadius: 12,
-              background: alert.severity === 'OVERDUE' ? 'var(--error-bg)' : 'var(--warning-bg)',
+              background: alert.severity === 'OVERDUE' ? 'var(--danger-bg)' : 'var(--warning-bg)',
               border: `1px solid ${alert.severity === 'OVERDUE' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`,
               boxShadow: 'var(--shadow-sm)',
               animation: alert.severity === 'OVERDUE' ? 'pulse-border 2s infinite' : 'none'
@@ -184,7 +184,7 @@ const AlertSection = ({ alerts, navigate, isDark }) => {
           >
             <div style={{ 
               width: 40, height: 40, borderRadius: 10, 
-              background: alert.severity === 'OVERDUE' ? '#ef4444' : '#f59e0b',
+              background: alert.severity === 'OVERDUE' ? 'var(--danger)' : 'var(--warning)',
               color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
             }}>
               <AlertTriangle size={20} />
@@ -194,7 +194,7 @@ const AlertSection = ({ alerts, navigate, isDark }) => {
                 <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>{alert.title}</h4>
                 <span style={{ 
                   fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, 
-                  background: alert.severity === 'OVERDUE' ? '#ef4444' : '#f59e0b', 
+                  background: alert.severity === 'OVERDUE' ? 'var(--danger)' : 'var(--warning)', 
                   color: '#fff', textTransform: 'uppercase' 
                 }}>
                   {alert.severity}
@@ -213,12 +213,12 @@ const AlertSection = ({ alerts, navigate, isDark }) => {
                 }
               }}
               style={{
-                padding: '6px 14px', borderRadius: 8, border: 'none',
-                background: 'rgba(255,255,255,0.1)', color: 'var(--text-primary)',
+                padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)',
+                background: 'rgba(255,255,255,0.15)', color: 'var(--text-primary)',
                 fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
               }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.28)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
             >
               View Details
             </button>

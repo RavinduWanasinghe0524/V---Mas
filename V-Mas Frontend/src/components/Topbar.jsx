@@ -49,7 +49,7 @@ const drvNotifIconEl = (type) => {
   return <Info size={14} />
 }
 
-const Topbar = ({ onMenuToggle }) => {
+const Topbar = ({ title, subtitle, onMenuToggle }) => {
   const { user } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const isDark = theme === 'blue'
@@ -143,8 +143,8 @@ const Topbar = ({ onMenuToggle }) => {
   return (
     <header style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '16px 32px', background: 'var(--topbar-bg)',
-      borderBottom: '1px solid var(--topbar-border)', height: 80, boxSizing: 'border-box', width: '100%',
+      padding: '0 32px', background: 'var(--topbar-bg)',
+      borderBottom: '1px solid var(--topbar-border)', height: 'var(--navbar-h)', boxSizing: 'border-box', width: '100%',
       gap: 12,
     }}>
       {/* Hamburger menu button (mobile only) */}
@@ -160,6 +160,14 @@ const Topbar = ({ onMenuToggle }) => {
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
+      )}
+
+      {/* Left: Title + Breadcrumb */}
+      {(title || subtitle) && (
+        <div className="topbar-left">
+          {title && <span className="topbar-title">{title}</span>}
+          {subtitle && <span className="topbar-breadcrumb">{subtitle}</span>}
+        </div>
       )}
 
 
@@ -220,7 +228,7 @@ const Topbar = ({ onMenuToggle }) => {
               {totalUnread > 0 && (
                 <div style={{
                   position: 'absolute', top: -5, right: -5,
-                  background: alertCount > 0 ? '#ef4444' : (user.role === 'CONTROLLER' ? '#a855f7' : (user.role === 'DRIVER' ? '#10b981' : '#3b82f6')),
+                  background: alertCount > 0 ? 'var(--danger)' : 'var(--primary)',
                   color: '#fff', fontSize: '0.65rem', fontWeight: 700, width: 16, height: 16, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid var(--topbar-bg)`,
                 }}>
                   {totalUnread > 9 ? '9+' : totalUnread}
@@ -230,8 +238,8 @@ const Topbar = ({ onMenuToggle }) => {
 
             {showNotifications && (
               <div style={{
-                position: 'absolute', top: '100%', right: -20, marginTop: 16, width: 340, background: isDark ? '#1e293b' : '#ffffff',
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'}`, borderRadius: 16, boxShadow: '0 10px 40px rgba(0,0,0,0.15)', zIndex: 100, display: 'flex', flexDirection: 'column', overflow: 'hidden'
+                position: 'absolute', top: '100%', right: -20, marginTop: 16, width: 340, background: 'var(--surface)',
+                border: `1px solid var(--surface-border)`, borderRadius: 16, boxShadow: 'var(--shadow-xl)', zIndex: 100, display: 'flex', flexDirection: 'column', overflow: 'hidden'
               }}>
                 <div style={{ padding: '16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 style={{ margin: 0, fontSize: '1rem', color: isDark ? '#fff' : '#1e293b', fontWeight: 600 }}>
@@ -312,7 +320,7 @@ const Topbar = ({ onMenuToggle }) => {
             {user?.profilePicture ? (
               <img src={user?.profilePicture} alt={user?.userName} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
             ) : (
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <User size={20} color="#ffffff" strokeWidth={2} />
               </div>
             )}
