@@ -4,9 +4,9 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
-import { vehicleAPI, userAPI, serviceAPI, fuelAPI } from '../services/api'
+import api, { vehicleAPI, userAPI, serviceAPI, fuelAPI } from '../services/api'
 import { getAlertLevel, computeMileageProgress, computeDateAlert, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
-import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus } from 'lucide-react'
+import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download } from 'lucide-react'
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(99,102,241,0.5)'
@@ -74,6 +74,8 @@ const VehiclesPage = () => {
   const [editError, setEditError] = useState('')
   const [vehicles, setVehicles] = useState([])
   const [serviceRecords, setServiceRecords] = useState([])
+  const [drivers, setDrivers] = useState([])
+  const [fuelStats, setFuelStats] = useState([])
 
   // --- VEHICLE PROFILE STATE ---
   const [selectedProfileVehicle, setSelectedProfileVehicle] = useState(null)
@@ -102,6 +104,129 @@ const VehiclesPage = () => {
     setIsProfileOpen(false)
     setSelectedProfileVehicle(null)
     setProfileFuelLogs([])
+  }
+
+  const [uploadingDoc, setUploadingDoc] = useState({ type: '', loading: false })
+
+  const downloadDocument = async (id, docType, filename) => {
+    try {
+      const token = localStorage.getItem('token')
+      const res = await api.get(`/vehicles/${id}/document/${docType}`, { 
+        responseType: 'blob',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const blob = new Blob([res.data], { type: res.headers['content-type'] })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', filename || `${docType}_document`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error("Failed to download document:", err)
+      alert("Failed to download document. Please try again.")
+    }
+  }
+
+  const handleDocumentUpload = async (vehicleId, docType, file) => {
+    if (!file) return
+    setUploadingDoc({ type: docType, loading: true })
+    try {
+      const res = await vehicleAPI.uploadDocument(vehicleId, docType, file)
+      setVehicles(prev => prev.map(v => v.id === vehicleId ? res.data.data : v))
+      setSelectedProfileVehicle(res.data.data)
+    } catch (err) {
+      console.error("Failed to upload document:", err)
+      alert(err.response?.data?.message || "Failed to upload document.")
+    } finally {
+      setUploadingDoc({ type: '', loading: false })
+    }
+  }
+
+  const renderDocBlock = (docType, label, path) => {
+    const isUploading = uploadingDoc.type === docType && uploadingDoc.loading
+    const originalFilename = path ? path.substring(path.lastIndexOf('_') + 1) : null
+
+    return (
+      <div style={{ 
+        display: 'flex', flexDirection: 'column', gap: 6, background: D.bg, 
+        padding: '12px 14px', borderRadius: 12, border: `1px solid ${D.border}`
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: D.text }}>{label}</span>
+          {path ? (
+            <span style={{ fontSize: '0.62rem', fontWeight: 800, color: D.green, background: D.greenDim, padding: '2px 6px', borderRadius: 4 }}>Uploaded</span>
+          ) : (
+            <span style={{ fontSize: '0.62rem', fontWeight: 800, color: D.textFaint }}>No File</span>
+          )}
+        </div>
+
+        {path ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 4 }}>
+            <button 
+              onClick={() => downloadDocument(selectedProfileVehicle.id, docType, originalFilename)}
+              style={{
+                background: 'none', border: 'none', padding: 0, margin: 0,
+                color: D.blue, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit',
+                textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '70%'
+              }}
+              title="Download File"
+            >
+              <FileText size={12} style={{ flexShrink: 0 }} />
+              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{originalFilename}</span>
+            </button>
+            {!isDriver && (
+              <label style={{ cursor: 'pointer', flexShrink: 0 }}>
+                <input 
+                  type="file" 
+                  onChange={e => handleDocumentUpload(selectedProfileVehicle.id, docType, e.target.files[0])}
+                  style={{ display: 'none' }}
+                  disabled={isUploading}
+                />
+                <span style={{ color: D.textSub, fontSize: '0.7rem', fontWeight: 700, textDecoration: 'underline' }}>
+                  {isUploading ? 'Uploading...' : 'Update'}
+                </span>
+              </label>
+            )}
+          </div>
+        ) : (
+          <div>
+            {!isDriver ? (
+              <label style={{ 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                padding: '8px 10px', borderRadius: 8, border: `1px dashed ${D.border}`,
+                background: D.surface, cursor: 'pointer', color: D.textSub, fontSize: '0.7rem', fontWeight: 700,
+                transition: 'all 0.2s', marginTop: 4
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = D.blue; e.currentTarget.style.color = D.text }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.textSub }}
+              >
+                <input 
+                  type="file" 
+                  onChange={e => handleDocumentUpload(selectedProfileVehicle.id, docType, e.target.files[0])}
+                  style={{ display: 'none' }}
+                  disabled={isUploading}
+                />
+                {isUploading ? (
+                  <>Uploading...</>
+                ) : (
+                  <>
+                    <Upload size={12} /> Upload File (Image / PDF)
+                  </>
+                )}
+              </label>
+            ) : (
+              <span style={{ fontSize: '0.7rem', color: D.textFaint, fontStyle: 'italic', marginTop: 4, display: 'block' }}>No documents uploaded.</span>
+            )}
+          </div>
+        )}
+      </div>
+    )
   }
 
   useEffect(() => {
@@ -150,12 +275,16 @@ const VehiclesPage = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [vehicleRes, serviceRes] = await Promise.all([
+        const [vehicleRes, serviceRes, driverRes, fuelStatsRes] = await Promise.all([
           vehicleAPI.getAllVehicles(),
           serviceAPI.getAllServices(),
+          isAdmin || !isDriver ? userAPI.getAllDrivers().catch(() => ({ data: { data: [] } })) : Promise.resolve({ data: { data: [] } }),
+          fuelAPI.getVehicleStats().catch(() => ({ data: { data: [] } }))
         ])
         setVehicles(vehicleRes.data.data || [])
         setServiceRecords(serviceRes.data.data || [])
+        setDrivers(driverRes.data?.data || [])
+        setFuelStats(fuelStatsRes.data?.data || [])
       } catch (err) {
         console.error('Error loading data:', err)
       } finally {
@@ -281,11 +410,14 @@ const VehiclesPage = () => {
         fuelType: editFormData.fuelType.toUpperCase(),
         currentMileageKm: editFormData.currentMileageKm,
         insuranceExpiryDate: editFormData.insuranceExpiryDate || null,
-        licenseExpiryDate: editFormData.licenseExpiryDate || null
+        licenseExpiryDate: editFormData.licenseExpiryDate || null,
+        status: editFormData.status
       })
       // Assign / re-assign driver if changed
       if (editFormData.driverId) {
         await vehicleAPI.assignDriver(editingVehicle.id, editFormData.driverId)
+      } else {
+        await vehicleAPI.unassignDriver(editingVehicle.id)
       }
       const response = await vehicleAPI.getAllVehicles()
       setVehicles(response.data.data || [])
@@ -538,6 +670,21 @@ const VehiclesPage = () => {
                       const s = statusColors[v.status] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
                       const alertInfo = vehicleAlerts[v.registrationNo]
                       const ac = alertInfo ? (ALERT_COLORS[alertInfo.level] || ALERT_COLORS.OK) : null
+
+                      // Expiry checks
+                      const today = new Date()
+                      const insExpiry = v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate) : null
+                      const licExpiry = v.licenseExpiryDate ? new Date(v.licenseExpiryDate) : null
+                      
+                      const insDiff = insExpiry ? Math.ceil((insExpiry - today) / (1000 * 60 * 60 * 24)) : null
+                      const licDiff = licExpiry ? Math.ceil((licExpiry - today) / (1000 * 60 * 60 * 24)) : null
+                      
+                      const isInsAlert = insDiff !== null && insDiff <= 30
+                      const isLicAlert = licDiff !== null && licDiff <= 30
+                      
+                      const isInsExpired = insDiff !== null && insDiff < 0
+                      const isLicExpired = licDiff !== null && licDiff < 0
+
                       return (
                         <div key={v.id} style={{
                             background: D.surface, borderRadius: 20, border: `1px solid ${D.border}`,
@@ -554,12 +701,17 @@ const VehiclesPage = () => {
                                   background: 'none', border: 'none', padding: 0, margin: 0,
                                   fontSize: '1.1rem', fontWeight: 950, color: D.blue, letterSpacing: '0.02em',
                                   cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
-                                  transition: 'color 0.15s ease'
+                                  transition: 'color 0.15s ease', display: 'flex', alignItems: 'center', gap: 6
                                 }}
                                 onMouseEnter={e => e.currentTarget.style.color = '#818cf8'}
                                 onMouseLeave={e => e.currentTarget.style.color = D.blue}
                               >
                                 {v.registrationNo ?? 'N/A'}
+                                {(isInsExpired || isLicExpired) ? (
+                                  <AlertCircle size={14} style={{ color: D.red }} title={isInsExpired ? "Insurance Expired" : "License Expired"} />
+                                ) : (isInsAlert || isLicAlert) ? (
+                                  <AlertTriangle size={14} style={{ color: D.orange }} title={isInsAlert ? "Insurance Expiring Soon" : "License Expiring Soon"} />
+                                ) : null}
                               </button>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
                                 <span style={{ fontSize: '0.72rem', color: D.textSub, fontWeight: 800, textTransform: 'uppercase', background: D.surfaceHi, padding: '2px 8px', borderRadius: 6, border: `1px solid ${D.border}` }}>
@@ -661,10 +813,6 @@ const VehiclesPage = () => {
                       <input type="text" name="registrationNo" value={formData.registrationNo} onChange={(e) => setFormData({ ...formData, registrationNo: e.target.value.toUpperCase() })} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. WP-CAB-1234, 24-2345, 112-2345" />
                       <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Format: WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, ABC-1234</p>
                     </div>
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <label style={labelStyle}>Chassis Number</label>
-                      <input type="text" name="chassisNumber" value={formData.chassisNumber} onChange={handleChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. JT164B623" />
-                    </div>
                     <div>
                       <label style={labelStyle}>Year <span style={{ color: D.red }}>*</span></label>
                       <input type="number" min={1985} name="year" value={formData.year} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 2020" />
@@ -682,6 +830,18 @@ const VehiclesPage = () => {
                     <div>
                       <label style={labelStyle}>Current Mileage (km) <span style={{ color: D.red }}>*</span></label>
                       <input type="number" name="currentMileageKm" value={formData.currentMileageKm} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 15000" />
+                    </div>
+
+                    <div>
+                      <label style={labelStyle}>Assign Driver</label>
+                      <select name="driverId" value={formData.driverId} onChange={handleChange} style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
+                        <option value="" style={{ background: D.surfaceHi }}>No Driver (Unassigned)</option>
+                        {drivers.map(d => (
+                          <option key={d.id} value={d.id} style={{ background: D.surfaceHi }}>
+                            {d.userName} ({d.fullName || d.email})
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     <div>
@@ -743,10 +903,6 @@ const VehiclesPage = () => {
                       <input type="text" name="registrationNo" value={editFormData.registrationNo} onChange={(e) => setEditFormData({ ...editFormData, registrationNo: e.target.value.toUpperCase() })} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                       <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Format: WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, ABC-1234</p>
                     </div>
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <label style={labelStyle}>Chassis Number</label>
-                      <input type="text" name="chassisNumber" value={editFormData.chassisNumber} onChange={handleEditChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
-                    </div>
                     <div>
                       <label style={labelStyle}>Year</label>
                       <input type="number" min={1985} name="year" value={editFormData.year} onChange={handleEditChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
@@ -764,6 +920,28 @@ const VehiclesPage = () => {
                     <div>
                       <label style={labelStyle}>Current Mileage (km)</label>
                       <input type="number" name="currentMileageKm" value={editFormData.currentMileageKm} onChange={handleEditChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                    </div>
+
+                    <div>
+                      <label style={labelStyle}>Assign Driver</label>
+                      <select name="driverId" value={editFormData.driverId} onChange={handleEditChange} style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
+                        <option value="" style={{ background: D.surfaceHi }}>No Driver (Unassigned)</option>
+                        {drivers.map(d => (
+                          <option key={d.id} value={d.id} style={{ background: D.surfaceHi }}>
+                            {d.userName} ({d.fullName || d.email})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={labelStyle}>Vehicle Status</label>
+                      <select name="status" value={editFormData.status} onChange={handleEditChange} required style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
+                        <option value="AVAILABLE" style={{ background: D.surfaceHi }}>Available</option>
+                        <option value="ACTIVE" style={{ background: D.surfaceHi }}>Active</option>
+                        <option value="SERVICE" style={{ background: D.surfaceHi }}>In Service (Maintenance)</option>
+                        <option value="INACTIVE" style={{ background: D.surfaceHi }}>Inactive</option>
+                      </select>
                     </div>
 
                     <div>
@@ -930,14 +1108,6 @@ const VehiclesPage = () => {
                           </span>
                         </div>
                       ))}
-                      <div style={{ gridColumn: '1 / -1', background: D.surface, border: `1px solid ${D.border}`, borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <span style={{ fontSize: '0.65rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Info size={14} color={D.orange} /> Chassis Number
-                        </span>
-                        <span style={{ fontSize: '0.88rem', color: D.text, fontWeight: 700, fontFamily: 'monospace', letterSpacing: '0.02em' }}>
-                          {selectedProfileVehicle.chassisNumber || 'N/A'}
-                        </span>
-                      </div>
                     </div>
 
                     {/* Expiry / Compliance Section */}
@@ -992,6 +1162,19 @@ const VehiclesPage = () => {
                             </span>
                           )
                         })() : <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>}
+                      </div>
+
+                      {/* Document Attachments */}
+                      <div style={{ borderTop: `1px solid ${D.border}`, marginTop: 12, paddingTop: 16 }}>
+                        <h5 style={{ margin: '0 0 12px', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Original Documents & Papers</h5>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          {/* Insurance Doc */}
+                          {renderDocBlock('insurance', 'Insurance Certificate', selectedProfileVehicle.insuranceDocumentPath)}
+                          {/* License Doc */}
+                          {renderDocBlock('license', 'License & Road Tax', selectedProfileVehicle.licenseDocumentPath)}
+                          {/* Registration Book Doc */}
+                          {renderDocBlock('registration', 'Registration Book (V5)', selectedProfileVehicle.registrationBookPath)}
+                        </div>
                       </div>
                     </div>
 
@@ -1159,6 +1342,44 @@ const VehiclesPage = () => {
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                        {/* Fuel Efficiency aggregate stats */}
+                        {(() => {
+                          const vStat = fuelStats.find(s => s.vehicleRegNumber === selectedProfileVehicle.registrationNo)
+                          if (!vStat) return null
+                          
+                          const effColor = vStat.efficiencyStatus === 'Good' ? D.green 
+                                         : vStat.efficiencyStatus === 'Moderate' ? D.orange 
+                                         : D.red
+                          const effBg = vStat.efficiencyStatus === 'Good' ? D.greenDim 
+                                       : vStat.efficiencyStatus === 'Moderate' ? D.orangeDim 
+                                       : D.redDim
+                                       
+                          return (
+                            <div style={{ 
+                              background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16, padding: '16px 20px',
+                              display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: D.textSub }}>Fuel Efficiency Analytics</span>
+                                <span style={{ background: effBg, color: effColor, border: `1px solid ${effColor}30`, fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: 99 }}>
+                                  {vStat.efficiencyStatus}
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                                <span style={{ fontSize: '1.8rem', fontWeight: 900, color: D.text }}>{vStat.fuelEfficiency?.toFixed(1) || '0.0'}</span>
+                                <span style={{ fontSize: '0.88rem', color: D.textSub, fontWeight: 700 }}>km / Liter</span>
+                              </div>
+                              <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden' }}>
+                                <div style={{ width: `${Math.min((vStat.fuelEfficiency || 0) * 6.6, 100)}%`, height: '100%', background: effColor }} />
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: D.textSub }}>
+                                <span>Total spent: Rs. {Math.round(vStat.totalSpending || 0).toLocaleString()}</span>
+                                <span>Fleet threshold: 5.0 km/L</span>
+                              </div>
+                            </div>
+                          )
+                        })()}
+
                         {/* Stats Widgets */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                           {(() => {

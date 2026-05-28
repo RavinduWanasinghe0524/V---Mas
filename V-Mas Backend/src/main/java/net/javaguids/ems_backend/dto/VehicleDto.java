@@ -31,4 +31,8 @@ public class VehicleDto {
 
     private Long driverId;
     private String driverUsername;
+
+    private String insuranceDocumentPath;
+    private String licenseDocumentPath;
+    private String registrationBookPath;
 }
