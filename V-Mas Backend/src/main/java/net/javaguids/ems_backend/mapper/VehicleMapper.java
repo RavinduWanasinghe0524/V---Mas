@@ -25,7 +25,10 @@ public class VehicleMapper {
                 vehicle.getInsuranceExpiryDate(),
                 vehicle.getLicenseExpiryDate(),
                 vehicle.getDriver() != null ? vehicle.getDriver().getId() : null,
-                vehicle.getDriver() != null ? vehicle.getDriver().getUserName() : null
+                vehicle.getDriver() != null ? vehicle.getDriver().getUserName() : null,
+                vehicle.getInsuranceDocumentPath(),
+                vehicle.getLicenseDocumentPath(),
+                vehicle.getRegistrationBookPath()
         );
     }
 
@@ -45,6 +48,9 @@ public class VehicleMapper {
         vehicle.setFuelType(dto.getFuelType());
         vehicle.setInsuranceExpiryDate(dto.getInsuranceExpiryDate());
         vehicle.setLicenseExpiryDate(dto.getLicenseExpiryDate());
+        vehicle.setInsuranceDocumentPath(dto.getInsuranceDocumentPath());
+        vehicle.setLicenseDocumentPath(dto.getLicenseDocumentPath());
+        vehicle.setRegistrationBookPath(dto.getRegistrationBookPath());
         return vehicle;
     }
 }

@@ -69,4 +69,13 @@ public class Vehicle {
     /** Optional — vehicle license/road-tax expiry date, used for dashboard alerts */
     @Column(name = "license_expiry_date", nullable = true)
     private LocalDate licenseExpiryDate;
+
+    @Column(name = "insurance_document_path", length = 500, nullable = true)
+    private String insuranceDocumentPath;
+
+    @Column(name = "license_document_path", length = 500, nullable = true)
+    private String licenseDocumentPath;
+
+    @Column(name = "registration_book_path", length = 500, nullable = true)
+    private String registrationBookPath;
 }
