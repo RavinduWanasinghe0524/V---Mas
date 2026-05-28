@@ -79,7 +79,16 @@ export const vehicleAPI = {
   updateVehicle:    (id, data)          => api.put(`/vehicles/${id}`, data),
   deleteVehicle:    (id)                => api.delete(`/vehicles/${id}`),
   registerVehicle:  (data)              => api.post('/vehicles', data),
-
+  assignDriver:     (id, driverId)      => api.put(`/vehicles/${id}/assign/${driverId}`),
+  unassignDriver:   (id)                => api.delete(`/vehicles/${id}/assign`),
+  uploadDocument: (id, docType, file) => {
+    const form = new FormData()
+    form.append('file', file)
+    return api.post(`/vehicles/${id}/document/${docType}`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  getDocumentUrl: (id, docType) => `${API_BASE_URL}/vehicles/${id}/document/${docType}`
 }
 
 export const fuelAPI = {

@@ -8,11 +8,11 @@ import { User, Mail, Key, ShieldCheck, Shield, Globe, Fuel, Ruler, Calendar, Car
 import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 const onFocus = e => {
-  e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'
-  e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235,0.1)'
+  e.target.style.borderColor = 'rgba(99,102,241,0.5)'
+  e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'
 }
 const onBlur = e => {
-  e.target.style.borderColor = 'rgba(255,255,255,0.1)'
+  e.target.style.borderColor = ''
   e.target.style.boxShadow = 'none'
 }
 
@@ -201,13 +201,13 @@ const ProfilePage = () => {
 
           {/* Hero Banner */}
           <div style={{
-            background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
             borderRadius: 20,
             padding: '32px 36px',
             marginBottom: 28,
             position: 'relative',
             overflow: 'hidden',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            boxShadow: '0 8px 32px rgba(30,27,75,0.4)',
             border: `1px solid ${D.border}`,
             display: 'flex', alignItems: 'center', gap: 20
           }}>
@@ -223,7 +223,7 @@ const ProfilePage = () => {
                 <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                   My Profile
                 </h1>
-                <p style={{ margin: '4px 0 0', color: '#60a5fa', fontSize: '0.9rem' }}>
+                <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
                   Manage your account information and security settings
                 </p>
               </div>
@@ -250,7 +250,7 @@ const ProfilePage = () => {
                 />
                 <div style={{
                   position: 'absolute', bottom: 0, right: 0,
-                  background: '#2563eb', borderRadius: '50%',
+                  background: D.purple, borderRadius: '50%',
                   width: 28, height: 28, display: 'flex', alignItems: 'center',
                   justifyContent: 'center', border: `2px solid ${D.surface}`,
                   color: '#fff'
@@ -315,9 +315,9 @@ const ProfilePage = () => {
                       flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
                       cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 700,
                       transition: 'all 0.15s ease',
-                      background: activeTab === tab.key ? 'rgba(37, 99, 235,0.15)' : 'transparent',
-                      color:      activeTab === tab.key ? '#60a5fa' : D.textSub,
-                      boxShadow:  activeTab === tab.key ? '0 0 0 1px rgba(37, 99, 235,0.3)' : 'none',
+                      background: activeTab === tab.key ? D.purpleDim : 'transparent',
+                      color:      activeTab === tab.key ? D.purple : D.textSub,
+                      boxShadow:  activeTab === tab.key ? `0 0 0 1px ${D.purple}40` : 'none',
                     }}
                   >
                     {tab.label}
@@ -460,11 +460,11 @@ const ProfilePage = () => {
                       disabled={profileLoading}
                       style={{
                         padding: '10px 24px', borderRadius: 10,
-                        border: 'none', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff',
+                        border: 'none', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: '#fff',
                         cursor: profileLoading ? 'not-allowed' : 'pointer',
                         fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 700,
                         opacity: profileLoading ? 0.7 : 1, alignSelf: 'flex-start',
-                        boxShadow: '0 4px 14px rgba(37, 99, 235,0.4)', transition: 'all 0.2s ease'
+                        boxShadow: '0 4px 14px rgba(79,70,229,0.4)', transition: 'all 0.2s ease'
                       }}
                     >
                       {profileLoading ? 'SavingÔÇª' : 'Save Changes'}
@@ -548,11 +548,11 @@ const ProfilePage = () => {
                       disabled={pwLoading}
                       style={{
                         padding: '10px 24px', borderRadius: 10,
-                        border: 'none', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff',
+                        border: 'none', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: '#fff',
                         cursor: pwLoading ? 'not-allowed' : 'pointer',
                         fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 700,
                         opacity: pwLoading ? 0.7 : 1, alignSelf: 'flex-start',
-                        boxShadow: '0 4px 14px rgba(37, 99, 235,0.4)', transition: 'all 0.2s ease'
+                        boxShadow: '0 4px 14px rgba(79,70,229,0.4)', transition: 'all 0.2s ease'
                       }}
                     >
                       {pwLoading ? 'UpdatingÔÇª' : 'Update Password'}

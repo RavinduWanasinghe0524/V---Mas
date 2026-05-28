@@ -631,7 +631,7 @@ const AuthPage = () => {
   return (
     <div className={`ag-container theme-lime${themeMode === 'day' ? ' theme-light' : ''}`} onMouseMove={handleMouseMove}>
       {/* Zoom parallax background element */}
-      <div className="ag-container-bg" style={{ backgroundImage: `url(${themeMode === 'day' ? loginBgWhite : loginBg})` }} />
+      <div className="ag-container-bg" style={{ backgroundImage: `url("${themeMode === 'day' ? loginBgWhite : loginBg}")` }} />
 
       {/* Full-screen dark overlay */}
       <div className="ag-overlay" />

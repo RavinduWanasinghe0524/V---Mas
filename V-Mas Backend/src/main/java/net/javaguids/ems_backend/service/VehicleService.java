@@ -14,4 +14,12 @@ public interface VehicleService {
     VehicleDto updateVehicle(Long id, VehicleDto vehicleDto, String updatedBy);
 
     void deleteVehicle(Long id);
+
+    VehicleDto assignDriver(Long vehicleId, Long driverId);
+
+    VehicleDto unassignDriver(Long vehicleId);
+
+    VehicleDto uploadDocument(Long id, String docType, org.springframework.web.multipart.MultipartFile file);
+
+    org.springframework.core.io.Resource getDocument(Long id, String docType);
 }
