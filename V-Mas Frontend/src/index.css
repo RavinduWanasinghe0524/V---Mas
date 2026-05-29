@@ -24,6 +24,7 @@
   --danger:           #dc2626;
   --danger-bg:        #fee2e2;
   --danger-text:      #991b1b;
+  --error-bg:         #fee2e2;  /* alias for --danger-bg */
   --info:             #0284c7;
   --info-bg:          #e0f2fe;
   --info-text:        #075985;
@@ -107,6 +108,7 @@
   --danger:           #f87171;
   --danger-bg:        rgba(248,113,113,0.12);
   --danger-text:      #f87171;
+  --error-bg:         rgba(248,113,113,0.12);  /* alias for --danger-bg */
   --info:             #38bdf8;
   --info-bg:          rgba(56,189,248,0.12);
   --info-text:        #38bdf8;
@@ -407,7 +409,7 @@ img { display: block; max-width: 100%; }
   color: var(--text-primary);
 }
 .nav-item.active {
-  background: #2563eb;
+  background: var(--primary);
   color: #ffffff;
   font-weight: 600;
 }
@@ -444,10 +446,10 @@ img { display: block; max-width: 100%; }
   border-radius: 8px;
 }
 .nav-child.active {
-  background: rgba(37,99,235,0.12);
-  color: #2563eb;
+  background: var(--primary-muted);
+  color: var(--primary);
   font-weight: 700;
-  border-left: 3px solid #2563eb;
+  border-left: 3px solid var(--primary);
   padding-left: 49px;
 }
 
@@ -936,7 +938,7 @@ img { display: block; max-width: 100%; }
   text-transform: uppercase;
 }
 
-.badge-admin       { background: #dbeafe; color: #1d4ed8; }
+.badge-admin       { background: var(--primary-light); color: var(--primary-dark); }
 .badge-controller  { background: var(--info-bg); color: var(--info-text); }
 .badge-driver      { background: var(--success-bg); color: var(--success-text); }
 .badge-active      { background: var(--success-bg); color: var(--success-text); }
@@ -959,7 +961,7 @@ img { display: block; max-width: 100%; }
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.role-badge.role-admin,  .user-role.role-admin      { background: #dbeafe; color: #1d4ed8; }
+.role-badge.role-admin,  .user-role.role-admin      { background: var(--primary-light); color: var(--primary-dark); }
 .role-badge.role-controller, .user-role.role-controller { background: var(--info-bg); color: var(--info-text); }
 .role-badge.role-driver, .user-role.role-driver     { background: var(--success-bg); color: var(--success-text); }
 
@@ -1182,19 +1184,12 @@ select.form-control option { background: #fff; }
 .modal-close:hover { background: var(--danger-bg); color: var(--danger-text); }
 
 .modal-body { padding: 20px 24px; }
-.modal-footer {
+.modal-footer, .modal-actions {
   padding: 16px 24px 20px;
   border-top: 1px solid var(--border);
   display: flex;
   gap: 10px;
   justify-content: flex-end;
-}
-.modal-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  padding: 16px 24px 20px;
-  border-top: 1px solid var(--border);
   margin-top: 8px;
 }
 
@@ -1568,7 +1563,6 @@ select.form-control option { background: #fff; }
 .mb-24 { margin-bottom: 24px; }
 .relative { position: relative; }
 .btn-icon { padding: 8px; border-radius: var(--radius-sm); }
-.btn-lg   { padding: 12px 24px; font-size: 0.95rem; }
 
 /* ═══════════════════════════════════════════════════════════════════
    MOBILE SIDEBAR DRAWER SYSTEM
