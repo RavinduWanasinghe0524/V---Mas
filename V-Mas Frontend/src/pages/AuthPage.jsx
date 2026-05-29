@@ -121,9 +121,9 @@ const DemoDrawer = ({ onPopulate }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const demoAccounts = [
-    { name: 'Admin', role: 'ADMIN', user: 'admin', pass: 'admin123', icon: <Users size={14} /> },
-    { name: 'Controller', role: 'CONTROLLER', user: 'controller1', pass: 'controller123', icon: <Settings size={14} /> },
-    { name: 'Driver', role: 'DRIVER', user: 'driver1', pass: 'driver123', icon: <Car size={14} /> },
+    { name: 'Admin', role: 'ADMIN', user: 'admin', pass: 'admin', icon: <Users size={14} /> },
+    { name: 'Controller', role: 'CONTROLLER', user: 'controller1', pass: 'controller1', icon: <Settings size={14} /> },
+    { name: 'Driver', role: 'DRIVER', user: 'driver1', pass: 'driver1', icon: <Car size={14} /> },
   ];
 
   return (
