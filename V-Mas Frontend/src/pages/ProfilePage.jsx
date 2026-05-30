@@ -201,29 +201,29 @@ const ProfilePage = () => {
 
           {/* Hero Banner */}
           <div style={{
-            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
+            background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
             borderRadius: 20,
             padding: '32px 36px',
             marginBottom: 28,
             position: 'relative',
             overflow: 'hidden',
-            boxShadow: '0 8px 32px rgba(30,27,75,0.4)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
             border: `1px solid ${D.border}`,
             display: 'flex', alignItems: 'center', gap: 20
           }}>
             {/* decorative circles */}
-            {[['80%','ÔêÆ20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
+            {[['80%','-20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
               <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
             ))}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display:'flex', alignItems:'center', justifyContent:'center', color: '#fff', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                <User size={32} strokeWidth={1.5} />
+              <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 14, width: 56, height: 56, display:'flex', alignItems:'center', justifyContent:'center', color: '#fff', backdropFilter:'blur(4px)', border: '1px solid rgba(255,255,255,0.15)' }}>
+                <User size={28} strokeWidth={1.5} />
               </div>
               <div>
                 <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                   My Profile
                 </h1>
-                <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
+                <p style={{ margin: '4px 0 0', color: '#60a5fa', fontSize: '0.9rem' }}>
                   Manage your account information and security settings
                 </p>
               </div>
