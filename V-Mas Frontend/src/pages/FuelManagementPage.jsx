@@ -401,46 +401,44 @@ const FuelManagementPage = () => {
         <Topbar title="Fuel Management" subtitle="Home / Fuel Management" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body">
 
-          {/* -- Hero Section ------------------------------------ */}
+          {/* Hero Banner */}
           <div style={{
             background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
-            borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`
+            borderRadius: 20, padding: '32px 36px', marginBottom: 28, position: 'relative', overflow: 'hidden',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)', border: `1px solid ${D.border}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20
           }}>
-            <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 30 }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 16 }}>
-                  <div style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(12px)', borderRadius: 20, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
-                    <Fuel size={32} strokeWidth={1.5} />
-                  </div>
-                  <div>
-                    <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Fleet Fuel Intelligence</h1>
-                    <p style={{ margin: '6px 0 0', color: '#60a5fa', fontSize: '1rem', fontWeight: 500, opacity: 0.9 }}>Centralized monitoring, cost analysis & efficiency tracking</p>
-                  </div>
-                </div>
+            {/* decorative circles */}
+            {[['80%','-20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
+              <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
+            ))}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
+              <div style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(4px)', borderRadius: 14, width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }}>
+                <Fuel size={28} strokeWidth={1.5} />
               </div>
-              <div style={{ display: 'flex', gap: 16, flexShrink: 0 }}>
-                <button onClick={() => setShowAddModal(true)} style={{ 
-                  padding: '14px 28px', borderRadius: 16, border: 'none', 
-                  background: '#fff', color: '#1e3a8a', cursor: 'pointer', 
-                  fontWeight: 800, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 10,
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.25)', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
-                }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}>
-                  <Plus size={20} strokeWidth={3} /> Add Fuel Log
-                </button>
-                <button onClick={() => setShowDeletedDrawer(true)} style={{ 
-                  padding: '14px 24px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.25)', 
-                  background: 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', 
-                  fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 10,
-                  backdropFilter: 'blur(10px)', transition: 'all 0.2s ease'
-                }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}>
-                  <Trash2 size={20} /> Archive {deletedCount > 0 && <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: 8, marginLeft: 4, fontWeight: 900 }}>{deletedCount}</span>}
-                </button>
+              <div>
+                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Fleet Fuel Intelligence</h1>
+                <p style={{ margin: '4px 0 0', color: '#60a5fa', fontSize: '0.9rem' }}>Centralized monitoring, cost analysis &amp; efficiency tracking</p>
               </div>
             </div>
-            {/* decoration */}
-            <div style={{ position: 'absolute', top: '-40%', right: '-10%', width: 400, height: 400, background: 'radial-gradient(circle, rgba(37, 99, 235,0.2) 0%, transparent 70%)', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', bottom: '-20%', left: '10%', width: 250, height: 250, background: 'radial-gradient(circle, rgba(165,180,252,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'relative', display: 'flex', gap: 16, flexShrink: 0 }}>
+              <button onClick={() => setShowAddModal(true)} style={{ 
+                padding: '14px 28px', borderRadius: 16, border: 'none', 
+                background: '#fff', color: '#1e3a8a', cursor: 'pointer', 
+                fontWeight: 800, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 10,
+                boxShadow: '0 8px 30px rgba(0,0,0,0.25)', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+              }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}>
+                <Plus size={20} strokeWidth={3} /> Add Fuel Log
+              </button>
+              <button onClick={() => setShowDeletedDrawer(true)} style={{ 
+                padding: '14px 24px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.25)', 
+                background: 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', 
+                fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 10,
+                backdropFilter: 'blur(10px)', transition: 'all 0.2s ease'
+              }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}>
+                <Trash2 size={20} /> Archive {deletedCount > 0 && <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: 8, marginLeft: 4, fontWeight: 900 }}>{deletedCount}</span>}
+              </button>
+            </div>
           </div>
 
           {/* -- Stats Grid -------------------------------------- */}
