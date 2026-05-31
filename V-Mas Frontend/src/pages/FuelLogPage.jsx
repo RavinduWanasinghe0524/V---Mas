@@ -5,7 +5,7 @@ import { useD } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { fuelAPI, vehicleAPI } from '../services/api'
 import { addDriverNotification } from '../services/notificationService'
-import { Fuel, CircleDollarSign, BarChart2, Car, Check, X, Plus, Loader2, Calendar } from 'lucide-react'
+import { Fuel, CircleDollarSign, BarChart2, Car, Check, X, Plus, Loader2, Calendar, Gauge } from 'lucide-react'
 import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 
@@ -50,6 +50,7 @@ const FuelLogPage = () => {
   const [myVehicleLogs, setMyVehicleLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [allVehicles, setAllVehicles] = useState([])
+  const [selectedVehicleInfo, setSelectedVehicleInfo] = useState(null)
 
   const [formData, setFormData] = useState({
     vehicleRegNumber: '',
@@ -104,9 +105,11 @@ const FuelLogPage = () => {
       const updated = { ...prev, [name]: value }
       if (name === 'vehicleRegNumber') {
         const selectedVehicle = allVehicles.find(v => v.registrationNo === value)
+        setSelectedVehicleInfo(selectedVehicle || null)
         if (selectedVehicle?.fuelType) {
           updated.fuelType = selectedVehicle.fuelType.charAt(0).toUpperCase() + selectedVehicle.fuelType.slice(1).toLowerCase()
         }
+        // Check if driver has any previous fuel logs for this vehicle
         const vehicleLogs = myVehicleLogs.filter(log => log.vehicleRegNumber === value)
         if (vehicleLogs.length > 0) {
           const lastMil = vehicleLogs[0].mileage
@@ -114,8 +117,10 @@ const FuelLogPage = () => {
           updated.mileage = String(lastMil)
           setMileageError('')
         } else {
-          setPreviousMileage(null)
-          updated.mileage = ''
+          // No fuel logs — pre-fill from vehicle's registered current mileage
+          const vehicleKm = selectedVehicle?.currentMileageKm
+          setPreviousMileage(vehicleKm ?? null)
+          updated.mileage = vehicleKm != null ? String(vehicleKm) : ''
           setMileageError('')
         }
       }
@@ -173,9 +178,12 @@ const FuelLogPage = () => {
       setPreviousMileage(newLastMil)
 
       // Reset form — pre-fill mileage with latest reading
+      const selectedVehicle = allVehicles.find(v => v.registrationNo === formData.vehicleRegNumber)
       setFormData({
         vehicleRegNumber: formData.vehicleRegNumber,
-        fuelType: 'Diesel',
+        fuelType: selectedVehicle?.fuelType
+          ? selectedVehicle.fuelType.charAt(0).toUpperCase() + selectedVehicle.fuelType.slice(1).toLowerCase()
+          : formData.fuelType,
         liters: '',
         costPerLiter: '',
         mileage: newLastMil != null ? String(newLastMil) : '',
@@ -414,34 +422,123 @@ const FuelLogPage = () => {
 
             <form onSubmit={handleAddFuelLog} style={{ padding: '36px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 40 }}>
-                <div>
-                  <label style={labelStyle}>Vehicle Identification <span style={{ color: D.red }}>*</span></label>
-                  <input
-                    type="text"
-                    list="vehiclesListFuel"
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={labelStyle}>Vehicle <span style={{ color: D.red }}>*</span></label>
+                  <select
                     name="vehicleRegNumber"
                     value={formData.vehicleRegNumber}
                     onChange={handleInputChange}
                     required
-                    placeholder="e.g. WP-CAB-1234"
-                    style={{ ...inputStyle }}
-                  />
-                  <datalist id="vehiclesListFuel">
-                    {allVehicles.map(v => <option key={v.id} value={v.registrationNo} />)}
-                  </datalist>
+                    style={{ ...inputStyle, cursor: 'pointer' }}
+                    onFocus={onFocus}
+                    onBlur={onBlur}
+                  >
+                    <option value="" style={{ background: D.surfaceHi }}>— Select a vehicle —</option>
+                    {allVehicles.map(v => (
+                      <option key={v.id} value={v.registrationNo} style={{ background: D.surfaceHi }}>
+                        {v.registrationNo} — {v.manufacturer} {v.model} {v.currentMileageKm ? `(${v.currentMileageKm.toLocaleString()} km)` : ''}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Live vehicle info card — shown when a vehicle is selected */}
+                  {selectedVehicleInfo && (
+                    <div style={{
+                      marginTop: 10,
+                      background: D.bg,
+                      border: `1px solid ${D.border}`,
+                      borderRadius: 12,
+                      padding: '12px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 16,
+                      flexWrap: 'wrap'
+                    }}>
+                      {/* Current mileage */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 140 }}>
+                        <div style={{ width: 34, height: 34, borderRadius: 8, background: D.blueDim, color: D.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${D.blue}30`, flexShrink: 0 }}>
+                          <Gauge size={17} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.62rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Current Mileage</div>
+                          <div style={{ fontSize: '1rem', fontWeight: 900, color: D.text }}>
+                            {selectedVehicleInfo.currentMileageKm != null
+                              ? <>{selectedVehicleInfo.currentMileageKm.toLocaleString()} <span style={{ fontSize: '0.75rem', opacity: 0.6, fontWeight: 600 }}>km</span></>
+                              : <span style={{ color: D.textFaint, fontSize: '0.82rem' }}>Not recorded</span>}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Divider */}
+                      <div style={{ width: 1, height: 36, background: D.border }} />
+
+                      {/* Vehicle info */}
+                      <div style={{ flex: 2, minWidth: 160 }}>
+                        <div style={{ fontSize: '0.62rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>Vehicle</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 700, color: D.text }}>
+                          {selectedVehicleInfo.manufacturer} {selectedVehicleInfo.model}
+                          {selectedVehicleInfo.year && <span style={{ color: D.textSub, fontWeight: 500 }}> ({selectedVehicleInfo.year})</span>}
+                        </div>
+                      </div>
+
+                      {/* Status badge */}
+                      <div style={{ flexShrink: 0 }}>
+                        <span style={{
+                          padding: '3px 10px', borderRadius: 99, fontSize: '0.68rem', fontWeight: 800,
+                          textTransform: 'uppercase', letterSpacing: '0.04em',
+                          background: selectedVehicleInfo.status === 'ACTIVE' ? D.greenDim
+                                    : selectedVehicleInfo.status === 'AVAILABLE' ? D.blueDim
+                                    : selectedVehicleInfo.status === 'SERVICE' ? D.orangeDim
+                                    : D.redDim,
+                          color: selectedVehicleInfo.status === 'ACTIVE' ? D.green
+                               : selectedVehicleInfo.status === 'AVAILABLE' ? D.blue
+                               : selectedVehicleInfo.status === 'SERVICE' ? D.orange
+                               : D.red,
+                        }}>
+                          {selectedVehicleInfo.status}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>
                   <label style={labelStyle}>Transaction Date <span style={{ color: D.red }}>*</span></label>
                   <input type="date" name="date" value={formData.date} onChange={handleInputChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                 </div>
-                
+
                 <div>
-                  <label style={labelStyle}>Fuel Grade <span style={{ color: D.red }}>*</span></label>
-                  <select name="fuelType" value={formData.fuelType} onChange={handleInputChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
-                    <option value="Diesel">Diesel</option>
-                    <option value="Petrol">Petrol</option>
-                  </select>
+                  <label style={labelStyle}>Fuel Type</label>
+                  <div style={{
+                    ...inputStyle,
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    background: D.surfaceHi,
+                    cursor: 'default',
+                    color: formData.vehicleRegNumber ? D.text : D.textFaint,
+                    border: `1px solid ${D.border}`
+                  }}>
+                    {formData.vehicleRegNumber ? (
+                      <>
+                        <span style={{
+                          background: formData.fuelType?.toUpperCase() === 'DIESEL' ? D.indigoDim
+                                    : formData.fuelType?.toUpperCase() === 'ELECTRIC' ? D.greenDim
+                                    : formData.fuelType?.toUpperCase() === 'HYBRID' ? D.purpleDim
+                                    : D.goldDim,
+                          color: formData.fuelType?.toUpperCase() === 'DIESEL' ? D.indigo
+                               : formData.fuelType?.toUpperCase() === 'ELECTRIC' ? D.green
+                               : formData.fuelType?.toUpperCase() === 'HYBRID' ? D.purple
+                               : D.gold,
+                          fontWeight: 800, fontSize: '0.78rem', padding: '3px 10px',
+                          borderRadius: 6, textTransform: 'uppercase'
+                        }}>
+                          {formData.fuelType || 'N/A'}
+                        </span>
+                        <span style={{ fontSize: '0.78rem', color: D.textSub }}>Set at vehicle registration — cannot be changed</span>
+                      </>
+                    ) : (
+                      <span style={{ fontSize: '0.82rem', fontStyle: 'italic' }}>Auto-filled when vehicle is selected</span>
+                    )}
+                  </div>
                 </div>
                 
                 <div>
@@ -458,10 +555,25 @@ const FuelLogPage = () => {
                   <label style={labelStyle}>Odometer Reading (km) <span style={{ color: D.red }}>*</span></label>
                   <input type="number" name="mileage" value={formData.mileage} onChange={handleMileageChange} step="0.1" required placeholder="0.0" style={{ ...inputStyle, ...(mileageError ? { borderColor: D.red, boxShadow: `0 0 0 4px ${D.red}20` } : {}) }} onFocus={onFocus} onBlur={onBlur} />
                   {mileageError ? (
-                     <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.red, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>⚠ {mileageError}</p>
-                  ) : previousMileage != null && (
-                     <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.textFaint, fontWeight: 600 }}>Last reading: <span style={{ color: D.purple }}>{previousMileage.toLocaleString()} km</span></p>
-                  )}
+                    <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.red, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>⚠ {mileageError}</p>
+                  ) : selectedVehicleInfo ? (
+                    <div style={{ margin: '8px 0 0', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      {selectedVehicleInfo.currentMileageKm != null && (
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: D.textFaint, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Gauge size={12} style={{ color: D.blue }} />
+                          Vehicle registered mileage: <span style={{ color: D.blue, fontWeight: 800 }}>{selectedVehicleInfo.currentMileageKm.toLocaleString()} km</span>
+                        </p>
+                      )}
+                      {previousMileage != null && previousMileage !== selectedVehicleInfo.currentMileageKm && (
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: D.textFaint, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ color: D.purple }}>↑</span>
+                          Last fuel log reading: <span style={{ color: D.purple, fontWeight: 800 }}>{previousMileage.toLocaleString()} km</span>
+                        </p>
+                      )}
+                    </div>
+                  ) : previousMileage != null ? (
+                    <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.textFaint, fontWeight: 600 }}>Last reading: <span style={{ color: D.purple }}>{previousMileage.toLocaleString()} km</span></p>
+                  ) : null}
                 </div>
               </div>
 

@@ -1128,51 +1128,121 @@ const VehiclesPage = () => {
                       </h4>
 
                       {/* Insurance Card */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: D.text }}>Insurance Expiry</p>
-                          <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: D.textSub }}>
-                            {selectedProfileVehicle.insuranceExpiryDate ? new Date(selectedProfileVehicle.insuranceExpiryDate).toLocaleDateString() : 'Not Set'}
-                          </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: D.text }}>Insurance Expiry</p>
+                            <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: D.textSub }}>
+                              {selectedProfileVehicle.insuranceExpiryDate ? new Date(selectedProfileVehicle.insuranceExpiryDate).toLocaleDateString() : 'Not Set'}
+                            </p>
+                          </div>
+                          {selectedProfileVehicle.insuranceExpiryDate ? (() => {
+                            const diff = Math.ceil((new Date(selectedProfileVehicle.insuranceExpiryDate) - new Date()) / (1000 * 60 * 60 * 24))
+                            const isExpired = diff < 0
+                            const isExpiring = diff <= 30
+                            return (
+                              <span style={{
+                                background: isExpired ? 'rgba(239,68,68,0.15)' : isExpiring ? 'rgba(245,158,11,0.15)' : D.greenDim,
+                                color: isExpired ? '#ef4444' : isExpiring ? '#f59e0b' : D.green,
+                                border: `1px solid ${isExpired ? '#ef444450' : isExpiring ? '#f59e0b50' : D.green + '50'}`,
+                                padding: '4px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800
+                              }}>
+                                {isExpired ? 'Expired' : `${diff} days left`}
+                              </span>
+                            )
+                          })() : <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>}
                         </div>
+                        {/* Insurance Expiry Progress Bar */}
                         {selectedProfileVehicle.insuranceExpiryDate ? (() => {
+                          const TOTAL_DAYS = 365
                           const diff = Math.ceil((new Date(selectedProfileVehicle.insuranceExpiryDate) - new Date()) / (1000 * 60 * 60 * 24))
-                          const isExpiring = diff <= 30
+                          const safePct = Math.max(0, Math.min(100, (diff / TOTAL_DAYS) * 100))
+                          // more days remaining = green, fewer days = red
+                          const r = Math.round(239 - (239 - 16) * (safePct / 100))
+                          const g = Math.round(68 + (185 - 68) * (safePct / 100))
+                          const b = Math.round(68 + (129 - 68) * (safePct / 100))
+                          const barColor = diff < 0 ? '#ef4444' : `rgb(${r},${g},${b})`
+                          const displayPct = diff < 0 ? 100 : 100 - safePct
                           return (
-                            <span style={{
-                              background: isExpiring ? 'rgba(239,68,68,0.1)' : D.greenDim,
-                              color: isExpiring ? '#ef4444' : D.green,
-                              border: `1px solid ${isExpiring ? '#ef444450' : D.green + '50'}`,
-                              padding: '4px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800
-                            }}>
-                              {diff < 0 ? 'Expired' : `${diff} days left`}
-                            </span>
+                            <div>
+                              <div style={{ height: 7, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)' }}>
+                                <div style={{
+                                  width: `${Math.min(displayPct, 100)}%`,
+                                  height: '100%',
+                                  background: barColor,
+                                  borderRadius: 999,
+                                  transition: 'width 0.6s ease, background 0.6s ease',
+                                  boxShadow: `0 0 8px ${barColor}80`
+                                }} />
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: '0.65rem', color: D.textSub }}>
+                                <span style={{ color: barColor, fontWeight: 700 }}>
+                                  {diff < 0 ? `Expired ${Math.abs(diff)}d ago` : diff <= 30 ? `Expiring in ${diff} day${diff !== 1 ? 's' : ''}` : `${diff} days until expiry`}
+                                </span>
+                                <span>Valid up to {new Date(selectedProfileVehicle.insuranceExpiryDate).toLocaleDateString()}</span>
+                              </div>
+                            </div>
                           )
-                        })() : <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>}
+                        })() : null}
                       </div>
 
                       {/* License Card */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${D.border}`, paddingTop: 12 }}>
-                        <div>
-                          <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: D.text }}>License Expiry</p>
-                          <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: D.textSub }}>
-                            {selectedProfileVehicle.licenseExpiryDate ? new Date(selectedProfileVehicle.licenseExpiryDate).toLocaleDateString() : 'Not Set'}
-                          </p>
+                      <div style={{ borderTop: `1px solid ${D.border}`, paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: D.text }}>License Expiry</p>
+                            <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: D.textSub }}>
+                              {selectedProfileVehicle.licenseExpiryDate ? new Date(selectedProfileVehicle.licenseExpiryDate).toLocaleDateString() : 'Not Set'}
+                            </p>
+                          </div>
+                          {selectedProfileVehicle.licenseExpiryDate ? (() => {
+                            const diff = Math.ceil((new Date(selectedProfileVehicle.licenseExpiryDate) - new Date()) / (1000 * 60 * 60 * 24))
+                            const isExpired = diff < 0
+                            const isExpiring = diff <= 30
+                            return (
+                              <span style={{
+                                background: isExpired ? 'rgba(239,68,68,0.15)' : isExpiring ? 'rgba(245,158,11,0.15)' : D.greenDim,
+                                color: isExpired ? '#ef4444' : isExpiring ? '#f59e0b' : D.green,
+                                border: `1px solid ${isExpired ? '#ef444450' : isExpiring ? '#f59e0b50' : D.green + '50'}`,
+                                padding: '4px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800
+                              }}>
+                                {isExpired ? 'Expired' : `${diff} days left`}
+                              </span>
+                            )
+                          })() : <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>}
                         </div>
+                        {/* License Expiry Progress Bar */}
                         {selectedProfileVehicle.licenseExpiryDate ? (() => {
+                          const TOTAL_DAYS = 365
                           const diff = Math.ceil((new Date(selectedProfileVehicle.licenseExpiryDate) - new Date()) / (1000 * 60 * 60 * 24))
-                          const isExpiring = diff <= 30
+                          const safePct = Math.max(0, Math.min(100, (diff / TOTAL_DAYS) * 100))
+                          // pct=100 → green, pct=0 → red
+                          const r = Math.round(239 - (239 - 16) * (safePct / 100))
+                          const g = Math.round(68 + (185 - 68) * (safePct / 100))
+                          const b = Math.round(68 + (129 - 68) * (safePct / 100))
+                          const barColor = diff < 0 ? '#ef4444' : `rgb(${r},${g},${b})`
+                          const displayPct = diff < 0 ? 100 : 100 - safePct
                           return (
-                            <span style={{
-                              background: isExpiring ? 'rgba(239,68,68,0.1)' : D.greenDim,
-                              color: isExpiring ? '#ef4444' : D.green,
-                              border: `1px solid ${isExpiring ? '#ef444450' : D.green + '50'}`,
-                              padding: '4px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800
-                            }}>
-                              {diff < 0 ? 'Expired' : `${diff} days left`}
-                            </span>
+                            <div>
+                              <div style={{ height: 7, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)' }}>
+                                <div style={{
+                                  width: `${Math.min(displayPct, 100)}%`,
+                                  height: '100%',
+                                  background: barColor,
+                                  borderRadius: 999,
+                                  transition: 'width 0.6s ease, background 0.6s ease',
+                                  boxShadow: `0 0 8px ${barColor}80`
+                                }} />
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: '0.65rem', color: D.textSub }}>
+                                <span style={{ color: barColor, fontWeight: 700 }}>
+                                  {diff < 0 ? `Expired ${Math.abs(diff)}d ago` : diff <= 30 ? `Expiring in ${diff} day${diff !== 1 ? 's' : ''}` : `${diff} days until expiry`}
+                                </span>
+                                <span>Valid up to {new Date(selectedProfileVehicle.licenseExpiryDate).toLocaleDateString()}</span>
+                              </div>
+                            </div>
                           )
-                        })() : <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>}
+                        })() : null}
                       </div>
 
                       {/* Document Attachments */}
@@ -1232,49 +1302,192 @@ const VehiclesPage = () => {
                     {/* Next Service Due block */}
                     {(() => {
                       const alertInfo = vehicleAlerts[selectedProfileVehicle.registrationNo]
+
+                      // ── Build date-based progress bar colour ─────────────────
+                      // Always show the date bar if there is a nextServiceDue, regardless of alert level
+                      const allRecords = serviceRecords.filter(r => r.vehicleRegNumber === selectedProfileVehicle.registrationNo)
+                      const latestWithDue = allRecords
+                        .filter(r => r.nextServiceDue)
+                        .sort((a, b) => new Date(b.serviceDate) - new Date(a.serviceDate))[0]
+
+                      const getDateBar = (record) => {
+                        if (!record?.nextServiceDue) return null
+                        const today = new Date(); today.setHours(0,0,0,0)
+                        const dueDate = new Date(record.nextServiceDue); dueDate.setHours(0,0,0,0)
+                        const serviceDate = record.serviceDate ? new Date(record.serviceDate) : null
+                        const totalWindow = serviceDate
+                          ? Math.max(1, Math.ceil((dueDate - serviceDate) / (1000 * 60 * 60 * 24)))
+                          : 180
+                        const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24))
+                        const elapsed = totalWindow - daysLeft
+                        const rawPct = Math.max(0, Math.min(100, (elapsed / totalWindow) * 100))
+                        // 0% → green, 80% → yellow, 100% → red
+                        let barColor
+                        if (rawPct <= 50) {
+                          // green → yellow
+                          const t = rawPct / 50
+                          const r2 = Math.round(16 + (245 - 16) * t)
+                          const g2 = Math.round(185 + (158 - 185) * t)
+                          const b2 = Math.round(129 + (11 - 129) * t)
+                          barColor = `rgb(${r2},${g2},${b2})`
+                        } else {
+                          // yellow → red
+                          const t = (rawPct - 50) / 50
+                          const r2 = Math.round(245 + (239 - 245) * t)
+                          const g2 = Math.round(158 + (68 - 158) * t)
+                          const b2 = Math.round(11 + (68 - 11) * t)
+                          barColor = `rgb(${r2},${g2},${b2})`
+                        }
+                        if (daysLeft < 0) barColor = '#ef4444'
+                        return { daysLeft, rawPct, barColor, totalWindow, dueDate }
+                      }
+
                       if (alertInfo) {
                         const ac = ALERT_COLORS[alertInfo.level] || ALERT_COLORS.OK
                         const mileage = computeMileageProgress(alertInfo.record, alertInfo.vehicleKm)
-                        const date = computeDateAlert(alertInfo.record)
+                        const dateBar = getDateBar(alertInfo.record)
                         return (
                           <div style={{
-                            background: ac.bg,
+                            background: D.surface,
                             border: `1px solid ${ac.border}`,
                             borderRadius: 16,
-                            padding: '16px 20px',
+                            padding: '18px 20px',
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: 12,
-                            boxShadow: `0 4px 16px ${ac.bg}`
+                            gap: 16,
+                            boxShadow: `0 4px 20px ${ac.bg}`
                           }}>
+                            {/* Title row */}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: ac.color }}>Next Service Target</span>
-                              <span style={{ background: ac.bg, color: ac.color, border: `1px solid ${ac.border}`, fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 99 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{ width: 32, height: 32, borderRadius: 8, background: ac.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${ac.border}` }}>
+                                  <Wrench size={16} style={{ color: ac.color }} />
+                                </div>
+                                <div>
+                                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: D.text, display: 'block' }}>Next Service Target</span>
+                                  <span style={{ fontSize: '0.68rem', color: D.textSub }}>
+                                    {alertInfo.record.serviceType?.replace(/_/g, ' ')}
+                                  </span>
+                                </div>
+                              </div>
+                              <span style={{ background: ac.bg, color: ac.color, border: `1px solid ${ac.border}`, fontSize: '0.65rem', fontWeight: 800, padding: '3px 10px', borderRadius: 99 }}>
                                 {ac.label}
                               </span>
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                              <p style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text }}>
-                                {alertInfo.record.nextServiceMileageKm ? `${alertInfo.record.nextServiceMileageKm.toLocaleString()} km` : '—'}
-                              </p>
-                              <p style={{ margin: 0, fontSize: '0.72rem', color: D.textSub }}>
-                                Due Date: {alertInfo.record.nextServiceDue ? new Date(alertInfo.record.nextServiceDue).toLocaleDateString() : '—'}
-                              </p>
-                            </div>
-                            {mileage && (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden' }}>
-                                  <div style={{ width: `${Math.min(mileage.pct, 100)}%`, height: '100%', background: ac.color }} />
+
+                            {/* Date bar */}
+                            {dateBar && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <Calendar size={12} /> Service Date Countdown
+                                  </span>
+                                  <span style={{ fontSize: '0.88rem', fontWeight: 900, color: dateBar.barColor }}>
+                                    {dateBar.daysLeft < 0
+                                      ? `${Math.abs(dateBar.daysLeft)}d overdue`
+                                      : dateBar.daysLeft === 0
+                                        ? 'Due today'
+                                        : `${dateBar.daysLeft} days left`}
+                                  </span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, color: ac.color }}>
-                                  <span>{mileage.pct}% Threshold reached</span>
-                                  <span>{fmtKmRemaining(mileage.remaining)}</span>
+                                {/* Track */}
+                                <div style={{ position: 'relative', height: 10, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)' }}>
+                                  <div style={{
+                                    width: `${Math.min(dateBar.rawPct, 100)}%`,
+                                    height: '100%',
+                                    background: `linear-gradient(90deg, #10b981, ${dateBar.barColor})`,
+                                    borderRadius: 999,
+                                    transition: 'width 0.7s ease, background 0.7s ease',
+                                    boxShadow: `0 0 10px ${dateBar.barColor}80`
+                                  }} />
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: D.textSub }}>
+                                  <span>Service Date</span>
+                                  <span style={{ color: dateBar.barColor, fontWeight: 700 }}>
+                                    Due: {new Date(alertInfo.record.nextServiceDue).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Mileage bar */}
+                            {mileage && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: `1px solid ${D.border}`, paddingTop: 14 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <Gauge size={12} /> Mileage Progress
+                                  </span>
+                                  <span style={{ fontSize: '0.88rem', fontWeight: 900, color: ac.color }}>
+                                    {fmtKmRemaining(mileage.remaining)}
+                                  </span>
+                                </div>
+                                <div style={{ position: 'relative', height: 10, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)' }}>
+                                  <div style={{
+                                    width: `${Math.min(mileage.pct, 100)}%`,
+                                    height: '100%',
+                                    background: `linear-gradient(90deg, #10b981, ${ac.color})`,
+                                    borderRadius: 999,
+                                    transition: 'width 0.7s ease',
+                                    boxShadow: `0 0 10px ${ac.color}80`
+                                  }} />
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: D.textSub }}>
+                                  <span>Current: {alertInfo.vehicleKm?.toLocaleString()} km</span>
+                                  <span style={{ color: ac.color, fontWeight: 700 }}>Target: {alertInfo.record.nextServiceMileageKm?.toLocaleString()} km</span>
                                 </div>
                               </div>
                             )}
                           </div>
                         )
                       }
+
+                      // No alert, but maybe there's still a nextServiceDue to show
+                      const dateBar = getDateBar(latestWithDue)
+                      if (dateBar) {
+                        return (
+                          <div style={{ background: D.surface, border: `1px solid ${D.green}40`, borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{ width: 32, height: 32, borderRadius: 8, background: D.greenDim, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${D.green}30` }}>
+                                  <Wrench size={16} style={{ color: D.green }} />
+                                </div>
+                                <div>
+                                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: D.text, display: 'block' }}>Next Service Date</span>
+                                  <span style={{ fontSize: '0.68rem', color: D.textSub }}>
+                                    {latestWithDue.serviceType?.replace(/_/g, ' ')}
+                                  </span>
+                                </div>
+                              </div>
+                              <span style={{ background: D.greenDim, color: D.green, border: `1px solid ${D.green}40`, fontSize: '0.65rem', fontWeight: 800, padding: '3px 10px', borderRadius: 99 }}>On Track</span>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Calendar size={12} /> Service Date Countdown
+                                </span>
+                                <span style={{ fontSize: '0.88rem', fontWeight: 900, color: dateBar.barColor }}>
+                                  {dateBar.daysLeft} days left
+                                </span>
+                              </div>
+                              <div style={{ position: 'relative', height: 10, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)' }}>
+                                <div style={{
+                                  width: `${Math.min(dateBar.rawPct, 100)}%`,
+                                  height: '100%',
+                                  background: `linear-gradient(90deg, #10b981, ${dateBar.barColor})`,
+                                  borderRadius: 999,
+                                  transition: 'width 0.7s ease',
+                                  boxShadow: `0 0 10px ${dateBar.barColor}80`
+                                }} />
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: D.textSub }}>
+                                <span>Service Date</span>
+                                <span style={{ color: dateBar.barColor, fontWeight: 700 }}>Due: {new Date(latestWithDue.nextServiceDue).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      }
+
                       return (
                         <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16, padding: '16px 20px', color: D.textSub, fontSize: '0.8rem', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 8 }}>
                           <Info size={14} /> No upcoming service scheduled.
