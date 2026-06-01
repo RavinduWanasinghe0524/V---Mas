@@ -120,7 +120,8 @@ const FuelManagementPage = () => {
       let logs = []
       if (fuelRes.status === 'fulfilled') {
         const rawLogs = fuelRes.value.data.data || []
-        computeLogsEfficiency(rawLogs)
+        const vehList = vehRes.status === 'fulfilled' ? (vehRes.value.data.data || []) : []
+        computeLogsEfficiency(rawLogs, vehList)
         logs = [...rawLogs].sort((a, b) => new Date(b.date) - new Date(a.date))
         setAllLogs(logs)
       } else {

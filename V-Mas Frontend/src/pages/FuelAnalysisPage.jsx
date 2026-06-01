@@ -3,7 +3,7 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
-import { fuelAPI } from '../services/api'
+import { fuelAPI, vehicleAPI } from '../services/api'
 import { Fuel, CircleDollarSign, BarChart2, Check, X, TrendingUp, Edit2, Loader2, Plus, LayoutDashboard, Calendar, User, Search, Filter, Car, MoreVertical } from 'lucide-react'
 import { computeLogsEfficiency } from '../utils/fuelUtils'
 
@@ -188,10 +188,12 @@ const FuelAnalysisPage = () => {
 
         if (isAdmin || isController) {
           // -- Admin/Controller: compute everything locally from raw logs --
-          // This mirrors FuelManagementPage approach and avoids backend
-          // analytics endpoints which have a NULL/false mismatch on is_deleted.
-          const allLogsRes = await fuelAPI.getAllFuelLogs()
+          const [allLogsRes, vehiclesRes] = await Promise.all([
+            fuelAPI.getAllFuelLogs(),
+            vehicleAPI.getAllVehicles(),
+          ])
           const rawLogs = allLogsRes.data.data || []
+          const vehicles = vehiclesRes.data.data || []
           
           if (isAdmin) {
             try {
@@ -204,8 +206,8 @@ const FuelAnalysisPage = () => {
           
           const activeLogs = rawLogs.filter(l => !l.isDeleted)
 
-          // Calculate efficiency client-side
-          computeLogsEfficiency(activeLogs)
+          // Calculate efficiency client-side — pass vehicles so first log gets a baseline
+          computeLogsEfficiency(activeLogs, vehicles)
 
           // Sort for display table (newest first)
           setAllFuelLogs([...activeLogs].sort((a, b) => new Date(b.date) - new Date(a.date)))
@@ -264,14 +266,16 @@ const FuelAnalysisPage = () => {
           setVehicleStats(statsArr)
 
         } else if (isDriver) {
-          // -- Driver: use own-scoped summary + chart + logs -------------
-          const [summaryRes, chartRes, logsRes] = await Promise.all([
-            fuelAPI.getSummary(), fuelAPI.getChartData(), fuelAPI.getMyLogs()
+          // -- Driver: use own-scoped summary + chart + logs + vehicles for baseline --
+          const [summaryRes, chartRes, logsRes, vehiclesRes] = await Promise.all([
+            fuelAPI.getSummary(), fuelAPI.getChartData(), fuelAPI.getMyLogs(),
+            vehicleAPI.getAllVehicles(),
           ])
           setSummary(summaryRes.data.data || { totalDiesel: 0, totalPetrol: 0, totalVolume: 0, totalCost: 0 })
           setChartData(chartRes.data.data || { months: [], data: { Diesel: [], Petrol: [] } })
           const driverLogs = logsRes.data.data || []
-          computeLogsEfficiency(driverLogs)
+          const vehicles = vehiclesRes.data.data || []
+          computeLogsEfficiency(driverLogs, vehicles)
           setMyVehicleLogs(driverLogs)
         }
 

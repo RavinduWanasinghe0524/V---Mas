@@ -78,7 +78,8 @@ const FuelLogPage = () => {
         let loadedLogs = []
         if (logsRes.status === 'fulfilled') {
           const logs = logsRes.value.data.data || []
-          computeLogsEfficiency(logs)
+          const vehList = vehicleRes.status === 'fulfilled' ? (vehicleRes.value.data.data || []) : []
+          computeLogsEfficiency(logs, vehList)
           // Sort newest-first so logs[0] is always the most recent entry
           const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date))
           setMyVehicleLogs(sorted)
@@ -168,7 +169,7 @@ const FuelLogPage = () => {
       // Reload driver's own logs via the correct endpoint
       const logsRes = await fuelAPI.getMyLogs()
       const rawLogs = logsRes.data.data || []
-      computeLogsEfficiency(rawLogs)
+      computeLogsEfficiency(rawLogs, allVehicles)
       // Sort newest-first so the latest mileage is always at index 0
       const updatedLogs = [...rawLogs].sort((a, b) => new Date(b.date) - new Date(a.date))
       setMyVehicleLogs(updatedLogs)
