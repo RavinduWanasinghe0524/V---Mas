@@ -383,7 +383,7 @@ const FuelManagementPage = () => {
         <Topbar title="Fuel Management" subtitle="Home / Fuel Management" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ width: 52, height: 52, borderRadius: '50%', border: '4px solid rgba(167,139,250,0.2)', borderTopColor: D.purple, animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+            <div style={{ width: 52, height: 52, borderRadius: '50%', border: '4px solid rgba(96, 165, 250,0.2)', borderTopColor: D.purple, animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
             <p style={{ color: D.textSub, fontWeight: 600 }}>Loading fleet data...</p>
           </div>
         </div>
@@ -401,46 +401,44 @@ const FuelManagementPage = () => {
         <Topbar title="Fuel Management" subtitle="Home / Fuel Management" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body">
 
-          {/* -- Hero Section ------------------------------------ */}
+          {/* Hero Banner */}
           <div style={{
-            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
-            borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`
+            background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+            borderRadius: 20, padding: '32px 36px', marginBottom: 28, position: 'relative', overflow: 'hidden',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)', border: `1px solid ${D.border}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20
           }}>
-            <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 30 }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 16 }}>
-                  <div style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(12px)', borderRadius: 20, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
-                    <Fuel size={32} strokeWidth={1.5} />
-                  </div>
-                  <div>
-                    <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Fleet Fuel Intelligence</h1>
-                    <p style={{ margin: '6px 0 0', color: '#a5b4fc', fontSize: '1rem', fontWeight: 500, opacity: 0.9 }}>Centralized monitoring, cost analysis & efficiency tracking</p>
-                  </div>
-                </div>
+            {/* decorative circles */}
+            {[['80%','-20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
+              <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
+            ))}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
+              <div style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(4px)', borderRadius: 14, width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }}>
+                <Fuel size={28} strokeWidth={1.5} />
               </div>
-              <div style={{ display: 'flex', gap: 16, flexShrink: 0 }}>
-                <button onClick={() => setShowAddModal(true)} style={{ 
-                  padding: '14px 28px', borderRadius: 16, border: 'none', 
-                  background: '#fff', color: '#312e81', cursor: 'pointer', 
-                  fontWeight: 800, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 10,
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.25)', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
-                }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}>
-                  <Plus size={20} strokeWidth={3} /> Add Fuel Log
-                </button>
-                <button onClick={() => setShowDeletedDrawer(true)} style={{ 
-                  padding: '14px 24px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.25)', 
-                  background: 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', 
-                  fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 10,
-                  backdropFilter: 'blur(10px)', transition: 'all 0.2s ease'
-                }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}>
-                  <Trash2 size={20} /> Archive {deletedCount > 0 && <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: 8, marginLeft: 4, fontWeight: 900 }}>{deletedCount}</span>}
-                </button>
+              <div>
+                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Fleet Fuel Intelligence</h1>
+                <p style={{ margin: '4px 0 0', color: '#60a5fa', fontSize: '0.9rem' }}>Centralized monitoring, cost analysis &amp; efficiency tracking</p>
               </div>
             </div>
-            {/* decoration */}
-            <div style={{ position: 'absolute', top: '-40%', right: '-10%', width: 400, height: 400, background: 'radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%)', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', bottom: '-20%', left: '10%', width: 250, height: 250, background: 'radial-gradient(circle, rgba(165,180,252,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'relative', display: 'flex', gap: 16, flexShrink: 0 }}>
+              <button onClick={() => setShowAddModal(true)} style={{ 
+                padding: '14px 28px', borderRadius: 16, border: 'none', 
+                background: '#fff', color: '#1e3a8a', cursor: 'pointer', 
+                fontWeight: 800, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 10,
+                boxShadow: '0 8px 30px rgba(0,0,0,0.25)', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+              }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}>
+                <Plus size={20} strokeWidth={3} /> Add Fuel Log
+              </button>
+              <button onClick={() => setShowDeletedDrawer(true)} style={{ 
+                padding: '14px 24px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.25)', 
+                background: 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', 
+                fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 10,
+                backdropFilter: 'blur(10px)', transition: 'all 0.2s ease'
+              }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}>
+                <Trash2 size={20} /> Archive {deletedCount > 0 && <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: 8, marginLeft: 4, fontWeight: 900 }}>{deletedCount}</span>}
+              </button>
+            </div>
           </div>
 
           {/* -- Stats Grid -------------------------------------- */}
@@ -633,14 +631,14 @@ const FuelManagementPage = () => {
       {(showAddModal || editingLog) && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={() => { if (!submitting) { setShowAddModal(false); setEditingLog(null) } }}>
           <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-            <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
                 <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
                   {editingLog ? <Edit2 size={24} /> : <Plus size={24} />}
                 </div>
                 <div>
                   <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>{editingLog ? 'Edit Fuel Record' : 'Record Fuel Entry'}</h2>
-                  <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#a5b4fc', fontWeight: 600, opacity: 0.9 }}>{editingLog ? `Refining details for ${editingLog.vehicleRegNumber}` : 'Enter the latest fill-up data for analysis'}</p>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600, opacity: 0.9 }}>{editingLog ? `Refining details for ${editingLog.vehicleRegNumber}` : 'Enter the latest fill-up data for analysis'}</p>
                 </div>
               </div>
               <button onClick={() => { setShowAddModal(false); setEditingLog(null) }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
@@ -683,7 +681,7 @@ const FuelManagementPage = () => {
 
                     {/* Vehicle Info Strip — shown when a vehicle is selected (add mode only) */}
                     {selectedVehicle && (
-                      <div style={{ gridColumn: 'span 2', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 14, padding: '14px 18px', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', animation: 'fadeIn 0.2s ease' }}>
+                      <div style={{ gridColumn: 'span 2', background: 'rgba(37, 99, 235,0.06)', border: '1px solid rgba(37, 99, 235,0.2)', borderRadius: 14, padding: '14px 18px', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', animation: 'fadeIn 0.2s ease' }}>
                         <span style={{ fontSize: '0.72rem', fontWeight: 900, color: D.indigo, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.7 }}>Vehicle Info</span>
                         <div style={{ width: 1, height: 16, background: D.border }} />
                         {selectedVehicle.manufacturer && (
@@ -774,7 +772,7 @@ const FuelManagementPage = () => {
               })()}
 
               <div style={{ display: 'flex', gap: 20 }}>
-                <button type="submit" disabled={submitting} style={{ flex: 2, padding: '16px', borderRadius: 18, border: 'none', background: submitting ? 'rgba(99,102,241,0.5)' : 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff', fontSize: '1.05rem', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: submitting ? 'none' : '0 10px 25px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }} onMouseEnter={e => { if(!submitting) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 15px 35px rgba(99,102,241,0.5)' } }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 10px 25px rgba(99,102,241,0.4)' }}>
+                <button type="submit" disabled={submitting} style={{ flex: 2, padding: '16px', borderRadius: 18, border: 'none', background: submitting ? 'rgba(37, 99, 235,0.5)' : 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', fontSize: '1.05rem', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: submitting ? 'none' : '0 10px 25px rgba(37, 99, 235,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }} onMouseEnter={e => { if(!submitting) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 15px 35px rgba(37, 99, 235,0.5)' } }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 10px 25px rgba(37, 99, 235,0.4)' }}>
                   {submitting ? <Loader2 size={22} className="animate-spin" /> : editingLog ? <Check size={22} /> : <FileText size={22} />}
                   {submitting ? (editingLog ? 'Updating Analysis...' : 'Processing Entry...') : (editingLog ? 'Update Analysis' : 'Complete Fuel Entry')}
                 </button>

@@ -29,7 +29,7 @@ const PageLoader = () => (
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'linear-gradient(135deg, #0a0e1a 0%, #0d1117 50%, #0a1628 100%)',
+    background: 'linear-gradient(135deg, #070d1f 0%, #0b132b 50%, #081020 100%)',
     gap: 0,
   }}>
     {/* Logo with animated glow pulse */}
@@ -39,7 +39,7 @@ const PageLoader = () => (
         width: 130,
         height: 130,
         borderRadius: '36px',
-        background: 'radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(37, 99, 235,0.25) 0%, transparent 70%)',
         animation: 'logoPulse 2s ease-in-out infinite',
       }} />
       <img
@@ -51,7 +51,7 @@ const PageLoader = () => (
           borderRadius: '28px',
           position: 'relative',
           zIndex: 1,
-          filter: 'drop-shadow(0 0 18px rgba(99,102,241,0.5)) drop-shadow(0 0 40px rgba(56,189,248,0.2))',
+          filter: 'drop-shadow(0 0 18px rgba(37, 99, 235,0.5)) drop-shadow(0 0 40px rgba(56,189,248,0.2))',
           animation: 'logoFloat 3s ease-in-out infinite',
         }}
       />
@@ -61,11 +61,11 @@ const PageLoader = () => (
     <div style={{ textAlign: 'center', marginBottom: 32 }}>
       <div style={{
         fontSize: '1.8rem', fontWeight: 800, letterSpacing: '0.12em',
-        background: 'linear-gradient(90deg, #818cf8, #38bdf8)',
+        background: 'linear-gradient(90deg, #3b82f6, #38bdf8)',
         WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
         backgroundClip: 'text', lineHeight: 1,
       }}>V-MAS</div>
-      <div style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 500, letterSpacing: '0.2em', marginTop: 6, textTransform: 'uppercase' }}>
+      <div style={{ color: '#4b5563', fontSize: '0.75rem', fontWeight: 500, letterSpacing: '0.2em', marginTop: 6, textTransform: 'uppercase' }}>
         Fleet Management
       </div>
     </div>
@@ -75,7 +75,7 @@ const PageLoader = () => (
       {[0, 1, 2].map(i => (
         <div key={i} style={{
           width: 7, height: 7, borderRadius: '50%',
-          background: 'linear-gradient(135deg, #818cf8, #38bdf8)',
+          background: 'linear-gradient(135deg, #3b82f6, #38bdf8)',
           animation: `dotBounce 1.2s ease-in-out ${i * 0.2}s infinite`,
           opacity: 0.8,
         }} />

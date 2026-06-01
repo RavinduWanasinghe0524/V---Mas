@@ -3,15 +3,25 @@ package net.javaguids.ems_backend.service.impl;
 import lombok.AllArgsConstructor;
 import net.javaguids.ems_backend.dto.VehicleDto;
 import net.javaguids.ems_backend.entity.Vehicle;
+import net.javaguids.ems_backend.entity.User;
 import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.mapper.VehicleMapper;
 import net.javaguids.ems_backend.repository.VehicleRepository;
+import net.javaguids.ems_backend.repository.UserRepository;
 import net.javaguids.ems_backend.service.VehicleService;
 import net.javaguids.ems_backend.service.NotificationService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,14 +29,31 @@ import java.util.stream.Collectors;
 public class VehicleServiceImpl implements VehicleService {
 
     private final VehicleRepository vehicleRepository;
+    private final UserRepository userRepository;
     private final NotificationService notificationService;
 
     @Override
+    @Transactional
     public VehicleDto createVehicle(VehicleDto vehicleDto) {
         if (vehicleRepository.existsByRegistrationNo(vehicleDto.getRegistrationNo())) {
             throw new RuntimeException("Vehicle with registration number '" + vehicleDto.getRegistrationNo() + "' already exists.");
         }
         Vehicle vehicle = VehicleMapper.mapToVehicle(vehicleDto);
+        
+        // Resolve and set driver if driverId is supplied
+        if (vehicleDto.getDriverId() != null) {
+            User driver = userRepository.findById(vehicleDto.getDriverId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Driver not found with id: " + vehicleDto.getDriverId()));
+            
+            // Check and unassign driver from any other vehicle to preserve OneToOne constraint
+            vehicleRepository.findByAssignee(driver.getId()).ifPresent(v -> {
+                v.setDriver(null);
+                vehicleRepository.save(v);
+            });
+            
+            vehicle.setDriver(driver);
+        }
+        
         Vehicle saved = vehicleRepository.save(java.util.Objects.requireNonNull(vehicle));
         return VehicleMapper.mapToVehicleDto(saved);
     }
@@ -45,6 +72,7 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
+    @Transactional
     public VehicleDto updateVehicle(Long id, VehicleDto vehicleDto, String updatedBy) {
         Vehicle vehicle = vehicleRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
 
@@ -63,6 +91,39 @@ public class VehicleServiceImpl implements VehicleService {
         vehicle.setYear(vehicleDto.getYear());
         if (vehicleDto.getFuelType() != null) vehicle.setFuelType(vehicleDto.getFuelType());
         vehicle.setCurrentMileageKm(vehicleDto.getCurrentMileageKm());
+        
+        // Expiry dates
+        vehicle.setInsuranceExpiryDate(vehicleDto.getInsuranceExpiryDate());
+        vehicle.setLicenseExpiryDate(vehicleDto.getLicenseExpiryDate());
+        
+        // Preserve or update document paths
+        if (vehicleDto.getInsuranceDocumentPath() != null) vehicle.setInsuranceDocumentPath(vehicleDto.getInsuranceDocumentPath());
+        if (vehicleDto.getLicenseDocumentPath() != null) vehicle.setLicenseDocumentPath(vehicleDto.getLicenseDocumentPath());
+        if (vehicleDto.getRegistrationBookPath() != null) vehicle.setRegistrationBookPath(vehicleDto.getRegistrationBookPath());
+        
+        // Status update
+        if (vehicleDto.getStatus() != null) {
+            vehicle.setStatus(vehicleDto.getStatus());
+        }
+
+        // Resolve and update driver if driverId is supplied
+        if (vehicleDto.getDriverId() != null) {
+            User driver = userRepository.findById(vehicleDto.getDriverId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Driver not found with id: " + vehicleDto.getDriverId()));
+            
+            // Check and unassign driver from any other vehicle to preserve OneToOne constraint
+            vehicleRepository.findByAssignee(driver.getId()).ifPresent(v -> {
+                if (!v.getId().equals(id)) {
+                    v.setDriver(null);
+                    vehicleRepository.save(v);
+                }
+            });
+            
+            vehicle.setDriver(driver);
+        } else {
+            vehicle.setDriver(null);
+        }
+
         vehicle.setUpdatedBy(updatedBy);
         vehicle.setUpdatedAt(LocalDateTime.now());
 
@@ -78,8 +139,138 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
+    @Transactional
     public void deleteVehicle(Long id) {
         Vehicle vehicle = vehicleRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
         vehicleRepository.delete(vehicle);
+    }
+
+    @Override
+    @Transactional
+    public VehicleDto assignDriver(Long vehicleId, Long driverId) {
+        Vehicle vehicle = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + vehicleId));
+        
+        User driver = userRepository.findById(driverId)
+                .orElseThrow(() -> new ResourceNotFoundException("Driver not found with id: " + driverId));
+        
+        // Unassign driver from any other vehicle to preserve OneToOne constraint
+        vehicleRepository.findByAssignee(driverId).ifPresent(v -> {
+            if (!v.getId().equals(vehicleId)) {
+                v.setDriver(null);
+                vehicleRepository.save(v);
+            }
+        });
+        
+        vehicle.setDriver(driver);
+        Vehicle saved = vehicleRepository.save(vehicle);
+        
+        notificationService.createNotification(
+                "VEH-" + saved.getRegistrationNo(),
+                "Driver " + driver.getUserName() + " was assigned to vehicle " + saved.getRegistrationNo(),
+                "ASSIGN"
+        );
+        
+        return VehicleMapper.mapToVehicleDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public VehicleDto unassignDriver(Long vehicleId) {
+        Vehicle vehicle = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + vehicleId));
+        
+        User driver = vehicle.getDriver();
+        if (driver != null) {
+            vehicle.setDriver(null);
+            Vehicle saved = vehicleRepository.save(vehicle);
+            
+            notificationService.createNotification(
+                    "VEH-" + saved.getRegistrationNo(),
+                    "Driver " + driver.getUserName() + " was unassigned from vehicle " + saved.getRegistrationNo(),
+                    "UNASSIGN"
+            );
+            return VehicleMapper.mapToVehicleDto(saved);
+        }
+        
+        return VehicleMapper.mapToVehicleDto(vehicle);
+    }
+
+    @Override
+    @Transactional
+    public VehicleDto uploadDocument(Long id, String docType, MultipartFile file) {
+        Vehicle vehicle = vehicleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
+
+        try {
+            // Target folder: uploads/vehicle-documents/{id}
+            String uploadDir = "uploads/vehicle-documents/" + id;
+            Path uploadPath = Paths.get(uploadDir);
+            Files.createDirectories(uploadPath);
+
+            // Save filename using UUID prefix
+            String filename = UUID.randomUUID() + "_" + file.getOriginalFilename();
+            Path filePath = uploadPath.resolve(filename);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            String savedPath = uploadDir + "/" + filename;
+
+            // Set document path based on type
+            if ("insurance".equalsIgnoreCase(docType)) {
+                vehicle.setInsuranceDocumentPath(savedPath);
+            } else if ("license".equalsIgnoreCase(docType)) {
+                vehicle.setLicenseDocumentPath(savedPath);
+            } else if ("registration".equalsIgnoreCase(docType)) {
+                vehicle.setRegistrationBookPath(savedPath);
+            } else {
+                throw new RuntimeException("Invalid document type: " + docType);
+            }
+
+            Vehicle saved = vehicleRepository.save(vehicle);
+
+            notificationService.createNotification(
+                    "VEH-" + saved.getRegistrationNo(),
+                    "Vehicle document '" + docType + "' was updated for " + saved.getRegistrationNo() + ". Filename: " + file.getOriginalFilename(),
+                    "UPDATE"
+            );
+
+            return VehicleMapper.mapToVehicleDto(saved);
+
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store vehicle document: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public org.springframework.core.io.Resource getDocument(Long id, String docType) {
+        Vehicle vehicle = vehicleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
+
+        String savedPath;
+        if ("insurance".equalsIgnoreCase(docType)) {
+            savedPath = vehicle.getInsuranceDocumentPath();
+        } else if ("license".equalsIgnoreCase(docType)) {
+            savedPath = vehicle.getLicenseDocumentPath();
+        } else if ("registration".equalsIgnoreCase(docType)) {
+            savedPath = vehicle.getRegistrationBookPath();
+        } else {
+            throw new RuntimeException("Invalid document type: " + docType);
+        }
+
+        if (savedPath == null || savedPath.isBlank()) {
+            throw new ResourceNotFoundException("No " + docType + " document found for vehicle with id: " + id);
+        }
+
+        try {
+            Path filePath = Paths.get(savedPath);
+            org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(filePath.toUri());
+            if (resource.exists() || resource.isReadable()) {
+                return resource;
+            } else {
+                throw new ResourceNotFoundException("Document file not found or not readable at: " + savedPath);
+            }
+        } catch (java.net.MalformedURLException e) {
+            throw new RuntimeException("Error reading document file path: " + e.getMessage(), e);
+        }
     }
 }

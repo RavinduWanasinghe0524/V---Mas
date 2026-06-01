@@ -15,12 +15,12 @@ const roleText = {
 // Icon per notification type
 const ctrlNotifIcon = (type, isDark) => {
   const base = { borderRadius: '50%', padding: 6, display: 'flex', color: '#fff' }
-  if (type === 'FUEL_ADD')    return { ...base, background: '#6366f1' }
+  if (type === 'FUEL_ADD')    return { ...base, background: '#2563eb' }
   if (type === 'FUEL_EDIT')   return { ...base, background: '#f59e0b' }
   if (type === 'FUEL_DELETE') return { ...base, background: '#ef4444' }
   if (type === 'LOW_EFF')     return { ...base, background: '#f97316' }
   if (type === 'SERVICE')     return { ...base, background: '#10b981' }
-  return { ...base, background: isDark ? '#334155' : '#94a3b8' }
+  return { ...base, background: isDark ? '#374151' : '#94a3b8' }
 }
 
 const ctrlNotifIconEl = (type) => {
@@ -37,8 +37,8 @@ const drvNotifIcon = (type, isDark) => {
   if (type === 'FUEL_ADD')  return { ...base, background: '#10b981' }
   if (type === 'FUEL_EDIT') return { ...base, background: '#f59e0b' }
   if (type === 'LOW_EFF')   return { ...base, background: '#f97316' }
-  if (type === 'VEHICLE')   return { ...base, background: '#6366f1' }
-  return { ...base, background: isDark ? '#334155' : '#94a3b8' }
+  if (type === 'VEHICLE')   return { ...base, background: '#2563eb' }
+  return { ...base, background: isDark ? '#374151' : '#94a3b8' }
 }
 
 const drvNotifIconEl = (type) => {
@@ -49,7 +49,7 @@ const drvNotifIconEl = (type) => {
   return <Info size={14} />
 }
 
-const Topbar = ({ onMenuToggle }) => {
+const Topbar = ({ title, subtitle, onMenuToggle }) => {
   const { user } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const isDark = theme === 'blue'
@@ -143,8 +143,8 @@ const Topbar = ({ onMenuToggle }) => {
   return (
     <header style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '16px 32px', background: 'var(--topbar-bg)',
-      borderBottom: '1px solid var(--topbar-border)', height: 80, boxSizing: 'border-box', width: '100%',
+      padding: '0 32px', background: 'var(--topbar-bg)',
+      borderBottom: '1px solid var(--topbar-border)', height: 'var(--navbar-h)', boxSizing: 'border-box', width: '100%',
       gap: 12,
     }}>
       {/* Hamburger menu button (mobile only) */}
@@ -162,32 +162,73 @@ const Topbar = ({ onMenuToggle }) => {
         </button>
       )}
 
+      {/* Left: Title + Breadcrumb */}
+      {(title || subtitle) && (
+        <div className="topbar-left">
+          {title && <span className="topbar-title">{title}</span>}
+          {subtitle && <span className="topbar-breadcrumb">{subtitle}</span>}
+        </div>
+      )}
+
 
       {/* Right Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 28, marginLeft: 'auto' }}>
-        {/* Theme Toggle */}
-        <button onClick={toggleTheme} style={{
-          display: 'flex', alignItems: 'center', background: isDark ? '#3b82f6' : '#e0e7ff',
-          borderRadius: 24, padding: 4, cursor: 'pointer', gap: 4, width: 64, justifyContent: 'space-between', border: 'none',
-          boxShadow: isDark ? '0 2px 8px rgba(59,130,246,0.4)' : '0 2px 8px rgba(99,102,241,0.15)',
-        }}>
-          <div style={{ background: isDark ? '#fff' : 'transparent', borderRadius: '50%', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Moon size={14} color={isDark ? '#3b82f6' : '#9ca3af'} />
-          </div>
-          <div style={{ background: !isDark ? '#6366f1' : 'transparent', borderRadius: '50%', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Sun size={14} color={!isDark ? '#fff' : 'rgba(255,255,255,0.5)'} />
-          </div>
+        {/* Theme Toggle — Premium pill with animated knob */}
+        <button
+          onClick={toggleTheme}
+          title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          style={{
+            position: 'relative',
+            display: 'flex', alignItems: 'center',
+            width: 56, height: 30,
+            borderRadius: 999,
+            padding: 3,
+            border: 'none',
+            cursor: 'pointer',
+            background: isDark
+              ? 'linear-gradient(135deg, #1e1b4b, #312e81)'
+              : 'linear-gradient(135deg, #e0e7ff, #c7d2fe)',
+            boxShadow: isDark
+              ? '0 0 0 1px rgba(99,102,241,0.4), 0 4px 16px rgba(99,102,241,0.3), inset 0 1px 0 rgba(255,255,255,0.08)'
+              : '0 0 0 1px rgba(79,70,229,0.2), 0 2px 8px rgba(79,70,229,0.12), inset 0 1px 0 rgba(255,255,255,0.8)',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            outline: 'none',
+          }}
+        >
+          {/* Sliding knob */}
+          <span style={{
+            position: 'absolute',
+            left: isDark ? 'calc(100% - 27px)' : '3px',
+            width: 24, height: 24,
+            borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: isDark
+              ? 'linear-gradient(135deg, #6366f1, #818cf8)'
+              : 'linear-gradient(135deg, #ffffff, #f0f4ff)',
+            boxShadow: isDark
+              ? '0 2px 8px rgba(99,102,241,0.6), 0 0 12px rgba(99,102,241,0.4)'
+              : '0 2px 6px rgba(79,70,229,0.25), 0 1px 2px rgba(0,0,0,0.08)',
+            transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease, box-shadow 0.3s ease',
+          }}>
+            {isDark
+              ? <Moon size={12} color="#fff" />
+              : <Sun size={12} color="#4f46e5" />
+            }
+          </span>
+          {/* Background icon hints */}
+          <Sun size={10} color={isDark ? 'rgba(255,255,255,0.2)' : 'rgba(79,70,229,0.3)'} style={{ marginLeft: 4, flexShrink: 0 }} />
+          <Moon size={10} color={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(79,70,229,0.2)'} style={{ marginLeft: 'auto', marginRight: 4, flexShrink: 0 }} />
         </button>
 
         {/* Unified Notification Bell */}
         {user && (
           <div ref={dropdownRef} style={{ position: 'relative', cursor: 'pointer' }}>
             <div onClick={() => setShowNotifications(!showNotifications)} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <Bell size={22} color={isDark ? '#94a3b8' : '#64748b'} />
+              <Bell size={22} color={isDark ? '#94a3b8' : '#9ca3af'} />
               {totalUnread > 0 && (
                 <div style={{
                   position: 'absolute', top: -5, right: -5,
-                  background: alertCount > 0 ? '#ef4444' : (user.role === 'CONTROLLER' ? '#a855f7' : (user.role === 'DRIVER' ? '#10b981' : '#3b82f6')),
+                  background: alertCount > 0 ? 'var(--danger)' : 'var(--primary)',
                   color: '#fff', fontSize: '0.65rem', fontWeight: 700, width: 16, height: 16, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid var(--topbar-bg)`,
                 }}>
                   {totalUnread > 9 ? '9+' : totalUnread}
@@ -197,8 +238,8 @@ const Topbar = ({ onMenuToggle }) => {
 
             {showNotifications && (
               <div style={{
-                position: 'absolute', top: '100%', right: -20, marginTop: 16, width: 340, background: isDark ? '#1e293b' : '#ffffff',
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'}`, borderRadius: 16, boxShadow: '0 10px 40px rgba(0,0,0,0.15)', zIndex: 100, display: 'flex', flexDirection: 'column', overflow: 'hidden'
+                position: 'absolute', top: '100%', right: -20, marginTop: 16, width: 340, background: 'var(--surface)',
+                border: `1px solid var(--surface-border)`, borderRadius: 16, boxShadow: 'var(--shadow-xl)', zIndex: 100, display: 'flex', flexDirection: 'column', overflow: 'hidden'
               }}>
                 <div style={{ padding: '16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 style={{ margin: 0, fontSize: '1rem', color: isDark ? '#fff' : '#1e293b', fontWeight: 600 }}>
@@ -225,9 +266,9 @@ const Topbar = ({ onMenuToggle }) => {
                     notifications.length === 0 ? <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No recent system activity</div> :
                     notifications.map(n => (
                       <div key={n.id} onClick={() => !n.isRead && handleMarkAsRead(n.id)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)'), cursor: 'pointer' }}>
-                        <div style={{ background: n.isRead ? (isDark ? '#334155' : '#e2e8f0') : '#3b82f6', color: '#fff', borderRadius: '50%', padding: 6, display: 'flex' }}><Info size={14} /></div>
+                        <div style={{ background: n.isRead ? (isDark ? '#374151' : '#f3f4f6') : '#3b82f6', color: '#fff', borderRadius: '50%', padding: 6, display: 'flex' }}><Info size={14} /></div>
                         <div style={{ flex: 1 }}>
-                          <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#e2e8f0' : '#334155', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
+                          <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#f3f4f6' : '#374151', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
                           <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{new Date(n.createdAt).toLocaleString()}</span>
                         </div>
                       </div>
@@ -238,15 +279,15 @@ const Topbar = ({ onMenuToggle }) => {
                   {user.role === 'CONTROLLER' && (
                     ctrlNotifs.length === 0 ? <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No recent activity log</div> :
                     <>
-                      <div style={{ padding: '8px 16px', background: isDark ? 'rgba(167,139,250,0.05)' : '#f8fafc', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#eee'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ padding: '8px 16px', background: isDark ? 'rgba(96, 165, 250,0.05)' : '#f8fafc', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#eee'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase' }}>Recent Activity</span>
                         <button onClick={handleCtrlClearAll} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '0.65rem', cursor: 'pointer' }}>Clear All</button>
                       </div>
                       {ctrlNotifs.map(n => (
-                        <div key={n.id} onClick={() => !n.isRead && handleCtrlMarkRead(n.id)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(167,139,250,0.06)' : 'rgba(167,139,250,0.04)'), cursor: 'pointer' }}>
+                        <div key={n.id} onClick={() => !n.isRead && handleCtrlMarkRead(n.id)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(96, 165, 250,0.06)' : 'rgba(96, 165, 250,0.04)'), cursor: 'pointer' }}>
                           <div style={ctrlNotifIcon(n.type, isDark)}>{ctrlNotifIconEl(n.type)}</div>
                           <div style={{ flex: 1 }}>
-                            <p style={{ margin: 0, fontSize: '0.82rem', color: isDark ? '#e2e8f0' : '#334155', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
+                            <p style={{ margin: 0, fontSize: '0.82rem', color: isDark ? '#f3f4f6' : '#374151', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
                             <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{new Date(n.createdAt).toLocaleString()}</span>
                           </div>
                         </div>
@@ -261,7 +302,7 @@ const Topbar = ({ onMenuToggle }) => {
                       <div key={n.id} onClick={() => !n.isRead && handleDrvMarkRead(n.id)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.04)'), cursor: 'pointer' }}>
                         <div style={drvNotifIcon(n.type, isDark)}>{drvNotifIconEl(n.type)}</div>
                         <div style={{ flex: 1 }}>
-                          <p style={{ margin: 0, fontSize: '0.82rem', color: isDark ? '#e2e8f0' : '#334155', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
+                          <p style={{ margin: 0, fontSize: '0.82rem', color: isDark ? '#f3f4f6' : '#374151', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
                           <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{new Date(n.createdAt).toLocaleString()}</span>
                         </div>
                       </div>
@@ -279,7 +320,7 @@ const Topbar = ({ onMenuToggle }) => {
             {user?.profilePicture ? (
               <img src={user?.profilePicture} alt={user?.userName} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
             ) : (
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <User size={20} color="#ffffff" strokeWidth={2} />
               </div>
             )}

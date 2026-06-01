@@ -45,35 +45,6 @@ export const AuthProvider = ({ children }) => {
 
   // ── LOGIN ──────────────────────────────────────────────────────────
   const login = async (userName, password) => {
-    // Demo mode for testing without backend
-    const demoUsers = {
-      admin: { userName: 'admin', password: 'admin', role: 'ADMIN', email: 'admin@vmas.com' },
-      controller1: { userName: 'controller1', password: 'controller1', role: 'CONTROLLER', email: 'controller@vmas.com' },
-      driver1: { userName: 'driver1', password: 'driver1', role: 'DRIVER', email: 'driver@vmas.com' },
-    }
-
-    // Check if demo credentials match
-    if (demoUsers[userName] && demoUsers[userName].password === password) {
-      const demoUser = demoUsers[userName]
-      const mockToken = `demo_token_${userName}_${Date.now()}`
-      const userDto = {
-        id: `demo_${userName}`,
-        userName: demoUser.userName,
-        email: demoUser.email,
-        role: demoUser.role,
-        accountStatus: 'ACTIVE',
-        profilePicture: null,
-      }
-
-      const normalised = buildUser(userDto)
-      setToken(mockToken)
-      setUser(normalised)
-      localStorage.setItem('token', mockToken)
-      localStorage.setItem('user', JSON.stringify(normalised))
-
-      return { success: true }
-    }
-
     try {
       const response = await authAPI.login({ userName, password })
 

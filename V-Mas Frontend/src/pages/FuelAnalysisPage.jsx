@@ -50,8 +50,8 @@ const BarChart = ({ data, maxVal, highlightCount = 12, D }) => {
       <svg width="100%" viewBox={`0 0 ${TOTAL_W} ${H + 32}`} preserveAspectRatio="none">
         <defs>
           <linearGradient id="barD" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#818cf8" />
-            <stop offset="100%" stopColor="#4f46e5" />
+            <stop offset="0%" stopColor="#3b82f6" />
+            <stop offset="100%" stopColor="#1d4ed8" />
           </linearGradient>
           <linearGradient id="barP" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#fbbf24" />
@@ -121,7 +121,7 @@ const LineChart = ({ data, maxVal, minVal, D }) => {
       <polygon points={area} fill="url(#areaGrad)" />
       <polyline points={polyline} fill="none" stroke="#2dd4bf" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
       {pts.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r={3.5} fill="#0d1117" stroke="#2dd4bf" strokeWidth={2}>
+        <circle key={i} cx={p.x} cy={p.y} r={3.5} fill="#0b132b" stroke="#2dd4bf" strokeWidth={2}>
           <title>{data[i].toFixed(2)} km/L</title>
         </circle>
       ))}
@@ -422,7 +422,7 @@ const FuelAnalysisPage = () => {
         <Topbar title="Fuel Analysis" subtitle="Home / Fuel Analysis" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ width: 50, height: 50, borderRadius: '50%', border: '4px solid rgba(99,102,241,0.2)', borderTopColor: '#a78bfa', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+            <div style={{ width: 50, height: 50, borderRadius: '50%', border: '4px solid rgba(37, 99, 235,0.2)', borderTopColor: '#60a5fa', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
             <p style={{ color: D.textSub, fontWeight: 600 }}>Loading fuel analytics...</p>
           </div>
         </div>
@@ -451,26 +451,26 @@ const FuelAnalysisPage = () => {
             </div>
           )}
 
-          {/* -- Hero Banner --------------------------------------- */}
+          {/* Hero Banner */}
           <div style={{
-            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
-            borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`,
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 30
+            background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+            borderRadius: 20, padding: '32px 36px', marginBottom: 28, position: 'relative', overflow: 'hidden',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)', border: `1px solid ${D.border}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20
           }}>
-            {/* decoration */}
-            <div style={{ position: 'absolute', top: '-40%', right: '-10%', width: 400, height: 400, background: 'radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%)', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', bottom: '-20%', left: '10%', width: 250, height: 250, background: 'radial-gradient(circle, rgba(165,180,252,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
-            
-            <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: 18 }}>
-              <div style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(12px)', borderRadius: 20, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
-                <Fuel size={32} strokeWidth={1.5} />
+            {/* decorative circles */}
+            {[['80%','-20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
+              <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
+            ))}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
+              <div style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(4px)', borderRadius: 14, width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }}>
+                <Fuel size={28} strokeWidth={1.5} />
               </div>
               <div>
-                <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                   Fuel Analysis
                 </h1>
-                <p style={{ margin: '6px 0 0', color: '#a5b4fc', fontSize: '1rem', fontWeight: 500, opacity: 0.9 }}>
+                <p style={{ margin: '4px 0 0', color: '#60a5fa', fontSize: '0.9rem' }}>
                   {isDriver ? 'Track your vehicle fuel consumption.' : 'Fleet-wide consumption trends, cost breakdowns & efficiency tracking.'}
                 </p>
               </div>
@@ -479,10 +479,11 @@ const FuelAnalysisPage = () => {
               <button 
                 onClick={() => setShowAddModal(true)}
                 style={{
+                  position: 'relative',
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '12px 24px', borderRadius: 16, border: 'none', background: '#fff',
-                  color: '#312e81', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap',
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.25)', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', zIndex: 2
+                  color: '#1e3a8a', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap',
+                  boxShadow: '0 8px 30px rgba(0,0,0,0.25)', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
                 }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}
@@ -550,7 +551,7 @@ const FuelAnalysisPage = () => {
                         <button key={p} onClick={() => setPeriod(p)} style={{
                           padding: '4px 12px', borderRadius: 999, border: 'none', cursor: 'pointer',
                           fontSize: '0.72rem', fontWeight: 700, transition: 'all 0.15s',
-                          background: period === p ? 'rgba(129,140,248,0.25)' : 'transparent',
+                          background: period === p ? 'rgba(59, 130, 246,0.25)' : 'transparent',
                           color: period === p ? D.indigo : D.textSub,
                         }}>{p}</button>
                       ))}
@@ -558,7 +559,7 @@ const FuelAnalysisPage = () => {
                   </div>
                   <BarChart data={monthlyData} maxVal={maxVal} highlightCount={highlightCount} D={D} />
                   <div style={{ display: 'flex', gap: 20, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${D.border}` }}>
-                    {[['Diesel', 'url(#barD)', '#818cf8'], ['Petrol', 'url(#barP)', '#fbbf24']].map(([n, , c]) => (
+                    {[['Diesel', 'url(#barD)', '#3b82f6'], ['Petrol', 'url(#barP)', '#fbbf24']].map(([n, , c]) => (
                       <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.72rem', color: D.textSub, fontWeight: 600 }}>
                         <div style={{ width: 12, height: 12, borderRadius: 3, background: c }} />{n}
                       </div>
@@ -637,7 +638,7 @@ const FuelAnalysisPage = () => {
                           <button key={p} onClick={() => setCostPeriod(p)} style={{
                             padding: '4px 10px', borderRadius: 999, border: 'none', cursor: 'pointer',
                             fontSize: '0.72rem', fontWeight: 700, transition: 'all 0.15s',
-                            background: costPeriod === p ? 'rgba(129,140,248,0.25)' : 'transparent',
+                            background: costPeriod === p ? 'rgba(59, 130, 246,0.25)' : 'transparent',
                             color: costPeriod === p ? D.indigo : D.textSub,
                           }}>{p}</button>
                         ))}
@@ -675,7 +676,7 @@ const FuelAnalysisPage = () => {
                         <button key={p} onClick={() => setCostPeriod(p)} style={{
                           padding: '4px 10px', borderRadius: 999, border: 'none', cursor: 'pointer',
                           fontSize: '0.72rem', fontWeight: 700, transition: 'all 0.15s',
-                          background: costPeriod === p ? 'rgba(129,140,248,0.25)' : 'transparent',
+                          background: costPeriod === p ? 'rgba(59, 130, 246,0.25)' : 'transparent',
                           color: costPeriod === p ? D.indigo : D.textSub,
                         }}>{p}</button>
                       ))}
@@ -1017,14 +1018,14 @@ const FuelAnalysisPage = () => {
           {isDriver && showAddModal && (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={() => { if (!submitting) setShowAddModal(false) }}>
               <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-                <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
                     <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
                       <Plus size={24} />
                     </div>
                     <div>
                       <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>Record Fuel Entry</h2>
-                      <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#a5b4fc', fontWeight: 600, opacity: 0.9 }}>Enter the latest fill-up data for analysis</p>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600, opacity: 0.9 }}>Enter the latest fill-up data for analysis</p>
                     </div>
                   </div>
                   <button onClick={() => setShowAddModal(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
@@ -1067,7 +1068,7 @@ const FuelAnalysisPage = () => {
                   </div>
 
                   <div style={{ display: 'flex', gap: 20 }}>
-                    <button type="submit" disabled={submitting} style={{ flex: 2, padding: '16px', borderRadius: 18, border: 'none', background: submitting ? 'rgba(99,102,241,0.5)' : 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff', fontSize: '1.05rem', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: submitting ? 'none' : '0 10px 25px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }} onMouseEnter={e => { if(!submitting) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 15px 35px rgba(99,102,241,0.5)' } }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 10px 25px rgba(99,102,241,0.4)' }}>
+                    <button type="submit" disabled={submitting} style={{ flex: 2, padding: '16px', borderRadius: 18, border: 'none', background: submitting ? 'rgba(37, 99, 235,0.5)' : 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', fontSize: '1.05rem', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: submitting ? 'none' : '0 10px 25px rgba(37, 99, 235,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }} onMouseEnter={e => { if(!submitting) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 15px 35px rgba(37, 99, 235,0.5)' } }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 10px 25px rgba(37, 99, 235,0.4)' }}>
                       {submitting ? <Loader2 size={22} className="animate-spin" /> : <Check size={22} />}
                       {submitting ? 'Processing Entry...' : 'Complete Fuel Entry'}
                     </button>
@@ -1084,31 +1085,31 @@ const FuelAnalysisPage = () => {
       {/* -- Dark theme overrides for sidebar/topbar ----------- */}
       <style>{`
         .fuel-dark .topbar {
-          background: #161b27 !important;
+          background: #1c2541 !important;
           border-bottom-color: rgba(255,255,255,0.07) !important;
         }
-        .fuel-dark .topbar-title { color: #e2e8f0 !important; }
-        .fuel-dark .topbar-breadcrumb { color: #475569 !important; }
+        .fuel-dark .topbar-title { color: #f3f4f6 !important; }
+        .fuel-dark .topbar-breadcrumb { color: #4b5563 !important; }
         .fuel-dark .topbar-user {
           background: rgba(255,255,255,0.05) !important;
           border-color: rgba(255,255,255,0.1) !important;
         }
         .fuel-dark .topbar-user:hover {
-          background: rgba(99,102,241,0.15) !important;
-          border-color: rgba(99,102,241,0.4) !important;
+          background: rgba(37, 99, 235,0.15) !important;
+          border-color: rgba(37, 99, 235,0.4) !important;
         }
-        .fuel-dark .topbar-name { color: #e2e8f0 !important; }
+        .fuel-dark .topbar-name { color: #f3f4f6 !important; }
         .fuel-dark .sidebar {
-          background: #111827 !important;
+          background: #0e1933 !important;
           border-right-color: rgba(255,255,255,0.07) !important;
         }
         .fuel-dark .sidebar-header { border-bottom-color: rgba(255,255,255,0.07) !important; }
         .fuel-dark .sidebar-title { color: #f1f5f9 !important; }
-        .fuel-dark .sidebar-subtitle { color: #475569 !important; }
-        .fuel-dark .nav-section-label { color: #334155 !important; }
-        .fuel-dark .nav-item { color: #64748b !important; }
-        .fuel-dark .nav-item:hover { background: rgba(255,255,255,0.05) !important; color: #cbd5e1 !important; }
-        .fuel-dark .nav-item.active { background: rgba(99,102,241,0.18) !important; color: #a5b4fc !important; }
+        .fuel-dark .sidebar-subtitle { color: #4b5563 !important; }
+        .fuel-dark .nav-section-label { color: #374151 !important; }
+        .fuel-dark .nav-item { color: #9ca3af !important; }
+        .fuel-dark .nav-item:hover { background: rgba(255,255,255,0.05) !important; color: #d1d5db !important; }
+        .fuel-dark .nav-item.active { background: rgba(37, 99, 235,0.18) !important; color: #60a5fa !important; }
         .fuel-dark .sidebar-divider { background: rgba(255,255,255,0.07) !important; }
         .fuel-dark .sidebar-logout-btn { color: rgba(255,255,255,0.4) !important; }
         .fuel-dark .sidebar-logout-btn:hover { color: #f87171 !important; }

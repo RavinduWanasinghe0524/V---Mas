@@ -674,7 +674,7 @@ const ReportsPage = () => {
 
           {/* Hero Banner */}
           <div style={{
-            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
+            background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
             borderRadius: 20,
             padding: '32px 36px',
             marginBottom: 28,
@@ -695,7 +695,7 @@ const ReportsPage = () => {
                 <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                   Reports and Analytics Dashboard
                 </h1>
-                <p style={{ margin: '4px 0 0', color: '#a5b4fc', fontSize: '0.9rem' }}>
+                <p style={{ margin: '4px 0 0', color: '#60a5fa', fontSize: '0.9rem' }}>
                   Generate and download comprehensive reports on fleet performance, fuel consumption, maintenance costs, and system-wide activity.
                 </p>
               </div>
@@ -766,7 +766,7 @@ const ReportsPage = () => {
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               {[
-                { id: 'indigo',   name: 'Indigo',   color: '#4338ca' },
+                { id: 'indigo',   name: 'Indigo',   color: '#1e40af' },
                 { id: 'emerald',  name: 'Emerald',  color: '#059669' },
                 { id: 'crimson',  name: 'Crimson',  color: '#dc2626' },
                 { id: 'charcoal', name: 'Charcoal', color: '#374151' },
@@ -1081,7 +1081,7 @@ const ReportsPage = () => {
                 <tbody>
                   {filteredRecentReports.map((r, i) => (
                     <tr key={r.name} style={{ borderBottom: `1px solid ${D.border}`, background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)', transition: 'background 0.15s' }}
-                        onMouseEnter={e => e.currentTarget.style.background='rgba(99,102,241,0.08)'}
+                        onMouseEnter={e => e.currentTarget.style.background='rgba(37, 99, 235,0.08)'}
                         onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'}>
                       <td style={{ padding: '14px 16px', fontWeight: 600, color: D.text, display: 'flex', alignItems: 'center' }}>
                         <FileText size={16} style={{ marginRight: 10, color: D.textSub }} />{r.name}
@@ -1098,7 +1098,7 @@ const ReportsPage = () => {
                           <button
                             onClick={() => handleRedownloadRecent(r.name, r.format)}
                             style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}
-                            onMouseEnter={e => { e.currentTarget.style.background='rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor='rgba(99,102,241,0.4)'; e.currentTarget.style.color='#a5b4fc' }}
+                            onMouseEnter={e => { e.currentTarget.style.background='rgba(37, 99, 235,0.15)'; e.currentTarget.style.borderColor='rgba(37, 99, 235,0.4)'; e.currentTarget.style.color='#60a5fa' }}
                             onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor=D.border; e.currentTarget.style.color=D.text }}>
                             <Download size={12} strokeWidth={2} style={{ marginRight: 4 }} /> Download
                           </button>
