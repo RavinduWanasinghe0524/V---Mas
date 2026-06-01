@@ -235,7 +235,7 @@ const FuelManagementPage = () => {
 
     // Auto-fill driver from vehicle's assigned driver
     const autoDriver = selected?.driverName && selected.driverName !== 'Not Assigned'
-      ? driversList.find(d => d.fullName === selected.driverName || d.username === selected.driverName)?.username || selected.driverName
+      ? driversList.find(d => d.userName === selected.driverName || d.userName === selected.driverName)?.userName || selected.driverName
       : ''
 
     setFormData(p => ({
@@ -265,7 +265,7 @@ const FuelManagementPage = () => {
         liters: litersNew,
         costPerLiter: parseFloat(formData.costPerLiter),
         mileage: milNew,
-        driverUsername: formData.driverUsername || undefined,
+        driverUsername: formData.driverUsername,
       })
       setShowAddModal(false)
       setFormData({ vehicleRegNumber: '', fuelType: 'Diesel', liters: '', costPerLiter: '', mileage: '', date: new Date().toISOString().split('T')[0], driverUsername: '' })
@@ -371,8 +371,8 @@ const FuelManagementPage = () => {
   const uniqueDriversInLogs = [...new Set(
     allLogs.filter(l => !l.isDeleted && l.driverUsername).map(l => l.driverUsername)
   )].map(username => {
-    const found = driversList.find(d => d.username === username)
-    return { username, displayName: found?.fullName || username }
+    const found = driversList.find(d => d.userName === username)
+    return { username, displayName: found?.userName || username }
   })
 
   // ── Loading ─────────────────────────────────────────────────────────────
@@ -753,18 +753,45 @@ const FuelManagementPage = () => {
                       )}
                     </div>
 
-                    {/* Assigned Operator */}
+                    {/* Driver Assignment */}
                     <div style={{ gridColumn: 'span 2' }}>
-                      <label style={labelStyle}>Assigned Operator <span style={{ textTransform: 'none', color: D.textFaint, fontWeight: 500, marginLeft: 6, opacity: 0.8 }}>(Optional)</span></label>
-                      <select name="driverUsername" value={editingLog ? (editingLog.driverUsername || '') : (formData.driverUsername || '')} onChange={handleInputChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
-                        <option value="">System Generated / Unassigned</option>
-                        {driversList.map(d => <option key={d.id} value={d.username}>{d.fullName || d.username}</option>)}
-                      </select>
-                      {selectedVehicle?.driverName && selectedVehicle.driverName !== 'Not Assigned' && (
-                        <p style={{ margin: '7px 0 0', fontSize: '0.72rem', color: D.purple, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <User size={11} /> Auto-filled from vehicle assignment
-                        </p>
-                      )}
+                      <label style={labelStyle}>
+                        Driver <span style={{ color: D.red }}>*</span>
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <User size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.purple, pointerEvents: 'none', opacity: 0.8 }} />
+                        <select
+                          name="driverUsername"
+                          value={editingLog ? (editingLog.driverUsername || '') : (formData.driverUsername || '')}
+                          onChange={handleInputChange}
+                          required
+                          style={{ ...inputStyle, paddingLeft: 40, appearance: 'none', paddingRight: 32, cursor: 'pointer' }}
+                          onFocus={onFocus}
+                          onBlur={onBlur}
+                        >
+                          <option value="" disabled>— Select a Driver —</option>
+                          {driversList.length === 0 ? (
+                            <option value="" disabled>No drivers available</option>
+                          ) : (
+                            driversList.map(d => (
+                              <option key={d.id} value={d.userName}>
+                                {d.userName}
+                              </option>
+                            ))
+                          )}
+                        </select>
+                        <svg style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                      </div>
+                      {(() => {
+                        const selectedVehicle = !editingLog && formData.vehicleRegNumber
+                          ? vehicles.find(v => v.registrationNo === formData.vehicleRegNumber)
+                          : null
+                        return selectedVehicle?.driverName && selectedVehicle.driverName !== 'Not Assigned' && (
+                          <p style={{ margin: '7px 0 0', fontSize: '0.72rem', color: D.purple, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <User size={11} /> Auto-filled from vehicle assignment
+                          </p>
+                        )
+                      })()}
                     </div>
 
                   </div>

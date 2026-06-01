@@ -344,9 +344,12 @@ const FuelAnalysisPage = () => {
     const targetLogs = (isAdmin || isController) ? allFuelLogs : myVehicleLogs
     targetLogs.forEach(l => {
       if (!l.fuelEfficiency || l.fuelEfficiency <= 0) return
-      const d = new Date(l.date)
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-      if (!monthMap[key]) monthMap[key] = { sum: 0, count: 0, label: d.toLocaleString('default', { month: 'short', year: '2-digit' }) }
+      // Parse ISO date string as local date to avoid UTC timezone off-by-one issues
+      const [year, month] = (l.date || '').split('-').map(Number)
+      if (!year || !month) return
+      const key = `${year}-${String(month).padStart(2, '0')}`
+      const label = new Date(year, month - 1, 1).toLocaleString('default', { month: 'short', year: '2-digit' })
+      if (!monthMap[key]) monthMap[key] = { sum: 0, count: 0, label }
       monthMap[key].sum += l.fuelEfficiency
       monthMap[key].count += 1
     })
@@ -357,7 +360,8 @@ const FuelAnalysisPage = () => {
   })()
   const effTrend = effTrendData.map(d => d.value)
   const maxEff = Math.max(...effTrend, 1)
-  const minEff = Math.min(...effTrend, 0)
+  // Use a floor slightly below the minimum value so the chart isn't flat at the top
+  const minEff = effTrend.length > 0 ? Math.max(0, Math.min(...effTrend) - 1) : 0
 
   /* max spending for normalising hbars */
   const maxSpend = Math.max(...vehicleStats.map(v => v.totalSpending), 1)
