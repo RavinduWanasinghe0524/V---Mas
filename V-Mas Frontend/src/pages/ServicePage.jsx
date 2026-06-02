@@ -1150,8 +1150,8 @@ const ServicePage = () => {
         }).catch(() => {}) // non-fatal
 
         // Still fire local events for immediate UI update
-        addControllerNotification(msg, 'WARNING')
-        if (isDriver) addDriverNotification(msg, 'WARNING')
+        addControllerNotification(msg, 'WARNING', '/service')
+        if (isDriver) addDriverNotification(msg, 'WARNING', '/service')
       }
       setIsAddModalOpen(false)
       loadData()

@@ -263,36 +263,44 @@ const ProfilePage = () => {
 
           {/* Hero Banner */}
           <div style={{
-            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
-            borderRadius: 28, padding: '40px', marginBottom: 32,
+            background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+            borderRadius: 20, padding: '32px 36px', marginBottom: 32,
             position: 'relative', overflow: 'hidden',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)', border: `1px solid ${D.border}`,
             display: 'flex', alignItems: 'center', gap: 28, flexWrap: 'wrap',
           }}>
-            {[['−10%','78%','200px','rgba(255,255,255,0.03)'],['60%','−10px','150px','rgba(255,255,255,0.04)'],['40%','85%','100px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
+            {/* decorative circles */}
+            {[['80%','-20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
               <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
             ))}
-            <img
-              src={profileForm.profilePicture || user?.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.userName || 'U')}&background=${D.indigo.slice(1)}&color=fff&size=100&bold=true`}
-              alt={user?.userName}
-              style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover', border: '3px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', flexShrink: 0, position: 'relative' }}
-            />
+            {/* Avatar with frosted glass frame */}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(4px)', borderRadius: 18, width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.15)', overflow: 'hidden' }}>
+                <img
+                  src={profileForm.profilePicture || user?.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.userName || 'U')}&background=1e3a8a&color=fff&size=100&bold=true`}
+                  alt={user?.userName}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </div>
+            </div>
+            {/* Text */}
             <div style={{ flex: 1, position: 'relative' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
-                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>{user?.userName}</h1>
+                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{user?.userName}</h1>
                 <span style={{ background: 'rgba(255,255,255,0.15)', color: '#e0e7ff', padding: '3px 12px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   {user?.role?.charAt(0) + (user?.role?.slice(1).toLowerCase() || '')}
                 </span>
               </div>
-              <p style={{ margin: 0, fontSize: '0.88rem', color: '#a5b4fc', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <p style={{ margin: '4px 0 0', fontSize: '0.9rem', color: '#60a5fa', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <ShieldCheck size={14} /> Full system access with all permissions
               </p>
             </div>
+            {/* Edit button */}
             <button
               onClick={() => setActiveModal('edit')}
               style={{
-                position: 'relative', padding: '14px 28px', borderRadius: 16, border: 'none',
-                background: '#fff', color: '#312e81', fontSize: '0.95rem', fontWeight: 800,
+                position: 'relative', padding: '12px 24px', borderRadius: 16, border: 'none',
+                background: '#fff', color: '#1e3a8a', fontSize: '0.95rem', fontWeight: 800,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
                 transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                 boxShadow: '0 8px 30px rgba(0,0,0,0.25)', whiteSpace: 'nowrap', flexShrink: 0,
