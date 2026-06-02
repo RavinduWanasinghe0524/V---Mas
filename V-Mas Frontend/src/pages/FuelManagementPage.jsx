@@ -274,14 +274,15 @@ const FuelManagementPage = () => {
       setMileageError('')
       await loadData()
       showToast('Fuel log added successfully!')
-      addControllerNotification(`Fuel log added for vehicle ${regCapture}`, 'FUEL_ADD')
+      addControllerNotification(`Fuel log added for vehicle ${regCapture}`, 'FUEL_ADD', '/fuel-management')
       // ── Low efficiency alert ─────────────────────────────────────────────
       if (prevMilCapture != null && milNew > prevMilCapture && litersNew > 0) {
         const eff = (milNew - prevMilCapture) / litersNew
         if (eff < 5) {
           addControllerNotification(
             `⚠️ Low Efficiency Alert: ${regCapture} recorded only ${eff.toFixed(2)} km/L (Poor) — consider scheduling an inspection.`,
-            'FUEL_LOW_EFF'
+            'FUEL_LOW_EFF',
+            '/fuel-analysis'
           )
         }
       }
@@ -316,14 +317,15 @@ const FuelManagementPage = () => {
       setEditingLog(null)
       await loadData()
       showToast('Fuel log updated!')
-      addControllerNotification(`Fuel log #${editId} updated`, 'FUEL_EDIT')
+      addControllerNotification(`Fuel log #${editId} updated`, 'FUEL_EDIT', '/fuel-management')
       // ── Low efficiency alert ─────────────────────────────────────────────
       if (prevMilForEdit != null && editMilNew > prevMilForEdit && editLitersNew > 0) {
         const eff = (editMilNew - prevMilForEdit) / editLitersNew
         if (eff < 5) {
           addControllerNotification(
             `⚠️ Low Efficiency Alert: ${editReg} updated log shows only ${eff.toFixed(2)} km/L (Poor) — consider scheduling an inspection.`,
-            'FUEL_LOW_EFF'
+            'FUEL_LOW_EFF',
+            '/fuel-analysis'
           )
         }
       }
@@ -340,7 +342,7 @@ const FuelManagementPage = () => {
       setDeletingLog(null)
       await loadData()
       showToast('Fuel log archived.')
-      addControllerNotification(`Fuel log for ${deletingLog?.vehicleRegNumber} archived`, 'FUEL_DELETE')
+      addControllerNotification(`Fuel log for ${deletingLog?.vehicleRegNumber} archived`, 'FUEL_DELETE', '/fuel-management')
     } catch (err) {
       showToast('Failed to archive', 'error')
     }
@@ -352,7 +354,7 @@ const FuelManagementPage = () => {
       await fuelAPI.restoreLog(id)
       await loadData()
       showToast('Fuel log restored successfully!')
-      addControllerNotification(`Fuel log restored`, 'FUEL_RESTORE')
+      addControllerNotification(`Fuel log restored`, 'FUEL_RESTORE', '/fuel-management')
     } catch (err) {
       showToast('Failed to restore fuel log', 'error')
     } finally {
