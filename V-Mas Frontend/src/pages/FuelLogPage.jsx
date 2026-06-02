@@ -195,7 +195,8 @@ const FuelLogPage = () => {
       // Notify the driver via the bell
       addDriverNotification(
         `⛽ Fuel log added — ${payload.liters} L @ Rs.${payload.costPerLiter}/L for ${payload.vehicleRegNumber} (${payload.mileage} km on ${payload.date})`,
-        'FUEL_ADD'
+        'FUEL_ADD',
+        '/fuel-log'
       )
       // ── Low efficiency alert for driver ──────────────────────────────
       if (prevMilDrv != null && payload.mileage > prevMilDrv && payload.liters > 0) {
@@ -203,7 +204,8 @@ const FuelLogPage = () => {
         if (eff < 5) {
           addDriverNotification(
             `⚠️ Low Efficiency Alert: Your fill-up for ${payload.vehicleRegNumber} recorded only ${eff.toFixed(2)} km/L (Poor). Please report this to your controller.`,
-            'FUEL_LOW_EFF'
+            'FUEL_LOW_EFF',
+            '/fuel-analysis'
           )
         }
       }
