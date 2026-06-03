@@ -14,10 +14,10 @@ const Toggle = ({ checked, onChange, color = '#6366f1' }) => (
 )
 
 const ALERT_TYPES = [
-  { key: 'SERVICE',   label: 'Service Due',       icon: <Wrench size={13} /> },
-  { key: 'INSURANCE', label: 'Insurance Expiry',  icon: <Shield size={13} /> },
-  { key: 'FUEL',      label: 'Fuel Inefficiency', icon: <Fuel size={13} /> },
-  { key: 'OVERDUE',   label: 'Overdue Service',   icon: <AlertCircle size={13} /> },
+  { key: 'SERVICE', label: 'Service Due', icon: <Wrench size={13} /> },
+  { key: 'INSURANCE', label: 'Insurance Expiry', icon: <Shield size={13} /> },
+  { key: 'FUEL', label: 'Fuel Inefficiency', icon: <Fuel size={13} /> },
+  { key: 'OVERDUE', label: 'Overdue Service', icon: <AlertCircle size={13} /> },
 ]
 
 const onFocus = e => {
@@ -80,14 +80,14 @@ const ProfilePage = () => {
   const { user, updateUser } = useAuth()
 
   const inputStyle = {
-    width: '100%', padding: '10px 14px', borderRadius: 8,
-    border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem',
+    width: '100%', padding: '14px 18px', borderRadius: 16,
+    border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem',
     color: D.text, background: D.inputBg, outline: 'none',
-    transition: 'border-color 0.15s, box-shadow 0.15s', fontFamily: 'inherit',
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', fontFamily: 'inherit',
   }
   const labelStyle = {
-    display: 'block', marginBottom: 6, fontSize: '0.78rem', fontWeight: 700,
-    color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.02em',
+    display: 'block', marginBottom: 10, fontSize: '0.75rem', fontWeight: 800,
+    color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.08em',
   }
 
   const [profileForm, setProfileForm] = useState({ email: '', profilePicture: '', fullName: '', phone: '', address: '' })
@@ -156,6 +156,17 @@ const ProfilePage = () => {
   }, [user])
 
   useEffect(() => {
+    if (activeModal) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [activeModal])
+
+  useEffect(() => {
     const fetchStats = async () => {
       try {
         if (user?.role === 'DRIVER') {
@@ -216,6 +227,12 @@ const ProfilePage = () => {
     if (pwForm.newPassword.length < 6) { setPwError('New password must be at least 6 characters'); return }
     setPwLoading(true)
     try {
+      if (user?.id?.toString().startsWith('demo_')) {
+        await new Promise(r => setTimeout(r, 500))
+        setPwSuccess('Password changed successfully')
+        setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
+        return
+      }
       await profileAPI.changePassword({ currentPassword: pwForm.currentPassword, newPassword: pwForm.newPassword, confirmPassword: pwForm.confirmPassword })
       setPwSuccess('Password changed successfully')
       setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
@@ -259,65 +276,73 @@ const ProfilePage = () => {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: D.bg }}>
         <Topbar title="My Profile" subtitle="Home / Profile" onMenuToggle={() => setSidebarOpen(o => !o)} />
-        <div className="page-body" style={{ paddingBottom: 40 }}>
+        <div className="page-body" style={{ padding: '28px 32px 40px' }}>
 
           {/* Hero Banner */}
           <div style={{
-            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
-            borderRadius: 28, padding: '40px', marginBottom: 32,
-            position: 'relative', overflow: 'hidden',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`,
-            display: 'flex', alignItems: 'center', gap: 28, flexWrap: 'wrap',
+            background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+            borderRadius: 20,
+            padding: '32px 36px',
+            marginBottom: 28,
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            border: `1px solid rgba(255,255,255,0.07)`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 28,
+            flexWrap: 'wrap',
           }}>
-            {[['−10%','78%','200px','rgba(255,255,255,0.03)'],['60%','−10px','150px','rgba(255,255,255,0.04)'],['40%','85%','100px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
-              <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
+            {/* decorative circles */}
+            {[['80%', '-20px', '180px', 'rgba(255,255,255,0.03)'], ['20%', '60%', '120px', 'rgba(255,255,255,0.04)'], ['55%', '80%', '90px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
+              <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
             ))}
             <img
-              src={profileForm.profilePicture || user?.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.userName || 'U')}&background=${D.indigo.slice(1)}&color=fff&size=100&bold=true`}
+              src={profileForm.profilePicture || user?.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.userName || 'U')}&background=random&size=100`}
               alt={user?.userName}
-              style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover', border: '3px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', flexShrink: 0, position: 'relative' }}
+              style={{ width: 100, height: 100, borderRadius: 16, objectFit: 'cover', border: `3px solid rgba(255,255,255,0.2)`, flexShrink: 0, position: 'relative', zIndex: 1 }}
             />
-            <div style={{ flex: 1, position: 'relative' }}>
+            <div style={{ flex: 1, position: 'relative', zIndex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
-                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>{user?.userName}</h1>
-                <span style={{ background: 'rgba(255,255,255,0.15)', color: '#e0e7ff', padding: '3px 12px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{user?.userName}</h1>
+                <span style={{ background: 'rgba(255,255,255,0.25)', color: '#ffffff', padding: '4px 12px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', border: '1px solid rgba(255,255,255,0.3)' }}>
                   {user?.role?.charAt(0) + (user?.role?.slice(1).toLowerCase() || '')}
                 </span>
               </div>
-              <p style={{ margin: 0, fontSize: '0.88rem', color: '#a5b4fc', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <p style={{ margin: 0, fontSize: '0.88rem', color: '#60a5fa', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <ShieldCheck size={14} /> Full system access with all permissions
               </p>
             </div>
             <button
               onClick={() => setActiveModal('edit')}
               style={{
-                position: 'relative', padding: '14px 28px', borderRadius: 16, border: 'none',
-                background: '#fff', color: '#312e81', fontSize: '0.95rem', fontWeight: 800,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
-                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: '0 8px 30px rgba(0,0,0,0.25)', whiteSpace: 'nowrap', flexShrink: 0,
+                padding: '12px 24px', borderRadius: 14, border: 'none',
+                background: '#ffffff', color: '#1e40af',
+                fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer', display: 'flex',
+                alignItems: 'center', gap: 8, boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
+                transition: 'all 0.25s ease', whiteSpace: 'nowrap', flexShrink: 0, position: 'relative', zIndex: 1
               }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.background = '#f8fafc' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = '#ffffff' }}
             >
-              <Edit2 size={18} strokeWidth={3} /> Edit Profile
+              <Edit2 size={18} /> Edit Profile
             </button>
           </div>
 
           {/* Member Since & Last Login */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
             {[
-              { label: 'Member Since', value: '1/15/2024', icon: <Calendar size={24} />, colorDim: D.blueDim, colorHex: D.blue },
-              { label: 'Last Login', value: '2026-05-16 09:30 AM', icon: <Shield size={24} />, colorDim: D.orangeDim, colorHex: D.orange },
+              { label: 'Member Since', value: '1/15/2024', icon: <Calendar size={20} />, colorDim: D.blueDim, colorHex: D.blue },
+              { label: 'Last Login', value: '2026-05-16 09:30 AM', icon: <Shield size={20} />, colorDim: D.orangeDim, colorHex: D.orange },
             ].map(({ label, value, icon, colorDim, colorHex }) => (
-              <div key={label} style={{ background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 4px 24px rgba(0,0,0,0.25)', overflow: 'hidden', padding: '28px', display: 'flex', alignItems: 'center', gap: 24, transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', cursor: 'default' }}
+              <div key={label} style={{ background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 4px 24px rgba(0,0,0,0.25)', overflow: 'hidden', padding: '24px', display: 'flex', alignItems: 'center', gap: 24, transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', cursor: 'default' }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.borderColor = colorHex + '50'; e.currentTarget.style.boxShadow = `0 16px 32px ${colorHex}20` }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)' }}
               >
-                <div style={{ width: 60, height: 60, borderRadius: 18, background: colorDim, color: colorHex, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${colorHex}30`, flexShrink: 0 }}>{icon}</div>
+                <div style={{ width: 50, height: 50, borderRadius: 14, background: colorDim, color: colorHex, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${colorHex}30`, flexShrink: 0 }}>{icon}</div>
                 <div>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{label}</div>
-                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: D.text, lineHeight: 1.1 }}>{value}</div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{label}</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: D.text, lineHeight: 1.1 }}>{value}</div>
                 </div>
               </div>
             ))}
@@ -366,21 +391,21 @@ const ProfilePage = () => {
             </div>
             <div style={{ padding: '24px 28px', display: 'flex', gap: 12 }}>
               {[
-                { label: 'Change Password',      modal: 'password',      icon: <Key size={16} /> },
+                { label: 'Change Password', modal: 'password', icon: <Key size={16} /> },
                 { label: 'Notification Settings', modal: 'notifications', icon: <Bell size={16} /> },
-                { label: 'Privacy Settings',     modal: 'privacy',       icon: <Shield size={16} /> },
+                { label: 'Privacy Settings', modal: 'privacy', icon: <Shield size={16} /> },
               ].map((item, idx) => (
                 <button
                   key={idx}
                   onClick={() => setActiveModal(item.modal)}
                   style={{
-                    flex: 1, padding: '14px 16px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800,
-                    border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.textSub,
+                    flex: 1, padding: '12px 14px', borderRadius: 14, fontSize: '0.85rem', fontWeight: 700,
+                    border: `1px solid ${D.border}`, background: D.surfaceHi, color: D.textSub,
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    transition: 'all 0.15s ease', fontFamily: 'inherit',
+                    transition: 'all 0.2s ease', fontFamily: 'inherit',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, #3b82f6, #6366f1)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(99,102,241,0.3)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = D.textSub; e.currentTarget.style.border = `1px solid ${D.border}`; e.currentTarget.style.boxShadow = 'none' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = D.purple; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.boxShadow = '0 4px 12px rgba(99,102,241,0.3)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.color = D.textSub; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = 'none' }}
                 >
                   {item.icon} {item.label}
                 </button>
@@ -395,33 +420,33 @@ const ProfilePage = () => {
       {activeModal === 'edit' && (
         <Modal title="Edit Your Profile" icon={<Edit2 size={20} style={{ color: D.indigo }} />} onClose={closeModal} D={D}>
           <div style={{ padding: '24px 28px' }}>
-            {profileError && <div style={{ padding: '10px 14px', borderRadius: 8, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 16, fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><AlertCircle size={14} /> {profileError}</div>}
-            {profileSuccess && <div style={{ padding: '10px 14px', borderRadius: 8, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><CheckCircle size={14} /> {profileSuccess}</div>}
-            <form onSubmit={handleProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ padding: 16, background: D.surfaceHi, borderRadius: 10, border: `1px dashed ${D.border}` }}>
+            {profileError && <div style={{ padding: '12px 14px', borderRadius: 10, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><AlertCircle size={16} /> {profileError}</div>}
+            {profileSuccess && <div style={{ padding: '12px 14px', borderRadius: 10, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><CheckCircle size={16} /> {profileSuccess}</div>}
+            <form onSubmit={handleProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <div style={{ padding: 18, background: D.surfaceHi, borderRadius: 14, border: `1px dashed ${D.border}` }}>
                 <label style={labelStyle}>Profile Picture</label>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
                   <img
-                    src={profileForm.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.userName || 'U')}&background=${D.indigo.slice(1)}&color=fff&size=80&bold=true`}
+                    src={profileForm.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.userName || 'U')}&background=random&size=80`}
                     alt="preview"
-                    style={{ width: 70, height: 70, borderRadius: 10, objectFit: 'cover', border: `1px solid ${D.border}`, flexShrink: 0 }}
+                    style={{ width: 70, height: 70, borderRadius: 12, objectFit: 'cover', border: `1px solid ${D.border}`, flexShrink: 0 }}
                   />
                   <div>
                     <button type="button" onClick={handleAvatarClick}
-                      style={{ padding: '8px 14px', borderRadius: 8, border: `1px solid ${D.indigo}40`, background: D.indigo + '10', color: D.indigo, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 700, transition: 'all 0.2s ease', marginBottom: 6, display: 'block' }}
+                      style={{ padding: '8px 14px', borderRadius: 10, border: `1px solid ${D.indigo}40`, background: D.indigo + '10', color: D.indigo, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.2s ease', marginBottom: 6, display: 'block' }}
                       onMouseEnter={e => e.currentTarget.style.background = D.indigo + '20'}
                       onMouseLeave={e => e.currentTarget.style.background = D.indigo + '10'}
                     >Choose Image</button>
-                    <span style={{ fontSize: '0.7rem', color: D.textSub }}>JPG, PNG - Max 1 MB</span>
+                    <span style={{ fontSize: '0.75rem', color: D.textSub }}>JPG, PNG - Max 1 MB</span>
                   </div>
                 </div>
               </div>
               <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
               {[
                 { key: 'fullName', label: 'Full Name', type: 'text' },
-                { key: 'email',    label: 'Email Address', type: 'email', required: true },
-                { key: 'phone',    label: 'Phone Number', type: 'tel' },
-                { key: 'address',  label: 'Address', type: 'text' },
+                { key: 'email', label: 'Email Address', type: 'email', required: true },
+                { key: 'phone', label: 'Phone Number', type: 'tel' },
+                { key: 'address', label: 'Address', type: 'text' },
               ].map(f => (
                 <div key={f.key}>
                   <label style={labelStyle}>{f.label}</label>
@@ -429,7 +454,7 @@ const ProfilePage = () => {
                 </div>
               ))}
               <button type="submit" disabled={profileLoading}
-                style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: D.indigo, color: '#fff', cursor: profileLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: '0.85rem', fontWeight: 700, opacity: profileLoading ? 0.7 : 1, boxShadow: `0 2px 8px ${D.indigo}40`, transition: 'all 0.2s ease', alignSelf: 'flex-start' }}
+                style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: D.indigo, color: '#fff', cursor: profileLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: '0.9rem', fontWeight: 800, opacity: profileLoading ? 0.7 : 1, boxShadow: `0 2px 8px ${D.indigo}40`, transition: 'all 0.2s ease', alignSelf: 'flex-start' }}
                 onMouseEnter={e => !profileLoading && (e.currentTarget.style.transform = 'translateY(-2px)')}
                 onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
               >
@@ -444,42 +469,41 @@ const ProfilePage = () => {
       {activeModal === 'password' && (
         <Modal title="Change Password" icon={<Lock size={20} style={{ color: D.orange }} />} onClose={closeModal} D={D}>
           <div style={{ padding: '24px 28px' }}>
-            {pwError && <div style={{ padding: '10px 14px', borderRadius: 8, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 16, fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><AlertCircle size={14} /> {pwError}</div>}
-            {pwSuccess && <div style={{ padding: '10px 14px', borderRadius: 8, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><CheckCircle size={14} /> {pwSuccess}</div>}
+            {pwError && <div style={{ padding: '12px 14px', borderRadius: 10, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><AlertCircle size={16} /> {pwError}</div>}
+            {pwSuccess && <div style={{ padding: '12px 14px', borderRadius: 10, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><CheckCircle size={16} /> {pwSuccess}</div>}
             {(() => {
               const pw = pwForm.newPassword
               const criteria = [
-                { label: 'At least 8 characters',   met: pw.length >= 8 },
-                { label: 'Uppercase letter (A–Z)',   met: /[A-Z]/.test(pw) },
-                { label: 'Lowercase letter (a–z)',   met: /[a-z]/.test(pw) },
-                { label: 'Number (0–9)',             met: /[0-9]/.test(pw) },
-                { label: 'Special character (!@#…)', met: /[^A-Za-z0-9]/.test(pw) },
+                { met: pw.length >= 8 },
+                { met: /[A-Z]/.test(pw) },
+                { met: /[a-z]/.test(pw) },
+                { met: /[0-9]/.test(pw) },
+                { met: /[^A-Za-z0-9]/.test(pw) },
               ]
               const score = criteria.filter(c => c.met).length
               const pct = score * 20
               const R = 36, CIRC = 2 * Math.PI * R, offset = CIRC * (1 - pct / 100)
               const clr = score <= 1 ? D.red : score === 2 ? D.orange : score === 3 ? D.gold : score === 4 ? D.blue : D.green
               const lbl = ['—', 'Very Weak', 'Weak', 'Fair', 'Good', 'Strong'][score]
-              const isStrong = score === 5
               return (
-                <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                   {[
                     { key: 'currentPassword', label: 'Current Password' },
-                    { key: 'newPassword',     label: 'New Password' },
+                    { key: 'newPassword', label: 'New Password' },
                     { key: 'confirmPassword', label: 'Confirm New Password' },
                   ].map(field => (
                     <div key={field.key}>
                       <label style={labelStyle}>{field.label}</label>
                       <div style={{ position: 'relative' }}>
-                        <input type={showPasswords ? 'text' : 'password'} value={pwForm[field.key]} onChange={e => setPwForm(prev => ({ ...prev, [field.key]: e.target.value }))} required style={{ ...inputStyle, paddingRight: 36 }} onFocus={onFocus} onBlur={onBlur} />
-                        <button type="button" onClick={() => setShowPasswords(p => !p)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, padding: 4 }}>
-                          {showPasswords ? <EyeOff size={16} /> : <Eye size={16} />}
+                        <input type={showPasswords ? 'text' : 'password'} value={pwForm[field.key]} onChange={e => setPwForm(prev => ({ ...prev, [field.key]: e.target.value }))} required style={{ ...inputStyle, paddingRight: 40 }} onFocus={onFocus} onBlur={onBlur} />
+                        <button type="button" onClick={() => setShowPasswords(p => !p)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, padding: 4, display: 'flex', alignItems: 'center' }}>
+                          {showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
                       </div>
                     </div>
                   ))}
                   {pw.length > 0 && (
-                    <div style={{ padding: '20px', borderRadius: 14, background: D.surfaceHi, border: `1px solid ${D.border}`, display: 'flex', gap: 24, alignItems: 'center' }}>
+                    <div style={{ padding: '20px', borderRadius: 14, background: D.surfaceHi, border: `1px solid ${D.border}`, display: 'flex', gap: 20, alignItems: 'center' }}>
                       <div style={{ flexShrink: 0 }}>
                         <svg width="88" height="88" viewBox="0 0 88 88">
                           <circle cx="44" cy="44" r={R} fill="none" stroke={D.border} strokeWidth="7" />
@@ -488,25 +512,21 @@ const ProfilePage = () => {
                           <text x="44" y="55" textAnchor="middle" fontSize="8.5" fontWeight="700" fill={D.textSub} fontFamily="inherit">{lbl}</text>
                         </svg>
                       </div>
-                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Requirements</div>
-                        {criteria.map((c, i) => (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, background: c.met ? clr : 'transparent', border: `2px solid ${c.met ? clr : D.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s ease' }}>
-                              {c.met && <Check size={10} color="#fff" strokeWidth={3} />}
-                            </div>
-                            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: c.met ? D.text : D.textSub, transition: 'color 0.2s ease' }}>{c.label}</span>
-                          </div>
-                        ))}
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Password Strength</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: clr }}>{lbl}</div>
+                        <div style={{ width: '100%', height: 6, borderRadius: 3, background: D.border, marginTop: 4 }}>
+                          <div style={{ width: `${pct}%`, height: '100%', borderRadius: 3, background: clr, transition: 'width 0.4s ease, background 0.3s ease' }} />
+                        </div>
                       </div>
                     </div>
                   )}
-                  <button type="submit" disabled={pwLoading || !isStrong}
-                    style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: isStrong ? 'linear-gradient(135deg, #3b82f6, #6366f1)' : D.surfaceHi, color: isStrong ? '#fff' : D.textFaint, cursor: (pwLoading || !isStrong) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: '0.9rem', fontWeight: 800, opacity: pwLoading ? 0.7 : 1, boxShadow: isStrong ? '0 4px 16px rgba(99,102,241,0.35)' : 'none', transition: 'all 0.25s ease', alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8 }}
-                    onMouseEnter={e => { if (isStrong && !pwLoading) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.45)' } }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isStrong ? '0 4px 16px rgba(99,102,241,0.35)' : 'none' }}
+                  <button type="submit" disabled={pwLoading}
+                    style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', color: '#fff', cursor: pwLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: '0.9rem', fontWeight: 800, opacity: pwLoading ? 0.7 : 1, boxShadow: '0 4px 16px rgba(99,102,241,0.35)', transition: 'all 0.25s ease', alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8 }}
+                    onMouseEnter={e => { if (!pwLoading) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.45)' } }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)' }}
                   >
-                    {pwLoading ? 'Updating…' : isStrong ? <><Check size={16} strokeWidth={3} /> Update Password</> : <><Lock size={16} /> Complete all requirements</>}
+                    {pwLoading ? 'Updating…' : <><Check size={16} strokeWidth={3} /> Update Password</>}
                   </button>
                 </form>
               )
@@ -518,10 +538,10 @@ const ProfilePage = () => {
       {/* ── Notification Settings Modal ── */}
       {activeModal === 'notifications' && (
         <Modal title="Notification Settings" icon={<Bell size={20} style={{ color: D.indigo }} />} onClose={closeModal} D={D}>
-          <div style={{ padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 0 }}>
             {notifSaved && (
-              <div style={{ padding: '10px 14px', borderRadius: 8, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <CheckCircle size={14} /> Notification settings saved.
+              <div style={{ padding: '12px 14px', borderRadius: 10, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle size={16} /> Notification settings saved.
               </div>
             )}
 
@@ -598,26 +618,20 @@ const ProfilePage = () => {
       {/* ── Privacy Settings Modal ── */}
       {activeModal === 'privacy' && (
         <Modal title="Privacy Settings" icon={<Shield size={20} style={{ color: D.blue }} />} onClose={closeModal} D={D}>
-          <div style={{ padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 0 }}>
             {privacySaved && (
-              <div style={{ padding: '10px 14px', borderRadius: 8, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <CheckCircle size={14} /> Privacy settings saved successfully.
+              <div style={{ padding: '12px 14px', borderRadius: 10, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle size={16} /> Privacy settings saved successfully.
               </div>
             )}
-
-            {/* Account Privacy section label */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0 12px', borderBottom: `1px solid ${D.border}` }}>
-              <Globe size={15} style={{ color: D.blue }} />
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Account Privacy</span>
-            </div>
 
             {/* Profile Visibility */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: `1px solid ${D.border}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: D.blueDim, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.blue, flexShrink: 0 }}><UserCheck size={18} /></div>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: D.blueDim, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.blue, flexShrink: 0 }}><Globe size={18} /></div>
                 <div>
                   <div style={{ fontSize: '0.9rem', fontWeight: 700, color: D.text }}>Profile Visibility</div>
-                  <div style={{ fontSize: '0.78rem', color: D.textSub, marginTop: 2 }}>Control who can view your profile information</div>
+                  <div style={{ fontSize: '0.78rem', color: D.textSub, marginTop: 4 }}>Control who can view your profile</div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
@@ -635,16 +649,10 @@ const ProfilePage = () => {
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: D.purpleDim, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.purple, flexShrink: 0 }}><Share2 size={18} /></div>
                 <div>
                   <div style={{ fontSize: '0.9rem', fontWeight: 700, color: D.text }}>Allow Data Tracking</div>
-                  <div style={{ fontSize: '0.78rem', color: D.textSub, marginTop: 2 }}>Help improve the system with anonymous usage analytics</div>
+                  <div style={{ fontSize: '0.78rem', color: D.textSub, marginTop: 4 }}>Help improve the system with usage analytics</div>
                 </div>
               </div>
               <Toggle checked={privacy.dataTracking} onChange={() => setPrivacy(p => ({ ...p, dataTracking: !p.dataTracking }))} color={D.purple} />
-            </div>
-
-            {/* Security Settings section label */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 0 12px', borderBottom: `1px solid ${D.border}` }}>
-              <ShieldCheck size={15} style={{ color: D.green }} />
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Security Settings</span>
             </div>
 
             {/* Two-Factor Auth */}
@@ -653,28 +661,28 @@ const ProfilePage = () => {
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: D.greenDim, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.green, flexShrink: 0 }}><Smartphone size={18} /></div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: D.text }}>Two-Factor Authentication</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: D.text }}>Two-Factor Auth</div>
                     {privacy.twoFactor && <span style={{ background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, padding: '2px 8px', borderRadius: 999, fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase' }}>Active</span>}
                   </div>
-                  <div style={{ fontSize: '0.78rem', color: D.textSub, marginTop: 2 }}>Add an extra layer of security to your account</div>
+                  <div style={{ fontSize: '0.78rem', color: D.textSub, marginTop: 4 }}>Add extra security to your account</div>
                 </div>
               </div>
               <Toggle checked={privacy.twoFactor} onChange={() => setPrivacy(p => ({ ...p, twoFactor: !p.twoFactor }))} color={D.green} />
             </div>
 
             {/* Session Timeout */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: `1px solid ${D.border}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: D.tealDim, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.teal, flexShrink: 0 }}><Clock size={18} /></div>
                 <div>
                   <div style={{ fontSize: '0.9rem', fontWeight: 700, color: D.text }}>Session Timeout</div>
-                  <div style={{ fontSize: '0.78rem', color: D.textSub, marginTop: 2 }}>Auto-logout after inactivity</div>
+                  <div style={{ fontSize: '0.78rem', color: D.textSub, marginTop: 4 }}>Auto-logout after inactivity</div>
                 </div>
               </div>
               <select value={privacy.sessionTimeout} onChange={e => setPrivacy(p => ({ ...p, sessionTimeout: e.target.value }))}
-                style={{ padding: '8px 14px', borderRadius: 10, border: `1px solid ${D.border}`, background: D.surfaceHi, color: D.text, fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', outline: 'none' }}>
-                <option value="15">15 minutes</option>
-                <option value="30">30 minutes</option>
+                style={{ padding: '8px 12px', borderRadius: 10, border: `1px solid ${D.border}`, background: D.surfaceHi, color: D.text, fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', outline: 'none' }}>
+                <option value="15">15 min</option>
+                <option value="30">30 min</option>
                 <option value="60">1 hour</option>
                 <option value="120">2 hours</option>
                 <option value="never">Never</option>
