@@ -30,7 +30,7 @@ api.interceptors.response.use(
     const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register')
     const isProfileEndpoint = url.includes('/users/me')
 
-    if (!isAuthEndpoint && !isProfileEndpoint && (error.response?.status === 401 || error.response?.status === 403)) {
+    if (!isAuthEndpoint && !isProfileEndpoint && error.response?.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.location.href = '/login'
