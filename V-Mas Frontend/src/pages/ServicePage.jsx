@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
-import { serviceAPI, vehicleAPI, notificationAPI } from '../services/api'
+import { serviceAPI, vehicleAPI, notificationAPI, userAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
 import { addControllerNotification, addDriverNotification } from '../services/notificationService'
@@ -46,6 +46,7 @@ const initialForm = {
   description: '',
   partsReplaced: '',
   serviceClassification: 'ROUTINE',
+  driverUsername: '',
 }
 
 const initialScheduleForm = {
@@ -58,6 +59,7 @@ const initialScheduleForm = {
   estimatedCost: '',
   preferredWorkshop: '',
   description: '',
+  driverUsername: '',
 }
 
 /* ── Service type icon map ──────────────────────────────────────── */
@@ -763,7 +765,19 @@ const ServicePage = () => {
 
   // ── Vehicle scope ───────────────────────────────────────────────
   const [allVehicles, setAllVehicles] = useState([])
+  const [allDrivers, setAllDrivers] = useState([])
   const [previousMileage, setPreviousMileage] = useState(null)
+
+  // ── Vehicle search dropdown state ───────────────────────────────
+  const [vehicleSearch, setVehicleSearch] = useState('')
+  const [vehicleDropdownVisible, setVehicleDropdownVisible] = useState(false)
+  const [editVehicleSearch, setEditVehicleSearch] = useState('')
+  const [editVehicleDropdownVisible, setEditVehicleDropdownVisible] = useState(false)
+  const [scheduleVehicleSearch, setScheduleVehicleSearch] = useState('')
+  const [scheduleVehicleDropdownVisible, setScheduleVehicleDropdownVisible] = useState(false)
+  const vehicleSearchRef = useRef(null)
+  const editVehicleSearchRef = useRef(null)
+  const scheduleVehicleSearchRef = useRef(null)
 
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null })
   const [detailModal, setDetailModal] = useState({ isOpen: false, record: null })
@@ -991,6 +1005,8 @@ const ServicePage = () => {
     setErrors({})
     setSubmitError(null)
     setAddAttachmentFile(null)
+    setVehicleSearch(regNo)
+    setVehicleDropdownVisible(false)
     
     if (regNo) {
       const vehicleObj = allVehicles.find(v => v.registrationNo === regNo)
@@ -1180,7 +1196,10 @@ const ServicePage = () => {
       description: record.description || '',
       partsReplaced: record.partsReplaced || '',
       serviceClassification: record.serviceClassification || 'ROUTINE',
+      driverUsername: record.driverUsername || '',
     })
+    setEditVehicleSearch(record.vehicleRegNumber || '')
+    setEditVehicleDropdownVisible(false)
     setErrors({})
     setSubmitError(null)
     setEditAttachmentFile(null)
@@ -1244,14 +1263,15 @@ const ServicePage = () => {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      // Fetch all vehicles for dropdown selection for all roles
-      const requests = [serviceAPI.getAllServices(), serviceAPI.getServiceStats(), vehicleAPI.getAllVehicles()]
-      const [servRes, statsRes, vehicleRes] = await Promise.all(requests)
+      // Fetch all vehicles and drivers for dropdown selection for all roles
+      const requests = [serviceAPI.getAllServices(), serviceAPI.getServiceStats(), vehicleAPI.getAllVehicles(), userAPI.getAllDrivers()]
+      const [servRes, statsRes, vehicleRes, driversRes] = await Promise.all(requests)
       const loadedServices = servRes.data.data || []
       const loadedVehicles = vehicleRes?.data.data || []
       setServices(loadedServices)
       setStats(statsRes.data.data)
       if (vehicleRes) setAllVehicles(loadedVehicles)
+      if (driversRes) setAllDrivers(driversRes.data.data || driversRes.data || [])
 
       // ── Compute alert records and fire notifications ──
       const vehicleKmMap = {}
@@ -2620,40 +2640,40 @@ const ServicePage = () => {
                     >
                       <Edit2 size={15} /> Edit Record
                     </button>
-                    <button
-                      onClick={() => { closeDetail(); confirmDelete(r.id) }}
-                      style={{ flex: 0.6, padding: '10px 0', borderRadius: 10, border: `1px solid rgba(239,68,68,0.3)`, background: D.redDim, color: D.red, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
-                    >
-                      <Trash2 size={15} /> Delete
-                    </button>
-                  </>
-                )}
-                {/* Driver: only show Edit if they created this record */}
-                {isDriver && r.createdBy === user?.userName && (
+                     <button
+                       onClick={() => { closeDetail(); confirmDelete(r.id) }}
+                       style={{ flex: 0.6, padding: '10px 0', borderRadius: 10, border: `1px solid rgba(239,68,68,0.3)`, background: D.redDim, color: D.red, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
+                     >
+                       <Trash2 size={15} /> Delete
+                     </button>
+                   </>
+                 )}
+                 {/* Driver: only show Edit if they created this record */}
+                 {isDriver && r.createdBy === user?.userName && (
+                   <button
+                     onClick={() => { closeDetail(); openEditModal(r.id) }}
+                     style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
+                   >
+                     <Edit2 size={15} /> Edit Record
+                   </button>
+                 )}
                   <button
-                    onClick={() => { closeDetail(); openEditModal(r.id) }}
-                    style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
+                    onClick={closeDetail}
+                    style={{ flex: 0.5, padding: '10px 0', borderRadius: 10, border: `1px solid ${D.border}`, background: 'transparent', color: D.textSub, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700 }}
                   >
-                    <Edit2 size={15} /> Edit Record
+                    Close
                   </button>
-                )}
-                <button
-                  onClick={closeDetail}
-                  style={{ flex: 0.5, padding: '10px 0', borderRadius: 10, border: `1px solid ${D.border}`, background: 'transparent', color: D.textSub, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700 }}
-                >
-                  Close
-                </button>
+                </div>
               </div>
             </div>
-          </div>
-        )
-      })()}
+          )
+        })()}
 
       {/* ── Add Modal ──────────────────────────────────────────────── */}
       {isAddModalOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease' }}>
-          <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 640, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden' }}>
-            <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 640, maxHeight: '92vh', boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 38, height: 38, borderRadius: 10, background: D.indigoDim, color: D.indigo, border: `1px solid ${D.indigo}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Wrench size={20} />
@@ -2672,19 +2692,94 @@ const ServicePage = () => {
               </div>
             )}
 
-            <form onSubmit={handleAddSubmit} style={{ padding: '24px 28px' }} noValidate>
+            <form onSubmit={handleAddSubmit} style={{ padding: '24px 28px', overflowY: 'auto', flex: 1 }} noValidate>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Vehicle & Service Details</span>
                 <div style={{ flex: 1, height: 1, background: D.border }} />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-                <div>
+                {/* ── Custom Vehicle Selector (Add) ── */}
+                <div style={{ position: 'relative' }} ref={vehicleSearchRef}>
                   <label style={fieldLabel}>Vehicle (License Plate) <span style={{ color: D.red }}>*</span></label>
-                  <input type="text" list="vehiclesListAdd" name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={e => handleVehicleSelect(e, false)} placeholder="e.g. WP-CAB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
-                  <datalist id="vehiclesListAdd">
-                    {allVehicles.map(v => <option key={v.id} value={v.registrationNo} />)}
-                  </datalist>
+                  <div style={{ position: 'relative' }}>
+                    <Car size={15} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: D.blue, pointerEvents: 'none', zIndex: 2, opacity: 0.8 }} />
+                    <input
+                      type="text"
+                      value={vehicleSearch}
+                      onChange={e => {
+                        setVehicleSearch(e.target.value)
+                        setVehicleDropdownVisible(true)
+                        const match = allVehicles.find(v => v.registrationNo.toLowerCase() === e.target.value.toLowerCase())
+                        if (!match) {
+                          setFormData(prev => ({ ...prev, vehicleRegNumber: '' }))
+                          setPreviousMileage(null)
+                        } else {
+                          handleVehicleSelect({ target: { value: match.registrationNo } }, false)
+                        }
+                      }}
+                      onFocus={() => setVehicleDropdownVisible(true)}
+                      onBlur={e => { setTimeout(() => setVehicleDropdownVisible(false), 180); blurBorder(e, errors.vehicleRegNumber) }}
+                      placeholder="Search or select vehicle…"
+                      autoComplete="off"
+                      style={{ ...fieldInput(errors.vehicleRegNumber), paddingLeft: 34, paddingRight: 36 }}
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setVehicleDropdownVisible(v => !v)}
+                      style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, display: 'flex', alignItems: 'center', padding: 2, zIndex: 2 }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: vehicleDropdownVisible ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9" /></svg>
+                    </button>
+                  </div>
+                  {vehicleDropdownVisible && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
+                      background: D.surface, border: `1px solid ${D.borderHi}`,
+                      borderRadius: 10, marginTop: 4,
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+                      overflow: 'hidden', maxHeight: 220, overflowY: 'auto',
+                    }}>
+                      {(() => {
+                        const q = vehicleSearch.toLowerCase()
+                        const opts = allVehicles.filter(v =>
+                          v.registrationNo.toLowerCase().includes(q) ||
+                          `${v.manufacturer} ${v.model}`.toLowerCase().includes(q)
+                        )
+                        if (opts.length === 0) return (
+                          <div style={{ padding: '12px 16px', fontSize: '0.82rem', color: D.textSub, textAlign: 'center' }}>No vehicles found</div>
+                        )
+                        return opts.map(v => (
+                          <div
+                            key={v.id}
+                            onMouseDown={e => {
+                              e.preventDefault()
+                              setVehicleSearch(v.registrationNo)
+                              setVehicleDropdownVisible(false)
+                              handleVehicleSelect({ target: { value: v.registrationNo } }, false)
+                            }}
+                            style={{
+                              padding: '10px 14px', cursor: 'pointer',
+                              background: formData.vehicleRegNumber === v.registrationNo ? 'rgba(37,99,235,0.15)' : 'transparent',
+                              borderLeft: formData.vehicleRegNumber === v.registrationNo ? '3px solid #2563eb' : '3px solid transparent',
+                              display: 'flex', alignItems: 'center', gap: 10,
+                              transition: 'background 0.12s',
+                            }}
+                            onMouseEnter={e => { if (formData.vehicleRegNumber !== v.registrationNo) e.currentTarget.style.background = D.surfaceHi }}
+                            onMouseLeave={e => { if (formData.vehicleRegNumber !== v.registrationNo) e.currentTarget.style.background = 'transparent' }}
+                          >
+                            <Car size={14} style={{ color: D.blue, flexShrink: 0 }} />
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: D.text }}>{v.registrationNo}</div>
+                              {(v.manufacturer || v.model) && <div style={{ fontSize: '0.72rem', color: D.textSub }}>{v.manufacturer} {v.model}</div>}
+                            </div>
+                            {formData.vehicleRegNumber === v.registrationNo && <Check size={14} style={{ color: '#2563eb', marginLeft: 'auto', flexShrink: 0 }} />}
+                          </div>
+                        ))
+                      })()}
+                    </div>
+                  )}
                   {errors.vehicleRegNumber && <p style={fieldError}>{errors.vehicleRegNumber}</p>}
                 </div>
                 <div>
@@ -2762,6 +2857,25 @@ const ServicePage = () => {
                   </div>
                 </div>
 
+                {/* ── Driver Selector (Add) ── */}
+                <div>
+                  <label style={fieldLabel}><span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><User size={13} /> Driver <span style={{ color: D.textSub, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></span></label>
+                  <select
+                    name="driverUsername"
+                    value={formData.driverUsername || ''}
+                    onChange={handleAddChange}
+                    style={{ ...fieldInput(false), cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '18px', paddingRight: 38 }}
+                    onFocus={focusBorder} onBlur={e => blurBorder(e, false)}
+                  >
+                    <option value="">No driver assigned</option>
+                    {allDrivers.map(d => (
+                      <option key={d.id || d.userName} value={d.userName}>
+                        {d.firstName && d.lastName ? `${d.firstName} ${d.lastName} (${d.userName})` : d.userName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0 16px' }}>
@@ -2828,8 +2942,8 @@ const ServicePage = () => {
       {/* ── Schedule Modal ───────────────────────────────────────────── */}
       {isScheduleModalOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease' }}>
-          <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 640, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden' }}>
-            <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 640, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 38, height: 38, borderRadius: 10, background: D.indigoDim, color: D.indigo, border: `1px solid ${D.indigo}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Clock size={20} />
@@ -2848,19 +2962,95 @@ const ServicePage = () => {
               </div>
             )}
 
-            <form onSubmit={handleScheduleSubmit} style={{ padding: '24px 28px' }} noValidate>
+            <form onSubmit={handleScheduleSubmit} style={{ padding: '24px 28px', overflowY: 'auto', flex: 1 }} noValidate>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Schedule Criteria</span>
                 <div style={{ flex: 1, height: 1, background: D.border }} />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-                <div>
+                {/* ── Custom Vehicle Selector (Schedule) ── */}
+                <div style={{ position: 'relative' }} ref={scheduleVehicleSearchRef}>
                   <label style={fieldLabel}>Vehicle (License Plate) <span style={{ color: D.red }}>*</span></label>
-                  <input type="text" list="vehiclesListSchedule" name="vehicleRegNumber" value={scheduleFormData.vehicleRegNumber} onChange={handleScheduleChange} placeholder="e.g. WP-CAB-1234" style={fieldInput(scheduleErrors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, scheduleErrors.vehicleRegNumber)} />
-                  <datalist id="vehiclesListSchedule">
-                    {allVehicles.map(v => <option key={v.id} value={v.registrationNo} />)}
-                  </datalist>
+                  <div style={{ position: 'relative' }}>
+                    <Car size={15} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: D.blue, pointerEvents: 'none', zIndex: 2, opacity: 0.8 }} />
+                    <input
+                      type="text"
+                      value={scheduleVehicleSearch}
+                      onChange={e => {
+                        setScheduleVehicleSearch(e.target.value)
+                        setScheduleVehicleDropdownVisible(true)
+                        const match = allVehicles.find(v => v.registrationNo.toLowerCase() === e.target.value.toLowerCase())
+                        if (match) {
+                          setScheduleFormData(prev => ({ ...prev, vehicleRegNumber: match.registrationNo }))
+                          if (scheduleErrors.vehicleRegNumber) setScheduleErrors(prev => ({ ...prev, vehicleRegNumber: undefined }))
+                        } else {
+                          setScheduleFormData(prev => ({ ...prev, vehicleRegNumber: '' }))
+                        }
+                      }}
+                      onFocus={() => setScheduleVehicleDropdownVisible(true)}
+                      onBlur={e => { setTimeout(() => setScheduleVehicleDropdownVisible(false), 180); blurBorder(e, scheduleErrors.vehicleRegNumber) }}
+                      placeholder="Search or select vehicle…"
+                      autoComplete="off"
+                      style={{ ...fieldInput(scheduleErrors.vehicleRegNumber), paddingLeft: 34, paddingRight: 36 }}
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setScheduleVehicleDropdownVisible(v => !v)}
+                      style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, display: 'flex', alignItems: 'center', padding: 2, zIndex: 2 }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: scheduleVehicleDropdownVisible ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9" /></svg>
+                    </button>
+                  </div>
+                  {scheduleVehicleDropdownVisible && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
+                      background: D.surface, border: `1px solid ${D.borderHi}`,
+                      borderRadius: 10, marginTop: 4,
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+                      overflow: 'hidden', maxHeight: 220, overflowY: 'auto',
+                    }}>
+                      {(() => {
+                        const q = scheduleVehicleSearch.toLowerCase()
+                        const opts = allVehicles.filter(v =>
+                          v.registrationNo.toLowerCase().includes(q) ||
+                          `${v.manufacturer} ${v.model}`.toLowerCase().includes(q)
+                        )
+                        if (opts.length === 0) return (
+                          <div style={{ padding: '12px 16px', fontSize: '0.82rem', color: D.textSub, textAlign: 'center' }}>No vehicles found</div>
+                        )
+                        return opts.map(v => (
+                          <div
+                            key={v.id}
+                            onMouseDown={e => {
+                              e.preventDefault()
+                              setScheduleVehicleSearch(v.registrationNo)
+                              setScheduleVehicleDropdownVisible(false)
+                              setScheduleFormData(prev => ({ ...prev, vehicleRegNumber: v.registrationNo }))
+                              if (scheduleErrors.vehicleRegNumber) setScheduleErrors(prev => ({ ...prev, vehicleRegNumber: undefined }))
+                            }}
+                            style={{
+                              padding: '10px 14px', cursor: 'pointer',
+                              background: scheduleFormData.vehicleRegNumber === v.registrationNo ? 'rgba(37,99,235,0.15)' : 'transparent',
+                              borderLeft: scheduleFormData.vehicleRegNumber === v.registrationNo ? '3px solid #2563eb' : '3px solid transparent',
+                              display: 'flex', alignItems: 'center', gap: 10,
+                              transition: 'background 0.12s',
+                            }}
+                            onMouseEnter={e => { if (scheduleFormData.vehicleRegNumber !== v.registrationNo) e.currentTarget.style.background = D.surfaceHi }}
+                            onMouseLeave={e => { if (scheduleFormData.vehicleRegNumber !== v.registrationNo) e.currentTarget.style.background = 'transparent' }}
+                          >
+                            <Car size={14} style={{ color: D.blue, flexShrink: 0 }} />
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: D.text }}>{v.registrationNo}</div>
+                              {(v.manufacturer || v.model) && <div style={{ fontSize: '0.72rem', color: D.textSub }}>{v.manufacturer} {v.model}</div>}
+                            </div>
+                            {scheduleFormData.vehicleRegNumber === v.registrationNo && <Check size={14} style={{ color: '#2563eb', marginLeft: 'auto', flexShrink: 0 }} />}
+                          </div>
+                        ))
+                      })()}
+                    </div>
+                  )}
                   {scheduleErrors.vehicleRegNumber && <p style={fieldError}>{scheduleErrors.vehicleRegNumber}</p>}
                 </div>
                 <div>
@@ -2927,6 +3117,24 @@ const ServicePage = () => {
                     })()}
                   </div>
                 )}
+                {/* ── Driver Selector (Schedule) ── */}
+                <div>
+                  <label style={fieldLabel}><span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><User size={13} /> Driver <span style={{ color: D.textSub, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></span></label>
+                  <select
+                    name="driverUsername"
+                    value={scheduleFormData.driverUsername || ''}
+                    onChange={handleScheduleChange}
+                    style={{ ...fieldInput(false), cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '18px', paddingRight: 38 }}
+                    onFocus={focusBorder} onBlur={e => blurBorder(e, false)}
+                  >
+                    <option value="">No driver assigned</option>
+                    {allDrivers.map(d => (
+                      <option key={d.id || d.userName} value={d.userName}>
+                        {d.firstName && d.lastName ? `${d.firstName} ${d.lastName} (${d.userName})` : d.userName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0 16px' }}>
@@ -2965,8 +3173,8 @@ const ServicePage = () => {
       {/* ── Edit Modal ──────────────────────────────────────────────── */}
       {isEditModalOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease' }}>
-          <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 640, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden' }}>
-            <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 640, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 38, height: 38, borderRadius: 10, background: D.indigoDim, color: D.indigo, border: `1px solid ${D.indigo}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Edit2 size={18} />
@@ -2985,19 +3193,94 @@ const ServicePage = () => {
               </div>
             )}
 
-            <form onSubmit={handleEditSubmit} style={{ padding: '24px 28px' }} noValidate>
+            <form onSubmit={handleEditSubmit} style={{ padding: '24px 28px', overflowY: 'auto', flex: 1 }} noValidate>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Vehicle & Service Details</span>
                 <div style={{ flex: 1, height: 1, background: D.border }} />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-                <div>
+                {/* ── Custom Vehicle Selector (Edit) ── */}
+                <div style={{ position: 'relative' }} ref={editVehicleSearchRef}>
                   <label style={fieldLabel}>Vehicle (License Plate) <span style={{ color: D.red }}>*</span></label>
-                  <input type="text" list="vehiclesListEdit" name="vehicleRegNumber" value={editFormData.vehicleRegNumber} onChange={e => handleVehicleSelect(e, true)} placeholder="e.g. WP-CAB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
-                  <datalist id="vehiclesListEdit">
-                    {allVehicles.map(v => <option key={v.id} value={v.registrationNo} />)}
-                  </datalist>
+                  <div style={{ position: 'relative' }}>
+                    <Car size={15} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: D.blue, pointerEvents: 'none', zIndex: 2, opacity: 0.8 }} />
+                    <input
+                      type="text"
+                      value={editVehicleSearch}
+                      onChange={e => {
+                        setEditVehicleSearch(e.target.value)
+                        setEditVehicleDropdownVisible(true)
+                        const match = allVehicles.find(v => v.registrationNo.toLowerCase() === e.target.value.toLowerCase())
+                        if (match) {
+                          handleVehicleSelect({ target: { value: match.registrationNo } }, true)
+                        } else {
+                          setEditFormData(prev => ({ ...prev, vehicleRegNumber: '' }))
+                          setPreviousMileage(null)
+                        }
+                      }}
+                      onFocus={() => setEditVehicleDropdownVisible(true)}
+                      onBlur={e => { setTimeout(() => setEditVehicleDropdownVisible(false), 180); blurBorder(e, errors.vehicleRegNumber) }}
+                      placeholder="Search or select vehicle…"
+                      autoComplete="off"
+                      style={{ ...fieldInput(errors.vehicleRegNumber), paddingLeft: 34, paddingRight: 36 }}
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setEditVehicleDropdownVisible(v => !v)}
+                      style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, display: 'flex', alignItems: 'center', padding: 2, zIndex: 2 }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: editVehicleDropdownVisible ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9" /></svg>
+                    </button>
+                  </div>
+                  {editVehicleDropdownVisible && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
+                      background: D.surface, border: `1px solid ${D.borderHi}`,
+                      borderRadius: 10, marginTop: 4,
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+                      overflow: 'hidden', maxHeight: 220, overflowY: 'auto',
+                    }}>
+                      {(() => {
+                        const q = editVehicleSearch.toLowerCase()
+                        const opts = allVehicles.filter(v =>
+                          v.registrationNo.toLowerCase().includes(q) ||
+                          `${v.manufacturer} ${v.model}`.toLowerCase().includes(q)
+                        )
+                        if (opts.length === 0) return (
+                          <div style={{ padding: '12px 16px', fontSize: '0.82rem', color: D.textSub, textAlign: 'center' }}>No vehicles found</div>
+                        )
+                        return opts.map(v => (
+                          <div
+                            key={v.id}
+                            onMouseDown={e => {
+                              e.preventDefault()
+                              setEditVehicleSearch(v.registrationNo)
+                              setEditVehicleDropdownVisible(false)
+                              handleVehicleSelect({ target: { value: v.registrationNo } }, true)
+                            }}
+                            style={{
+                              padding: '10px 14px', cursor: 'pointer',
+                              background: editFormData.vehicleRegNumber === v.registrationNo ? 'rgba(37,99,235,0.15)' : 'transparent',
+                              borderLeft: editFormData.vehicleRegNumber === v.registrationNo ? '3px solid #2563eb' : '3px solid transparent',
+                              display: 'flex', alignItems: 'center', gap: 10,
+                              transition: 'background 0.12s',
+                            }}
+                            onMouseEnter={e => { if (editFormData.vehicleRegNumber !== v.registrationNo) e.currentTarget.style.background = D.surfaceHi }}
+                            onMouseLeave={e => { if (editFormData.vehicleRegNumber !== v.registrationNo) e.currentTarget.style.background = 'transparent' }}
+                          >
+                            <Car size={14} style={{ color: D.blue, flexShrink: 0 }} />
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: D.text }}>{v.registrationNo}</div>
+                              {(v.manufacturer || v.model) && <div style={{ fontSize: '0.72rem', color: D.textSub }}>{v.manufacturer} {v.model}</div>}
+                            </div>
+                            {editFormData.vehicleRegNumber === v.registrationNo && <Check size={14} style={{ color: '#2563eb', marginLeft: 'auto', flexShrink: 0 }} />}
+                          </div>
+                        ))
+                      })()}
+                    </div>
+                  )}
                   {errors.vehicleRegNumber && <p style={fieldError}>{errors.vehicleRegNumber}</p>}
                 </div>
                 <div>
@@ -3069,6 +3352,24 @@ const ServicePage = () => {
                       <AlertTriangle size={15} /> ⚠️ Ad-hoc Repair / Breakdown
                     </button>
                   </div>
+                </div>
+                {/* ── Driver Selector (Edit) ── */}
+                <div>
+                  <label style={fieldLabel}><span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><User size={13} /> Driver <span style={{ color: D.textSub, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></span></label>
+                  <select
+                    name="driverUsername"
+                    value={editFormData.driverUsername || ''}
+                    onChange={handleEditChange}
+                    style={{ ...fieldInput(false), cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '18px', paddingRight: 38 }}
+                    onFocus={focusBorder} onBlur={e => blurBorder(e, false)}
+                  >
+                    <option value="">No driver assigned</option>
+                    {allDrivers.map(d => (
+                      <option key={d.id || d.userName} value={d.userName}>
+                        {d.firstName && d.lastName ? `${d.firstName} ${d.lastName} (${d.userName})` : d.userName}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={fieldLabel}>Parts Replaced (comma-separated)</label>
