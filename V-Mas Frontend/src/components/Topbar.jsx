@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
@@ -10,6 +10,36 @@ const roleText = {
   ADMIN: 'System Administrator',
   CONTROLLER: 'System Controller',
   DRIVER: 'Driver',
+}
+
+// Map backend notification types → frontend routes
+const getLinkFromType = (type) => {
+  if (!type) return null
+  switch (type.toUpperCase()) {
+    // Vehicle events
+    case 'UPDATE':          return '/vehicles'
+    case 'ASSIGN':          return '/vehicles'
+    case 'UNASSIGN':        return '/vehicles'
+    // User events
+    case 'USER_UPDATE':     return '/users'
+    case 'USER_APPROVAL':   return '/users'
+    case 'USER_REJECTION':  return '/users'
+    // Fuel events
+    case 'FUEL_ADD':        return '/fuel-management'
+    case 'FUEL_EDIT':       return '/fuel-management'
+    case 'FUEL_DELETE':     return '/fuel-management'
+    case 'FUEL_RESTORE':    return '/fuel-management'
+    case 'FUEL_UPDATE':     return '/fuel-management'
+    case 'LOW_EFFICIENCY':  return '/fuel-analysis'
+    case 'FUEL_LOW_EFF':    return '/fuel-analysis'
+    // Service events
+    case 'WARNING':         return '/service'
+    case 'SERVICE_DUE':     return '/service'
+    case 'OVERDUE_SERVICE': return '/service'
+    // Dashboard alerts
+    case 'ALERT':           return '/dashboard'
+    default:                return null
+  }
 }
 
 // Icon per notification type
@@ -90,7 +120,7 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
     }
   }
 
-  const refreshLocalNotifs = () => {
+  const refreshLocalNotifs = useCallback(() => {
     if (user?.role === 'CONTROLLER') {
       const data = notifService.getControllerNotifications()
       setCtrlNotifs(data)
@@ -100,7 +130,7 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
       setDrvNotifs(data)
       setDrvUnread(data.filter(n => !n.isRead).length)
     }
-  }
+  }, [user?.role])
 
   useEffect(() => {
     fetchData()
@@ -134,13 +164,15 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
   const handleNotifClick = (n, markRead) => {
     if (!n.isRead && markRead) markRead(n.id)
     setShowNotifications(false)
-    if (n.link) navigate(n.link)
+    const dest = n.link || getLinkFromType(n.type)
+    if (dest) navigate(dest)
   }
 
   const handleAdminNotifClick = (n) => {
     if (!n.isRead) handleMarkAsRead(n.id)
     setShowNotifications(false)
-    if (n.link) navigate(n.link)
+    const dest = n.link || getLinkFromType(n.type)
+    if (dest) navigate(dest)
   }
 
   useEffect(() => {
@@ -263,7 +295,7 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
 
                 {/* 1. Dashboard Alerts */}
                 {alertCount > 0 && (user.role === 'ADMIN' || user.role === 'CONTROLLER') && (
-                  <Link to="/" style={{ textDecoration: 'none' }} onClick={() => setShowNotifications(false)}>
+                  <Link to="/dashboard" style={{ textDecoration: 'none' }} onClick={() => setShowNotifications(false)}>
                     <div style={{ padding: '12px 16px', background: isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.05)', borderBottom: `1px solid ${isDark ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.1)'}`, display: 'flex', gap: 12, alignItems: 'center' }}>
                       <div style={{ background: '#ef4444', color: '#fff', borderRadius: '50%', padding: 6, display: 'flex' }}><AlertTriangle size={14} /></div>
                       <div style={{ flex: 1 }}>
@@ -278,19 +310,22 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
                   {/* 2. Admin System Notifs */}
                   {user.role === 'ADMIN' && (
                     notifications.length === 0 ? <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No recent system activity</div> :
-                    notifications.map(n => (
-                      <div key={n.id} onClick={() => handleAdminNotifClick(n)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)'), cursor: n.link ? 'pointer' : (n.isRead ? 'default' : 'pointer'), transition: 'background 0.15s' }}
-                        onMouseEnter={e => { if (n.link || !n.isRead) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = n.isRead ? 'transparent' : (isDark ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)') }}
-                      >
-                        <div style={{ background: n.isRead ? (isDark ? '#374151' : '#f3f4f6') : '#3b82f6', color: '#fff', borderRadius: '50%', padding: 6, display: 'flex' }}><Info size={14} /></div>
-                        <div style={{ flex: 1 }}>
-                          <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#f3f4f6' : '#374151', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
-                          <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{new Date(n.createdAt).toLocaleString()}</span>
+                    notifications.map(n => {
+                      const dest = n.link || getLinkFromType(n.type)
+                      return (
+                        <div key={n.id} onClick={() => handleAdminNotifClick(n)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)'), cursor: dest ? 'pointer' : (n.isRead ? 'default' : 'pointer'), transition: 'background 0.15s' }}
+                          onMouseEnter={e => { if (dest || !n.isRead) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = n.isRead ? 'transparent' : (isDark ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)') }}
+                        >
+                          <div style={{ background: n.isRead ? (isDark ? '#374151' : '#f3f4f6') : '#3b82f6', color: '#fff', borderRadius: '50%', padding: 6, display: 'flex' }}><Info size={14} /></div>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#f3f4f6' : '#374151', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
+                            <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{new Date(n.createdAt).toLocaleString()}</span>
+                          </div>
+                          {dest && <ChevronRight size={14} color="#94a3b8" style={{ flexShrink: 0, marginTop: 2 }} />}
                         </div>
-                        {n.link && <ChevronRight size={14} color="#94a3b8" style={{ flexShrink: 0, marginTop: 2 }} />}
-                      </div>
-                    ))
+                      )
+                    })
                   )}
 
                   {/* 3. Controller Log */}
