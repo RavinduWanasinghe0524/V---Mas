@@ -934,9 +934,9 @@ const ServicePage = () => {
         const inputMil = Number(data.currentMileageKm)
 
         if (inputMil < maxEarlierMileage) {
-          e.currentMileageKm = `Must be ≥ previous reading (${maxEarlierMileage} km) from earlier records`
+          e.currentMileageKm = `Enter reading greater than or equal to ${maxEarlierMileage.toLocaleString()} km`
         } else if (minLaterMileage !== Infinity && inputMil > minLaterMileage) {
-          e.currentMileageKm = `Must be ≤ subsequent reading (${minLaterMileage} km) from newer records`
+          e.currentMileageKm = `Enter reading less than or equal to ${minLaterMileage.toLocaleString()} km`
         }
       }
     }
@@ -953,7 +953,11 @@ const ServicePage = () => {
     } else {
       setFormData(prev => ({ ...prev, vehicleRegNumber: regNo }))
     }
-    if (errors.vehicleRegNumber) setErrors(prev => ({ ...prev, vehicleRegNumber: undefined }))
+    setErrors(prev => ({ 
+      ...prev, 
+      vehicleRegNumber: undefined,
+      currentMileageKm: undefined 
+    }))
 
     // calculate base mileage from vehicle entity
     const vehicleObj = allVehicles.find(v => v.registrationNo === regNo)
@@ -990,15 +994,83 @@ const ServicePage = () => {
     } else {
       setFormData(prev => ({ ...prev, currentMileageKm: val }))
     }
-    if (errors.currentMileageKm) setErrors(prev => ({ ...prev, currentMileageKm: undefined }))
+
+    if (!val) {
+      setErrors(prev => ({ ...prev, currentMileageKm: undefined }))
+      return
+    }
+
+    const regNo = isEdit ? editFormData.vehicleRegNumber : formData.vehicleRegNumber
+    const serviceDateStr = isEdit ? editFormData.serviceDate : formData.serviceDate
+    const originalRecord = isEdit ? services.find(s => s.id === editingServiceId) : null
+
+    if (regNo) {
+      const recordDate = serviceDateStr ? new Date(serviceDateStr) : new Date()
+      const inputMil = Number(val)
+
+      // Find service records for this vehicle with an earlier or equal date (excluding scheduled)
+      const earlierServices = services.filter(s => 
+        s.vehicleRegNumber === regNo && 
+        (!originalRecord || s.id !== originalRecord.id) &&
+        s.currentMileageKm && 
+        s.serviceDate &&
+        getStatus(s) !== 'SCHEDULED' &&
+        new Date(s.serviceDate) <= recordDate
+      )
+      const maxEarlierMileage = earlierServices.reduce((max, s) => Math.max(max, Number(s.currentMileageKm)), 0)
+
+      // Find service records for this vehicle with a later date (excluding scheduled)
+      const laterServices = services.filter(s =>
+        s.vehicleRegNumber === regNo &&
+        (!originalRecord || s.id !== originalRecord.id) &&
+        s.currentMileageKm &&
+        s.serviceDate &&
+        getStatus(s) !== 'SCHEDULED' &&
+        new Date(s.serviceDate) > recordDate
+      )
+      const minLaterMileage = laterServices.reduce((min, s) => Math.min(min, Number(s.currentMileageKm)), Infinity)
+
+      if (inputMil < maxEarlierMileage) {
+        setErrors(prev => ({ 
+          ...prev, 
+          currentMileageKm: `Enter reading greater than or equal to ${maxEarlierMileage.toLocaleString()} km` 
+        }))
+      } else if (minLaterMileage !== Infinity && inputMil > minLaterMileage) {
+        setErrors(prev => ({ 
+          ...prev, 
+          currentMileageKm: `Enter reading less than or equal to ${minLaterMileage.toLocaleString()} km` 
+        }))
+      } else {
+        setErrors(prev => ({ ...prev, currentMileageKm: undefined }))
+      }
+    } else {
+      if (previousMileage != null && Number(val) < previousMileage) {
+        setErrors(prev => ({ 
+          ...prev, 
+          currentMileageKm: `Enter reading greater than or equal to ${previousMileage.toLocaleString()} km` 
+        }))
+      } else {
+        setErrors(prev => ({ ...prev, currentMileageKm: undefined }))
+      }
+    }
   }
 
   const openAddModal = (prefill = {}) => {
     const isEvent = prefill && (prefill.nativeEvent || prefill.target)
     const actualPrefill = isEvent ? {} : prefill
     const regNo = actualPrefill.vehicleRegNumber || ''
+
+    const todayLocalStr = (() => {
+      const d = new Date()
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    })()
+
     setFormData({
       ...initialForm,
+      serviceDate: todayLocalStr,
       ...actualPrefill,
       vehicleRegNumber: regNo,
     })
@@ -1263,15 +1335,25 @@ const ServicePage = () => {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      // Fetch all vehicles and drivers for dropdown selection for all roles
-      const requests = [serviceAPI.getAllServices(), serviceAPI.getServiceStats(), vehicleAPI.getAllVehicles(), userAPI.getAllDrivers()]
+      // Fetch all vehicles and drivers for dropdown selection for all roles.
+      // For DRIVER role, userAPI.getAllDrivers() returns 403 Forbidden, so we resolve to null instead.
+      const requests = [
+        serviceAPI.getAllServices(),
+        serviceAPI.getServiceStats(),
+        vehicleAPI.getAllVehicles(),
+        !isDriver ? userAPI.getAllDrivers() : Promise.resolve(null)
+      ]
       const [servRes, statsRes, vehicleRes, driversRes] = await Promise.all(requests)
       const loadedServices = servRes.data.data || []
       const loadedVehicles = vehicleRes?.data.data || []
       setServices(loadedServices)
       setStats(statsRes.data.data)
       if (vehicleRes) setAllVehicles(loadedVehicles)
-      if (driversRes) setAllDrivers(driversRes.data.data || driversRes.data || [])
+      if (!isDriver && driversRes) {
+        setAllDrivers(driversRes.data.data || driversRes.data || [])
+      } else if (isDriver && user) {
+        setAllDrivers([user])
+      }
 
       // ── Compute alert records and fire notifications ──
       const vehicleKmMap = {}
@@ -2750,33 +2832,43 @@ const ServicePage = () => {
                         if (opts.length === 0) return (
                           <div style={{ padding: '12px 16px', fontSize: '0.82rem', color: D.textSub, textAlign: 'center' }}>No vehicles found</div>
                         )
-                        return opts.map(v => (
-                          <div
-                            key={v.id}
-                            onMouseDown={e => {
-                              e.preventDefault()
-                              setVehicleSearch(v.registrationNo)
-                              setVehicleDropdownVisible(false)
-                              handleVehicleSelect({ target: { value: v.registrationNo } }, false)
-                            }}
-                            style={{
-                              padding: '10px 14px', cursor: 'pointer',
-                              background: formData.vehicleRegNumber === v.registrationNo ? 'rgba(37,99,235,0.15)' : 'transparent',
-                              borderLeft: formData.vehicleRegNumber === v.registrationNo ? '3px solid #2563eb' : '3px solid transparent',
-                              display: 'flex', alignItems: 'center', gap: 10,
-                              transition: 'background 0.12s',
-                            }}
-                            onMouseEnter={e => { if (formData.vehicleRegNumber !== v.registrationNo) e.currentTarget.style.background = D.surfaceHi }}
-                            onMouseLeave={e => { if (formData.vehicleRegNumber !== v.registrationNo) e.currentTarget.style.background = 'transparent' }}
-                          >
-                            <Car size={14} style={{ color: D.blue, flexShrink: 0 }} />
-                            <div>
-                              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: D.text }}>{v.registrationNo}</div>
-                              {(v.manufacturer || v.model) && <div style={{ fontSize: '0.72rem', color: D.textSub }}>{v.manufacturer} {v.model}</div>}
+                        return opts.map(v => {
+                          const isSelected = formData.vehicleRegNumber === v.registrationNo
+                          const label = v.manufacturer || v.model
+                            ? `${v.registrationNo} - ${v.manufacturer || ''} ${v.model || ''}`.trim()
+                            : v.registrationNo
+                          return (
+                            <div
+                              key={v.id}
+                              onMouseDown={e => {
+                                e.preventDefault()
+                                setVehicleSearch(v.registrationNo)
+                                setVehicleDropdownVisible(false)
+                                handleVehicleSelect({ target: { value: v.registrationNo } }, false)
+                              }}
+                              style={{
+                                padding: '10px 16px', cursor: 'pointer',
+                                background: isSelected ? '#2563eb' : 'transparent',
+                                color: isSelected ? '#ffffff' : D.text,
+                                fontSize: '0.85rem',
+                                fontWeight: 500,
+                                transition: 'all 0.1s ease',
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = '#2563eb'
+                                e.currentTarget.style.color = '#ffffff'
+                              }}
+                              onMouseLeave={e => {
+                                if (!isSelected) {
+                                  e.currentTarget.style.background = 'transparent'
+                                  e.currentTarget.style.color = D.text
+                                }
+                              }}
+                            >
+                              {label}
                             </div>
-                            {formData.vehicleRegNumber === v.registrationNo && <Check size={14} style={{ color: '#2563eb', marginLeft: 'auto', flexShrink: 0 }} />}
-                          </div>
-                        ))
+                          )
+                        })
                       })()}
                     </div>
                   )}
@@ -3020,34 +3112,44 @@ const ServicePage = () => {
                         if (opts.length === 0) return (
                           <div style={{ padding: '12px 16px', fontSize: '0.82rem', color: D.textSub, textAlign: 'center' }}>No vehicles found</div>
                         )
-                        return opts.map(v => (
-                          <div
-                            key={v.id}
-                            onMouseDown={e => {
-                              e.preventDefault()
-                              setScheduleVehicleSearch(v.registrationNo)
-                              setScheduleVehicleDropdownVisible(false)
-                              setScheduleFormData(prev => ({ ...prev, vehicleRegNumber: v.registrationNo }))
-                              if (scheduleErrors.vehicleRegNumber) setScheduleErrors(prev => ({ ...prev, vehicleRegNumber: undefined }))
-                            }}
-                            style={{
-                              padding: '10px 14px', cursor: 'pointer',
-                              background: scheduleFormData.vehicleRegNumber === v.registrationNo ? 'rgba(37,99,235,0.15)' : 'transparent',
-                              borderLeft: scheduleFormData.vehicleRegNumber === v.registrationNo ? '3px solid #2563eb' : '3px solid transparent',
-                              display: 'flex', alignItems: 'center', gap: 10,
-                              transition: 'background 0.12s',
-                            }}
-                            onMouseEnter={e => { if (scheduleFormData.vehicleRegNumber !== v.registrationNo) e.currentTarget.style.background = D.surfaceHi }}
-                            onMouseLeave={e => { if (scheduleFormData.vehicleRegNumber !== v.registrationNo) e.currentTarget.style.background = 'transparent' }}
-                          >
-                            <Car size={14} style={{ color: D.blue, flexShrink: 0 }} />
-                            <div>
-                              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: D.text }}>{v.registrationNo}</div>
-                              {(v.manufacturer || v.model) && <div style={{ fontSize: '0.72rem', color: D.textSub }}>{v.manufacturer} {v.model}</div>}
+                        return opts.map(v => {
+                          const isSelected = scheduleFormData.vehicleRegNumber === v.registrationNo
+                          const label = v.manufacturer || v.model
+                            ? `${v.registrationNo} - ${v.manufacturer || ''} ${v.model || ''}`.trim()
+                            : v.registrationNo
+                          return (
+                            <div
+                              key={v.id}
+                              onMouseDown={e => {
+                                e.preventDefault()
+                                setScheduleVehicleSearch(v.registrationNo)
+                                setScheduleVehicleDropdownVisible(false)
+                                setScheduleFormData(prev => ({ ...prev, vehicleRegNumber: v.registrationNo }))
+                                if (scheduleErrors.vehicleRegNumber) setScheduleErrors(prev => ({ ...prev, vehicleRegNumber: undefined }))
+                              }}
+                              style={{
+                                padding: '10px 16px', cursor: 'pointer',
+                                background: isSelected ? '#2563eb' : 'transparent',
+                                color: isSelected ? '#ffffff' : D.text,
+                                fontSize: '0.85rem',
+                                fontWeight: 500,
+                                transition: 'all 0.1s ease',
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = '#2563eb'
+                                e.currentTarget.style.color = '#ffffff'
+                              }}
+                              onMouseLeave={e => {
+                                if (!isSelected) {
+                                  e.currentTarget.style.background = 'transparent'
+                                  e.currentTarget.style.color = D.text
+                                }
+                              }}
+                            >
+                              {label}
                             </div>
-                            {scheduleFormData.vehicleRegNumber === v.registrationNo && <Check size={14} style={{ color: '#2563eb', marginLeft: 'auto', flexShrink: 0 }} />}
-                          </div>
-                        ))
+                          )
+                        })
                       })()}
                     </div>
                   )}
@@ -3251,33 +3353,43 @@ const ServicePage = () => {
                         if (opts.length === 0) return (
                           <div style={{ padding: '12px 16px', fontSize: '0.82rem', color: D.textSub, textAlign: 'center' }}>No vehicles found</div>
                         )
-                        return opts.map(v => (
-                          <div
-                            key={v.id}
-                            onMouseDown={e => {
-                              e.preventDefault()
-                              setEditVehicleSearch(v.registrationNo)
-                              setEditVehicleDropdownVisible(false)
-                              handleVehicleSelect({ target: { value: v.registrationNo } }, true)
-                            }}
-                            style={{
-                              padding: '10px 14px', cursor: 'pointer',
-                              background: editFormData.vehicleRegNumber === v.registrationNo ? 'rgba(37,99,235,0.15)' : 'transparent',
-                              borderLeft: editFormData.vehicleRegNumber === v.registrationNo ? '3px solid #2563eb' : '3px solid transparent',
-                              display: 'flex', alignItems: 'center', gap: 10,
-                              transition: 'background 0.12s',
-                            }}
-                            onMouseEnter={e => { if (editFormData.vehicleRegNumber !== v.registrationNo) e.currentTarget.style.background = D.surfaceHi }}
-                            onMouseLeave={e => { if (editFormData.vehicleRegNumber !== v.registrationNo) e.currentTarget.style.background = 'transparent' }}
-                          >
-                            <Car size={14} style={{ color: D.blue, flexShrink: 0 }} />
-                            <div>
-                              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: D.text }}>{v.registrationNo}</div>
-                              {(v.manufacturer || v.model) && <div style={{ fontSize: '0.72rem', color: D.textSub }}>{v.manufacturer} {v.model}</div>}
+                        return opts.map(v => {
+                          const isSelected = editFormData.vehicleRegNumber === v.registrationNo
+                          const label = v.manufacturer || v.model
+                            ? `${v.registrationNo} - ${v.manufacturer || ''} ${v.model || ''}`.trim()
+                            : v.registrationNo
+                          return (
+                            <div
+                              key={v.id}
+                              onMouseDown={e => {
+                                e.preventDefault()
+                                setEditVehicleSearch(v.registrationNo)
+                                setEditVehicleDropdownVisible(false)
+                                handleVehicleSelect({ target: { value: v.registrationNo } }, true)
+                              }}
+                              style={{
+                                padding: '10px 16px', cursor: 'pointer',
+                                background: isSelected ? '#2563eb' : 'transparent',
+                                color: isSelected ? '#ffffff' : D.text,
+                                fontSize: '0.85rem',
+                                fontWeight: 500,
+                                transition: 'all 0.1s ease',
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = '#2563eb'
+                                e.currentTarget.style.color = '#ffffff'
+                              }}
+                              onMouseLeave={e => {
+                                if (!isSelected) {
+                                  e.currentTarget.style.background = 'transparent'
+                                  e.currentTarget.style.color = D.text
+                                }
+                              }}
+                            >
+                              {label}
                             </div>
-                            {editFormData.vehicleRegNumber === v.registrationNo && <Check size={14} style={{ color: '#2563eb', marginLeft: 'auto', flexShrink: 0 }} />}
-                          </div>
-                        ))
+                          )
+                        })
                       })()}
                     </div>
                   )}
