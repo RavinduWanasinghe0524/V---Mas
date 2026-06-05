@@ -86,7 +86,7 @@ const getStatus = (s) => {
 }
 
 const STATUS_CONFIG = {
-  ALL: { label: 'All', color: '#2563eb', bg: 'rgba(37, 99, 235,0.15)', border: 'rgba(37, 99, 235,0.3)' },
+  ALL: { label: 'All', color: '#0d9488', bg: 'rgba(13,148,136,0.15)', border: 'rgba(13,148,136,0.3)' },
   SCHEDULED: { label: 'Scheduled', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' },
   COMPLETED: { label: 'Completed', color: '#10b981', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)' },
   UPCOMING: { label: 'Upcoming', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' },
@@ -514,7 +514,7 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <div style={{ color: D.blue, fontSize: '1.05rem', fontWeight: 700, marginBottom: 4 }}>
+          <div style={{ color: D.indigo, fontSize: '1.05rem', fontWeight: 700, marginBottom: 4 }}>
             {record.serviceType?.replace(/_/g, ' ') || 'Service'}
           </div>
           <div style={{ color: D.textSub, fontSize: '0.8rem' }}>
@@ -547,10 +547,12 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
 
       <div style={{ height: 1, background: D.border }} />
 
-      {/* Description */}
-      <div style={{ color: D.text, fontSize: '0.85rem' }}>
-        {record.description || 'No description provided.'}
-      </div>
+      {/* Description — only show when there is real content */}
+      {record.description && (
+        <div style={{ color: D.textSub, fontSize: '0.82rem', lineHeight: 1.6 }}>
+          {record.description}
+        </div>
+      )}
 
       {/* Parts Replaced */}
       {record.partsReplaced && (
@@ -1572,7 +1574,7 @@ const ServicePage = () => {
   })
   const fieldError = { color: D.red, fontSize: '0.72rem', margin: '4px 0 0 0' }
 
-  const focusBorder = (e) => { e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235,0.1)' }
+  const focusBorder = (e) => { e.target.style.borderColor = 'rgba(13,148,136,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(13,148,136,0.12)' }
   const blurBorder = (e, hasErr) => { e.target.style.borderColor = hasErr ? 'rgba(248,113,113,0.5)' : D.inputBorder; e.target.style.boxShadow = 'none' }
 
   return (
@@ -1599,7 +1601,8 @@ const ServicePage = () => {
             border: `1px solid rgba(255,255,255,0.07)`,
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16
           }}>
-            {/* decorative circles */}
+            {/* decorative mesh overlays */}
+            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 80% 50%, rgba(20,184,166,0.22) 0%, transparent 60%)', pointerEvents: 'none' }} />
             {[['80%', '−20px', '180px', 'rgba(255,255,255,0.03)'], ['20%', '60%', '120px', 'rgba(255,255,255,0.04)'], ['55%', '80%', '90px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
               <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
             ))}
@@ -1608,10 +1611,10 @@ const ServicePage = () => {
                 <Wrench size={32} strokeWidth={1.5} />
               </div>
               <div>
-                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
                   {isDriver ? 'Service History' : 'Service Management'}
                 </h1>
-                <p style={{ margin: '4px 0 0', color: '#60a5fa', fontSize: '0.9rem' }}>
+                <p style={{ margin: '4px 0 0', color: 'rgba(167,243,208,0.85)', fontSize: '0.9rem' }}>
                   {isDriver ? 'View your vehicle service and maintenance history.' : 'Add and track vehicle maintenance records.'}
                 </p>
               </div>
@@ -1622,29 +1625,29 @@ const ServicePage = () => {
               {/* List / Grid / Calendar Toggle */}
               <div style={{
                 display: 'flex', alignItems: 'center',
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.12)',
                 borderRadius: 14,
                 padding: 4,
               }}>
                 <button
                   onClick={() => setViewMode('list')}
                   style={{
-                    background: viewMode === 'list' ? '#ffffff' : 'transparent', color: viewMode === 'list' ? '#1e40af' : '#60a5fa', border: 'none', borderRadius: 10,
+                    background: viewMode === 'list' ? '#ffffff' : 'transparent', color: viewMode === 'list' ? '#0f766e' : 'rgba(167,243,208,0.75)', border: 'none', borderRadius: 10,
                     padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
                     cursor: 'pointer', transition: 'all 0.15s ease'
                   }}>List</button>
                 <button
                   onClick={() => setViewMode('grid')}
                   style={{
-                    background: viewMode === 'grid' ? '#ffffff' : 'transparent', color: viewMode === 'grid' ? '#1e40af' : '#60a5fa', border: 'none', borderRadius: 10,
+                    background: viewMode === 'grid' ? '#ffffff' : 'transparent', color: viewMode === 'grid' ? '#0f766e' : 'rgba(167,243,208,0.75)', border: 'none', borderRadius: 10,
                     padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
                     cursor: 'pointer', transition: 'all 0.15s ease'
                   }}>Grid</button>
                 <button
                   onClick={() => setViewMode('calendar')}
                   style={{
-                    background: viewMode === 'calendar' ? '#ffffff' : 'transparent', color: viewMode === 'calendar' ? '#1e40af' : '#60a5fa', border: 'none', borderRadius: 10,
+                    background: viewMode === 'calendar' ? '#ffffff' : 'transparent', color: viewMode === 'calendar' ? '#0f766e' : 'rgba(167,243,208,0.75)', border: 'none', borderRadius: 10,
                     padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
                     cursor: 'pointer', transition: 'all 0.15s ease'
                   }}>Calendar</button>
@@ -1658,12 +1661,12 @@ const ServicePage = () => {
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8,
                     padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
-                    background: 'rgba(37, 99, 235,0.2)', color: '#60a5fa', border: '1px solid rgba(37, 99, 235,0.4)', cursor: 'pointer',
+                    background: 'rgba(13,148,136,0.2)', color: 'rgba(167,243,208,0.9)', border: '1px solid rgba(13,148,136,0.45)', cursor: 'pointer',
                     boxShadow: '0 4px 14px rgba(0,0,0,0.1)', transition: 'all 0.2s ease',
                     backdropFilter: 'blur(4px)',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.3)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.2)'; e.currentTarget.style.color = '#60a5fa'; e.currentTarget.style.transform = 'translateY(0)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(13,148,136,0.35)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(13,148,136,0.2)'; e.currentTarget.style.color = 'rgba(167,243,208,0.9)'; e.currentTarget.style.transform = 'translateY(0)' }}
                 >
                   <Clock size={18} /> Schedule Service
                 </button>
@@ -1677,11 +1680,11 @@ const ServicePage = () => {
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8,
                     padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
-                    background: '#ffffff', color: '#1e40af', border: 'none', cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(0,0,0,0.1)', transition: 'all 0.2s ease',
+                    background: 'rgba(255,255,255,0.92)', color: '#0d9488', border: 'none', cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.15)', transition: 'all 0.2s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.transform = 'translateY(0)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(13,148,136,0.3)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.92)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(0,0,0,0.15)' }}
                 >
                   <Calendar size={18} /> Add New Service
                 </button>
@@ -1713,18 +1716,18 @@ const ServicePage = () => {
               {/* Total */}
               <div style={statCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <p style={{ fontSize: '2rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{total}</p>
-                  <span style={{ display: 'flex', alignItems: 'center', color: '#2563eb' }}><ClipboardList size={28} /></span>
+                  <p style={{ fontSize: '2rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{total}</p>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 12, background: 'rgba(13,148,136,0.12)', color: '#0d9488' }}><ClipboardList size={22} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Total Records</p>
-                <ProgressBar value={total} max={total || 1} color="#2563eb" D={D} />
+                <ProgressBar value={total} max={total || 1} color="#0d9488" D={D} />
               </div>
 
               {/* Scheduled */}
               <div style={statCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <p style={{ fontSize: '2rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{scheduled}</p>
-                  <span style={{ display: 'flex', alignItems: 'center', color: '#f59e0b' }}><Calendar size={28} /></span>
+                  <p style={{ fontSize: '2rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{scheduled}</p>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 12, background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}><Calendar size={22} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Scheduled</p>
                 <ProgressBar value={scheduled} max={total || 1} color="#f59e0b" D={D} />
@@ -1733,8 +1736,8 @@ const ServicePage = () => {
               {/* Completed */}
               <div style={statCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <p style={{ fontSize: '2rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{completed}</p>
-                  <span style={{ display: 'flex', alignItems: 'center', color: '#10b981' }}><CheckCircle size={28} /></span>
+                  <p style={{ fontSize: '2rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{completed}</p>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 12, background: 'rgba(16,185,129,0.12)', color: '#10b981' }}><CheckCircle size={22} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Completed</p>
                 <ProgressBar value={completed} max={total || 1} color="#10b981" D={D} />
@@ -1743,10 +1746,10 @@ const ServicePage = () => {
               {/* Routine Maintenance Costs */}
               <div style={statCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <p style={{ fontSize: '1.55rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
+                  <p style={{ fontSize: '1.55rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
                     Rs.{totalRoutineCost.toLocaleString()}
                   </p>
-                  <span style={{ display: 'flex', alignItems: 'center', color: '#10b981' }}><CheckCircle size={28} /></span>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 12, background: 'rgba(16,185,129,0.12)', color: '#10b981' }}><CheckCircle size={22} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Routine Cost</p>
                 <ProgressBar value={totalRoutineCost} max={totalRoutineCost + totalAdHocCost || 1} color="#10b981" D={D} />
@@ -1755,10 +1758,10 @@ const ServicePage = () => {
               {/* Ad-hoc Repair / Breakdown Costs */}
               <div style={statCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <p style={{ fontSize: '1.55rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
+                  <p style={{ fontSize: '1.55rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
                     Rs.{totalAdHocCost.toLocaleString()}
                   </p>
-                  <span style={{ display: 'flex', alignItems: 'center', color: '#ef4444' }}><AlertTriangle size={28} /></span>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 12, background: 'rgba(239,68,68,0.12)', color: '#ef4444' }}><AlertTriangle size={22} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Breakdown / Ad-hoc Cost</p>
                 <ProgressBar value={totalAdHocCost} max={totalRoutineCost + totalAdHocCost || 1} color="#ef4444" D={D} />
@@ -1860,11 +1863,11 @@ const ServicePage = () => {
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5,
                     padding: '5px 12px', borderRadius: 999,
-                    background: 'rgba(37, 99, 235,0.12)', color: '#60a5fa',
-                    border: '1px solid rgba(37, 99, 235,0.25)',
+                    background: 'rgba(13,148,136,0.12)', color: '#0d9488',
+                    border: '1px solid rgba(13,148,136,0.25)',
                     fontSize: '0.72rem', fontWeight: 700,
                   }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2563eb' }} />
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0d9488' }} />
                     {[filter !== 'ALL', vehicleFilter !== 'ALL', !!search].filter(Boolean).length} active
                   </span>
                   <button
@@ -1920,14 +1923,14 @@ const ServicePage = () => {
                     width: '100%', padding: '8px 36px 8px 34px',
                     borderRadius: 10, fontSize: '0.82rem',
                     background: D.inputBg,
-                    border: `1px solid ${search ? 'rgba(37, 99, 235,0.4)' : D.inputBorder}`,
+                    border: `1px solid ${search ? 'rgba(13,148,136,0.4)' : D.inputBorder}`,
                     color: D.text, outline: 'none',
                     transition: 'border-color 0.15s, box-shadow 0.15s',
-                    boxShadow: search ? '0 0 0 3px rgba(37, 99, 235,0.08)' : 'none',
+                    boxShadow: search ? '0 0 0 3px rgba(13,148,136,0.1)' : 'none',
                     boxSizing: 'border-box',
                   }}
-                  onFocus={e => { e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235,0.1)' }}
-                  onBlur={e => { e.target.style.borderColor = search ? 'rgba(37, 99, 235,0.4)' : D.inputBorder; e.target.style.boxShadow = search ? '0 0 0 3px rgba(37, 99, 235,0.08)' : 'none' }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(13,148,136,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(13,148,136,0.12)' }}
+                  onBlur={e => { e.target.style.borderColor = search ? 'rgba(13,148,136,0.4)' : D.inputBorder; e.target.style.boxShadow = search ? '0 0 0 3px rgba(13,148,136,0.1)' : 'none' }}
                 />
                 {search && (
                   <button
@@ -1951,8 +1954,8 @@ const ServicePage = () => {
           {/* ── Main View Area ──────────────────────────────────────── */}
           <div style={
             viewMode === 'calendar' ? { display: 'flex', flexDirection: 'column', gap: 12 } : 
-            viewMode === 'grid' ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 } : 
-            { display: 'flex', flexDirection: 'column', gap: 16 }
+            viewMode === 'grid' ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: 20 } : 
+            { display: 'flex', flexDirection: 'column', gap: 12 }
           }>
 
             {loading ? (
