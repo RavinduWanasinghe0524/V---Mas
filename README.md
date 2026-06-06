@@ -252,76 +252,429 @@ Created automatically by `setup-database.sql`:
 
 ## API Endpoints
 
-All endpoints (except `/api/auth/**`) require an `Authorization: Bearer <token>` header.
+> 🔐 **Authentication Required** — All endpoints except `/api/auth/register` and `/api/auth/login` require:
+> ```
+> Authorization: Bearer <your_jwt_token>
+> ```
+> Base URL: `http://localhost:8080`
 
-### Authentication – `/api/auth`
-| Method | Path | Description |
-|---|---|---|
-| POST | `/api/auth/register` | Register a new user |
-| POST | `/api/auth/login` | Login and receive JWT token |
-| POST | `/api/auth/logout` | Logout |
+---
 
-### Vehicles – `/api/vehicles`
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/vehicles` | List all vehicles |
-| POST | `/api/vehicles` | Create a vehicle (ADMIN) |
-| GET | `/api/vehicles/{id}` | Get vehicle by ID |
-| PUT | `/api/vehicles/{id}` | Update vehicle (ADMIN) |
-| DELETE | `/api/vehicles/{id}` | Delete vehicle (ADMIN) |
-| GET | `/api/vehicles/assigned` | Get vehicle assigned to the current driver |
+### 🔑 Authentication — `/api/auth`
 
-### Fuel Logs – `/api/fuel`
-| Method | Path | Role | Description |
-|---|---|---|---|
-| POST | `/api/fuel/add` | DRIVER | Add own fuel log |
-| GET | `/api/fuel/my-logs` | DRIVER | List own fuel logs |
-| GET | `/api/fuel/all` | ADMIN / CONTROLLER | List all fleet fuel logs |
-| POST | `/api/fuel/controller/add` | CONTROLLER | Add fuel log for any vehicle |
-| PUT | `/api/fuel/controller/{id}` | CONTROLLER | Update any fuel log |
-| DELETE | `/api/fuel/controller/{id}` | CONTROLLER | Soft-delete a fuel log |
-| GET | `/api/fuel/summary` | All | Monthly fuel summary |
-| GET | `/api/fuel/chart` | All | Monthly chart data |
-| GET | `/api/fuel/vehicle/{regNo}` | All | All logs for a vehicle |
+> No token required for `register` and `login`.
 
-### Service Records – `/api/services`
-| Method | Path | Description |
-|---|---|---|
-| POST | `/api/services` | Create service record |
-| GET | `/api/services` | List all service records |
-| GET | `/api/services/{id}` | Get service record |
-| PUT | `/api/services/{id}` | Update service record |
-| DELETE | `/api/services/{id}` | Delete service record |
-| POST | `/api/services/filter` | Filter service records |
-| GET | `/api/services/vehicle/{vehicleId}` | Services for a vehicle |
-| GET | `/api/services/stats` | Service statistics |
-| GET | `/api/services/upcoming` | Upcoming services (next 30 days) |
-| GET | `/api/services/recent` | Last 5 service records |
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| `POST` | `/api/auth/register` | Public | Register a new user (account starts as PENDING) |
+| `POST` | `/api/auth/login` | Public | Login and get JWT token |
+| `POST` | `/api/auth/logout` | Authenticated | Logout (clears server-side session) |
 
-### Users – `/api/users`
-| Method | Path | Role | Description |
-|---|---|---|---|
-| GET | `/api/users` | ADMIN | List all users |
-| POST | `/api/users` | ADMIN | Create user |
-| PUT | `/api/users/{id}` | ADMIN | Update user |
-| DELETE | `/api/users/{id}` | ADMIN | Delete user |
-| GET | `/api/users/drivers` | ADMIN / CONTROLLER | List all drivers |
+<details>
+<summary>📋 Request / Response Examples</summary>
 
-### Notifications – `/api/notifications`
-| Method | Path | Role | Description |
-|---|---|---|---|
-| GET | `/api/notifications` | ADMIN | List all notifications |
-| POST | `/api/notifications/{id}/read` | ADMIN | Mark notification as read |
-| DELETE | `/api/notifications` | ADMIN | Clear all notifications |
+**POST /api/auth/register**
+```json
+// Request Body
+{
+  "userName": "john_driver",
+  "password": "password123",
+  "firstName": "John",
+  "lastName": "Smith",
+  "email": "john@example.com",
+  "role": "DRIVER"
+}
 
-### Employees – `/api/employees`
-CRUD operations for employee management.
+// Response (201 Created)
+{
+  "success": true,
+  "message": "Registration successful. Your account is pending admin approval.",
+  "data": null
+}
+```
 
-> 📦 A full Postman collection is included in `V-Mas Backend/`:
-> - `VMAS_Postman_Collection.json`
-> - `Fuel_Analysis_Complete_Postman_Collection.json`
-> - `Service_API_Postman_Collection.json`
-> - `VMAS_Local_Environment.postman_environment.json`
+**POST /api/auth/login**
+```json
+// Request Body
+{
+  "userName": "admin",
+  "password": "admin123"
+}
+
+// Response (200 OK)
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiJ9...",
+    "userName": "admin",
+    "role": "ADMIN"
+  }
+}
+```
+</details>
+
+---
+
+### 🚗 Vehicles — `/api/vehicles`
+
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| `GET` | `/api/vehicles` | ALL | Get all vehicles |
+| `POST` | `/api/vehicles` | ADMIN, CONTROLLER | Create a new vehicle |
+| `GET` | `/api/vehicles/{id}` | ADMIN, CONTROLLER | Get vehicle by ID |
+| `PUT` | `/api/vehicles/{id}` | ADMIN, CONTROLLER | Update vehicle details |
+| `DELETE` | `/api/vehicles/{id}` | ADMIN, CONTROLLER | Delete a vehicle |
+| `PUT` | `/api/vehicles/{id}/assign/{driverId}` | ADMIN, CONTROLLER | Assign a driver to a vehicle |
+| `DELETE` | `/api/vehicles/{id}/assign` | ADMIN, CONTROLLER | Remove driver from a vehicle |
+| `POST` | `/api/vehicles/{id}/document/{docType}` | ADMIN, CONTROLLER | Upload a vehicle document (insurance, license, etc.) |
+| `GET` | `/api/vehicles/{id}/document/{docType}` | ALL | Download/view a vehicle document |
+
+<details>
+<summary>📋 Request / Response Examples</summary>
+
+**POST /api/vehicles**
+```json
+// Request Body
+{
+  "registrationNumber": "ABC-1234",
+  "make": "Toyota",
+  "model": "Hilux",
+  "year": 2022,
+  "fuelType": "DIESEL",
+  "currentMileageKm": 15000
+}
+
+// Response (201 Created)
+{
+  "success": true,
+  "message": "Vehicle created successfully",
+  "data": {
+    "id": 1,
+    "registrationNumber": "ABC-1234",
+    "make": "Toyota",
+    "model": "Hilux",
+    "status": "AVAILABLE"
+  }
+}
+```
+
+**PUT /api/vehicles/1/assign/3**
+```json
+// Response (200 OK)
+{
+  "success": true,
+  "message": "Driver assigned successfully",
+  "data": { "id": 1, "assignedDriverId": 3 }
+}
+```
+</details>
+
+---
+
+### ⛽ Fuel Logs — `/api/fuel`
+
+#### Driver Endpoints
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| `POST` | `/api/fuel/add` | DRIVER | Log own fuel fill-up |
+| `GET` | `/api/fuel/my-logs` | DRIVER | Get own fuel history |
+| `GET` | `/api/fuel/my-logs/{id}` | DRIVER | Get one specific own log |
+| `PUT` | `/api/fuel/my-logs/{id}` | DRIVER | Update own fuel log |
+
+#### Controller / Admin Endpoints
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| `GET` | `/api/fuel/all` | ADMIN, CONTROLLER | Get all fleet fuel logs |
+| `POST` | `/api/fuel/controller/add` | ADMIN, CONTROLLER | Add fuel log for any vehicle |
+| `PUT` | `/api/fuel/controller/{id}` | ADMIN, CONTROLLER | Update any fuel log |
+| `DELETE` | `/api/fuel/controller/{id}` | ADMIN, CONTROLLER | Soft-delete a fuel log |
+| `GET` | `/api/fuel/controller/search/{id}` | ADMIN, CONTROLLER | Find a fuel log by ID |
+| `GET` | `/api/fuel/controller/deleted` | ADMIN, CONTROLLER | View soft-deleted logs |
+| `PATCH` | `/api/fuel/controller/restore/{id}` | ADMIN, CONTROLLER | Restore a deleted log |
+| `GET` | `/api/fuel/efficiency` | ADMIN, CONTROLLER | Fuel efficiency report for all vehicles |
+
+#### Analytics Endpoints (All Roles)
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| `GET` | `/api/fuel/summary` | ALL | Current month fuel summary |
+| `GET` | `/api/fuel/chart` | ALL | Monthly chart data |
+| `GET` | `/api/fuel/stats` | ALL | Per-vehicle fuel statistics |
+| `GET` | `/api/fuel/log/{id}` | ALL | Get any fuel log by ID |
+| `GET` | `/api/fuel/vehicle/{regNo}` | ALL | All logs for a specific vehicle |
+
+<details>
+<summary>📋 Request / Response Examples</summary>
+
+**POST /api/fuel/add**
+```json
+// Request Body
+{
+  "vehicleRegNumber": "ABC-1234",
+  "liters": 45.5,
+  "costPerLiter": 380.00,
+  "currentMileageKm": 15800,
+  "fuelDate": "2026-05-15"
+}
+
+// Response (201 Created)
+{
+  "success": true,
+  "message": "Fuel log added successfully",
+  "data": {
+    "id": 12,
+    "liters": 45.5,
+    "totalCost": 17290.00,
+    "efficiencyKmPerLiter": 8.2
+  }
+}
+```
+
+**GET /api/fuel/summary**
+```json
+// Response (200 OK)
+{
+  "success": true,
+  "message": "Monthly summary retrieved successfully",
+  "data": {
+    "totalLiters": 320.5,
+    "totalCost": 121790.00,
+    "avgEfficiency": 9.1,
+    "month": "2026-05"
+  }
+}
+```
+</details>
+
+---
+
+### 🔧 Service Records — `/api/services`
+
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| `POST` | `/api/services` | ALL | Create a service record |
+| `GET` | `/api/services` | ALL | Get all service records |
+| `GET` | `/api/services/{id}` | ALL | Get one service record by ID |
+| `PUT` | `/api/services/{id}` | ALL | Update a service record |
+| `DELETE` | `/api/services/{id}` | ADMIN, CONTROLLER | Delete a service record (soft-delete) |
+| `POST` | `/api/services/filter` | ALL | Filter records by vehicle, type, date range |
+| `GET` | `/api/services/vehicle/{regNo}` | ALL | All services for a specific vehicle |
+| `GET` | `/api/services/stats` | ALL | Service statistics (Driver gets own vehicle only) |
+| `GET` | `/api/services/upcoming` | ALL | Services due within 30 days |
+| `GET` | `/api/services/recent` | ALL | Last 5 service records |
+| `POST` | `/api/services/{id}/attachment` | ALL | Upload a bill/receipt file |
+| `GET` | `/api/services/{id}/attachment` | ALL | View/download the attached bill |
+| `GET` | `/api/services/{id}/history` | ALL | Full edit audit trail for a record |
+| `GET` | `/api/services/deleted` | ADMIN, CONTROLLER | View soft-deleted records |
+| `PATCH` | `/api/services/{id}/restore` | ADMIN, CONTROLLER | Restore a deleted record |
+
+<details>
+<summary>📋 Request / Response Examples</summary>
+
+**POST /api/services**
+```json
+// Request Body
+{
+  "vehicleRegNumber": "ABC-1234",
+  "serviceType": "OIL_CHANGE",
+  "serviceDate": "2026-05-10",
+  "currentMileageKm": 15000,
+  "serviceCost": 4500.00,
+  "technicianWorkshop": "City Auto Workshop",
+  "nextServiceDue": "2026-08-10",
+  "nextServiceMileageKm": 20000,
+  "serviceClassification": "ROUTINE",
+  "description": "Engine oil and filter replaced"
+}
+
+// Response (201 Created)
+{
+  "success": true,
+  "message": "Service record created successfully",
+  "data": {
+    "id": 5,
+    "serviceType": "OIL_CHANGE",
+    "vehicleRegNumber": "ABC-1234",
+    "serviceDate": "2026-05-10"
+  }
+}
+```
+
+**POST /api/services/filter**
+```json
+// Request Body
+{
+  "vehicleRegNumber": "ABC-1234",
+  "serviceType": "OIL_CHANGE",
+  "startDate": "2026-01-01",
+  "endDate": "2026-06-30"
+}
+```
+
+**GET /api/services/stats**
+```json
+// Response (200 OK)
+{
+  "success": true,
+  "message": "Service stats fetched successfully",
+  "data": {
+    "totalRecords": 24,
+    "completed": 18,
+    "scheduled": 6,
+    "totalCost": 125000.00,
+    "overdueCount": 2
+  }
+}
+```
+</details>
+
+---
+
+### 👤 Users — `/api/users`
+
+#### Own Profile (Any Logged-in User)
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| `GET` | `/api/users/me` | ALL | Get own profile |
+| `PUT` | `/api/users/me` | ALL | Update own profile |
+| `PUT` | `/api/users/me/password` | ALL | Change own password |
+
+#### Admin / Controller Management
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| `GET` | `/api/users` | ADMIN, CONTROLLER | Get all users |
+| `POST` | `/api/users` | ADMIN, CONTROLLER | Create a new user |
+| `GET` | `/api/users/{id}` | ADMIN, CONTROLLER | Get user by ID |
+| `PUT` | `/api/users/{id}` | ADMIN, CONTROLLER | Update a user |
+| `DELETE` | `/api/users/{id}` | ADMIN, CONTROLLER | Delete a user |
+| `GET` | `/api/users/drivers` | ADMIN, CONTROLLER | Get all active drivers |
+| `GET` | `/api/users/pending` | ADMIN, CONTROLLER | Get users awaiting approval |
+| `PATCH` | `/api/users/{id}/approve` | ADMIN, CONTROLLER | Approve a pending user |
+| `PATCH` | `/api/users/{id}/reject` | ADMIN, CONTROLLER | Reject a pending user |
+
+<details>
+<summary>📋 Request / Response Examples</summary>
+
+**GET /api/users/me**
+```json
+// Response (200 OK)
+{
+  "success": true,
+  "message": "Profile fetched successfully",
+  "data": {
+    "id": 3,
+    "userName": "john_driver",
+    "firstName": "John",
+    "lastName": "Smith",
+    "role": "DRIVER",
+    "accountStatus": "ACTIVE"
+  }
+}
+```
+
+**PUT /api/users/me/password**
+```json
+// Request Body
+{
+  "currentPassword": "oldpass123",
+  "newPassword": "newSecure456"
+}
+```
+</details>
+
+---
+
+### 🔔 Notifications — `/api/notifications`
+
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| `GET` | `/api/notifications` | ALL | Get all notifications |
+| `GET` | `/api/notifications/unread` | ALL | Get only unread notifications |
+| `POST` | `/api/notifications` | ALL | Create a new notification |
+| `PATCH` | `/api/notifications/{id}/read` | ALL | Mark one notification as read |
+| `PATCH` | `/api/notifications/read-all` | ALL | Mark all notifications as read |
+
+<details>
+<summary>📋 Request / Response Examples</summary>
+
+**GET /api/notifications/unread**
+```json
+// Response (200 OK)
+{
+  "success": true,
+  "message": "Unread notifications fetched successfully",
+  "data": [
+    {
+      "id": 7,
+      "message": "Vehicle ABC-1234 service is overdue",
+      "type": "SERVICE_ALERT",
+      "read": false,
+      "createdAt": "2026-06-01T08:30:00"
+    }
+  ]
+}
+```
+</details>
+
+---
+
+### 🚨 Alerts — `/api/alerts`
+
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| `GET` | `/api/alerts/dashboard` | ADMIN, CONTROLLER | Get service-due and document-expiry alerts for the dashboard |
+
+<details>
+<summary>📋 Response Example</summary>
+
+**GET /api/alerts/dashboard**
+```json
+// Response (200 OK)
+{
+  "success": true,
+  "message": "Dashboard alerts retrieved successfully",
+  "data": {
+    "serviceDueAlerts": [
+      { "vehicleRegNumber": "ABC-1234", "serviceType": "OIL_CHANGE", "status": "OVERDUE" }
+    ],
+    "documentExpiryAlerts": [
+      { "vehicleRegNumber": "XYZ-5678", "docType": "insurance", "daysUntilExpiry": 12 }
+    ]
+  }
+}
+```
+</details>
+
+---
+
+### 👥 Employees — `/api/employees`
+
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| `POST` | `/api/employees` | ALL | Create a new employee record |
+| `GET` | `/api/employees` | ALL | Get all employees |
+| `GET` | `/api/employees/{id}` | ALL | Get employee by ID |
+| `PUT` | `/api/employees/{id}` | ALL | Update employee record |
+| `DELETE` | `/api/employees/{id}` | ALL | Delete employee record |
+
+---
+
+### 📦 Postman Collections
+
+Ready-to-import collections are included in `V-Mas Backend/`:
+
+| File | Contents |
+|------|----------|
+| `VMAS_Postman_Collection.json` | Auth, Vehicle, User, Employee endpoints |
+| `Fuel_Analysis_Complete_Postman_Collection.json` | Full fuel management and analytics suite |
+| `Service_API_Postman_Collection.json` | Service record endpoints |
+| `VMAS_Local_Environment.postman_environment.json` | Pre-configured `baseUrl` and `token` variables |
+
+**How to import:**
+1. Open Postman → **Import** → select the `.json` files above
+2. Set `baseUrl` = `http://localhost:8080` in the environment
+3. Run **POST /api/auth/login** first and copy the token into the `token` environment variable
+4. All other requests will use `Bearer {{token}}` automatically
 
 ---
 
