@@ -93,15 +93,37 @@ const STATUS_CONFIG = {
   OVERDUE: { label: 'Overdue', color: '#ef4444', bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)' },
 }
 
-/* ── Progress bar widths for stat cards ─────────────────────────── */
-const ProgressBar = ({ value, max, color, D }) => {
-  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0
-  return (
-    <div style={{ height: 4, background: D ? D.border : 'rgba(255,255,255,0.08)', borderRadius: 999, marginTop: 12, overflow: 'hidden' }}>
-      <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 999, transition: 'width 0.6s ease' }} />
-    </div>
+/* ── Check if a service record is the latest chronologically ── */
+const checkIsLatest = (record, services) => {
+  if (!services || services.length === 0) return true
+  const matching = services.filter(s => 
+    s.vehicleRegNumber === record.vehicleRegNumber && 
+    s.serviceType === record.serviceType
   )
+  if (matching.length <= 1) return true
+
+  let latest = matching[0]
+  for (const s of matching) {
+    const dateLatest = latest.serviceDate ? new Date(latest.serviceDate).getTime() : 0
+    const dateS = s.serviceDate ? new Date(s.serviceDate).getTime() : 0
+    
+    if (dateS > dateLatest) {
+      latest = s
+    } else if (dateS === dateLatest) {
+      const milLatest = Number(latest.currentMileageKm || 0)
+      const milS = Number(s.currentMileageKm || 0)
+      if (milS > milLatest) {
+        latest = s
+      } else if (milS === milLatest) {
+        if (s.id && latest.id && s.id > latest.id) {
+          latest = s
+        }
+      }
+    }
+  }
+  return latest.id === record.id
 }
+
 
 /* ── Service Progress Meter ──────────────────────────────────────────
    Shows mileage progress bar + date countdown for a service record.
@@ -185,97 +207,151 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
   return (
     <div style={{
       background: D.surface,
-      border: `1px solid ${overdue.length > 0 ? 'rgba(239,68,68,0.35)' : 'rgba(245,158,11,0.35)'}`,
+      border: `1px solid ${overdue.length > 0 ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`,
       borderRadius: 16,
       marginBottom: 20,
       overflow: 'hidden',
       animation: 'fadeIn 0.3s ease',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
     }}>
       {/* Header */}
       <div style={{
-        padding: '14px 20px',
+        padding: '16px 20px',
         borderBottom: `1px solid ${D.border}`,
-        display: 'flex', alignItems: 'center', gap: 10,
-        background: overdue.length > 0 ? 'rgba(239,68,68,0.07)' : 'rgba(245,158,11,0.07)',
+        display: 'flex', alignItems: 'center', gap: 12,
+        background: overdue.length > 0 ? 'rgba(239,68,68,0.05)' : 'rgba(245,158,11,0.05)',
       }}>
-        <BellRing size={16} style={{ color: overdue.length > 0 ? '#ef4444' : '#f59e0b', flexShrink: 0 }} />
-        <span style={{ fontWeight: 700, fontSize: '0.88rem', color: D.text }}>
-          Service Alerts
+        <BellRing size={20} style={{ color: overdue.length > 0 ? '#ef4444' : '#f59e0b', flexShrink: 0 }} />
+        <span style={{ fontWeight: 800, fontSize: '1.05rem', color: D.text, fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
+          Vehicle Service Alerts
         </span>
         {overdue.length > 0 && (
-          <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '2px 7px', borderRadius: 999, marginLeft: 2 }}>
+          <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.75rem', fontWeight: 800, padding: '4px 12px', borderRadius: 999 }}>
             {overdue.length} Overdue
           </span>
         )}
         {dueSoon.length > 0 && (
-          <span style={{ background: '#f59e0b', color: '#000', fontSize: '0.65rem', fontWeight: 800, padding: '2px 7px', borderRadius: 999 }}>
+          <span style={{ background: '#f59e0b', color: '#000', fontSize: '0.75rem', fontWeight: 800, padding: '4px 12px', borderRadius: 999 }}>
             {dueSoon.length} Due Soon
           </span>
         )}
       </div>
 
       {/* Scroll strip of alert cards */}
-      <div style={{ display: 'flex', gap: 12, padding: '14px 16px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
+      <div style={{ display: 'flex', gap: 16, padding: '20px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
         {alertRecords.map(r => {
           const ac = ALERT_COLORS[r._alertLevel] || ALERT_COLORS.DUE_SOON
           const mileage = computeMileageProgress(r, r._vehicleCurrentKm)
           const date    = computeDateAlert(r)
+          
+          let progressPct = 0
+          let remainingText = ''
+          
+          if (mileage) {
+            progressPct = Math.min(mileage.pct, 100)
+            remainingText = fmtKmRemaining(mileage.remaining)
+          } else if (date) {
+            progressPct = Math.max(0, Math.min(100, (30 - date.daysRemaining) / 30 * 100))
+            remainingText = fmtDaysRemaining(date.daysRemaining)
+          }
+          
           return (
-            <div key={r.id} style={{
-              flexShrink: 0,
-              minWidth: 230,
-              maxWidth: 260,
-              background: D.bg,
-              border: `1px solid ${ac.border}`,
-              borderRadius: 12,
-              padding: '12px 14px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-              boxShadow: `0 2px 12px ${ac.bg}`,
-            }}>
-              {/* Vehicle + type */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: ac.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${ac.border}` }}>
-                  <Car size={16} style={{ color: ac.color }} />
+            <div 
+              key={r.id} 
+              onClick={() => onViewAlert && onViewAlert(r)}
+              style={{
+                flexShrink: 0,
+                minWidth: 300,
+                maxWidth: 340,
+                background: D.bg,
+                border: `1px solid ${ac.border}`,
+                borderRadius: 14,
+                padding: '18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 14,
+                boxShadow: `0 4px 14px rgba(0, 0, 0, 0.12)`,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-2px)'
+                e.currentTarget.style.boxShadow = `0 6px 20px ${ac.bg}`
+                e.currentTarget.style.borderColor = ac.color
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '0 4px 14px rgba(0, 0, 0, 0.12)'
+                e.currentTarget.style.borderColor = ac.border
+              }}
+            >
+              {/* First Row: Vehicle + type & badge */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ 
+                    width: 42, 
+                    height: 42, 
+                    borderRadius: 10, 
+                    background: ac.bg, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    flexShrink: 0, 
+                    border: `1px solid ${ac.border}` 
+                  }}>
+                    <Car size={18} style={{ color: ac.color }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.95rem', color: D.text }}>{r.vehicleRegNumber}</span>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 600, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      {r.serviceType?.replace(/_/g, ' ')}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <p style={{ margin: 0, fontWeight: 800, fontSize: '0.82rem', color: D.text }}>{r.vehicleRegNumber}</p>
-                  <p style={{ margin: 0, fontSize: '0.7rem', color: D.textSub }}>{r.serviceType?.replace(/_/g, ' ')}</p>
-                </div>
+                
                 <span style={{
-                  marginLeft: 'auto', fontSize: '0.62rem', fontWeight: 800,
-                  padding: '2px 7px', borderRadius: 999,
-                  background: ac.bg, color: ac.color, border: `1px solid ${ac.border}`
+                  fontSize: '0.7rem', 
+                  fontWeight: 800,
+                  padding: '5px 12px', 
+                  borderRadius: 999,
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  color: ac.color, 
+                  border: `1px solid ${ac.color}`,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.03em'
                 }}>{ac.label}</span>
               </div>
 
-              {/* Mileage progress */}
-              {mileage && (
-                <div>
-                  <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden', marginBottom: 4 }}>
-                    <div style={{ width: `${Math.min(mileage.pct, 100)}%`, height: '100%', background: ac.color, borderRadius: 999 }} />
-                  </div>
-                  <p style={{ margin: 0, fontSize: '0.68rem', color: ac.color, fontWeight: 700 }}>
-                    {fmtKmRemaining(mileage.remaining)}
-                  </p>
+              {/* Second Row: Progress Bar */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden' }}>
+                  <div style={{ 
+                    width: `${progressPct}%`, 
+                    height: '100%', 
+                    background: ac.color, 
+                    borderRadius: 999,
+                    transition: 'width 0.6s ease' 
+                  }} />
                 </div>
-              )}
-
-              {/* Date countdown */}
-              {date && (
-                <p style={{ margin: 0, fontSize: '0.68rem', color: ac.color, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Calendar size={11} /> {fmtDaysRemaining(date.daysRemaining)}
-                </p>
-              )}
+                <span style={{ fontSize: '0.78rem', color: ac.color, fontWeight: 700, letterSpacing: '0.01em' }}>
+                  {remainingText}
+                </span>
+                
+                {/* Secondary detail if both exist */}
+                {mileage && date && (
+                  <span style={{ fontSize: '0.7rem', color: D.textSub, display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                    <Calendar size={11} /> {fmtDaysRemaining(date.daysRemaining)}
+                  </span>
+                )}
+              </div>
 
               {/* Actions */}
               {onCompleteAlert && (
-                <div style={{ marginTop: 'auto', paddingTop: 8 }}>
+                <div style={{ marginTop: 'auto', paddingTop: 6 }}>
                   <button
                     onClick={(e) => { e.stopPropagation(); onCompleteAlert(r); }}
                     style={{
-                      width: '100%', padding: '6px 0', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
+                      width: '100%', padding: '7px 0', borderRadius: 10, fontSize: '0.75rem', fontWeight: 700,
                       background: ac.bg, color: ac.color, border: `1px solid ${ac.border}`,
                       cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
                     }}
@@ -295,7 +371,7 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
 }
 
 /* ── Service List Card (Old Style) ──────────────────────────────── */
-const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, vehicleCurrentKm, onEdit, onDelete, onView, onViewAttachment, D }) => {
+const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, vehicleCurrentKm, isLatest, onEdit, onDelete, onView, onViewAttachment, D }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
@@ -436,7 +512,7 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
           </div>
         )}
         {/* Service progress meter */}
-        <ServiceProgressMeter record={record} vehicleCurrentKm={vehicleCurrentKm} D={D} />
+        {isLatest && <ServiceProgressMeter record={record} vehicleCurrentKm={vehicleCurrentKm} D={D} />}
       </div>
 
       {/* Cost */}
@@ -484,7 +560,7 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
 }
 
 /* ── Service Grid Card (New Style) ──────────────────────────────── */
-const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, vehicleCurrentKm, onEdit, onDelete, onView, onViewAttachment, D }) => {
+const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, vehicleCurrentKm, isLatest, onEdit, onDelete, onView, onViewAttachment, D }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
@@ -597,7 +673,7 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
         </div>
       </div>
       {/* Service progress meter */}
-      <ServiceProgressMeter record={record} vehicleCurrentKm={vehicleCurrentKm} D={D} />
+      {isLatest && <ServiceProgressMeter record={record} vehicleCurrentKm={vehicleCurrentKm} D={D} />}
 
       {/* ── Created by / at + attachment ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', paddingTop: 8, borderTop: `1px solid ${D.border}` }}>
@@ -1361,23 +1437,28 @@ const ServicePage = () => {
       const vehicleKmMap = {}
       loadedVehicles.forEach(v => { vehicleKmMap[v.registrationNo] = v.currentMileageKm })
 
-      // Find the LATEST record per vehicle + service type (based on ID / creation time)
+      // Find the LATEST record per vehicle + service type (based on chronological date / mileage / ID)
       const latestServiceMap = {}
       for (const s of loadedServices) {
         const key = `${s.vehicleRegNumber}_${s.serviceType}`
-        if (!latestServiceMap[key]) {
+        const existing = latestServiceMap[key]
+        if (!existing) {
           latestServiceMap[key] = s
         } else {
-          // Priority 1: id (since it's an auto-incrementing primary key, highest id = newest)
-          if (s.id && latestServiceMap[key].id) {
-            if (s.id > latestServiceMap[key].id) {
+          const dateExisting = existing.serviceDate ? new Date(existing.serviceDate).getTime() : 0
+          const dateNew = s.serviceDate ? new Date(s.serviceDate).getTime() : 0
+          
+          if (dateNew > dateExisting) {
+            latestServiceMap[key] = s
+          } else if (dateNew === dateExisting) {
+            const milExisting = Number(existing.currentMileageKm || 0)
+            const milNew = Number(s.currentMileageKm || 0)
+            if (milNew > milExisting) {
               latestServiceMap[key] = s
-            }
-          } 
-          // Priority 2: Fallback to createdAt if id is missing for some reason
-          else if (s.createdAt && latestServiceMap[key].createdAt) {
-            if (new Date(s.createdAt).getTime() > new Date(latestServiceMap[key].createdAt).getTime()) {
-              latestServiceMap[key] = s
+            } else if (milNew === milExisting) {
+              if (s.id && existing.id && s.id > existing.id) {
+                latestServiceMap[key] = s
+              }
             }
           }
         }
@@ -1720,7 +1801,6 @@ const ServicePage = () => {
                   <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 12, background: 'rgba(13,148,136,0.12)', color: '#0d9488' }}><ClipboardList size={22} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Total Records</p>
-                <ProgressBar value={total} max={total || 1} color="#0d9488" D={D} />
               </div>
 
               {/* Scheduled */}
@@ -1730,7 +1810,6 @@ const ServicePage = () => {
                   <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 12, background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}><Calendar size={22} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Scheduled</p>
-                <ProgressBar value={scheduled} max={total || 1} color="#f59e0b" D={D} />
               </div>
 
               {/* Completed */}
@@ -1740,7 +1819,6 @@ const ServicePage = () => {
                   <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 12, background: 'rgba(16,185,129,0.12)', color: '#10b981' }}><CheckCircle size={22} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Completed</p>
-                <ProgressBar value={completed} max={total || 1} color="#10b981" D={D} />
               </div>
 
               {/* Routine Maintenance Costs */}
@@ -1752,7 +1830,6 @@ const ServicePage = () => {
                   <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 12, background: 'rgba(16,185,129,0.12)', color: '#10b981' }}><CheckCircle size={22} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Routine Cost</p>
-                <ProgressBar value={totalRoutineCost} max={totalRoutineCost + totalAdHocCost || 1} color="#10b981" D={D} />
               </div>
 
               {/* Ad-hoc Repair / Breakdown Costs */}
@@ -1764,7 +1841,6 @@ const ServicePage = () => {
                   <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 12, background: 'rgba(239,68,68,0.12)', color: '#ef4444' }}><AlertTriangle size={22} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Breakdown / Ad-hoc Cost</p>
-                <ProgressBar value={totalAdHocCost} max={totalRoutineCost + totalAdHocCost || 1} color="#ef4444" D={D} />
               </div>
             </div>
           )}
@@ -2009,6 +2085,7 @@ const ServicePage = () => {
                     isAdmin={isAdmin}
                     currentUsername={user?.userName}
                     vehicleCurrentKm={vc?.currentMileageKm}
+                    isLatest={checkIsLatest(record, services)}
                     onEdit={openEditModal}
                     onDelete={confirmDelete}
                     onView={r => setDetailModal({ isOpen: true, record: r })}
@@ -2029,6 +2106,7 @@ const ServicePage = () => {
                     isAdmin={isAdmin}
                     currentUsername={user?.userName}
                     vehicleCurrentKm={vc?.currentMileageKm}
+                    isLatest={checkIsLatest(record, services)}
                     onEdit={openEditModal}
                     onDelete={confirmDelete}
                     onView={r => setDetailModal({ isOpen: true, record: r })}
