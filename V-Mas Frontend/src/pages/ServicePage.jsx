@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
-import { serviceAPI, vehicleAPI, notificationAPI } from '../services/api'
+import { serviceAPI, vehicleAPI, notificationAPI, userAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
 import { addControllerNotification, addDriverNotification } from '../services/notificationService'
@@ -46,6 +46,7 @@ const initialForm = {
   description: '',
   partsReplaced: '',
   serviceClassification: 'ROUTINE',
+  driverUsername: '',
 }
 
 const initialScheduleForm = {
@@ -58,6 +59,7 @@ const initialScheduleForm = {
   estimatedCost: '',
   preferredWorkshop: '',
   description: '',
+  driverUsername: '',
 }
 
 /* ── Service type icon map ──────────────────────────────────────── */
@@ -84,22 +86,44 @@ const getStatus = (s) => {
 }
 
 const STATUS_CONFIG = {
-  ALL: { label: 'All', color: '#2563eb', bg: 'rgba(37, 99, 235,0.15)', border: 'rgba(37, 99, 235,0.3)' },
+  ALL: { label: 'All', color: '#0d9488', bg: 'rgba(13,148,136,0.15)', border: 'rgba(13,148,136,0.3)' },
   SCHEDULED: { label: 'Scheduled', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' },
   COMPLETED: { label: 'Completed', color: '#10b981', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)' },
   UPCOMING: { label: 'Upcoming', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' },
   OVERDUE: { label: 'Overdue', color: '#ef4444', bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)' },
 }
 
-/* ── Progress bar widths for stat cards ─────────────────────────── */
-const ProgressBar = ({ value, max, color, D }) => {
-  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0
-  return (
-    <div style={{ height: 4, background: D ? D.border : 'rgba(255,255,255,0.08)', borderRadius: 999, marginTop: 12, overflow: 'hidden' }}>
-      <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 999, transition: 'width 0.6s ease' }} />
-    </div>
+/* ── Check if a service record is the latest chronologically ── */
+const checkIsLatest = (record, services) => {
+  if (!services || services.length === 0) return true
+  const matching = services.filter(s => 
+    s.vehicleRegNumber === record.vehicleRegNumber && 
+    s.serviceType === record.serviceType
   )
+  if (matching.length <= 1) return true
+
+  let latest = matching[0]
+  for (const s of matching) {
+    const dateLatest = latest.serviceDate ? new Date(latest.serviceDate).getTime() : 0
+    const dateS = s.serviceDate ? new Date(s.serviceDate).getTime() : 0
+    
+    if (dateS > dateLatest) {
+      latest = s
+    } else if (dateS === dateLatest) {
+      const milLatest = Number(latest.currentMileageKm || 0)
+      const milS = Number(s.currentMileageKm || 0)
+      if (milS > milLatest) {
+        latest = s
+      } else if (milS === milLatest) {
+        if (s.id && latest.id && s.id > latest.id) {
+          latest = s
+        }
+      }
+    }
+  }
+  return latest.id === record.id
 }
+
 
 /* ── Service Progress Meter ──────────────────────────────────────────
    Shows mileage progress bar + date countdown for a service record.
@@ -183,97 +207,151 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
   return (
     <div style={{
       background: D.surface,
-      border: `1px solid ${overdue.length > 0 ? 'rgba(239,68,68,0.35)' : 'rgba(245,158,11,0.35)'}`,
+      border: `1px solid ${overdue.length > 0 ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`,
       borderRadius: 16,
       marginBottom: 20,
       overflow: 'hidden',
       animation: 'fadeIn 0.3s ease',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
     }}>
       {/* Header */}
       <div style={{
-        padding: '14px 20px',
+        padding: '16px 20px',
         borderBottom: `1px solid ${D.border}`,
-        display: 'flex', alignItems: 'center', gap: 10,
-        background: overdue.length > 0 ? 'rgba(239,68,68,0.07)' : 'rgba(245,158,11,0.07)',
+        display: 'flex', alignItems: 'center', gap: 12,
+        background: overdue.length > 0 ? 'rgba(239,68,68,0.05)' : 'rgba(245,158,11,0.05)',
       }}>
-        <BellRing size={16} style={{ color: overdue.length > 0 ? '#ef4444' : '#f59e0b', flexShrink: 0 }} />
-        <span style={{ fontWeight: 700, fontSize: '0.88rem', color: D.text }}>
-          Service Alerts
+        <BellRing size={20} style={{ color: overdue.length > 0 ? '#ef4444' : '#f59e0b', flexShrink: 0 }} />
+        <span style={{ fontWeight: 800, fontSize: '1.05rem', color: D.text, fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
+          Vehicle Service Alerts
         </span>
         {overdue.length > 0 && (
-          <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '2px 7px', borderRadius: 999, marginLeft: 2 }}>
+          <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.75rem', fontWeight: 800, padding: '4px 12px', borderRadius: 999 }}>
             {overdue.length} Overdue
           </span>
         )}
         {dueSoon.length > 0 && (
-          <span style={{ background: '#f59e0b', color: '#000', fontSize: '0.65rem', fontWeight: 800, padding: '2px 7px', borderRadius: 999 }}>
+          <span style={{ background: '#f59e0b', color: '#000', fontSize: '0.75rem', fontWeight: 800, padding: '4px 12px', borderRadius: 999 }}>
             {dueSoon.length} Due Soon
           </span>
         )}
       </div>
 
       {/* Scroll strip of alert cards */}
-      <div style={{ display: 'flex', gap: 12, padding: '14px 16px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
+      <div style={{ display: 'flex', gap: 16, padding: '20px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
         {alertRecords.map(r => {
           const ac = ALERT_COLORS[r._alertLevel] || ALERT_COLORS.DUE_SOON
           const mileage = computeMileageProgress(r, r._vehicleCurrentKm)
           const date    = computeDateAlert(r)
+          
+          let progressPct = 0
+          let remainingText = ''
+          
+          if (mileage) {
+            progressPct = Math.min(mileage.pct, 100)
+            remainingText = fmtKmRemaining(mileage.remaining)
+          } else if (date) {
+            progressPct = Math.max(0, Math.min(100, (30 - date.daysRemaining) / 30 * 100))
+            remainingText = fmtDaysRemaining(date.daysRemaining)
+          }
+          
           return (
-            <div key={r.id} style={{
-              flexShrink: 0,
-              minWidth: 230,
-              maxWidth: 260,
-              background: D.bg,
-              border: `1px solid ${ac.border}`,
-              borderRadius: 12,
-              padding: '12px 14px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-              boxShadow: `0 2px 12px ${ac.bg}`,
-            }}>
-              {/* Vehicle + type */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: ac.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${ac.border}` }}>
-                  <Car size={16} style={{ color: ac.color }} />
+            <div 
+              key={r.id} 
+              onClick={() => onViewAlert && onViewAlert(r)}
+              style={{
+                flexShrink: 0,
+                minWidth: 300,
+                maxWidth: 340,
+                background: D.bg,
+                border: `1px solid ${ac.border}`,
+                borderRadius: 14,
+                padding: '18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 14,
+                boxShadow: `0 4px 14px rgba(0, 0, 0, 0.12)`,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-2px)'
+                e.currentTarget.style.boxShadow = `0 6px 20px ${ac.bg}`
+                e.currentTarget.style.borderColor = ac.color
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '0 4px 14px rgba(0, 0, 0, 0.12)'
+                e.currentTarget.style.borderColor = ac.border
+              }}
+            >
+              {/* First Row: Vehicle + type & badge */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ 
+                    width: 42, 
+                    height: 42, 
+                    borderRadius: 10, 
+                    background: ac.bg, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    flexShrink: 0, 
+                    border: `1px solid ${ac.border}` 
+                  }}>
+                    <Car size={18} style={{ color: ac.color }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.95rem', color: D.text }}>{r.vehicleRegNumber}</span>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 600, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      {r.serviceType?.replace(/_/g, ' ')}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <p style={{ margin: 0, fontWeight: 800, fontSize: '0.82rem', color: D.text }}>{r.vehicleRegNumber}</p>
-                  <p style={{ margin: 0, fontSize: '0.7rem', color: D.textSub }}>{r.serviceType?.replace(/_/g, ' ')}</p>
-                </div>
+                
                 <span style={{
-                  marginLeft: 'auto', fontSize: '0.62rem', fontWeight: 800,
-                  padding: '2px 7px', borderRadius: 999,
-                  background: ac.bg, color: ac.color, border: `1px solid ${ac.border}`
+                  fontSize: '0.7rem', 
+                  fontWeight: 800,
+                  padding: '5px 12px', 
+                  borderRadius: 999,
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  color: ac.color, 
+                  border: `1px solid ${ac.color}`,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.03em'
                 }}>{ac.label}</span>
               </div>
 
-              {/* Mileage progress */}
-              {mileage && (
-                <div>
-                  <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden', marginBottom: 4 }}>
-                    <div style={{ width: `${Math.min(mileage.pct, 100)}%`, height: '100%', background: ac.color, borderRadius: 999 }} />
-                  </div>
-                  <p style={{ margin: 0, fontSize: '0.68rem', color: ac.color, fontWeight: 700 }}>
-                    {fmtKmRemaining(mileage.remaining)}
-                  </p>
+              {/* Second Row: Progress Bar */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden' }}>
+                  <div style={{ 
+                    width: `${progressPct}%`, 
+                    height: '100%', 
+                    background: ac.color, 
+                    borderRadius: 999,
+                    transition: 'width 0.6s ease' 
+                  }} />
                 </div>
-              )}
-
-              {/* Date countdown */}
-              {date && (
-                <p style={{ margin: 0, fontSize: '0.68rem', color: ac.color, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Calendar size={11} /> {fmtDaysRemaining(date.daysRemaining)}
-                </p>
-              )}
+                <span style={{ fontSize: '0.78rem', color: ac.color, fontWeight: 700, letterSpacing: '0.01em' }}>
+                  {remainingText}
+                </span>
+                
+                {/* Secondary detail if both exist */}
+                {mileage && date && (
+                  <span style={{ fontSize: '0.7rem', color: D.textSub, display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                    <Calendar size={11} /> {fmtDaysRemaining(date.daysRemaining)}
+                  </span>
+                )}
+              </div>
 
               {/* Actions */}
               {onCompleteAlert && (
-                <div style={{ marginTop: 'auto', paddingTop: 8 }}>
+                <div style={{ marginTop: 'auto', paddingTop: 6 }}>
                   <button
                     onClick={(e) => { e.stopPropagation(); onCompleteAlert(r); }}
                     style={{
-                      width: '100%', padding: '6px 0', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
+                      width: '100%', padding: '7px 0', borderRadius: 10, fontSize: '0.75rem', fontWeight: 700,
                       background: ac.bg, color: ac.color, border: `1px solid ${ac.border}`,
                       cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
                     }}
@@ -293,7 +371,7 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
 }
 
 /* ── Service List Card (Old Style) ──────────────────────────────── */
-const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, vehicleCurrentKm, onEdit, onDelete, onView, onViewAttachment, D }) => {
+const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, vehicleCurrentKm, isLatest, onEdit, onDelete, onView, onViewAttachment, D }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
@@ -434,7 +512,7 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
           </div>
         )}
         {/* Service progress meter */}
-        <ServiceProgressMeter record={record} vehicleCurrentKm={vehicleCurrentKm} D={D} />
+        {isLatest && <ServiceProgressMeter record={record} vehicleCurrentKm={vehicleCurrentKm} D={D} />}
       </div>
 
       {/* Cost */}
@@ -482,7 +560,7 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
 }
 
 /* ── Service Grid Card (New Style) ──────────────────────────────── */
-const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, vehicleCurrentKm, onEdit, onDelete, onView, onViewAttachment, D }) => {
+const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, vehicleCurrentKm, isLatest, onEdit, onDelete, onView, onViewAttachment, D }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
@@ -512,7 +590,7 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <div style={{ color: D.blue, fontSize: '1.05rem', fontWeight: 700, marginBottom: 4 }}>
+          <div style={{ color: D.indigo, fontSize: '1.05rem', fontWeight: 700, marginBottom: 4 }}>
             {record.serviceType?.replace(/_/g, ' ') || 'Service'}
           </div>
           <div style={{ color: D.textSub, fontSize: '0.8rem' }}>
@@ -545,10 +623,12 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
 
       <div style={{ height: 1, background: D.border }} />
 
-      {/* Description */}
-      <div style={{ color: D.text, fontSize: '0.85rem' }}>
-        {record.description || 'No description provided.'}
-      </div>
+      {/* Description — only show when there is real content */}
+      {record.description && (
+        <div style={{ color: D.textSub, fontSize: '0.82rem', lineHeight: 1.6 }}>
+          {record.description}
+        </div>
+      )}
 
       {/* Parts Replaced */}
       {record.partsReplaced && (
@@ -593,7 +673,7 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
         </div>
       </div>
       {/* Service progress meter */}
-      <ServiceProgressMeter record={record} vehicleCurrentKm={vehicleCurrentKm} D={D} />
+      {isLatest && <ServiceProgressMeter record={record} vehicleCurrentKm={vehicleCurrentKm} D={D} />}
 
       {/* ── Created by / at + attachment ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', paddingTop: 8, borderTop: `1px solid ${D.border}` }}>
@@ -763,7 +843,19 @@ const ServicePage = () => {
 
   // ── Vehicle scope ───────────────────────────────────────────────
   const [allVehicles, setAllVehicles] = useState([])
+  const [allDrivers, setAllDrivers] = useState([])
   const [previousMileage, setPreviousMileage] = useState(null)
+
+  // ── Vehicle search dropdown state ───────────────────────────────
+  const [vehicleSearch, setVehicleSearch] = useState('')
+  const [vehicleDropdownVisible, setVehicleDropdownVisible] = useState(false)
+  const [editVehicleSearch, setEditVehicleSearch] = useState('')
+  const [editVehicleDropdownVisible, setEditVehicleDropdownVisible] = useState(false)
+  const [scheduleVehicleSearch, setScheduleVehicleSearch] = useState('')
+  const [scheduleVehicleDropdownVisible, setScheduleVehicleDropdownVisible] = useState(false)
+  const vehicleSearchRef = useRef(null)
+  const editVehicleSearchRef = useRef(null)
+  const scheduleVehicleSearchRef = useRef(null)
 
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null })
   const [detailModal, setDetailModal] = useState({ isOpen: false, record: null })
@@ -920,9 +1012,9 @@ const ServicePage = () => {
         const inputMil = Number(data.currentMileageKm)
 
         if (inputMil < maxEarlierMileage) {
-          e.currentMileageKm = `Must be ≥ previous reading (${maxEarlierMileage} km) from earlier records`
+          e.currentMileageKm = `Enter reading greater than or equal to ${maxEarlierMileage.toLocaleString()} km`
         } else if (minLaterMileage !== Infinity && inputMil > minLaterMileage) {
-          e.currentMileageKm = `Must be ≤ subsequent reading (${minLaterMileage} km) from newer records`
+          e.currentMileageKm = `Enter reading less than or equal to ${minLaterMileage.toLocaleString()} km`
         }
       }
     }
@@ -939,7 +1031,11 @@ const ServicePage = () => {
     } else {
       setFormData(prev => ({ ...prev, vehicleRegNumber: regNo }))
     }
-    if (errors.vehicleRegNumber) setErrors(prev => ({ ...prev, vehicleRegNumber: undefined }))
+    setErrors(prev => ({ 
+      ...prev, 
+      vehicleRegNumber: undefined,
+      currentMileageKm: undefined 
+    }))
 
     // calculate base mileage from vehicle entity
     const vehicleObj = allVehicles.find(v => v.registrationNo === regNo)
@@ -976,21 +1072,91 @@ const ServicePage = () => {
     } else {
       setFormData(prev => ({ ...prev, currentMileageKm: val }))
     }
-    if (errors.currentMileageKm) setErrors(prev => ({ ...prev, currentMileageKm: undefined }))
+
+    if (!val) {
+      setErrors(prev => ({ ...prev, currentMileageKm: undefined }))
+      return
+    }
+
+    const regNo = isEdit ? editFormData.vehicleRegNumber : formData.vehicleRegNumber
+    const serviceDateStr = isEdit ? editFormData.serviceDate : formData.serviceDate
+    const originalRecord = isEdit ? services.find(s => s.id === editingServiceId) : null
+
+    if (regNo) {
+      const recordDate = serviceDateStr ? new Date(serviceDateStr) : new Date()
+      const inputMil = Number(val)
+
+      // Find service records for this vehicle with an earlier or equal date (excluding scheduled)
+      const earlierServices = services.filter(s => 
+        s.vehicleRegNumber === regNo && 
+        (!originalRecord || s.id !== originalRecord.id) &&
+        s.currentMileageKm && 
+        s.serviceDate &&
+        getStatus(s) !== 'SCHEDULED' &&
+        new Date(s.serviceDate) <= recordDate
+      )
+      const maxEarlierMileage = earlierServices.reduce((max, s) => Math.max(max, Number(s.currentMileageKm)), 0)
+
+      // Find service records for this vehicle with a later date (excluding scheduled)
+      const laterServices = services.filter(s =>
+        s.vehicleRegNumber === regNo &&
+        (!originalRecord || s.id !== originalRecord.id) &&
+        s.currentMileageKm &&
+        s.serviceDate &&
+        getStatus(s) !== 'SCHEDULED' &&
+        new Date(s.serviceDate) > recordDate
+      )
+      const minLaterMileage = laterServices.reduce((min, s) => Math.min(min, Number(s.currentMileageKm)), Infinity)
+
+      if (inputMil < maxEarlierMileage) {
+        setErrors(prev => ({ 
+          ...prev, 
+          currentMileageKm: `Enter reading greater than or equal to ${maxEarlierMileage.toLocaleString()} km` 
+        }))
+      } else if (minLaterMileage !== Infinity && inputMil > minLaterMileage) {
+        setErrors(prev => ({ 
+          ...prev, 
+          currentMileageKm: `Enter reading less than or equal to ${minLaterMileage.toLocaleString()} km` 
+        }))
+      } else {
+        setErrors(prev => ({ ...prev, currentMileageKm: undefined }))
+      }
+    } else {
+      if (previousMileage != null && Number(val) < previousMileage) {
+        setErrors(prev => ({ 
+          ...prev, 
+          currentMileageKm: `Enter reading greater than or equal to ${previousMileage.toLocaleString()} km` 
+        }))
+      } else {
+        setErrors(prev => ({ ...prev, currentMileageKm: undefined }))
+      }
+    }
   }
 
   const openAddModal = (prefill = {}) => {
     const isEvent = prefill && (prefill.nativeEvent || prefill.target)
     const actualPrefill = isEvent ? {} : prefill
     const regNo = actualPrefill.vehicleRegNumber || ''
+
+    const todayLocalStr = (() => {
+      const d = new Date()
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    })()
+
     setFormData({
       ...initialForm,
+      serviceDate: todayLocalStr,
       ...actualPrefill,
       vehicleRegNumber: regNo,
     })
     setErrors({})
     setSubmitError(null)
     setAddAttachmentFile(null)
+    setVehicleSearch(regNo)
+    setVehicleDropdownVisible(false)
     
     if (regNo) {
       const vehicleObj = allVehicles.find(v => v.registrationNo === regNo)
@@ -1180,7 +1346,10 @@ const ServicePage = () => {
       description: record.description || '',
       partsReplaced: record.partsReplaced || '',
       serviceClassification: record.serviceClassification || 'ROUTINE',
+      driverUsername: record.driverUsername || '',
     })
+    setEditVehicleSearch(record.vehicleRegNumber || '')
+    setEditVehicleDropdownVisible(false)
     setErrors({})
     setSubmitError(null)
     setEditAttachmentFile(null)
@@ -1244,36 +1413,52 @@ const ServicePage = () => {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      // Fetch all vehicles for dropdown selection for all roles
-      const requests = [serviceAPI.getAllServices(), serviceAPI.getServiceStats(), vehicleAPI.getAllVehicles()]
-      const [servRes, statsRes, vehicleRes] = await Promise.all(requests)
+      // Fetch all vehicles and drivers for dropdown selection for all roles.
+      // For DRIVER role, userAPI.getAllDrivers() returns 403 Forbidden, so we resolve to null instead.
+      const requests = [
+        serviceAPI.getAllServices(),
+        serviceAPI.getServiceStats(),
+        vehicleAPI.getAllVehicles(),
+        !isDriver ? userAPI.getAllDrivers() : Promise.resolve(null)
+      ]
+      const [servRes, statsRes, vehicleRes, driversRes] = await Promise.all(requests)
       const loadedServices = servRes.data.data || []
       const loadedVehicles = vehicleRes?.data.data || []
       setServices(loadedServices)
       setStats(statsRes.data.data)
       if (vehicleRes) setAllVehicles(loadedVehicles)
+      if (!isDriver && driversRes) {
+        setAllDrivers(driversRes.data.data || driversRes.data || [])
+      } else if (isDriver && user) {
+        setAllDrivers([user])
+      }
 
       // ── Compute alert records and fire notifications ──
       const vehicleKmMap = {}
       loadedVehicles.forEach(v => { vehicleKmMap[v.registrationNo] = v.currentMileageKm })
 
-      // Find the LATEST record per vehicle + service type (based on ID / creation time)
+      // Find the LATEST record per vehicle + service type (based on chronological date / mileage / ID)
       const latestServiceMap = {}
       for (const s of loadedServices) {
         const key = `${s.vehicleRegNumber}_${s.serviceType}`
-        if (!latestServiceMap[key]) {
+        const existing = latestServiceMap[key]
+        if (!existing) {
           latestServiceMap[key] = s
         } else {
-          // Priority 1: id (since it's an auto-incrementing primary key, highest id = newest)
-          if (s.id && latestServiceMap[key].id) {
-            if (s.id > latestServiceMap[key].id) {
+          const dateExisting = existing.serviceDate ? new Date(existing.serviceDate).getTime() : 0
+          const dateNew = s.serviceDate ? new Date(s.serviceDate).getTime() : 0
+          
+          if (dateNew > dateExisting) {
+            latestServiceMap[key] = s
+          } else if (dateNew === dateExisting) {
+            const milExisting = Number(existing.currentMileageKm || 0)
+            const milNew = Number(s.currentMileageKm || 0)
+            if (milNew > milExisting) {
               latestServiceMap[key] = s
-            }
-          } 
-          // Priority 2: Fallback to createdAt if id is missing for some reason
-          else if (s.createdAt && latestServiceMap[key].createdAt) {
-            if (new Date(s.createdAt).getTime() > new Date(latestServiceMap[key].createdAt).getTime()) {
-              latestServiceMap[key] = s
+            } else if (milNew === milExisting) {
+              if (s.id && existing.id && s.id > existing.id) {
+                latestServiceMap[key] = s
+              }
             }
           }
         }
@@ -1470,7 +1655,7 @@ const ServicePage = () => {
   })
   const fieldError = { color: D.red, fontSize: '0.72rem', margin: '4px 0 0 0' }
 
-  const focusBorder = (e) => { e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235,0.1)' }
+  const focusBorder = (e) => { e.target.style.borderColor = 'rgba(13,148,136,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(13,148,136,0.12)' }
   const blurBorder = (e, hasErr) => { e.target.style.borderColor = hasErr ? 'rgba(248,113,113,0.5)' : D.inputBorder; e.target.style.boxShadow = 'none' }
 
   return (
@@ -1497,7 +1682,8 @@ const ServicePage = () => {
             border: `1px solid rgba(255,255,255,0.07)`,
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16
           }}>
-            {/* decorative circles */}
+            {/* decorative mesh overlays */}
+            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 80% 50%, rgba(20,184,166,0.22) 0%, transparent 60%)', pointerEvents: 'none' }} />
             {[['80%', '−20px', '180px', 'rgba(255,255,255,0.03)'], ['20%', '60%', '120px', 'rgba(255,255,255,0.04)'], ['55%', '80%', '90px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
               <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
             ))}
@@ -1506,10 +1692,10 @@ const ServicePage = () => {
                 <Wrench size={32} strokeWidth={1.5} />
               </div>
               <div>
-                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
                   {isDriver ? 'Service History' : 'Service Management'}
                 </h1>
-                <p style={{ margin: '4px 0 0', color: '#60a5fa', fontSize: '0.9rem' }}>
+                <p style={{ margin: '4px 0 0', color: 'rgba(167,243,208,0.85)', fontSize: '0.9rem' }}>
                   {isDriver ? 'View your vehicle service and maintenance history.' : 'Add and track vehicle maintenance records.'}
                 </p>
               </div>
@@ -1520,29 +1706,29 @@ const ServicePage = () => {
               {/* List / Grid / Calendar Toggle */}
               <div style={{
                 display: 'flex', alignItems: 'center',
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.12)',
                 borderRadius: 14,
                 padding: 4,
               }}>
                 <button
                   onClick={() => setViewMode('list')}
                   style={{
-                    background: viewMode === 'list' ? '#ffffff' : 'transparent', color: viewMode === 'list' ? '#1e40af' : '#60a5fa', border: 'none', borderRadius: 10,
+                    background: viewMode === 'list' ? '#ffffff' : 'transparent', color: viewMode === 'list' ? '#0f766e' : 'rgba(167,243,208,0.75)', border: 'none', borderRadius: 10,
                     padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
                     cursor: 'pointer', transition: 'all 0.15s ease'
                   }}>List</button>
                 <button
                   onClick={() => setViewMode('grid')}
                   style={{
-                    background: viewMode === 'grid' ? '#ffffff' : 'transparent', color: viewMode === 'grid' ? '#1e40af' : '#60a5fa', border: 'none', borderRadius: 10,
+                    background: viewMode === 'grid' ? '#ffffff' : 'transparent', color: viewMode === 'grid' ? '#0f766e' : 'rgba(167,243,208,0.75)', border: 'none', borderRadius: 10,
                     padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
                     cursor: 'pointer', transition: 'all 0.15s ease'
                   }}>Grid</button>
                 <button
                   onClick={() => setViewMode('calendar')}
                   style={{
-                    background: viewMode === 'calendar' ? '#ffffff' : 'transparent', color: viewMode === 'calendar' ? '#1e40af' : '#60a5fa', border: 'none', borderRadius: 10,
+                    background: viewMode === 'calendar' ? '#ffffff' : 'transparent', color: viewMode === 'calendar' ? '#0f766e' : 'rgba(167,243,208,0.75)', border: 'none', borderRadius: 10,
                     padding: '7px 20px', fontSize: '0.85rem', fontWeight: 600,
                     cursor: 'pointer', transition: 'all 0.15s ease'
                   }}>Calendar</button>
@@ -1556,12 +1742,12 @@ const ServicePage = () => {
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8,
                     padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
-                    background: 'rgba(37, 99, 235,0.2)', color: '#60a5fa', border: '1px solid rgba(37, 99, 235,0.4)', cursor: 'pointer',
+                    background: 'rgba(13,148,136,0.2)', color: 'rgba(167,243,208,0.9)', border: '1px solid rgba(13,148,136,0.45)', cursor: 'pointer',
                     boxShadow: '0 4px 14px rgba(0,0,0,0.1)', transition: 'all 0.2s ease',
                     backdropFilter: 'blur(4px)',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.3)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.2)'; e.currentTarget.style.color = '#60a5fa'; e.currentTarget.style.transform = 'translateY(0)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(13,148,136,0.35)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(13,148,136,0.2)'; e.currentTarget.style.color = 'rgba(167,243,208,0.9)'; e.currentTarget.style.transform = 'translateY(0)' }}
                 >
                   <Clock size={18} /> Schedule Service
                 </button>
@@ -1575,11 +1761,11 @@ const ServicePage = () => {
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8,
                     padding: '8px 22px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 700,
-                    background: '#ffffff', color: '#1e40af', border: 'none', cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(0,0,0,0.1)', transition: 'all 0.2s ease',
+                    background: 'rgba(255,255,255,0.92)', color: '#0d9488', border: 'none', cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.15)', transition: 'all 0.2s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.transform = 'translateY(0)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(13,148,136,0.3)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.92)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(0,0,0,0.15)' }}
                 >
                   <Calendar size={18} /> Add New Service
                 </button>
@@ -1611,55 +1797,50 @@ const ServicePage = () => {
               {/* Total */}
               <div style={statCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <p style={{ fontSize: '2rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{total}</p>
-                  <span style={{ display: 'flex', alignItems: 'center', color: '#2563eb' }}><ClipboardList size={28} /></span>
+                  <p style={{ fontSize: '2rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{total}</p>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 12, background: 'rgba(13,148,136,0.12)', color: '#0d9488' }}><ClipboardList size={22} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Total Records</p>
-                <ProgressBar value={total} max={total || 1} color="#2563eb" D={D} />
               </div>
 
               {/* Scheduled */}
               <div style={statCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <p style={{ fontSize: '2rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{scheduled}</p>
-                  <span style={{ display: 'flex', alignItems: 'center', color: '#f59e0b' }}><Calendar size={28} /></span>
+                  <p style={{ fontSize: '2rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{scheduled}</p>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 12, background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}><Calendar size={22} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Scheduled</p>
-                <ProgressBar value={scheduled} max={total || 1} color="#f59e0b" D={D} />
               </div>
 
               {/* Completed */}
               <div style={statCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <p style={{ fontSize: '2rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{completed}</p>
-                  <span style={{ display: 'flex', alignItems: 'center', color: '#10b981' }}><CheckCircle size={28} /></span>
+                  <p style={{ fontSize: '2rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{completed}</p>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 12, background: 'rgba(16,185,129,0.12)', color: '#10b981' }}><CheckCircle size={22} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Completed</p>
-                <ProgressBar value={completed} max={total || 1} color="#10b981" D={D} />
               </div>
 
               {/* Routine Maintenance Costs */}
               <div style={statCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <p style={{ fontSize: '1.55rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
+                  <p style={{ fontSize: '1.55rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
                     Rs.{totalRoutineCost.toLocaleString()}
                   </p>
-                  <span style={{ display: 'flex', alignItems: 'center', color: '#10b981' }}><CheckCircle size={28} /></span>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 12, background: 'rgba(16,185,129,0.12)', color: '#10b981' }}><CheckCircle size={22} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Routine Cost</p>
-                <ProgressBar value={totalRoutineCost} max={totalRoutineCost + totalAdHocCost || 1} color="#10b981" D={D} />
               </div>
 
               {/* Ad-hoc Repair / Breakdown Costs */}
               <div style={statCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <p style={{ fontSize: '1.55rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
+                  <p style={{ fontSize: '1.55rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
                     Rs.{totalAdHocCost.toLocaleString()}
                   </p>
-                  <span style={{ display: 'flex', alignItems: 'center', color: '#ef4444' }}><AlertTriangle size={28} /></span>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 12, background: 'rgba(239,68,68,0.12)', color: '#ef4444' }}><AlertTriangle size={22} /></span>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>Breakdown / Ad-hoc Cost</p>
-                <ProgressBar value={totalAdHocCost} max={totalRoutineCost + totalAdHocCost || 1} color="#ef4444" D={D} />
               </div>
             </div>
           )}
@@ -1758,11 +1939,11 @@ const ServicePage = () => {
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5,
                     padding: '5px 12px', borderRadius: 999,
-                    background: 'rgba(37, 99, 235,0.12)', color: '#60a5fa',
-                    border: '1px solid rgba(37, 99, 235,0.25)',
+                    background: 'rgba(13,148,136,0.12)', color: '#0d9488',
+                    border: '1px solid rgba(13,148,136,0.25)',
                     fontSize: '0.72rem', fontWeight: 700,
                   }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2563eb' }} />
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0d9488' }} />
                     {[filter !== 'ALL', vehicleFilter !== 'ALL', !!search].filter(Boolean).length} active
                   </span>
                   <button
@@ -1818,14 +1999,14 @@ const ServicePage = () => {
                     width: '100%', padding: '8px 36px 8px 34px',
                     borderRadius: 10, fontSize: '0.82rem',
                     background: D.inputBg,
-                    border: `1px solid ${search ? 'rgba(37, 99, 235,0.4)' : D.inputBorder}`,
+                    border: `1px solid ${search ? 'rgba(13,148,136,0.4)' : D.inputBorder}`,
                     color: D.text, outline: 'none',
                     transition: 'border-color 0.15s, box-shadow 0.15s',
-                    boxShadow: search ? '0 0 0 3px rgba(37, 99, 235,0.08)' : 'none',
+                    boxShadow: search ? '0 0 0 3px rgba(13,148,136,0.1)' : 'none',
                     boxSizing: 'border-box',
                   }}
-                  onFocus={e => { e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235,0.1)' }}
-                  onBlur={e => { e.target.style.borderColor = search ? 'rgba(37, 99, 235,0.4)' : D.inputBorder; e.target.style.boxShadow = search ? '0 0 0 3px rgba(37, 99, 235,0.08)' : 'none' }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(13,148,136,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(13,148,136,0.12)' }}
+                  onBlur={e => { e.target.style.borderColor = search ? 'rgba(13,148,136,0.4)' : D.inputBorder; e.target.style.boxShadow = search ? '0 0 0 3px rgba(13,148,136,0.1)' : 'none' }}
                 />
                 {search && (
                   <button
@@ -1849,8 +2030,8 @@ const ServicePage = () => {
           {/* ── Main View Area ──────────────────────────────────────── */}
           <div style={
             viewMode === 'calendar' ? { display: 'flex', flexDirection: 'column', gap: 12 } : 
-            viewMode === 'grid' ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 } : 
-            { display: 'flex', flexDirection: 'column', gap: 16 }
+            viewMode === 'grid' ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: 20 } : 
+            { display: 'flex', flexDirection: 'column', gap: 12 }
           }>
 
             {loading ? (
@@ -1904,6 +2085,7 @@ const ServicePage = () => {
                     isAdmin={isAdmin}
                     currentUsername={user?.userName}
                     vehicleCurrentKm={vc?.currentMileageKm}
+                    isLatest={checkIsLatest(record, services)}
                     onEdit={openEditModal}
                     onDelete={confirmDelete}
                     onView={r => setDetailModal({ isOpen: true, record: r })}
@@ -1924,6 +2106,7 @@ const ServicePage = () => {
                     isAdmin={isAdmin}
                     currentUsername={user?.userName}
                     vehicleCurrentKm={vc?.currentMileageKm}
+                    isLatest={checkIsLatest(record, services)}
                     onEdit={openEditModal}
                     onDelete={confirmDelete}
                     onView={r => setDetailModal({ isOpen: true, record: r })}
@@ -2620,40 +2803,40 @@ const ServicePage = () => {
                     >
                       <Edit2 size={15} /> Edit Record
                     </button>
-                    <button
-                      onClick={() => { closeDetail(); confirmDelete(r.id) }}
-                      style={{ flex: 0.6, padding: '10px 0', borderRadius: 10, border: `1px solid rgba(239,68,68,0.3)`, background: D.redDim, color: D.red, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
-                    >
-                      <Trash2 size={15} /> Delete
-                    </button>
-                  </>
-                )}
-                {/* Driver: only show Edit if they created this record */}
-                {isDriver && r.createdBy === user?.userName && (
+                     <button
+                       onClick={() => { closeDetail(); confirmDelete(r.id) }}
+                       style={{ flex: 0.6, padding: '10px 0', borderRadius: 10, border: `1px solid rgba(239,68,68,0.3)`, background: D.redDim, color: D.red, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
+                     >
+                       <Trash2 size={15} /> Delete
+                     </button>
+                   </>
+                 )}
+                 {/* Driver: only show Edit if they created this record */}
+                 {isDriver && r.createdBy === user?.userName && (
+                   <button
+                     onClick={() => { closeDetail(); openEditModal(r.id) }}
+                     style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
+                   >
+                     <Edit2 size={15} /> Edit Record
+                   </button>
+                 )}
                   <button
-                    onClick={() => { closeDetail(); openEditModal(r.id) }}
-                    style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
+                    onClick={closeDetail}
+                    style={{ flex: 0.5, padding: '10px 0', borderRadius: 10, border: `1px solid ${D.border}`, background: 'transparent', color: D.textSub, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700 }}
                   >
-                    <Edit2 size={15} /> Edit Record
+                    Close
                   </button>
-                )}
-                <button
-                  onClick={closeDetail}
-                  style={{ flex: 0.5, padding: '10px 0', borderRadius: 10, border: `1px solid ${D.border}`, background: 'transparent', color: D.textSub, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700 }}
-                >
-                  Close
-                </button>
+                </div>
               </div>
             </div>
-          </div>
-        )
-      })()}
+          )
+        })()}
 
       {/* ── Add Modal ──────────────────────────────────────────────── */}
       {isAddModalOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease' }}>
-          <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 640, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden' }}>
-            <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 640, maxHeight: '92vh', boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 38, height: 38, borderRadius: 10, background: D.indigoDim, color: D.indigo, border: `1px solid ${D.indigo}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Wrench size={20} />
@@ -2672,19 +2855,104 @@ const ServicePage = () => {
               </div>
             )}
 
-            <form onSubmit={handleAddSubmit} style={{ padding: '24px 28px' }} noValidate>
+            <form onSubmit={handleAddSubmit} style={{ padding: '24px 28px', overflowY: 'auto', flex: 1 }} noValidate>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Vehicle & Service Details</span>
                 <div style={{ flex: 1, height: 1, background: D.border }} />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-                <div>
+                {/* ── Custom Vehicle Selector (Add) ── */}
+                <div style={{ position: 'relative' }} ref={vehicleSearchRef}>
                   <label style={fieldLabel}>Vehicle (License Plate) <span style={{ color: D.red }}>*</span></label>
-                  <input type="text" list="vehiclesListAdd" name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={e => handleVehicleSelect(e, false)} placeholder="e.g. WP-CAB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
-                  <datalist id="vehiclesListAdd">
-                    {allVehicles.map(v => <option key={v.id} value={v.registrationNo} />)}
-                  </datalist>
+                  <div style={{ position: 'relative' }}>
+                    <Car size={15} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: D.blue, pointerEvents: 'none', zIndex: 2, opacity: 0.8 }} />
+                    <input
+                      type="text"
+                      value={vehicleSearch}
+                      onChange={e => {
+                        setVehicleSearch(e.target.value)
+                        setVehicleDropdownVisible(true)
+                        const match = allVehicles.find(v => v.registrationNo.toLowerCase() === e.target.value.toLowerCase())
+                        if (!match) {
+                          setFormData(prev => ({ ...prev, vehicleRegNumber: '' }))
+                          setPreviousMileage(null)
+                        } else {
+                          handleVehicleSelect({ target: { value: match.registrationNo } }, false)
+                        }
+                      }}
+                      onFocus={() => setVehicleDropdownVisible(true)}
+                      onBlur={e => { setTimeout(() => setVehicleDropdownVisible(false), 180); blurBorder(e, errors.vehicleRegNumber) }}
+                      placeholder="Search or select vehicle…"
+                      autoComplete="off"
+                      style={{ ...fieldInput(errors.vehicleRegNumber), paddingLeft: 34, paddingRight: 36 }}
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setVehicleDropdownVisible(v => !v)}
+                      style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, display: 'flex', alignItems: 'center', padding: 2, zIndex: 2 }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: vehicleDropdownVisible ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9" /></svg>
+                    </button>
+                  </div>
+                  {vehicleDropdownVisible && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
+                      background: D.surface, border: `1px solid ${D.borderHi}`,
+                      borderRadius: 10, marginTop: 4,
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+                      overflow: 'hidden', maxHeight: 220, overflowY: 'auto',
+                    }}>
+                      {(() => {
+                        const q = vehicleSearch.toLowerCase()
+                        const opts = allVehicles.filter(v =>
+                          v.registrationNo.toLowerCase().includes(q) ||
+                          `${v.manufacturer} ${v.model}`.toLowerCase().includes(q)
+                        )
+                        if (opts.length === 0) return (
+                          <div style={{ padding: '12px 16px', fontSize: '0.82rem', color: D.textSub, textAlign: 'center' }}>No vehicles found</div>
+                        )
+                        return opts.map(v => {
+                          const isSelected = formData.vehicleRegNumber === v.registrationNo
+                          const label = v.manufacturer || v.model
+                            ? `${v.registrationNo} - ${v.manufacturer || ''} ${v.model || ''}`.trim()
+                            : v.registrationNo
+                          return (
+                            <div
+                              key={v.id}
+                              onMouseDown={e => {
+                                e.preventDefault()
+                                setVehicleSearch(v.registrationNo)
+                                setVehicleDropdownVisible(false)
+                                handleVehicleSelect({ target: { value: v.registrationNo } }, false)
+                              }}
+                              style={{
+                                padding: '10px 16px', cursor: 'pointer',
+                                background: isSelected ? '#2563eb' : 'transparent',
+                                color: isSelected ? '#ffffff' : D.text,
+                                fontSize: '0.85rem',
+                                fontWeight: 500,
+                                transition: 'all 0.1s ease',
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = '#2563eb'
+                                e.currentTarget.style.color = '#ffffff'
+                              }}
+                              onMouseLeave={e => {
+                                if (!isSelected) {
+                                  e.currentTarget.style.background = 'transparent'
+                                  e.currentTarget.style.color = D.text
+                                }
+                              }}
+                            >
+                              {label}
+                            </div>
+                          )
+                        })
+                      })()}
+                    </div>
+                  )}
                   {errors.vehicleRegNumber && <p style={fieldError}>{errors.vehicleRegNumber}</p>}
                 </div>
                 <div>
@@ -2762,6 +3030,25 @@ const ServicePage = () => {
                   </div>
                 </div>
 
+                {/* ── Driver Selector (Add) ── */}
+                <div>
+                  <label style={fieldLabel}><span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><User size={13} /> Driver <span style={{ color: D.textSub, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></span></label>
+                  <select
+                    name="driverUsername"
+                    value={formData.driverUsername || ''}
+                    onChange={handleAddChange}
+                    style={{ ...fieldInput(false), cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '18px', paddingRight: 38 }}
+                    onFocus={focusBorder} onBlur={e => blurBorder(e, false)}
+                  >
+                    <option value="">No driver assigned</option>
+                    {allDrivers.map(d => (
+                      <option key={d.id || d.userName} value={d.userName}>
+                        {d.firstName && d.lastName ? `${d.firstName} ${d.lastName} (${d.userName})` : d.userName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0 16px' }}>
@@ -2828,8 +3115,8 @@ const ServicePage = () => {
       {/* ── Schedule Modal ───────────────────────────────────────────── */}
       {isScheduleModalOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease' }}>
-          <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 640, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden' }}>
-            <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 640, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 38, height: 38, borderRadius: 10, background: D.indigoDim, color: D.indigo, border: `1px solid ${D.indigo}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Clock size={20} />
@@ -2848,19 +3135,105 @@ const ServicePage = () => {
               </div>
             )}
 
-            <form onSubmit={handleScheduleSubmit} style={{ padding: '24px 28px' }} noValidate>
+            <form onSubmit={handleScheduleSubmit} style={{ padding: '24px 28px', overflowY: 'auto', flex: 1 }} noValidate>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Schedule Criteria</span>
                 <div style={{ flex: 1, height: 1, background: D.border }} />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-                <div>
+                {/* ── Custom Vehicle Selector (Schedule) ── */}
+                <div style={{ position: 'relative' }} ref={scheduleVehicleSearchRef}>
                   <label style={fieldLabel}>Vehicle (License Plate) <span style={{ color: D.red }}>*</span></label>
-                  <input type="text" list="vehiclesListSchedule" name="vehicleRegNumber" value={scheduleFormData.vehicleRegNumber} onChange={handleScheduleChange} placeholder="e.g. WP-CAB-1234" style={fieldInput(scheduleErrors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, scheduleErrors.vehicleRegNumber)} />
-                  <datalist id="vehiclesListSchedule">
-                    {allVehicles.map(v => <option key={v.id} value={v.registrationNo} />)}
-                  </datalist>
+                  <div style={{ position: 'relative' }}>
+                    <Car size={15} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: D.blue, pointerEvents: 'none', zIndex: 2, opacity: 0.8 }} />
+                    <input
+                      type="text"
+                      value={scheduleVehicleSearch}
+                      onChange={e => {
+                        setScheduleVehicleSearch(e.target.value)
+                        setScheduleVehicleDropdownVisible(true)
+                        const match = allVehicles.find(v => v.registrationNo.toLowerCase() === e.target.value.toLowerCase())
+                        if (match) {
+                          setScheduleFormData(prev => ({ ...prev, vehicleRegNumber: match.registrationNo }))
+                          if (scheduleErrors.vehicleRegNumber) setScheduleErrors(prev => ({ ...prev, vehicleRegNumber: undefined }))
+                        } else {
+                          setScheduleFormData(prev => ({ ...prev, vehicleRegNumber: '' }))
+                        }
+                      }}
+                      onFocus={() => setScheduleVehicleDropdownVisible(true)}
+                      onBlur={e => { setTimeout(() => setScheduleVehicleDropdownVisible(false), 180); blurBorder(e, scheduleErrors.vehicleRegNumber) }}
+                      placeholder="Search or select vehicle…"
+                      autoComplete="off"
+                      style={{ ...fieldInput(scheduleErrors.vehicleRegNumber), paddingLeft: 34, paddingRight: 36 }}
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setScheduleVehicleDropdownVisible(v => !v)}
+                      style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, display: 'flex', alignItems: 'center', padding: 2, zIndex: 2 }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: scheduleVehicleDropdownVisible ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9" /></svg>
+                    </button>
+                  </div>
+                  {scheduleVehicleDropdownVisible && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
+                      background: D.surface, border: `1px solid ${D.borderHi}`,
+                      borderRadius: 10, marginTop: 4,
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+                      overflow: 'hidden', maxHeight: 220, overflowY: 'auto',
+                    }}>
+                      {(() => {
+                        const q = scheduleVehicleSearch.toLowerCase()
+                        const opts = allVehicles.filter(v =>
+                          v.registrationNo.toLowerCase().includes(q) ||
+                          `${v.manufacturer} ${v.model}`.toLowerCase().includes(q)
+                        )
+                        if (opts.length === 0) return (
+                          <div style={{ padding: '12px 16px', fontSize: '0.82rem', color: D.textSub, textAlign: 'center' }}>No vehicles found</div>
+                        )
+                        return opts.map(v => {
+                          const isSelected = scheduleFormData.vehicleRegNumber === v.registrationNo
+                          const label = v.manufacturer || v.model
+                            ? `${v.registrationNo} - ${v.manufacturer || ''} ${v.model || ''}`.trim()
+                            : v.registrationNo
+                          return (
+                            <div
+                              key={v.id}
+                              onMouseDown={e => {
+                                e.preventDefault()
+                                setScheduleVehicleSearch(v.registrationNo)
+                                setScheduleVehicleDropdownVisible(false)
+                                setScheduleFormData(prev => ({ ...prev, vehicleRegNumber: v.registrationNo }))
+                                if (scheduleErrors.vehicleRegNumber) setScheduleErrors(prev => ({ ...prev, vehicleRegNumber: undefined }))
+                              }}
+                              style={{
+                                padding: '10px 16px', cursor: 'pointer',
+                                background: isSelected ? '#2563eb' : 'transparent',
+                                color: isSelected ? '#ffffff' : D.text,
+                                fontSize: '0.85rem',
+                                fontWeight: 500,
+                                transition: 'all 0.1s ease',
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = '#2563eb'
+                                e.currentTarget.style.color = '#ffffff'
+                              }}
+                              onMouseLeave={e => {
+                                if (!isSelected) {
+                                  e.currentTarget.style.background = 'transparent'
+                                  e.currentTarget.style.color = D.text
+                                }
+                              }}
+                            >
+                              {label}
+                            </div>
+                          )
+                        })
+                      })()}
+                    </div>
+                  )}
                   {scheduleErrors.vehicleRegNumber && <p style={fieldError}>{scheduleErrors.vehicleRegNumber}</p>}
                 </div>
                 <div>
@@ -2927,6 +3300,24 @@ const ServicePage = () => {
                     })()}
                   </div>
                 )}
+                {/* ── Driver Selector (Schedule) ── */}
+                <div>
+                  <label style={fieldLabel}><span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><User size={13} /> Driver <span style={{ color: D.textSub, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></span></label>
+                  <select
+                    name="driverUsername"
+                    value={scheduleFormData.driverUsername || ''}
+                    onChange={handleScheduleChange}
+                    style={{ ...fieldInput(false), cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '18px', paddingRight: 38 }}
+                    onFocus={focusBorder} onBlur={e => blurBorder(e, false)}
+                  >
+                    <option value="">No driver assigned</option>
+                    {allDrivers.map(d => (
+                      <option key={d.id || d.userName} value={d.userName}>
+                        {d.firstName && d.lastName ? `${d.firstName} ${d.lastName} (${d.userName})` : d.userName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0 16px' }}>
@@ -2965,8 +3356,8 @@ const ServicePage = () => {
       {/* ── Edit Modal ──────────────────────────────────────────────── */}
       {isEditModalOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease' }}>
-          <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 640, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden' }}>
-            <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: D.surface, borderRadius: 20, width: '90%', maxWidth: 640, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '22px 28px 16px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 38, height: 38, borderRadius: 10, background: D.indigoDim, color: D.indigo, border: `1px solid ${D.indigo}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Edit2 size={18} />
@@ -2985,19 +3376,104 @@ const ServicePage = () => {
               </div>
             )}
 
-            <form onSubmit={handleEditSubmit} style={{ padding: '24px 28px' }} noValidate>
+            <form onSubmit={handleEditSubmit} style={{ padding: '24px 28px', overflowY: 'auto', flex: 1 }} noValidate>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Vehicle & Service Details</span>
                 <div style={{ flex: 1, height: 1, background: D.border }} />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-                <div>
+                {/* ── Custom Vehicle Selector (Edit) ── */}
+                <div style={{ position: 'relative' }} ref={editVehicleSearchRef}>
                   <label style={fieldLabel}>Vehicle (License Plate) <span style={{ color: D.red }}>*</span></label>
-                  <input type="text" list="vehiclesListEdit" name="vehicleRegNumber" value={editFormData.vehicleRegNumber} onChange={e => handleVehicleSelect(e, true)} placeholder="e.g. WP-CAB-1234" style={fieldInput(errors.vehicleRegNumber)} onFocus={focusBorder} onBlur={e => blurBorder(e, errors.vehicleRegNumber)} />
-                  <datalist id="vehiclesListEdit">
-                    {allVehicles.map(v => <option key={v.id} value={v.registrationNo} />)}
-                  </datalist>
+                  <div style={{ position: 'relative' }}>
+                    <Car size={15} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: D.blue, pointerEvents: 'none', zIndex: 2, opacity: 0.8 }} />
+                    <input
+                      type="text"
+                      value={editVehicleSearch}
+                      onChange={e => {
+                        setEditVehicleSearch(e.target.value)
+                        setEditVehicleDropdownVisible(true)
+                        const match = allVehicles.find(v => v.registrationNo.toLowerCase() === e.target.value.toLowerCase())
+                        if (match) {
+                          handleVehicleSelect({ target: { value: match.registrationNo } }, true)
+                        } else {
+                          setEditFormData(prev => ({ ...prev, vehicleRegNumber: '' }))
+                          setPreviousMileage(null)
+                        }
+                      }}
+                      onFocus={() => setEditVehicleDropdownVisible(true)}
+                      onBlur={e => { setTimeout(() => setEditVehicleDropdownVisible(false), 180); blurBorder(e, errors.vehicleRegNumber) }}
+                      placeholder="Search or select vehicle…"
+                      autoComplete="off"
+                      style={{ ...fieldInput(errors.vehicleRegNumber), paddingLeft: 34, paddingRight: 36 }}
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setEditVehicleDropdownVisible(v => !v)}
+                      style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, display: 'flex', alignItems: 'center', padding: 2, zIndex: 2 }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: editVehicleDropdownVisible ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9" /></svg>
+                    </button>
+                  </div>
+                  {editVehicleDropdownVisible && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
+                      background: D.surface, border: `1px solid ${D.borderHi}`,
+                      borderRadius: 10, marginTop: 4,
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+                      overflow: 'hidden', maxHeight: 220, overflowY: 'auto',
+                    }}>
+                      {(() => {
+                        const q = editVehicleSearch.toLowerCase()
+                        const opts = allVehicles.filter(v =>
+                          v.registrationNo.toLowerCase().includes(q) ||
+                          `${v.manufacturer} ${v.model}`.toLowerCase().includes(q)
+                        )
+                        if (opts.length === 0) return (
+                          <div style={{ padding: '12px 16px', fontSize: '0.82rem', color: D.textSub, textAlign: 'center' }}>No vehicles found</div>
+                        )
+                        return opts.map(v => {
+                          const isSelected = editFormData.vehicleRegNumber === v.registrationNo
+                          const label = v.manufacturer || v.model
+                            ? `${v.registrationNo} - ${v.manufacturer || ''} ${v.model || ''}`.trim()
+                            : v.registrationNo
+                          return (
+                            <div
+                              key={v.id}
+                              onMouseDown={e => {
+                                e.preventDefault()
+                                setEditVehicleSearch(v.registrationNo)
+                                setEditVehicleDropdownVisible(false)
+                                handleVehicleSelect({ target: { value: v.registrationNo } }, true)
+                              }}
+                              style={{
+                                padding: '10px 16px', cursor: 'pointer',
+                                background: isSelected ? '#2563eb' : 'transparent',
+                                color: isSelected ? '#ffffff' : D.text,
+                                fontSize: '0.85rem',
+                                fontWeight: 500,
+                                transition: 'all 0.1s ease',
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = '#2563eb'
+                                e.currentTarget.style.color = '#ffffff'
+                              }}
+                              onMouseLeave={e => {
+                                if (!isSelected) {
+                                  e.currentTarget.style.background = 'transparent'
+                                  e.currentTarget.style.color = D.text
+                                }
+                              }}
+                            >
+                              {label}
+                            </div>
+                          )
+                        })
+                      })()}
+                    </div>
+                  )}
                   {errors.vehicleRegNumber && <p style={fieldError}>{errors.vehicleRegNumber}</p>}
                 </div>
                 <div>
@@ -3069,6 +3545,24 @@ const ServicePage = () => {
                       <AlertTriangle size={15} /> ⚠️ Ad-hoc Repair / Breakdown
                     </button>
                   </div>
+                </div>
+                {/* ── Driver Selector (Edit) ── */}
+                <div>
+                  <label style={fieldLabel}><span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><User size={13} /> Driver <span style={{ color: D.textSub, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></span></label>
+                  <select
+                    name="driverUsername"
+                    value={editFormData.driverUsername || ''}
+                    onChange={handleEditChange}
+                    style={{ ...fieldInput(false), cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '18px', paddingRight: 38 }}
+                    onFocus={focusBorder} onBlur={e => blurBorder(e, false)}
+                  >
+                    <option value="">No driver assigned</option>
+                    {allDrivers.map(d => (
+                      <option key={d.id || d.userName} value={d.userName}>
+                        {d.firstName && d.lastName ? `${d.firstName} ${d.lastName} (${d.userName})` : d.userName}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={fieldLabel}>Parts Replaced (comma-separated)</label>
