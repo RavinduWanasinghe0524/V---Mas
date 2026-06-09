@@ -2747,7 +2747,7 @@ const ServicePage = () => {
                     // Render each edit from newest → oldest
                     serviceHistory.map((entry, idx) => {
                       let fields = []
-                      try { fields = JSON.parse(entry.changedFields || '[]') } catch {}
+                      try { fields = JSON.parse(entry.changedFields || '[]') } catch (e) { /* ignore */ }
                       return (
                         <div key={entry.id} style={{ position: 'relative', marginBottom: idx < serviceHistory.length - 1 ? 14 : 4 }}>
                           {/* Timeline dot */}
