@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-const filePath = 'd:\\Software\\Academic\\Git Projects\\V--Mas\\V---Mas\\VMAS_Postman_Collection.json';
+const filePath = './VMAS_Postman_Collection.json';
 const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
 const serviceFolder = {
