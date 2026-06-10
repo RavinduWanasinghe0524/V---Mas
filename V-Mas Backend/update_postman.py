@@ -1,7 +1,7 @@
 import json
 import os
 
-file_path = r"d:\Software\Academic\Git Projects\V--Mas\V---Mas\VMAS_Postman_Collection.json"
+file_path = "VMAS_Postman_Collection.json"
 
 with open(file_path, 'r', encoding='utf-8') as f:
     data = json.load(f)

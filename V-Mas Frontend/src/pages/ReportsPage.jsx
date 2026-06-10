@@ -888,7 +888,6 @@ const ReportsPage = () => {
                   style={{
                     padding: '8px 16px',
                     borderRadius: 20,
-                    border: 'none',
                     background: isActive ? D.indigo : D.surface,
                     color: isActive ? '#fff' : D.textSub,
                     fontWeight: 700,
