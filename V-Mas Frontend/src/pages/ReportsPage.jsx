@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
@@ -10,12 +10,13 @@ import {
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
 import { vehicleAPI, fuelAPI, serviceAPI, userAPI } from '../services/api'
+import { generateStyledExcel } from '../utils/excelExport'
 
 const recentReports = [
-  { name: 'Vehicle Summary – May 2026',   generated: '2026-05-20', format: 'PDF',  size: '245 KB' },
-  { name: 'Fuel Consumption – Apr 2026',  generated: '2026-05-01', format: 'Excel', size: '118 KB' },
-  { name: 'User Activity – Q2 2026',      generated: '2026-05-15', format: 'PDF',  size: '312 KB' },
-  { name: 'Service Summary – Apr 2026',   generated: '2026-05-02', format: 'PDF',  size: '198 KB' },
+  { name: 'Vehicle Summary â€“ May 2026',   generated: '2026-05-20', format: 'PDF',  size: '245 KB' },
+  { name: 'Fuel Consumption â€“ Apr 2026',  generated: '2026-05-01', format: 'Excel', size: '118 KB' },
+  { name: 'User Activity â€“ Q2 2026',      generated: '2026-05-15', format: 'PDF',  size: '312 KB' },
+  { name: 'Service Summary â€“ Apr 2026',   generated: '2026-05-02', format: 'PDF',  size: '198 KB' },
 ]
 
 const SectionHeader = ({ title, D }) => (
@@ -97,8 +98,9 @@ const ReportsPage = () => {
           doc.setFontSize(14)
           doc.text('Vehicle Details', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
         }
-        const { data } = await vehicleAPI.getAllVehicles()
-        const tableData = data.map(v => [
+        const { data: vRes } = await vehicleAPI.getAllVehicles()
+        const vehData = vRes.data || []
+        const tableData = vehData.map(v => [
           v.registrationNumber, v.brand || 'N/A', v.model || 'N/A', v.status || 'N/A', v.mileage || 0, v.fuelType || 'N/A', v.fuelCapacity || 0
         ])
         doc.autoTable({
@@ -116,8 +118,8 @@ const ReportsPage = () => {
           doc.setFontSize(14)
           doc.text('Fuel Records', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
         }
-        const { data } = await fuelAPI.getAllFuelLogs()
-        let filteredFuel = data || []
+        const { data: fuelRes } = await fuelAPI.getAllFuelLogs()
+        let filteredFuel = fuelRes.data || []
         if (startDate) {
           filteredFuel = filteredFuel.filter(f => f.date && new Date(f.date) >= new Date(startDate))
         }
@@ -126,15 +128,15 @@ const ReportsPage = () => {
         }
         const tableData = filteredFuel.map(f => [
           f.date ? new Date(f.date).toLocaleDateString() : 'N/A',
-          f.vehicleRegNo || 'N/A',
-          f.driverName || 'N/A',
+          f.vehicleRegNumber || 'N/A',
+          f.driverUsername || 'N/A',
           f.fuelType || 'N/A',
           f.liters || 0,
-          f.cost ? `$${f.cost.toFixed(2)}` : '$0.00'
+          f.totalCost != null ? `Rs. ${Number(f.totalCost).toLocaleString()}` : 'Rs. 0'
         ])
         doc.autoTable({
           startY: id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 45) : 40,
-          head: [['Date', 'Vehicle', 'Driver', 'Type', 'Liters', 'Cost']],
+          head: [['Date', 'Vehicle', 'Driver', 'Type', 'Liters', 'Total Cost']],
           body: tableData,
           theme: 'grid',
           headStyles: { fillColor: headerColor }
@@ -147,24 +149,24 @@ const ReportsPage = () => {
           doc.setFontSize(14)
           doc.text('Service & Maintenance Records', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
         }
-        const { data } = await serviceAPI.getAllServices()
-        let filteredServices = data || []
+        const { data: svcRes } = await serviceAPI.getAllServices()
+        let filteredServices = svcRes.data || []
         if (startDate) {
-          filteredServices = filteredServices.filter(s => s.date && new Date(s.date) >= new Date(startDate))
+          filteredServices = filteredServices.filter(s => s.serviceDate && new Date(s.serviceDate) >= new Date(startDate))
         }
         if (endDate) {
-          filteredServices = filteredServices.filter(s => s.date && new Date(s.date) <= new Date(endDate))
+          filteredServices = filteredServices.filter(s => s.serviceDate && new Date(s.serviceDate) <= new Date(endDate))
         }
         const tableData = filteredServices.map(s => [
-          s.date ? new Date(s.date).toLocaleDateString() : 'N/A',
-          s.vehicleRegNo || 'N/A',
-          s.serviceType || 'N/A',
-          s.status || 'N/A',
-          s.cost ? `$${s.cost.toFixed(2)}` : '$0.00'
+          s.serviceDate ? new Date(s.serviceDate).toLocaleDateString() : 'N/A',
+          s.vehicleRegNumber || 'N/A',
+          s.serviceType ? String(s.serviceType) : 'N/A',
+          s.serviceClassification || 'N/A',
+          s.serviceCost != null ? `Rs. ${Number(s.serviceCost).toLocaleString()}` : 'Rs. 0'
         ])
         doc.autoTable({
           startY: id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 45) : 40,
-          head: [['Date', 'Vehicle Reg', 'Service Type', 'Status', 'Cost']],
+          head: [['Date', 'Vehicle Reg', 'Service Type', 'Classification', 'Cost']],
           body: tableData,
           theme: 'grid',
           headStyles: { fillColor: headerColor }
@@ -177,8 +179,8 @@ const ReportsPage = () => {
           doc.setFontSize(14)
           doc.text('User Directory', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
         }
-        const { data } = await userAPI.getAllUsers()
-        const tableData = data.map(u => [
+        const { data: usrRes } = await userAPI.getAllUsers()
+        const tableData = (usrRes.data || []).map(u => [
           u.userName || 'N/A',
           u.email || 'N/A',
           u.role || 'N/A',
@@ -200,10 +202,10 @@ const ReportsPage = () => {
           doc.setTextColor(40, 40, 40)
           doc.text('Fuel Efficiency', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
         }
-        const { data: res } = await fuelAPI.getFuelEfficiencyReport()
-        const report = res.data || res
+        const { data: effApiRes } = await fuelAPI.getFuelEfficiencyReport()
+        const report = effApiRes.data || effApiRes
 
-        // ── Fleet Summary block ───────────────────────────────────────────
+        // â”€â”€ Fleet Summary block â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         let y = id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 25 : 50) : 38
         doc.setFontSize(11)
         doc.setTextColor(60, 60, 60)
@@ -212,8 +214,8 @@ const ReportsPage = () => {
         const summaryItems = [
           ['Fleet Average Efficiency', report.fleetAverageEfficiency != null ? `${report.fleetAverageEfficiency} km/L` : 'Insufficient Data'],
           ['Total Vehicles',           String(report.totalVehicles ?? 0)],
-          ['Good Efficiency (≥10 km/L)', String(report.goodEfficiencyCount ?? 0)],
-          ['Moderate (5–9.99 km/L)',   String(report.moderateEfficiencyCount ?? 0)],
+          ['Good Efficiency (â‰¥10 km/L)', String(report.goodEfficiencyCount ?? 0)],
+          ['Moderate (5â€“9.99 km/L)',   String(report.moderateEfficiencyCount ?? 0)],
           ['Low Efficiency (<5 km/L)', String(report.lowEfficiencyCount ?? 0)],
         ]
         doc.autoTable({
@@ -226,7 +228,7 @@ const ReportsPage = () => {
           margin: { left: 14, right: 14 },
         })
 
-        // ── Per-vehicle table ────────────────────────────────────────────
+        // â”€â”€ Per-vehicle table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         const afterSummary = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : y + 40
         doc.setFontSize(11)
         doc.setTextColor(60, 60, 60)
@@ -270,22 +272,22 @@ const ReportsPage = () => {
           doc.setTextColor(40, 40, 40)
           doc.text('Cost Analysis', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
         }
-        const { data: fuelLogsRes } = await fuelAPI.getAllFuelLogs()
-        const { data: servicesRes } = await serviceAPI.getAllServices()
+        const { data: fuelLogsApiRes } = await fuelAPI.getAllFuelLogs()
+        const { data: servicesApiRes } = await serviceAPI.getAllServices()
 
-        let fuelLogs = fuelLogsRes || []
-        let services = servicesRes || []
+        let fuelLogs = fuelLogsApiRes.data || []
+        let services = servicesApiRes.data || []
         if (startDate) {
           fuelLogs = fuelLogs.filter(f => f.date && new Date(f.date) >= new Date(startDate))
-          services = services.filter(s => s.date && new Date(s.date) >= new Date(startDate))
+          services = services.filter(s => s.serviceDate && new Date(s.serviceDate) >= new Date(startDate))
         }
         if (endDate) {
           fuelLogs = fuelLogs.filter(f => f.date && new Date(f.date) <= new Date(endDate))
-          services = services.filter(s => s.date && new Date(s.date) <= new Date(endDate))
+          services = services.filter(s => s.serviceDate && new Date(s.serviceDate) <= new Date(endDate))
         }
 
-        const totalFuelCost = fuelLogs.reduce((sum, f) => sum + (f.cost || 0), 0)
-        const totalServiceCost = services.reduce((sum, s) => sum + (s.cost || 0), 0)
+        const totalFuelCost = fuelLogs.reduce((sum, f) => sum + (Number(f.totalCost) || 0), 0)
+        const totalServiceCost = services.reduce((sum, s) => sum + (Number(s.serviceCost) || 0), 0)
         const grandTotal = totalFuelCost + totalServiceCost
 
         let y = id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 25 : 50) : 38
@@ -316,14 +318,14 @@ const ReportsPage = () => {
         doc.text('Fuel Expenditure Breakdown (Top 5 Transactions)', 14, afterSummary)
 
         const topFuelRows = [...fuelLogs]
-          .sort((a, b) => (b.cost || 0) - (a.cost || 0))
+          .sort((a, b) => (Number(b.totalCost) || 0) - (Number(a.totalCost) || 0))
           .slice(0, 5)
           .map(f => [
             f.date ? new Date(f.date).toLocaleDateString() : 'N/A',
-            f.vehicleRegNo || 'N/A',
-            f.driverName || 'N/A',
+            f.vehicleRegNumber || 'N/A',
+            f.driverUsername || 'N/A',
             f.liters ? `${f.liters} L` : '0 L',
-            f.cost ? `Rs. ${f.cost.toLocaleString()}` : 'Rs. 0'
+            f.totalCost != null ? `Rs. ${Number(f.totalCost).toLocaleString()}` : 'Rs. 0'
           ])
 
         doc.autoTable({
@@ -343,19 +345,19 @@ const ReportsPage = () => {
         doc.text('Maintenance Expenditure Breakdown (Top 5 Transactions)', 14, afterFuel)
 
         const topServiceRows = [...services]
-          .sort((a, b) => (b.cost || 0) - (a.cost || 0))
+          .sort((a, b) => (Number(b.serviceCost) || 0) - (Number(a.serviceCost) || 0))
           .slice(0, 5)
           .map(s => [
-            s.date ? new Date(s.date).toLocaleDateString() : 'N/A',
-            s.vehicleRegNo || 'N/A',
-            s.serviceType || 'N/A',
-            s.status || 'N/A',
-            s.cost ? `Rs. ${s.cost.toLocaleString()}` : 'Rs. 0'
+            s.serviceDate ? new Date(s.serviceDate).toLocaleDateString() : 'N/A',
+            s.vehicleRegNumber || 'N/A',
+            s.serviceType ? String(s.serviceType) : 'N/A',
+            s.serviceClassification || 'N/A',
+            s.serviceCost != null ? `Rs. ${Number(s.serviceCost).toLocaleString()}` : 'Rs. 0'
           ])
 
         doc.autoTable({
           startY: afterFuel + 5,
-          head: [['Date', 'Vehicle', 'Service Type', 'Status', 'Cost']],
+          head: [['Date', 'Vehicle', 'Service Type', 'Classification', 'Cost']],
           body: topServiceRows,
           theme: 'striped',
           headStyles: { fillColor: headerColor, fontSize: 9 },
@@ -405,212 +407,50 @@ const ReportsPage = () => {
     setSuccessMsg('')
     setGenerating(id)
     try {
-      let csvContent = ''
-      let headers = []
-      let rows = []
-      const filename = `${id}-${new Date().toISOString().split('T')[0]}.csv`
+      // â”€â”€ Fetch all data needed for this report â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      let vehicles = []
+      let fuelLogs = []
+      let services = []
+      let users    = []
+      let effReport = null
 
-      if (id === 'master-report') {
-        const { data: vData } = await vehicleAPI.getAllVehicles()
-        const { data: fuelRes } = await fuelAPI.getAllFuelLogs()
-        const { data: serviceRes } = await serviceAPI.getAllServices()
-        const { data: uData } = await userAPI.getAllUsers()
-        const { data: effRes } = await fuelAPI.getFuelEfficiencyReport()
-        const effReport = effRes.data || effRes
+      const needsVehicles    = ['vehicle-summary', 'master-report'].includes(id)
+      const needsFuel        = ['fuel-report', 'fuel-efficiency', 'cost-report', 'master-report'].includes(id)
+      const needsServices    = ['service-report', 'cost-report', 'master-report'].includes(id)
+      const needsUsers       = ['user-report', 'master-report'].includes(id)
+      const needsEfficiency  = ['fuel-efficiency', 'master-report'].includes(id)
 
-        let fData = fuelRes || []
-        let sData = serviceRes || []
-        if (startDate) {
-          fData = fData.filter(f => f.date && new Date(f.date) >= new Date(startDate))
-          sData = sData.filter(s => s.date && new Date(s.date) >= new Date(startDate))
-        }
-        if (endDate) {
-          fData = fData.filter(f => f.date && new Date(f.date) <= new Date(endDate))
-          sData = sData.filter(s => s.date && new Date(s.date) <= new Date(endDate))
-        }
+      const fetches = []
+      if (needsVehicles)   fetches.push(vehicleAPI.getAllVehicles().then(r => { vehicles  = r.data?.data || [] }))
+      if (needsFuel)       fetches.push(fuelAPI.getAllFuelLogs().then(r   => { fuelLogs  = r.data?.data || [] }))
+      if (needsServices)   fetches.push(serviceAPI.getAllServices().then(r => { services  = r.data?.data || [] }))
+      if (needsUsers)      fetches.push(userAPI.getAllUsers().then(r      => { users     = r.data?.data || [] }))
+      if (needsEfficiency) fetches.push(fuelAPI.getFuelEfficiencyReport().then(r => { effReport = r.data?.data || r.data || null }))
 
-        headers = []
-        rows = [
-          ['Comprehensive Master Report'],
-          [],
-          ['--- Vehicle Summary ---'],
-          ['Reg No', 'Brand', 'Model', 'Status', 'Mileage', 'Fuel Type', 'Capacity'],
-          ...vData.map(v => [v.registrationNumber, v.brand || 'N/A', v.model || 'N/A', v.status || 'N/A', v.mileage || 0, v.fuelType || 'N/A', v.fuelCapacity || 0]),
-          [],
-          ['--- Fuel Consumption ---'],
-          ['Date', 'Vehicle', 'Driver', 'Type', 'Liters', 'Cost'],
-          ...fData.map(f => [f.date ? new Date(f.date).toLocaleDateString() : 'N/A', f.vehicleRegNo || 'N/A', f.driverName || 'N/A', f.fuelType || 'N/A', f.liters || 0, f.cost || 0]),
-          [],
-          ['--- Service & Maintenance ---'],
-          ['Date', 'Vehicle Reg', 'Service Type', 'Status', 'Cost'],
-          ...sData.map(s => [s.date ? new Date(s.date).toLocaleDateString() : 'N/A', s.vehicleRegNo || 'N/A', s.serviceType || 'N/A', s.status || 'N/A', s.cost || 0]),
-          [],
-          ['--- User Activity ---'],
-          ['Username', 'Email', 'Role', 'Status'],
-          ...uData.map(u => [u.userName || 'N/A', u.email || 'N/A', u.role || 'N/A', u.accountStatus || 'ACTIVE']),
-          [],
-          ['--- Fuel Efficiency ---'],
-          ['Reg No', 'Latest km/L', 'Avg km/L', 'Status', 'Total Liters', 'Total Cost', 'Cost/km', 'Fill-ups'],
-          ...(effReport.vehicles || []).map(v => [v.vehicleRegNumber || 'N/A', v.latestEfficiency != null ? v.latestEfficiency : 'N/A', v.averageEfficiency != null ? v.averageEfficiency : 'N/A', v.efficiencyStatus || 'N/A', v.totalLiters || 'N/A', v.totalCost || 'N/A', v.costPerKm || 'N/A', v.fillUps ? v.fillUps.length : 0]),
-          [],
-          ['--- Operational Expenses Summary ---'],
-          ['Cost Category', 'Amount'],
-          ['Total Fuel Expenses', fData.reduce((sum, f) => sum + (f.cost || 0), 0)],
-          ['Total Maintenance Expenses', sData.reduce((sum, s) => sum + (s.cost || 0), 0)],
-          ['Total Expenses', fData.reduce((sum, f) => sum + (f.cost || 0), 0) + sData.reduce((sum, s) => sum + (s.cost || 0), 0)]
-        ]
-      } else if (id === 'vehicle-summary') {
-        const { data } = await vehicleAPI.getAllVehicles()
-        headers = ['Reg No', 'Brand', 'Model', 'Status', 'Mileage', 'Fuel Type', 'Capacity']
-        rows = data.map(v => [
-          v.registrationNumber, v.brand || 'N/A', v.model || 'N/A', v.status || 'N/A', v.mileage || 0, v.fuelType || 'N/A', v.fuelCapacity || 0
-        ])
-      } else if (id === 'fuel-report') {
-        const { data } = await fuelAPI.getAllFuelLogs()
-        let filteredFuel = data || []
-        if (startDate) {
-          filteredFuel = filteredFuel.filter(f => f.date && new Date(f.date) >= new Date(startDate))
-        }
-        if (endDate) {
-          filteredFuel = filteredFuel.filter(f => f.date && new Date(f.date) <= new Date(endDate))
-        }
-        headers = ['Date', 'Vehicle', 'Driver', 'Type', 'Liters', 'Cost']
-        rows = filteredFuel.map(f => [
-          f.date ? new Date(f.date).toLocaleDateString() : 'N/A',
-          f.vehicleRegNo || 'N/A',
-          f.driverName || 'N/A',
-          f.fuelType || 'N/A',
-          f.liters || 0,
-          f.cost || 0
-        ])
-      } else if (id === 'service-report') {
-        const { data } = await serviceAPI.getAllServices()
-        let filteredServices = data || []
-        if (startDate) {
-          filteredServices = filteredServices.filter(s => s.date && new Date(s.date) >= new Date(startDate))
-        }
-        if (endDate) {
-          filteredServices = filteredServices.filter(s => s.date && new Date(s.date) <= new Date(endDate))
-        }
-        headers = ['Date', 'Vehicle Reg', 'Service Type', 'Status', 'Cost']
-        rows = filteredServices.map(s => [
-          s.date ? new Date(s.date).toLocaleDateString() : 'N/A',
-          s.vehicleRegNo || 'N/A',
-          s.serviceType || 'N/A',
-          s.status || 'N/A',
-          s.cost || 0
-        ])
-      } else if (id === 'user-report') {
-        const { data } = await userAPI.getAllUsers()
-        headers = ['Username', 'Email', 'Role', 'Status']
-        rows = data.map(u => [
-          u.userName || 'N/A',
-          u.email || 'N/A',
-          u.role || 'N/A',
-          u.accountStatus || 'ACTIVE'
-        ])
-      } else if (id === 'fuel-efficiency') {
-        const { data: effRes } = await fuelAPI.getFuelEfficiencyReport()
-        const report = effRes.data || effRes
-        headers = []
-        rows = [
-          ['Fleet Summary'],
-          ['Metric', 'Value'],
-          ['Fleet Average Efficiency', report.fleetAverageEfficiency != null ? report.fleetAverageEfficiency : 'N/A'],
-          ['Total Vehicles', report.totalVehicles || 0],
-          ['Good Efficiency', report.goodEfficiencyCount || 0],
-          ['Moderate Efficiency', report.moderateEfficiencyCount || 0],
-          ['Low Efficiency', report.lowEfficiencyCount || 0],
-          [],
-          ['Per-Vehicle Efficiency Breakdown'],
-          ['Reg No', 'Latest km/L', 'Avg km/L', 'Status', 'Total Liters', 'Total Cost', 'Cost/km', 'Fill-ups'],
-          ...(report.vehicles || []).map(v => [
-            v.vehicleRegNumber || 'N/A',
-            v.latestEfficiency != null ? v.latestEfficiency : 'N/A',
-            v.averageEfficiency != null ? v.averageEfficiency : 'N/A',
-            v.efficiencyStatus || 'N/A',
-            v.totalLiters || 'N/A',
-            v.totalCost || 'N/A',
-            v.costPerKm || 'N/A',
-            v.fillUps ? v.fillUps.length : 0
-          ])
-        ]
-      } else if (id === 'cost-report') {
-        const { data: fuelLogsRes } = await fuelAPI.getAllFuelLogs()
-        const { data: servicesRes } = await serviceAPI.getAllServices()
-        let fuelLogs = fuelLogsRes || []
-        let services = servicesRes || []
-        if (startDate) {
-          fuelLogs = fuelLogs.filter(f => f.date && new Date(f.date) >= new Date(startDate))
-          services = services.filter(s => s.date && new Date(s.date) >= new Date(startDate))
-        }
-        if (endDate) {
-          fuelLogs = fuelLogs.filter(f => f.date && new Date(f.date) <= new Date(endDate))
-          services = services.filter(s => s.date && new Date(s.date) <= new Date(endDate))
-        }
-        headers = []
-        rows = [
-          ['Operational Expenses Summary'],
-          ['Cost Category', 'Amount'],
-          ['Total Fuel Expenses', fuelLogs.reduce((sum, f) => sum + (f.cost || 0), 0)],
-          ['Total Maintenance Expenses', services.reduce((sum, s) => sum + (s.cost || 0), 0)],
-          ['Total Fleet Operational Expenses', fuelLogs.reduce((sum, f) => sum + (f.cost || 0), 0) + services.reduce((sum, s) => sum + (s.cost || 0), 0)],
-          [],
-          ['Fuel Expenditure Breakdown'],
-          ['Date', 'Vehicle', 'Driver', 'Volume', 'Cost'],
-          ...[...fuelLogs].sort((a, b) => (b.cost || 0) - (a.cost || 0)).map(f => [
-            f.date ? new Date(f.date).toLocaleDateString() : 'N/A',
-            f.vehicleRegNo || 'N/A',
-            f.driverName || 'N/A',
-            f.liters || 0,
-            f.cost || 0
-          ]),
-          [],
-          ['Maintenance Expenditure Breakdown'],
-          ['Date', 'Vehicle', 'Service Type', 'Status', 'Cost'],
-          ...[...services].sort((a, b) => (b.cost || 0) - (a.cost || 0)).map(s => [
-            s.date ? new Date(s.date).toLocaleDateString() : 'N/A',
-            s.vehicleRegNo || 'N/A',
-            s.serviceType || 'N/A',
-            s.status || 'N/A',
-            s.cost || 0
-          ])
-        ]
-      } else {
-        setError('Excel export for this category is under development.')
-        setTimeout(() => setError(''), 4000)
-        return
-      }
+      await Promise.all(fetches)
 
-      csvContent = headers.length > 0 
-        ? [
-            headers.join(','),
-            ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
-          ].join('\n')
-        : rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(',')).join('\n')
+      const filename = await generateStyledExcel(id, {
+        vehicles,
+        fuelLogs,
+        services,
+        users,
+        effReport,
+        startDate,
+        endDate,
+      })
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.setAttribute("href", url)
-      link.setAttribute("download", filename)
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-
-      setSuccessMsg(`Excel (CSV) report "${filename}" generated and downloaded successfully.`)
+      setSuccessMsg(`Excel report "${filename}" generated and downloaded successfully.`)
       setTimeout(() => setSuccessMsg(''), 5000)
 
       const newReport = {
         name: filename,
         generated: new Date().toISOString().split('T')[0],
         format: 'Excel',
-        size: id === 'master-report' ? '280 KB' : '85 KB'
+        size: id === 'master-report' ? '420 KB' : '95 KB'
       }
       setReportsList(prev => [newReport, ...prev.filter(r => r.name !== filename)])
     } catch (err) {
-      console.error('Error generating Excel:', err)
+      console.error('Error generating Excel report:', err)
       const reportName = reportTypes.find(r => r.id === id)?.title || id
       if (err.response?.status === 401 || err.response?.status === 403) {
         setError(`Permission denied: You do not have access to generate the "${reportName}" Excel report.`)
@@ -684,7 +524,7 @@ const ReportsPage = () => {
             border: `1px solid ${D.border}`
           }}>
             {/* decorative circles */}
-            {[['80%','−20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
+            {[['80%','âˆ’20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
               <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
             ))}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -949,7 +789,7 @@ const ReportsPage = () => {
                       transition: 'all 0.2s ease', boxShadow: generating === r.id ? 'none' : `0 4px 14px ${r.bg}`
                     }}
                   >
-                    {generating === r.id ? <><Loader2 size={14} className="animate-spin" style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}/> Generating…</> : <><Download size={14} style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}/> Download PDF</>}
+                    {generating === r.id ? <><Loader2 size={14} className="animate-spin" style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}/> Generatingâ€¦</> : <><Download size={14} style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}/> Download PDF</>}
                   </button>
                   <button
                     onClick={() => handleGenerateExcel(r.id)}
