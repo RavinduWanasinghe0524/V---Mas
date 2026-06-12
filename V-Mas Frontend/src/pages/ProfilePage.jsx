@@ -7,7 +7,7 @@ import { profileAPI, fuelAPI, serviceAPI, vehicleAPI } from '../services/api'
 import { User, Mail, Key, ShieldCheck, Shield, Globe, Fuel, Ruler, Calendar, Car, Wrench, Edit2, AlertCircle, CheckCircle, Eye, EyeOff, Check, Trophy, Activity, Lock, Settings, LogOut, Zap, Bell, Clock, Smartphone, Share2, UserCheck, X } from 'lucide-react'
 import { computeLogsEfficiency } from '../utils/fuelUtils'
 
-const Toggle = ({ checked, onChange, color = '#6366f1' }) => (
+const Toggle = ({ checked, onChange, color = '#2563eb' }) => (
   <div onClick={onChange} style={{ width: 46, height: 26, borderRadius: 13, cursor: 'pointer', background: checked ? color : 'rgba(255,255,255,0.12)', position: 'relative', transition: 'background 0.25s ease', flexShrink: 0, border: checked ? 'none' : '1px solid rgba(255,255,255,0.15)' }}>
     <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: checked ? 23 : 3, transition: 'left 0.25s cubic-bezier(0.4,0,0.2,1)', boxShadow: '0 1px 5px rgba(0,0,0,0.35)' }} />
   </div>
@@ -21,8 +21,8 @@ const ALERT_TYPES = [
 ]
 
 const onFocus = e => {
-  e.target.style.borderColor = 'rgba(99,102,241,0.5)'
-  e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'
+  e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'
+  e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235,0.1)'
 }
 const onBlur = e => {
   e.target.style.borderColor = ''
@@ -245,7 +245,7 @@ const ProfilePage = () => {
 
   const previewEmail = () => {
     const preview = window.open('', '_blank', 'width=620,height=520')
-    preview.document.write(`<html><body style="font-family:sans-serif;background:#0d1117;color:#e2e8f0;padding:32px"><div style="max-width:560px;margin:0 auto;background:#161b27;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08)"><div style="padding:28px 32px;background:linear-gradient(135deg,#1e1b4b,#312e81,#4338ca)"><h1 style="margin:0;color:#fff;font-size:1.4rem">V-MAS Fleet Alert</h1><p style="margin:8px 0 0;color:#a5b4fc;font-size:0.88rem">Fleet Management System</p></div><div style="padding:28px 32px"><h2 style="color:#818cf8;font-size:1rem;margin:0 0 16px">⚠ Service Due Reminder</h2><p style="margin:0 0 8px"><b>Vehicle:</b> WP-CAA-1234</p><p style="margin:0 0 8px"><b>Alert:</b> Scheduled service due in 7 days</p><p style="margin:0 0 8px"><b>Due Date:</b> 2026-06-05</p><p style="margin:0 0 24px;color:#64748b">Please schedule a service appointment as soon as possible to avoid operational delays.</p><div style="background:#1e2535;padding:16px;border-radius:10px;border-left:3px solid #6366f1"><b style="color:#818cf8">Action Required:</b><br><span style="font-size:0.88rem;color:#94a3b8">Contact your fleet controller to arrange service.</span></div></div><div style="padding:16px 32px;border-top:1px solid rgba(255,255,255,0.07);color:#475569;font-size:0.75rem">V-MAS Fleet Management · This is an automated alert</div></div></body></html>`)
+    preview.document.write(`<html><body style="font-family:sans-serif;background:#0b132b;color:#f3f4f6;padding:32px"><div style="max-width:560px;margin:0 auto;background:#1c2541;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08)"><div style="padding:28px 32px;background:linear-gradient(135deg,#172554,#1e3a8a,#1e40af)"><h1 style="margin:0;color:#fff;font-size:1.4rem">V-MAS Fleet Alert</h1><p style="margin:8px 0 0;color:#60a5fa;font-size:0.88rem">Fleet Management System</p></div><div style="padding:28px 32px"><h2 style="color:#3b82f6;font-size:1rem;margin:0 0 16px">⚠ Service Due Reminder</h2><p style="margin:0 0 8px"><b>Vehicle:</b> WP-CAA-1234</p><p style="margin:0 0 8px"><b>Alert:</b> Scheduled service due in 7 days</p><p style="margin:0 0 8px"><b>Due Date:</b> 2026-06-05</p><p style="margin:0 0 24px;color:#9ca3af">Please schedule a service appointment as soon as possible to avoid operational delays.</p><div style="background:#212b4a;padding:16px;border-radius:10px;border-left:3px solid #2563eb"><b style="color:#3b82f6">Action Required:</b><br><span style="font-size:0.88rem;color:#94a3b8">Contact your fleet controller to arrange service.</span></div></div><div style="padding:16px 32px;border-top:1px solid rgba(255,255,255,0.07);color:#4b5563;font-size:0.75rem">V-MAS Fleet Management · This is an automated alert</div></div></body></html>`)
     preview.document.close()
   }
 
@@ -255,15 +255,15 @@ const ProfilePage = () => {
       disabled={saving}
       style={{
         padding: '12px 28px', borderRadius: 12, border: 'none',
-        background: saving ? D.surfaceHi : 'linear-gradient(135deg, #3b82f6, #6366f1)',
+        background: saving ? D.surfaceHi : 'linear-gradient(135deg, #3b82f6, #2563eb)',
         color: saving ? D.textSub : '#fff',
         cursor: saving ? 'not-allowed' : 'pointer',
         fontFamily: 'inherit', fontSize: '0.9rem', fontWeight: 800,
-        boxShadow: saving ? 'none' : '0 4px 16px rgba(99,102,241,0.35)',
+        boxShadow: saving ? 'none' : '0 4px 16px rgba(37, 99, 235,0.35)',
         transition: 'all 0.25s ease', display: 'flex', alignItems: 'center', gap: 8,
       }}
-      onMouseEnter={e => { if (!saving) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.45)' } }}
-      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = saving ? 'none' : '0 4px 16px rgba(99,102,241,0.35)' }}
+      onMouseEnter={e => { if (!saving) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(37, 99, 235,0.45)' } }}
+      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = saving ? 'none' : '0 4px 16px rgba(37, 99, 235,0.35)' }}
     >
       {saving
         ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: D.textSub, animation: 'spin 0.7s linear infinite' }} /> Saving…</>
@@ -304,7 +304,7 @@ const ProfilePage = () => {
             <div style={{ flex: 1, position: 'relative' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
                 <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{user?.userName}</h1>
-                <span style={{ background: 'rgba(255,255,255,0.15)', color: '#e0e7ff', padding: '3px 12px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <span style={{ background: 'rgba(255,255,255,0.15)', color: '#dbeafe', padding: '3px 12px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   {user?.role?.charAt(0) + (user?.role?.slice(1).toLowerCase() || '')}
                 </span>
               </div>
@@ -404,7 +404,7 @@ const ProfilePage = () => {
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     transition: 'all 0.2s ease', fontFamily: 'inherit',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = D.purple; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.boxShadow = '0 4px 12px rgba(99,102,241,0.3)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = D.purple; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.boxShadow = '0 4px 12px rgba(37, 99, 235,0.3)' }}
                   onMouseLeave={e => { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.color = D.textSub; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = 'none' }}
                 >
                   {item.icon} {item.label}
@@ -522,9 +522,9 @@ const ProfilePage = () => {
                     </div>
                   )}
                   <button type="submit" disabled={pwLoading}
-                    style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', color: '#fff', cursor: pwLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: '0.9rem', fontWeight: 800, opacity: pwLoading ? 0.7 : 1, boxShadow: '0 4px 16px rgba(99,102,241,0.35)', transition: 'all 0.25s ease', alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8 }}
-                    onMouseEnter={e => { if (!pwLoading) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.45)' } }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)' }}
+                    style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: '#fff', cursor: pwLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: '0.9rem', fontWeight: 800, opacity: pwLoading ? 0.7 : 1, boxShadow: '0 4px 16px rgba(37, 99, 235,0.35)', transition: 'all 0.25s ease', alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8 }}
+                    onMouseEnter={e => { if (!pwLoading) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(37, 99, 235,0.45)' } }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(37, 99, 235,0.35)' }}
                   >
                     {pwLoading ? 'Updating…' : <><Check size={16} strokeWidth={3} /> Update Password</>}
                   </button>
@@ -575,9 +575,9 @@ const ProfilePage = () => {
                         padding: '8px 16px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
                         display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s ease',
                         border: active ? 'none' : `1px solid ${D.border}`,
-                        background: active ? 'linear-gradient(135deg, #3b82f6, #6366f1)' : 'rgba(255,255,255,0.05)',
+                        background: active ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'rgba(255,255,255,0.05)',
                         color: active ? '#fff' : D.textSub,
-                        boxShadow: active ? '0 4px 12px rgba(99,102,241,0.3)' : 'none',
+                        boxShadow: active ? '0 4px 12px rgba(37, 99, 235,0.3)' : 'none',
                       }}>
                         {at.icon} {at.label}
                       </button>
@@ -636,7 +636,7 @@ const ProfilePage = () => {
               </div>
               <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                 {['PUBLIC', 'PRIVATE'].map(v => (
-                  <button key={v} onClick={() => setPrivacy(p => ({ ...p, profileVisibility: v }))} style={{ padding: '7px 18px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', border: 'none', fontFamily: 'inherit', transition: 'all 0.2s ease', background: privacy.profileVisibility === v ? 'linear-gradient(135deg, #3b82f6, #6366f1)' : D.surfaceHi, color: privacy.profileVisibility === v ? '#fff' : D.textSub, boxShadow: privacy.profileVisibility === v ? '0 4px 12px rgba(99,102,241,0.3)' : 'none' }}>
+                  <button key={v} onClick={() => setPrivacy(p => ({ ...p, profileVisibility: v }))} style={{ padding: '7px 18px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', border: 'none', fontFamily: 'inherit', transition: 'all 0.2s ease', background: privacy.profileVisibility === v ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : D.surfaceHi, color: privacy.profileVisibility === v ? '#fff' : D.textSub, boxShadow: privacy.profileVisibility === v ? '0 4px 12px rgba(37, 99, 235,0.3)' : 'none' }}>
                     {v.charAt(0) + v.slice(1).toLowerCase()}
                   </button>
                 ))}

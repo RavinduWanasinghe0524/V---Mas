@@ -9,20 +9,20 @@
 /* ── Theme custom properties & tokens ───────────────────── */
 /* Scoped to .ag-container to avoid polluting global :root tokens */
 .ag-container {
-  --accent-color: #4f46e5;
-  --accent-color-hover: #3730a3;
-  --accent-color-light: #818cf8;
-  --accent-color-gradient: linear-gradient(135deg, #4f46e5, #6366f1);
-  --accent-color-shadow: rgba(79, 70, 229, 0.4);
-  --info-banner-bg: rgba(79, 70, 229, 0.12);
-  --info-banner-border: rgba(79, 70, 229, 0.28);
+  --accent-color: #1d4ed8;
+  --accent-color-hover: #1d4ed8;
+  --accent-color-light: #3b82f6;
+  --accent-color-gradient: linear-gradient(135deg, #1d4ed8, #2563eb);
+  --accent-color-shadow: rgba(29, 78, 216, 0.4);
+  --info-banner-bg: rgba(29, 78, 216, 0.12);
+  --info-banner-border: rgba(29, 78, 216, 0.28);
 
   --accent-glow: radial-gradient(320px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-      rgba(79, 70, 229, 0.55),
-      rgba(99, 102, 241, 0.15) 50%,
+      rgba(29, 78, 216, 0.55),
+      rgba(37, 99, 235, 0.15) 50%,
       transparent 100%);
   --accent-face-glow: radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-      rgba(79, 70, 229, 0.05),
+      rgba(29, 78, 216, 0.05),
       transparent 80%);
 }
 

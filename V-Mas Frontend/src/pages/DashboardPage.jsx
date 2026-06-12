@@ -55,10 +55,10 @@ const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "
   }}
     onMouseEnter={e => {
       if (!disabled) {
-        e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'
+        e.currentTarget.style.borderColor = 'rgba(37, 99, 235,0.4)'
         e.currentTarget.style.background = 'var(--surface-hi)'
         e.currentTarget.style.transform = 'translateY(-4px)'
-        e.currentTarget.style.boxShadow = '0 16px 40px rgba(99,102,241,0.15)'
+        e.currentTarget.style.boxShadow = '0 16px 40px rgba(37, 99, 235,0.15)'
       }
     }}
     onMouseLeave={e => {
@@ -69,7 +69,7 @@ const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "
         e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)'
       }
     }}>
-    <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--primary-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, border: '1px solid rgba(99,102,241,0.2)', color: 'var(--primary)', flexShrink: 0 }}>
+    <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--primary-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, border: '1px solid rgba(37, 99, 235,0.2)', color: 'var(--primary)', flexShrink: 0 }}>
       {icon}
     </div>
     <h3 style={{ margin: '0 0 10px', fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{title}</h3>
@@ -81,9 +81,9 @@ const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "
       ) : (
         <button style={{
           padding: '10px 20px', borderRadius: 12, border: 'none',
-          background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+          background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
           color: '#fff', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
-          boxShadow: '0 4px 14px rgba(79,70,229,0.3)',
+          boxShadow: '0 4px 14px rgba(29, 78, 216,0.3)',
         }}>
           {btnText}
         </button>
@@ -94,10 +94,10 @@ const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "
 
 /* ── Accent colors (theme-aware) ─────────────────────────────── */
 const useAccents = (isDark) => ({
-  purple:    isDark ? '#818cf8' : '#4f46e5',
-  purpleDim: isDark ? 'rgba(99,102,241,0.18)' : 'rgba(79,70,229,0.1)',
-  indigo:    isDark ? '#6366f1' : '#4338ca',
-  indigoDim: isDark ? 'rgba(99,102,241,0.18)' : 'rgba(67,56,202,0.1)',
+  purple:    isDark ? '#3b82f6' : '#1d4ed8',
+  purpleDim: isDark ? 'rgba(37, 99, 235,0.18)' : 'rgba(29, 78, 216,0.1)',
+  indigo:    isDark ? '#2563eb' : '#1e40af',
+  indigoDim: isDark ? 'rgba(37, 99, 235,0.18)' : 'rgba(29, 78, 216,0.1)',
   blue:      isDark ? '#38bdf8' : '#0284c7',
   blueDim:   isDark ? 'rgba(56,189,248,0.15)' : 'rgba(2,132,199,0.1)',
   green:     isDark ? '#34d399' : '#059669',
@@ -259,7 +259,7 @@ const LiveChartsSection = ({ isDark, navigate }) => {
   const quickActions = [
     { icon: <ClipboardList size={20} color="#fbbf24" />, bg: 'rgba(251,191,36,0.15)', border: 'rgba(251,191,36,0.3)', label: 'Add Service Record',    onClick: () => navigate('/service') },
     { icon: <UserCog size={20} color="#34d399" />,       bg: 'rgba(52,211,153,0.15)',  border: 'rgba(52,211,153,0.3)',  label: 'Driver Check-in',       onClick: () => navigate('/users') },
-    { icon: <Car size={20} color="#818cf8" />,           bg: 'rgba(129,140,248,0.15)', border: 'rgba(129,140,248,0.3)', label: 'Update Vehicle Status', onClick: () => navigate('/vehicles') },
+    { icon: <Car size={20} color="#3b82f6" />,           bg: 'rgba(59, 130, 246,0.15)', border: 'rgba(59, 130, 246,0.3)', label: 'Update Vehicle Status', onClick: () => navigate('/vehicles') },
     { icon: <Fuel size={20} color="#38bdf8" />,          bg: 'rgba(56,189,248,0.15)',  border: 'rgba(56,189,248,0.3)',  label: 'Mileage Update',        onClick: () => navigate('/vehicles') },
   ]
 
@@ -289,8 +289,8 @@ const LiveChartsSection = ({ isDark, navigate }) => {
           onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
           <defs>
             <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#6366f1" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#6366f1" stopOpacity="0.01" />
+              <stop offset="0%" stopColor="#2563eb" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#2563eb" stopOpacity="0.01" />
             </linearGradient>
           </defs>
           {gridLines.map(gl => (
@@ -303,23 +303,23 @@ const LiveChartsSection = ({ isDark, navigate }) => {
             <text key={i} x={p.x} y={H - 4} fontSize="10" fill="var(--text-muted)" textAnchor="middle" fontFamily="inherit">{p.time}</text>
           ))}
           {areaPath && <path d={areaPath} fill="url(#areaGrad)" />}
-          {linePath && <path d={linePath} fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
+          {linePath && <path d={linePath} fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
           {animProgress > 0 && (
             <>
-              <circle cx={lastPt.x} cy={lastPt.y} r="6" fill="#6366f1" opacity="0.25">
+              <circle cx={lastPt.x} cy={lastPt.y} r="6" fill="#2563eb" opacity="0.25">
                 <animate attributeName="r" values="5;10;5" dur="2s" repeatCount="indefinite" />
                 <animate attributeName="opacity" values="0.25;0.05;0.25" dur="2s" repeatCount="indefinite" />
               </circle>
-              <circle cx={lastPt.x} cy={lastPt.y} r="4" fill="#6366f1" stroke="#fff" strokeWidth="2" />
+              <circle cx={lastPt.x} cy={lastPt.y} r="4" fill="#2563eb" stroke="#fff" strokeWidth="2" />
             </>
           )}
           {tooltip && (
             <g>
-              <line x1={tooltip.x} x2={tooltip.x} y1={padT} y2={padT + chartH} stroke="#6366f1" strokeWidth="1" strokeDasharray="4 3" opacity="0.6" />
-              <rect x={tooltip.x - 58} y={tooltip.y - 32} width={116} height={28} rx={6} fill="rgba(15,20,40,0.92)" stroke="rgba(99,102,241,0.4)" strokeWidth="1" />
+              <line x1={tooltip.x} x2={tooltip.x} y1={padT} y2={padT + chartH} stroke="#2563eb" strokeWidth="1" strokeDasharray="4 3" opacity="0.6" />
+              <rect x={tooltip.x - 58} y={tooltip.y - 32} width={116} height={28} rx={6} fill="rgba(15,20,40,0.92)" stroke="rgba(37, 99, 235,0.4)" strokeWidth="1" />
               <text x={tooltip.x} y={tooltip.y - 19} fontSize="8" fill="#94a3b8" textAnchor="middle" fontFamily="inherit">{tooltip.time}</text>
               <text x={tooltip.x} y={tooltip.y - 8} fontSize="8.5" fill="#fff" textAnchor="middle" fontWeight="700" fontFamily="inherit">Active vehicles : {tooltip.active}</text>
-              <circle cx={tooltip.x} cy={tooltip.y} r="4" fill="#6366f1" stroke="#fff" strokeWidth="1.5" />
+              <circle cx={tooltip.x} cy={tooltip.y} r="4" fill="#2563eb" stroke="#fff" strokeWidth="1.5" />
             </g>
           )}
         </svg>
@@ -383,7 +383,7 @@ const LiveChartsSection = ({ isDark, navigate }) => {
             padding: '13px', borderRadius: 14, border: 'none',
             background: fuelLogged
               ? 'linear-gradient(135deg,#22c55e,#16a34a)'
-              : 'linear-gradient(135deg,#3b82f6,#6366f1)',
+              : 'linear-gradient(135deg,#3b82f6,#2563eb)',
             color: '#fff', fontSize: '0.88rem', fontWeight: 700,
             cursor: 'pointer', transition: 'all 0.3s',
             boxShadow: fuelLogged ? '0 4px 16px rgba(34,197,94,0.4)' : '0 4px 16px rgba(59,130,246,0.4)',
@@ -551,7 +551,7 @@ const recentActivities = [
   { icon: <Fuel size={16} color="#38bdf8" />,      color: '#38bdf8', action: 'Fuel entry logged',       detail: 'SG-ABC-2122 · 42L added at LKR 14,280',         time: '2 min ago' },
   { icon: <CheckCircle size={16} color="#34d399" />, color: '#34d399', action: 'Vehicle status updated',  detail: 'WP-CAB-8841 changed to Active',                  time: '18 min ago' },
   { icon: <Wrench size={16} color="#fbbf24" />,    color: '#fbbf24', action: 'Service record added',    detail: 'CP-DEF-3390 · Oil change completed',              time: '1 hr ago' },
-  { icon: <UserCog size={16} color="#818cf8" />,   color: '#818cf8', action: 'Driver assigned',          detail: 'NW-LMN-5521 assigned to John Silva',             time: '2 hrs ago' },
+  { icon: <UserCog size={16} color="#3b82f6" />,   color: '#3b82f6', action: 'Driver assigned',          detail: 'NW-LMN-5521 assigned to John Silva',             time: '2 hrs ago' },
   { icon: <AlertTriangle size={16} color="#f87171" />, color: '#f87171', action: 'Alert raised',         detail: 'WP-PQR-9034 · Service overdue risk detected',     time: '3 hrs ago' },
   { icon: <TrendingUp size={16} color="#34d399" />, color: '#34d399', action: 'Mileage updated',         detail: 'SG-ABC-2122 · Odometer updated to 48,320 km',    time: '4 hrs ago' },
   { icon: <Settings2 size={16} color="#94a3b8" />, color: '#94a3b8', action: 'Vehicle profile edited',   detail: 'CP-DEF-3390 · Insurance details updated',         time: 'Yesterday' },
@@ -798,7 +798,7 @@ const DashboardPage = () => {
             borderRadius: 28, padding: '40px', marginBottom: 32,
             position: 'relative', overflow: 'hidden',
             boxShadow: '0 16px 48px rgba(0,0,0,0.4)',
-            border: '1px solid rgba(99,102,241,0.2)',
+            border: '1px solid rgba(37, 99, 235,0.2)',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16,
           }}>
             {/* Decorative circles */}
