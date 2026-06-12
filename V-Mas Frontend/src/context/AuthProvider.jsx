@@ -11,7 +11,7 @@ const buildUser = (userDto) => ({
   accountStatus: userDto.accountStatus, // "ACTIVE" | "INACTIVE" | "PENDING"
   profilePicture:
     userDto.profilePicture ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(userDto.userName)}&background=6366f1&color=fff&size=128&bold=true`,
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(userDto.userName)}&background=2563eb&color=fff&size=128&bold=true`,
 })
 
 export const AuthProvider = ({ children }) => {

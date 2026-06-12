@@ -54,7 +54,7 @@ const SignUpPage = () => {
     setLoading(true);
     const { confirmPassword, ...submitData } = formData;
     if (!submitData.profilePicture) {
-      submitData.profilePicture = `https://ui-avatars.com/api/?name=${encodeURIComponent(submitData.userName)}&background=6366f1&color=fff&size=128&bold=true`;
+      submitData.profilePicture = `https://ui-avatars.com/api/?name=${encodeURIComponent(submitData.userName)}&background=2563eb&color=fff&size=128&bold=true`;
     }
     const result = await register(submitData);
     if (result.success) {

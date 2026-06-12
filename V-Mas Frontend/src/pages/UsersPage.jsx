@@ -323,7 +323,7 @@ const UsersPage = () => {
     try {
       const submitData = { ...formData }
       if (!submitData.profilePicture)
-        submitData.profilePicture = `https://ui-avatars.com/api/?name=${encodeURIComponent(submitData.userName)}&background=6366f1&color=fff&bold=true`
+        submitData.profilePicture = `https://ui-avatars.com/api/?name=${encodeURIComponent(submitData.userName)}&background=2563eb&color=fff&bold=true`
       if (editingUser) {
         if (!submitData.password) delete submitData.password
         await userAPI.updateUser(editingUser.id, submitData)
@@ -487,7 +487,7 @@ const UsersPage = () => {
                         onMouseEnter={e => { e.currentTarget.style.borderColor = D.gold + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                            <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=fff&bold=true`} alt={u.userName} style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${D.border}` }} onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=fff&bold=true`; }} />
+                            <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`} alt={u.userName} style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${D.border}` }} onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`; }} />
                             <div>
                               <p style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.05rem' }}>{u.userName}</p>
                               <p style={{ margin: '2px 0 8px', fontSize: '0.8rem', color: D.textSub }}>{u.email}</p>
@@ -625,7 +625,7 @@ const UsersPage = () => {
                         onMouseLeave={e => { e.currentTarget.style.borderColor = D.borderHi; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)' }}>
                           
                           <div style={{ display: 'flex', alignItems: 'center', gap: 20, flex: '1 1 300px' }}>
-                            <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=fff&bold=true`} alt={u.userName} style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${D.border}` }} onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=fff&bold=true`; }} />
+                            <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`} alt={u.userName} style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${D.border}` }} onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`; }} />
                             <div>
                               <p style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.2rem', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{u.userName}</p>
                               <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: D.textSub }}>{u.email}</p>
@@ -746,12 +746,12 @@ const UsersPage = () => {
                     <label style={labelStyle}>Profile Picture <span style={{ color: D.textFaint, fontWeight: 400, textTransform: 'none' }}>(optional — upload an image)</span></label>
                     <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
                       <img
-                        src={formData.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.userName || 'U')}&background=6366f1&color=fff&size=128&bold=true`}
+                        src={formData.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.userName || 'U')}&background=2563eb&color=fff&size=128&bold=true`}
                         alt="preview"
                         style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${D.surfaceHi}`, boxShadow: `0 0 0 1px ${D.border}`, flexShrink: 0 }}
                         onError={e => {
                           e.target.onerror = null;
-                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.userName || 'U')}&background=6366f1&color=fff&size=128&bold=true`
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.userName || 'U')}&background=2563eb&color=fff&size=128&bold=true`
                         }}
                       />
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>

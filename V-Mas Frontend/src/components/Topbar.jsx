@@ -232,11 +232,11 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
             border: 'none',
             cursor: 'pointer',
             background: isDark
-              ? 'linear-gradient(135deg, #1e1b4b, #312e81)'
-              : 'linear-gradient(135deg, #e0e7ff, #c7d2fe)',
+              ? 'linear-gradient(135deg, #172554, #1e3a8a)'
+              : 'linear-gradient(135deg, #dbeafe, #bfdbfe)',
             boxShadow: isDark
-              ? '0 0 0 1px rgba(99,102,241,0.4), 0 4px 16px rgba(99,102,241,0.3), inset 0 1px 0 rgba(255,255,255,0.08)'
-              : '0 0 0 1px rgba(79,70,229,0.2), 0 2px 8px rgba(79,70,229,0.12), inset 0 1px 0 rgba(255,255,255,0.8)',
+              ? '0 0 0 1px rgba(37, 99, 235,0.4), 0 4px 16px rgba(37, 99, 235,0.3), inset 0 1px 0 rgba(255,255,255,0.08)'
+              : '0 0 0 1px rgba(29, 78, 216,0.2), 0 2px 8px rgba(29, 78, 216,0.12), inset 0 1px 0 rgba(255,255,255,0.8)',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             outline: 'none',
           }}
@@ -249,21 +249,21 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
             borderRadius: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: isDark
-              ? 'linear-gradient(135deg, #6366f1, #818cf8)'
+              ? 'linear-gradient(135deg, #2563eb, #3b82f6)'
               : 'linear-gradient(135deg, #ffffff, #f0f4ff)',
             boxShadow: isDark
-              ? '0 2px 8px rgba(99,102,241,0.6), 0 0 12px rgba(99,102,241,0.4)'
-              : '0 2px 6px rgba(79,70,229,0.25), 0 1px 2px rgba(0,0,0,0.08)',
+              ? '0 2px 8px rgba(37, 99, 235,0.6), 0 0 12px rgba(37, 99, 235,0.4)'
+              : '0 2px 6px rgba(29, 78, 216,0.25), 0 1px 2px rgba(0,0,0,0.08)',
             transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease, box-shadow 0.3s ease',
           }}>
             {isDark
               ? <Moon size={12} color="#fff" />
-              : <Sun size={12} color="#4f46e5" />
+              : <Sun size={12} color="#1d4ed8" />
             }
           </span>
           {/* Background icon hints */}
-          <Sun size={10} color={isDark ? 'rgba(255,255,255,0.2)' : 'rgba(79,70,229,0.3)'} style={{ marginLeft: 4, flexShrink: 0 }} />
-          <Moon size={10} color={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(79,70,229,0.2)'} style={{ marginLeft: 'auto', marginRight: 4, flexShrink: 0 }} />
+          <Sun size={10} color={isDark ? 'rgba(255,255,255,0.2)' : 'rgba(29, 78, 216,0.3)'} style={{ marginLeft: 4, flexShrink: 0 }} />
+          <Moon size={10} color={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(29, 78, 216,0.2)'} style={{ marginLeft: 'auto', marginRight: 4, flexShrink: 0 }} />
         </button>
 
         {/* Unified Notification Bell */}
