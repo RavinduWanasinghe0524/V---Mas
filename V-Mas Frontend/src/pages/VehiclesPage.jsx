@@ -9,8 +9,8 @@ import { getAlertLevel, computeMileageProgress, computeDateAlert, ALERT_COLORS, 
 import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download } from 'lucide-react'
 
 const onFocus = e => {
-  e.target.style.borderColor = 'rgba(99,102,241,0.5)'
-  e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'
+  e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'
+  e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235,0.1)'
 }
 const onBlur = e => {
   e.target.style.borderColor = ''
@@ -506,7 +506,7 @@ const VehiclesPage = () => {
               background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
               borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
               boxShadow: '0 16px 48px rgba(0,0,0,0.4)',
-              border: '1px solid rgba(99,102,241,0.2)',
+              border: '1px solid rgba(37, 99, 235,0.2)',
               display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16,
             }}>
               {/* Decorative circles */}
@@ -649,10 +649,10 @@ const VehiclesPage = () => {
                         style={{
                           padding: '10px 18px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800,
                           border: filter === s ? 'none' : `1px solid ${D.border}`,
-                          background: filter === s ? 'linear-gradient(135deg, #3b82f6, #6366f1)' : 'rgba(255,255,255,0.05)',
+                          background: filter === s ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'rgba(255,255,255,0.05)',
                           color: filter === s ? '#fff' : D.textSub,
                           cursor: 'pointer', transition: 'all 0.15s ease',
-                          boxShadow: filter === s ? '0 4px 12px rgba(99,102,241,0.3)' : 'none',
+                          boxShadow: filter === s ? '0 4px 12px rgba(37, 99, 235,0.3)' : 'none',
                         }}
                       >
                         {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
@@ -714,7 +714,7 @@ const VehiclesPage = () => {
                                   cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
                                   transition: 'color 0.15s ease', display: 'flex', alignItems: 'center', gap: 6
                                 }}
-                                onMouseEnter={e => e.currentTarget.style.color = '#818cf8'}
+                                onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'}
                                 onMouseLeave={e => e.currentTarget.style.color = D.blue}
                               >
                                 {v.registrationNo ?? 'N/A'}
@@ -796,14 +796,14 @@ const VehiclesPage = () => {
           {isModalOpen && (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={closeModal}>
               <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-                <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
                     <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
                       <Plus size={24} />
                     </div>
                     <div>
                       <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>Add New Vehicle</h2>
-                      <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#a5b4fc', fontWeight: 600, opacity: 0.9 }}>Register a new vehicle in the system.</p>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600, opacity: 0.9 }}>Register a new vehicle in the system.</p>
                     </div>
                   </div>
                   <button onClick={closeModal} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
@@ -870,7 +870,7 @@ const VehiclesPage = () => {
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 12 }}>
-                    <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(37, 99, 235,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                       <Check size={16} /> Add Vehicle
                     </button>
                     <button type="button" onClick={closeModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
@@ -886,14 +886,14 @@ const VehiclesPage = () => {
           {isEditModalOpen && (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={closeEditModal}>
               <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-                <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
                     <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
                       <Edit2 size={24} />
                     </div>
                     <div>
                       <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>Edit Vehicle</h2>
-                      <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#a5b4fc', fontWeight: 600, opacity: 0.9 }}>Refining details for {editingVehicle?.registrationNo}</p>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600, opacity: 0.9 }}>Refining details for {editingVehicle?.registrationNo}</p>
                     </div>
                   </div>
                   <button onClick={closeEditModal} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
@@ -970,7 +970,7 @@ const VehiclesPage = () => {
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 12 }}>
-                    <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(37, 99, 235,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                       <Check size={16} /> Save Changes
                     </button>
                     <button type="button" onClick={closeEditModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
@@ -1032,13 +1032,13 @@ const VehiclesPage = () => {
                     width: 52,
                     height: 52,
                     borderRadius: 14,
-                    background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)',
+                    background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)',
                     color: '#fff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '1.5rem',
-                    boxShadow: '0 4px 14px rgba(99,102,241,0.3)',
+                    boxShadow: '0 4px 14px rgba(37, 99, 235,0.3)',
                     flexShrink: 0
                   }}>
                     <Car size={26} />
@@ -1087,9 +1087,9 @@ const VehiclesPage = () => {
                       border: 'none',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
-                      background: profileActiveTab === tab ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'rgba(255,255,255,0.04)',
+                      background: profileActiveTab === tab ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'rgba(255,255,255,0.04)',
                       color: profileActiveTab === tab ? '#fff' : D.textSub,
-                      boxShadow: profileActiveTab === tab ? '0 4px 10px rgba(99,102,241,0.25)' : 'none',
+                      boxShadow: profileActiveTab === tab ? '0 4px 10px rgba(37, 99, 235,0.25)' : 'none',
                       fontFamily: 'inherit'
                     }}
                   >
