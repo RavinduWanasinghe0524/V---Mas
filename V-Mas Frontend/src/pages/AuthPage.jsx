@@ -311,7 +311,7 @@ const SignupSlide = ({ onSwitch, isActive }) => {
     if (formData.password.length < 6)                   { setError('Password must be at least 6 characters'); return; }
     setLoading(true);
     const { confirmPassword, ...data } = formData;
-    if (!data.profilePicture) data.profilePicture = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.userName)}&background=6366f1&color=fff&size=128&bold=true`;
+    if (!data.profilePicture) data.profilePicture = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.userName)}&background=2563eb&color=fff&size=128&bold=true`;
     const result = await register(data);
     if (result.success) { result.pending ? setRegistered(true) : navigate('/dashboard'); }
     else { setError(result.error || 'Registration failed.'); }

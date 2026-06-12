@@ -1,50 +1,8 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext } from 'react';
 
-const ThemeContext = createContext({ theme: 'blue', toggleTheme: () => { } });
+export const ThemeContext = createContext({ theme: 'blue', toggleTheme: () => { } });
 
 export const useTheme = () => useContext(ThemeContext);
-
-export const ThemeProvider = ({ children }) => {
-  const getInitialTheme = () => {
-    const stored = localStorage.getItem('vmas-theme');
-    if (stored === 'light' || stored === 'blue') return stored;
-    // Default to 'blue' (existing dark look) unless OS is explicitly light
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-      return 'light';
-    }
-    return 'blue';
-  };
-
-  const [theme, setThemeState] = useState(getInitialTheme);
-
-  // Apply theme to <html> data-theme attribute
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('vmas-theme', theme);
-  }, [theme]);
-
-  // Listen for OS preference changes (only if no stored preference)
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: light)');
-    const handler = (e) => {
-      if (!localStorage.getItem('vmas-theme')) {
-        setThemeState(e.matches ? 'light' : 'blue');
-      }
-    };
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
-
-  const toggleTheme = () => {
-    setThemeState(prev => (prev === 'blue' ? 'light' : 'blue'));
-  };
-
-  return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme: setThemeState }}>
-      {children}
-    </ThemeContext.Provider>
-  );
-};
 
 /**
  * useD() — drop-in replacement for the hardcoded `const D = {...}` dark palette.
@@ -61,19 +19,19 @@ export const useD = () => {
     surfaceHi: isDark ? '#111c36' : '#f8f8fd',
 
     // Borders
-    border: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(79,70,229,0.1)',
-    borderHi: isDark ? 'rgba(99,102,241,0.25)' : 'rgba(79,70,229,0.25)',
+    border: isDark ? 'rgba(37, 99, 235,0.12)' : 'rgba(29, 78, 216,0.1)',
+    borderHi: isDark ? 'rgba(37, 99, 235,0.25)' : 'rgba(29, 78, 216,0.25)',
 
     // Text
     text: isDark ? '#f0f2ff' : '#0f0f1a',
-    textSub: isDark ? '#8892b4' : '#6b7280',
+    textSub: isDark ? '#8892b4' : '#4b5563',
     textFaint: isDark ? '#4b5680' : '#9ca3af',
 
     // Accent colours
-    purple: isDark ? '#818cf8' : '#4f46e5',
-    purpleDim: isDark ? 'rgba(99,102,241,0.18)' : 'rgba(79,70,229,0.1)',
-    indigo: isDark ? '#6366f1' : '#4338ca',
-    indigoDim: isDark ? 'rgba(99,102,241,0.18)' : 'rgba(67,56,202,0.1)',
+    purple: isDark ? '#3b82f6' : '#1d4ed8',
+    purpleDim: isDark ? 'rgba(37, 99, 235,0.18)' : 'rgba(29, 78, 216,0.1)',
+    indigo: isDark ? '#2563eb' : '#1e40af',
+    indigoDim: isDark ? 'rgba(37, 99, 235,0.18)' : 'rgba(29, 78, 216,0.1)',
     blue: isDark ? '#38bdf8' : '#0284c7',
     blueDim: isDark ? 'rgba(56,189,248,0.15)' : 'rgba(2,132,199,0.1)',
     green: isDark ? '#34d399' : '#059669',
@@ -88,8 +46,8 @@ export const useD = () => {
     tealDim: isDark ? 'rgba(45,212,191,0.15)' : 'rgba(13,148,136,0.1)',
 
     // Derived helpers
-    inputBg: isDark ? 'rgba(99,102,241,0.06)' : '#f8f8fd',
-    inputBorder: isDark ? 'rgba(99,102,241,0.18)' : 'rgba(79,70,229,0.2)',
+    inputBg: isDark ? 'rgba(37, 99, 235,0.06)' : '#f8f8fd',
+    inputBorder: isDark ? 'rgba(37, 99, 235,0.18)' : 'rgba(29, 78, 216,0.2)',
     modalBg: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(15,15,26,0.5)',
   };
 };

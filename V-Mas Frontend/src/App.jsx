@@ -1,8 +1,9 @@
 import { lazy, Suspense } from 'react'
 import logo from './assets/logo.png'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext'
-import { ThemeProvider } from './context/ThemeContext'
+import { AuthProvider } from './context/AuthProvider'
+import { ThemeProvider } from './context/ThemeProvider'
+
 import PrivateRoute from './components/PrivateRoute'
 
 // ── Eagerly loaded (entry points — always needed immediately) ────────────
