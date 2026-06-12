@@ -1912,6 +1912,8 @@ const ServicePage = () => {
   const focusBorder = (e) => { e.target.style.borderColor = 'rgba(13,148,136,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(13,148,136,0.12)' }
   const blurBorder = (e, hasErr) => { e.target.style.borderColor = hasErr ? 'rgba(248,113,113,0.5)' : D.inputBorder; e.target.style.boxShadow = 'none' }
 
+
+
   return (
     <div className="app-shell">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -1922,327 +1924,527 @@ const ServicePage = () => {
           onMenuToggle={() => setSidebarOpen(o => !o)}
         />
 
+        {/* ── SCOPED KEYFRAMES ── */}
+        <style>{`
+          @keyframes auroraPulse {
+            0%,100% { opacity: 0.55; transform: scale(1) translateY(0); }
+            50% { opacity: 0.85; transform: scale(1.04) translateY(-4px); }
+          }
+          @keyframes dotPulse {
+            0%,100% { box-shadow: 0 0 0 0 rgba(52,211,153,0.6); }
+            70% { box-shadow: 0 0 0 8px rgba(52,211,153,0); }
+          }
+          @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes shimmer {
+            from { background-position: -200% center; }
+            to   { background-position: 200% center; }
+          }
+          @keyframes spin { to { transform: rotate(360deg); } }
+          @keyframes pulseBar {
+            0%,100% { opacity: 1; } 50% { opacity: 0.55; }
+          }
+          @keyframes fadeUp {
+            from { opacity:0; transform:translateY(10px); }
+            to   { opacity:1; transform:translateY(0); }
+          }
+          @keyframes fadeIn {
+            from { opacity:0; } to { opacity:1; }
+          }
+          @keyframes scaleIn {
+            from { opacity:0; transform:scale(0.95); }
+            to   { opacity:1; transform:scale(1); }
+          }
+          @keyframes slideInRight {
+            from { transform: translateX(100%); }
+            to   { transform: translateX(0); }
+          }
+          @keyframes pulse {
+            0%,100% { opacity:1; } 50% { opacity:0.4; }
+          }
+          .svc-row-hover:hover { background: rgba(99,102,241,0.045) !important; }
+          .svc-kpi-card { transition: transform 0.22s ease, box-shadow 0.22s ease; }
+          .svc-kpi-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,0.22) !important; }
+          .svc-alert-card:hover { background: rgba(99,102,241,0.03); }
+        `}</style>
+
         <div className="page-body" style={{ padding: '28px 32px' }}>
 
-          {/* 1. HERO BANNER */}
+          {/* ══════════════════════════════════════════════════════
+              1. COMMAND HEADER — Deep navy aurora banner
+          ══════════════════════════════════════════════════════ */}
           <div style={{
-            background: 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)',
-            borderRadius: 20,
+            position: 'relative',
+            background: 'linear-gradient(135deg, #06091a 0%, #0a1230 45%, #0d1840 100%)',
+            borderRadius: 22,
             padding: '32px 36px',
             marginBottom: 28,
-            position: 'relative',
             overflow: 'hidden',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(99,102,241,0.2)',
+            boxShadow: '0 16px 48px rgba(0,0,0,0.45), 0 0 0 1px rgba(99,102,241,0.08)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: 'wrap',
-            gap: 16
+            gap: 20,
+            animation: 'fadeSlideUp 0.5s ease both',
           }}>
-            {/* Decorative mesh overlays */}
-            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 80% 50%, rgba(255,255,255,0.1) 0%, transparent 60%)', pointerEvents: 'none' }} />
-            
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
+            {/* Aurora blobs */}
+            <div style={{ position: 'absolute', top: '-40%', left: '-10%', width: '55%', height: '200%', background: 'radial-gradient(ellipse, rgba(99,102,241,0.18) 0%, transparent 65%)', animation: 'auroraPulse 6s ease-in-out infinite', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', top: '-20%', right: '-5%', width: '40%', height: '160%', background: 'radial-gradient(ellipse, rgba(45,212,191,0.12) 0%, transparent 60%)', animation: 'auroraPulse 8s ease-in-out infinite 2s', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: '-30%', left: '40%', width: '35%', height: '150%', background: 'radial-gradient(ellipse, rgba(251,191,36,0.07) 0%, transparent 60%)', animation: 'auroraPulse 10s ease-in-out infinite 4s', pointerEvents: 'none' }} />
+
+            {/* Left — identity */}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20, zIndex: 2 }}>
+              {/* Wrench icon in glowing ring */}
               <div style={{
-                background: 'rgba(255, 255, 255, 0.12)',
-                borderRadius: 16,
-                width: 64,
-                height: 64,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
+                width: 68, height: 68, borderRadius: 18,
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.35) 0%, rgba(45,212,191,0.2) 100%)',
+                border: '1.5px solid rgba(99,102,241,0.4)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 0 24px rgba(99,102,241,0.28), inset 0 1px 0 rgba(255,255,255,0.1)',
                 backdropFilter: 'blur(8px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)'
+                flexShrink: 0,
               }}>
-                <Wrench size={32} strokeWidth={1.5} />
+                <Wrench size={30} color="#a5b4fc" strokeWidth={1.6} />
               </div>
+
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
-                    Maintenance Center, {user?.userName || 'User'}!
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 5 }}>
+                  <h1 style={{
+                    margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#f0f2ff',
+                    letterSpacing: '-0.03em', fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif",
+                  }}>
+                    {isDriver ? 'Service History' : 'Maintenance Center'}
                   </h1>
                   <span style={{
-                    background: 'rgba(255, 255, 255, 0.15)',
-                    color: '#fff',
-                    padding: '3px 12px',
-                    borderRadius: 999,
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    backdropFilter: 'blur(4px)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                    background: 'rgba(99,102,241,0.2)',
+                    border: '1px solid rgba(99,102,241,0.3)',
+                    color: '#a5b4fc',
+                    padding: '3px 14px', borderRadius: 999,
+                    fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.06em',
+                    backdropFilter: 'blur(6px)',
                   }}>
-                    Service & Repairs
+                    {isDriver ? 'Driver View' : 'Fleet Operations'}
                   </span>
                 </div>
-                <p style={{ margin: '6px 0 0', color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.9rem' }}>
-                  Schedule services, manage work orders and minimise fleet downtime.
+
+                <p style={{ margin: '0 0 8px', color: 'rgba(165,180,252,0.7)', fontSize: '0.88rem', fontWeight: 400 }}>
+                  {isDriver
+                    ? 'View your service history and track vehicle maintenance records.'
+                    : 'Schedule services, manage work orders and minimise fleet downtime.'}
                 </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
-                  <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981', animation: 'pulse 1.5s infinite' }} />
-                  <span style={{ fontSize: '0.78rem', color: '#fff', fontWeight: 700, opacity: 0.9 }}>
-                    Live - {liveTime}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{
+                    width: 9, height: 9, borderRadius: '50%',
+                    background: '#34d399', display: 'inline-block',
+                    animation: 'dotPulse 1.8s ease-in-out infinite',
+                    flexShrink: 0,
+                  }} />
+                  <span style={{ fontSize: '0.77rem', color: 'rgba(255,255,255,0.75)', fontWeight: 600, letterSpacing: '0.02em' }}>
+                    Live — {liveTime}
+                  </span>
+                  <span style={{ color: 'rgba(165,180,252,0.4)', fontSize: '0.77rem' }}>·</span>
+                  <span style={{ fontSize: '0.77rem', color: 'rgba(165,180,252,0.55)', fontWeight: 500 }}>
+                    {services.length} records
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Right side actions */}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12, zIndex: 10 }}>
+            {/* Right — CTA buttons */}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, zIndex: 2, flexShrink: 0 }}>
               {!isAdmin && (
                 <button
                   onClick={openScheduleModal}
                   style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '10px 20px',
-                    borderRadius: 12,
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    background: 'rgba(255, 255, 255, 0.15)',
-                    color: '#fff',
-                    border: '1px solid rgba(255, 255, 255, 0.25)',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    backdropFilter: 'blur(4px)',
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '10px 22px', borderRadius: 12,
+                    fontSize: '0.83rem', fontWeight: 700,
+                    background: 'rgba(99,102,241,0.14)',
+                    color: '#a5b4fc',
+                    border: '1px solid rgba(99,102,241,0.28)',
+                    cursor: 'pointer', transition: 'all 0.2s ease',
+                    backdropFilter: 'blur(6px)',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.28)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.14)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.28)' }}
                 >
-                  <Clock size={16} /> Schedule
+                  <Clock size={15} /> Schedule
                 </button>
               )}
-
               {!isAdmin && (
                 <button
                   onClick={() => openAddModal()}
                   style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '10px 20px',
-                    borderRadius: 12,
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    background: '#ffffff',
-                    color: '#1d4ed8',
-                    border: 'none',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.15)',
-                    transition: 'all 0.2s ease',
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '10px 22px', borderRadius: 12,
+                    fontSize: '0.83rem', fontWeight: 700,
+                    background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+                    color: '#fff',
+                    border: '1px solid rgba(99,102,241,0.45)',
+                    cursor: 'pointer', transition: 'all 0.2s ease',
+                    boxShadow: '0 4px 16px rgba(99,102,241,0.38)',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(255,255,255,0.4)' }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(0, 0, 0, 0.15)' }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.52)' }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.38)' }}
                 >
-                  + New Work Order
+                  <Sparkles size={15} /> New Work Order
                 </button>
               )}
             </div>
           </div>
 
-          {/* 2. MAINTENANCE OVERVIEW HEADING */}
-          <div style={{ marginBottom: 20 }}>
-            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
-              Maintenance Overview
-            </h2>
-            <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: D.textSub }}>
-              Service health at a glance
-            </p>
-          </div>
-
-          {/* 3. 5 KPI CARDS ROW */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 28 }}>
-            
-            {/* CARD 1: OPEN ORDERS */}
-            <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16, padding: '20px', display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 10, background: D.blueDim, color: D.blue }}>
-                <ClipboardList size={18} />
-              </div>
-              <div>
-                <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Open Orders</p>
-                <p style={{ margin: '4px 0 0', fontSize: '1.6rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>{openOrdersCount}</p>
-                <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: D.textFaint }}>Awaiting / in progress</p>
-              </div>
-            </div>
-
-            {/* CARD 2: DUE THIS WEEK */}
-            <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16, padding: '20px', display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 10, background: D.purpleDim, color: D.purple }}>
-                <Calendar size={18} />
-              </div>
-              <div>
-                <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Due This Week</p>
-                <p style={{ margin: '4px 0 0', fontSize: '1.6rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>{dueThisWeekCount}</p>
-                <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: D.textFaint }}>Scheduled services</p>
-              </div>
-            </div>
-
-            {/* CARD 3: OVERDUE */}
-            <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16, padding: '20px', display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 10, background: D.redDim, color: D.red }}>
-                <ShieldAlert size={18} />
-              </div>
-              <div>
-                <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Overdue</p>
-                <p style={{ margin: '4px 0 0', fontSize: '1.6rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>{overdueCount}</p>
-                <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: D.textFaint }}>Needs attention</p>
-              </div>
-            </div>
-
-            {/* CARD 4: MTD COST */}
-            <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16, padding: '20px', display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', position: 'relative' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 10, background: D.goldDim, color: D.gold }}>
-                <Wallet size={18} />
-              </div>
-              {costTrendPercent !== 0 && (
-                <div style={{
-                  position: 'absolute', top: 20, right: 20,
-                  fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: 4,
-                  background: costTrendPercent < 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-                  color: costTrendPercent < 0 ? '#10b981' : '#ef4444',
-                  border: `1px solid ${costTrendPercent < 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`
-                }}>
-                  {costTrendPercent < 0 ? '▼' : '▲'} {Math.abs(costTrendPercent)}%
+          {/* ══════════════════════════════════════════════════════
+              2. 5 KPI GLOWING METRIC TILES
+          ══════════════════════════════════════════════════════ */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 26 }}>
+            {[
+              {
+                icon: <ClipboardList size={20} />,
+                label: 'Open Orders', value: openOrdersCount,
+                sub: 'Awaiting action',
+                iconBg: 'rgba(59,130,246,0.15)', iconColor: '#60a5fa',
+                glowColor: 'rgba(59,130,246,0.12)',
+              },
+              {
+                icon: <Calendar size={20} />,
+                label: 'Due This Week', value: dueThisWeekCount,
+                sub: 'Scheduled services',
+                iconBg: 'rgba(139,92,246,0.15)', iconColor: '#a78bfa',
+                glowColor: 'rgba(139,92,246,0.1)',
+              },
+              {
+                icon: <ShieldAlert size={20} />,
+                label: 'Overdue', value: overdueCount,
+                sub: 'Needs attention',
+                iconBg: 'rgba(239,68,68,0.15)', iconColor: '#f87171',
+                glowColor: 'rgba(239,68,68,0.1)',
+                urgent: overdueCount > 0,
+              },
+              {
+                icon: <Wallet size={20} />,
+                label: 'MTD Cost',
+                value: null,
+                displayValue: `LKR ${mtdCost >= 1000 ? (mtdCost / 1000).toFixed(1) + 'k' : mtdCost.toLocaleString()}`,
+                fullValue: `LKR ${mtdCost.toLocaleString()}`,
+                sub: 'Month to date',
+                iconBg: 'rgba(251,191,36,0.15)', iconColor: '#fbbf24',
+                glowColor: 'rgba(251,191,36,0.08)',
+                trend: costTrendPercent,
+              },
+              {
+                icon: <Clock size={20} />,
+                label: 'Avg Downtime',
+                value: null,
+                displayValue: `${avgDowntime} hrs`,
+                sub: 'Per completed service',
+                iconBg: 'rgba(45,212,191,0.15)', iconColor: '#2dd4bf',
+                glowColor: 'rgba(45,212,191,0.08)',
+                trend: downtimeTrendPercent,
+              },
+            ].map((card, i) => (
+              <div
+                key={i}
+                className="svc-kpi-card"
+                style={{
+                  background: D.surface,
+                  borderRadius: 16,
+                  padding: '20px 22px',
+                  overflow: 'hidden',
+                  border: `1px solid ${card.urgent ? 'rgba(239,68,68,0.22)' : D.border}`,
+                  boxShadow: card.urgent
+                    ? '0 4px 20px rgba(239,68,68,0.12)'
+                    : `0 4px 20px ${card.glowColor}`,
+                  position: 'relative',
+                  animation: `fadeSlideUp 0.4s ease ${i * 0.07}s both`,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 11,
+                    background: card.iconBg,
+                    border: `1px solid ${card.iconColor}22`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: card.iconColor,
+                  }}>
+                    {card.icon}
+                  </div>
+                  {card.trend !== undefined && card.trend !== 0 && (
+                    <div style={{
+                      fontSize: '0.62rem', fontWeight: 800,
+                      padding: '3px 8px', borderRadius: 6,
+                      background: card.trend < 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+                      color: card.trend < 0 ? '#10b981' : '#ef4444',
+                      border: `1px solid ${card.trend < 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                    }}>
+                      {card.trend < 0 ? '▼' : '▲'} {Math.abs(card.trend)}%
+                    </div>
+                  )}
+                  {card.urgent && (
+                    <div style={{
+                      fontSize: '0.58rem', fontWeight: 800,
+                      padding: '3px 8px', borderRadius: 6,
+                      background: 'rgba(239,68,68,0.14)', color: '#f87171',
+                      border: '1px solid rgba(239,68,68,0.28)',
+                      animation: 'pulseBar 1.8s ease-in-out infinite',
+                      letterSpacing: '0.05em',
+                    }}>
+                      URGENT
+                    </div>
+                  )}
                 </div>
-              )}
-              <div>
-                <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>MTD Cost</p>
-                <p style={{ margin: '4px 0 0', fontSize: '1.35rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`LKR ${mtdCost.toLocaleString()}`}>
-                  LKR {mtdCost.toLocaleString()}
+
+                <p style={{ margin: '0 0 5px', fontSize: '0.65rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  {card.label}
                 </p>
-                <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: D.textFaint }}>Month to date</p>
+                <p
+                  style={{
+                    margin: '0 0 4px', fontFamily: "'Outfit', sans-serif",
+                    fontSize: card.displayValue ? '1.38rem' : '1.75rem',
+                    fontWeight: 900, color: card.urgent ? '#f87171' : D.text,
+                    lineHeight: 1,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}
+                  title={card.fullValue || card.displayValue || String(card.value)}
+                >
+                  {card.displayValue ?? card.value}
+                </p>
+                <p style={{ margin: 0, fontSize: '0.68rem', color: D.textFaint, fontWeight: 500 }}>{card.sub}</p>
               </div>
-            </div>
-
-            {/* CARD 5: AVG DOWNTIME */}
-            <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16, padding: '20px', display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', position: 'relative' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 10, background: D.tealDim, color: D.teal }}>
-                <Clock size={18} />
-              </div>
-              {downtimeTrendPercent !== 0 && (
-                <div style={{
-                  position: 'absolute', top: 20, right: 20,
-                  fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: 4,
-                  background: downtimeTrendPercent < 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-                  color: downtimeTrendPercent < 0 ? '#10b981' : '#ef4444',
-                  border: `1px solid ${downtimeTrendPercent < 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`
-                }}>
-                  {downtimeTrendPercent < 0 ? '▼' : '▲'} {Math.abs(downtimeTrendPercent)}%
-                </div>
-              )}
-              <div>
-                <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avg Downtime</p>
-                <p style={{ margin: '4px 0 0', fontSize: '1.6rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>{avgDowntime} hrs</p>
-                <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: D.textFaint }}>Per service</p>
-              </div>
-            </div>
-
+            ))}
           </div>
 
-          {/* 4. CHARTS SECTION */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 20, marginBottom: 28 }}>
-            
-            {/* LEFT: DOWNTIME TREND */}
-            <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, padding: '24px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
-              <div style={{ marginBottom: 16 }}>
-                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>Downtime Trend</h3>
-                <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: D.textSub }}>Total hours off-road per month</p>
+          {/* ══════════════════════════════════════════════════════
+              3. SERVICE ALERTS PANEL — Full Width
+          ══════════════════════════════════════════════════════ */}
+          <div style={{
+            background: D.surface,
+            border: `1px solid ${alertRecords.length > 0 ? (alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)') : D.border}`,
+            borderRadius: 20,
+            padding: '24px 28px',
+            marginBottom: 26,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+            animation: 'fadeSlideUp 0.4s ease 0.32s both',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
+                  Service Alerts
+                </h3>
+                <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>Upcoming & overdue</p>
               </div>
-              <div style={{ flex: 1, minHeight: 180, position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', paddingBottom: 24, paddingTop: 10 }}>
+              {alertRecords.length > 0 && (
+                <span style={{
+                  background: alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                  color: alertRecords.some(r => r._alertLevel === 'OVERDUE') ? '#f87171' : '#fbbf24',
+                  border: `1px solid ${alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  padding: '4px 12px',
+                  borderRadius: 999,
+                }}>
+                  {alertRecords.length} active
+                </span>
+              )}
+            </div>
+
+            <div style={{
+              border: alertRecords.length > 0 ? `1px solid ${alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'}` : 'none',
+              borderRadius: 16,
+              overflow: 'hidden',
+              background: D.bg,
+            }}>
+              {alertRecords.length === 0 ? (
+                <div style={{ padding: '32px 20px', textAlign: 'center' }}>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: '50%', margin: '0 auto 12px',
+                    background: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <CheckCircle size={20} color="#34d399" />
+                  </div>
+                  <h4 style={{ margin: '0 0 4px', fontSize: '0.85rem', fontWeight: 800, color: D.text }}>All vehicles healthy</h4>
+                  <p style={{ margin: 0, fontSize: '0.72rem', color: D.textSub }}>No upcoming or overdue service risks.</p>
+                </div>
+              ) : (
+                alertRecords.map((r, ai) => {
+                  const isOverdue = r._alertLevel === 'OVERDUE'
+                  const accentColor = isOverdue ? '#f87171' : '#fbbf24'
+                  const accentBg = isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'rgba(251, 191, 36, 0.1)'
+                  const accentBorder = isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'
+                  const mileage = computeMileageProgress(r, r._vehicleCurrentKm)
+                  const date = computeDateAlert(r)
+
+                  return (
+                    <div
+                      key={r.id}
+                      className="svc-alert-card"
+                      onClick={() => setDetailModal({ isOpen: true, record: r })}
+                      style={{
+                        borderBottom: ai < alertRecords.length - 1 ? `1px solid ${D.border}` : 'none',
+                        borderLeft: `4px solid ${accentColor}`,
+                        padding: '16px 20px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 16,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          width: 40, height: 40, borderRadius: 10,
+                          background: accentBg, border: `1px solid ${accentBorder}`,
+                          color: accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0,
+                        }}>
+                          <Wrench size={16} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>
+                              {isOverdue ? 'Service Overdue Risk' : 'Service Due Soon'}
+                            </span>
+                            <span style={{
+                              fontSize: '0.6rem', fontWeight: 800, padding: '2px 8px',
+                              borderRadius: 999, background: accentBg, color: accentColor,
+                              border: `1px solid ${accentBorder}`,
+                              textTransform: 'uppercase', letterSpacing: '0.06em',
+                            }}>
+                              {isOverdue ? 'URGENT' : 'UPCOMING'}
+                            </span>
+                          </div>
+                          <p style={{ margin: 0, fontSize: '0.78rem', color: D.textSub, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                            <strong style={{ color: accentColor }}>{r.vehicleRegNumber}</strong>
+                            {' · '}{r.serviceType?.replace(/_/g, ' ')}
+                            {mileage && ` · ${fmtKmRemaining(mileage.remaining)}`}
+                            {date && ` · ${fmtDaysRemaining(date.daysRemaining)}`}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={e => { e.stopPropagation(); setDetailModal({ isOpen: true, record: r }) }}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          border: `1px solid ${D.borderHi}`,
+                          color: D.text,
+                          borderRadius: 8,
+                          padding: '6px 16px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)' }}
+                      >
+                        View
+                      </button>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+
+          {/* ══════════════════════════════════════════════════════
+              4. ANALYTICS ROW — Downtime chart + Donut
+          ══════════════════════════════════════════════════════ */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 18, marginBottom: 26 }}>
+
+            {/* LEFT: DOWNTIME TREND */}
+            <div style={{
+              background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20,
+              padding: '24px 28px', display: 'flex', flexDirection: 'column',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+              animation: 'fadeSlideUp 0.4s ease 0.36s both',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
+                    Downtime Trend
+                  </h3>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>Total hours off-road per month</p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: D.surfaceHi, border: `1px solid ${D.border}`, borderRadius: 8, padding: '5px 12px' }}>
+                  <div style={{ width: 8, height: 8, borderRadius: 2, background: 'linear-gradient(135deg,#fbbf24,#6366f1)' }} />
+                  <span style={{ fontSize: '0.68rem', color: D.textSub, fontWeight: 700 }}>Last 6 months</span>
+                </div>
+              </div>
+
+              <div style={{ flex: 1, minHeight: 185, position: 'relative' }}>
                 {(() => {
                   const trendData = getDowntimeTrendData()
                   const maxHours = Math.max(...trendData.map(d => d.hours), 60)
                   return (
                     <div style={{ width: '100%', height: '100%' }}>
-                      <svg width="100%" height="160" viewBox="0 0 500 160" preserveAspectRatio="none">
+                      <svg width="100%" height="175" viewBox="0 0 500 175" preserveAspectRatio="none">
                         <defs>
-                          <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                          <linearGradient id="barGradNew" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor="#fbbf24" />
                             <stop offset="100%" stopColor="#6366f1" />
                           </linearGradient>
                         </defs>
-                        {/* Horizontal Gridlines */}
                         {[0, 0.25, 0.5, 0.75, 1].map(f => (
-                          <line
-                            key={f}
-                            x1="0" y1={140 - f * 140}
-                            x2="500" y2={140 - f * 140}
-                            stroke={D.border}
-                            strokeWidth="1"
-                            strokeDasharray="4 4"
-                          />
+                          <line key={f} x1="0" y1={148 - f * 148} x2="500" y2={148 - f * 148}
+                            stroke={D.border} strokeWidth="1" strokeDasharray="4 4" />
                         ))}
-                        {/* Vertical bars */}
                         {trendData.map((d, idx) => {
                           const slotW = 500 / 6
-                          const barW = 28
+                          const barW = 32
                           const x = idx * slotW + (slotW - barW) / 2
-                          const barH = (d.hours / maxHours) * 140
-                          const y = 140 - barH
+                          const barH = (d.hours / maxHours) * 148
+                          const y = 148 - barH
                           return (
                             <g key={idx}>
-                              <rect
-                                x={x}
-                                y={y}
-                                width={barW}
-                                height={barH}
-                                rx="4"
-                                fill="url(#barGrad)"
-                                style={{ transition: 'all 0.5s ease' }}
-                              >
+                              <rect x={x + 2} y={y + 2} width={barW} height={barH} rx="5" fill="rgba(0,0,0,0.2)" />
+                              <rect x={x} y={y} width={barW} height={barH} rx="5" fill="url(#barGradNew)" style={{ transition: 'all 0.5s ease' }}>
                                 <title>{d.hours} hours off-road</title>
                               </rect>
-                              <text
-                                x={x + barW / 2}
-                                y="156"
-                                textAnchor="middle"
-                                fill={D.textSub}
-                                fontSize="10"
-                                fontWeight="700"
-                              >
-                                {d.label}
-                              </text>
+                              <text x={x + barW / 2} y="165" textAnchor="middle" fill={D.textSub} fontSize="10" fontWeight="700">{d.label}</text>
+                              <text x={x + barW / 2} y={y - 4} textAnchor="middle" fill="rgba(251,191,36,0.75)" fontSize="8" fontWeight="800">{d.hours}h</text>
                             </g>
                           )
                         })}
                       </svg>
-                      {/* Left axis values */}
-                      <div style={{ position: 'absolute', left: 4, top: 4, fontSize: '0.62rem', color: D.textFaint, fontWeight: 700 }}>{Math.round(maxHours)}h</div>
-                      <div style={{ position: 'absolute', left: 4, top: 74, fontSize: '0.62rem', color: D.textFaint, fontWeight: 700 }}>{Math.round(maxHours / 2)}h</div>
-                      <div style={{ position: 'absolute', left: 4, top: 134, fontSize: '0.62rem', color: D.textFaint, fontWeight: 700 }}>0h</div>
+                      <div style={{ position: 'absolute', left: 0, top: 4, fontSize: '0.58rem', color: D.textFaint, fontWeight: 700 }}>{Math.round(maxHours)}h</div>
+                      <div style={{ position: 'absolute', left: 0, top: '40%', fontSize: '0.58rem', color: D.textFaint, fontWeight: 700 }}>{Math.round(maxHours / 2)}h</div>
+                      <div style={{ position: 'absolute', left: 0, bottom: 28, fontSize: '0.58rem', color: D.textFaint, fontWeight: 700 }}>0h</div>
                     </div>
                   )
                 })()}
               </div>
             </div>
 
-            {/* RIGHT: BY SERVICE TYPE */}
-            <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, padding: '24px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
-              <div style={{ marginBottom: 12 }}>
+            {/* RIGHT: BY SERVICE TYPE donut */}
+            <div style={{
+              background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20,
+              padding: '24px', display: 'flex', flexDirection: 'column',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+              animation: 'fadeSlideUp 0.4s ease 0.4s both',
+            }}>
+              <div style={{ marginBottom: 16 }}>
                 <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>By Service Type</h3>
-                <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: D.textSub }}>Share of work orders</p>
+                <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>Share of work orders</p>
               </div>
+
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                {/* Custom Donut Chart */}
                 {(() => {
                   const segments = getServiceTypeShare()
-                  const r = 46
+                  const r = 50
                   const circ = 2 * Math.PI * r
                   let accumulatedPercent = 0
                   return (
-                    <div style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <div style={{ position: 'relative', width: 130, height: 130 }}>
-                        <svg width="130" height="130" viewBox="0 0 120 120">
-                          <circle
-                            cx="60"
-                            cy="60"
-                            r={r}
-                            fill="transparent"
-                            stroke="rgba(255,255,255,0.03)"
-                            strokeWidth="11"
-                          />
+                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <div style={{ position: 'relative', width: 140, height: 140 }}>
+                        <svg width="140" height="140" viewBox="0 0 120 120">
+                          <circle cx="60" cy="60" r={r} fill="transparent" stroke="rgba(255,255,255,0.04)" strokeWidth="12" />
                           {segments.map((seg) => {
                             const strokeLength = (seg.pct / 100) * circ
                             const strokeOffset = circ - strokeLength
@@ -2250,36 +2452,37 @@ const ServicePage = () => {
                             accumulatedPercent += seg.pct
                             if (seg.pct === 0) return null
                             return (
-                              <circle
-                                key={seg.name}
-                                cx="60"
-                                cy="60"
-                                r={r}
-                                fill="transparent"
-                                stroke={seg.color}
-                                strokeWidth="11"
-                                strokeDasharray={circ}
+                              <circle key={seg.name}
+                                cx="60" cy="60" r={r}
+                                fill="transparent" stroke={seg.color}
+                                strokeWidth="12" strokeDasharray={circ}
                                 strokeDashoffset={strokeOffset}
+                                strokeLinecap="round"
                                 transform={`rotate(${rotation} 60 60)`}
-                                style={{ transition: 'stroke-dashoffset 0.5s ease' }}
-                              >
+                                style={{ transition: 'stroke-dashoffset 0.6s ease', filter: `drop-shadow(0 0 5px ${seg.color}55)` }}>
                                 <title>{seg.name}: {seg.count} ({seg.pct}%)</title>
                               </circle>
                             )
                           })}
                         </svg>
-                        {/* Center count info */}
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                          <span style={{ fontSize: '1.4rem', fontWeight: 900, color: D.text, fontFamily: "'Outfit', sans-serif" }}>{total}</span>
-                          <span style={{ fontSize: '0.62rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total</span>
+                          <span style={{ fontSize: '1.5rem', fontWeight: 900, color: D.text, fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>{total}</span>
+                          <span style={{ fontSize: '0.58rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Total</span>
                         </div>
                       </div>
-                      {/* Labels */}
-                      <div style={{ display: 'flex', justifyContent: 'center', gap: '8px 14px', flexWrap: 'wrap', marginTop: 12 }}>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 8px', marginTop: 16, width: '100%' }}>
                         {segments.map(seg => (
-                          <div key={seg.name} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', fontWeight: 700, color: D.textSub }}>
-                            <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: seg.color }} />
-                            <span>{seg.name}</span>
+                          <div key={seg.name} style={{
+                            display: 'flex', alignItems: 'center', gap: 7,
+                            background: D.surfaceHi, border: `1px solid ${D.border}`,
+                            borderRadius: 8, padding: '6px 10px',
+                          }}>
+                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: seg.color, flexShrink: 0, boxShadow: `0 0 5px ${seg.color}` }} />
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: '0.68rem', fontWeight: 700, color: D.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{seg.name}</div>
+                              <div style={{ fontSize: '0.6rem', color: D.textSub }}>{seg.pct}%</div>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -2288,466 +2491,273 @@ const ServicePage = () => {
                 })()}
               </div>
             </div>
-
           </div>
 
-          {/* 5. SIDE-BY-SIDE MAIN ROW */}
-          <div style={{ display: 'grid', gridTemplateColumns: '2.3fr 1fr', gap: 20, alignItems: 'start' }}>
-            
-            {/* LEFT: WORK ORDERS LIST TABLE */}
-            <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, padding: '24px 28px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: 20 }}>
-              
-              {/* Heading */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>Work Orders</h3>
-                  <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: D.textSub }}>Filter, track and export</p>
-                </div>
+          {/* ══════════════════════════════════════════════════════
+              5. MAIN WORK ORDERS DIRECTORY — Full Width
+          ══════════════════════════════════════════════════════ */}
+          <div style={{
+            background: D.surface, border: `1px solid ${D.border}`,
+            borderRadius: 20, overflow: 'hidden',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+            animation: 'fadeSlideUp 0.4s ease 0.44s both',
+          }}>
+            {/* Table header zone */}
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+              flexWrap: 'wrap', gap: 14,
+              padding: '22px 26px 18px',
+              borderBottom: `1px solid ${D.border}`,
+              background: D.surfaceHi,
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>Work Orders</h3>
+                <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: D.textSub }}>Filter, track and export service records</p>
               </div>
 
-              {/* Filtering, Search & Export Actions */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
-                {/* Left Status pill filters */}
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', background: 'rgba(255,255,255,0.02)', border: `1px solid ${D.border}`, padding: '4px', borderRadius: 10 }}>
-                  {[
-                    { val: 'ALL', label: 'All' },
-                    { val: 'Open', label: 'Open' },
-                    { val: 'In Progress', label: 'In Progress' },
-                    { val: 'Overdue', label: 'Overdue' },
-                    { val: 'Completed', label: 'Completed' }
-                  ].map(t => {
-                    const isSel = filter === t.val
-                    return (
-                      <button
-                        key={t.val}
-                        onClick={() => setFilter(t.val)}
-                        style={{
-                          background: isSel ? 'rgba(255,255,255,0.06)' : 'transparent',
-                          color: isSel ? D.text : D.textSub,
-                          border: isSel ? `1px solid ${D.borderHi}` : '1px solid transparent',
-                          borderRadius: 8,
-                          padding: '6px 14px',
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        {t.label}
-                      </button>
-                    )
-                  })}
-                </div>
-
-                {/* Right search and export */}
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flex: '1 1 auto', justifyContent: 'flex-end', minWidth: 260 }}>
-                  {/* Search Input */}
-                  <div style={{ position: 'relative', flex: '1 1 180px', maxWidth: 280 }}>
-                    <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: D.textSub, opacity: 0.8 }} />
-                    <input
-                      type="text"
-                      placeholder="Search work orders..."
-                      value={search}
-                      onChange={e => setSearch(e.target.value)}
+              {/* Status pill filters */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {[
+                  { val: 'ALL', label: 'All', color: '#6366f1' },
+                  { val: 'Open', label: 'Open', color: '#3b82f6' },
+                  { val: 'In Progress', label: 'In Progress', color: '#fbbf24' },
+                  { val: 'Overdue', label: 'Overdue', color: '#ef4444' },
+                  { val: 'Completed', label: 'Done', color: '#10b981' },
+                ].map(t => {
+                  const isSel = filter === t.val
+                  return (
+                    <button
+                      key={t.val}
+                      onClick={() => setFilter(t.val)}
                       style={{
-                        width: '100%',
-                        padding: '8px 12px 8px 30px',
-                        background: D.inputBg,
-                        border: `1px solid ${search ? D.purple : D.inputBorder}`,
-                        borderRadius: 10,
-                        color: D.text,
-                        fontSize: '0.82rem',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                        transition: 'all 0.15s ease'
+                        padding: '5px 14px', borderRadius: 999,
+                        fontSize: '0.74rem', fontWeight: 700,
+                        background: isSel ? `${t.color}1f` : 'transparent',
+                        color: isSel ? t.color : D.textSub,
+                        border: isSel ? `1.5px solid ${t.color}50` : `1.5px solid ${D.border}`,
+                        cursor: 'pointer', transition: 'all 0.18s ease',
+                        boxShadow: isSel ? `0 0 10px ${t.color}1f` : 'none',
                       }}
-                      onFocus={e => e.target.style.borderColor = D.purple}
-                      onBlur={e => e.target.style.borderColor = search ? D.purple : D.inputBorder}
-                    />
-                    {search && (
-                      <X size={14} onClick={() => setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: D.textSub, cursor: 'pointer' }} />
-                    )}
-                  </div>
+                    >
+                      {t.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
 
-                  {/* Export button */}
-                  <button
-                    onClick={handleExportPDF}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      padding: '8px 14px',
-                      background: 'rgba(255,255,255,0.03)',
-                      border: `1px solid ${D.border}`,
-                      borderRadius: 10,
-                      color: D.text,
-                      fontSize: '0.82rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    Export
-                  </button>
-                </div>
-
+            {/* Search + Export */}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '14px 26px', borderBottom: `1px solid ${D.border}` }}>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
+                <input
+                  type="text"
+                  id="service-search"
+                  placeholder="Search vehicle, task, garage, date, cost…"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  style={{
+                    width: '100%', padding: '8px 34px 8px 34px',
+                    background: D.inputBg, border: `1px solid ${search ? 'rgba(99,102,241,0.4)' : D.inputBorder}`,
+                    borderRadius: 10, color: D.text, fontSize: '0.8rem', outline: 'none',
+                    boxSizing: 'border-box', transition: 'border-color 0.15s',
+                  }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.08)' }}
+                  onBlur={e => { e.target.style.borderColor = search ? 'rgba(99,102,241,0.4)' : D.inputBorder; e.target.style.boxShadow = 'none' }}
+                />
+                {search && (
+                  <X size={14} onClick={() => setSearch('')}
+                    style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: D.textSub, cursor: 'pointer' }} />
+                )}
               </div>
 
-              {/* Table */}
-              <div style={{ overflowX: 'auto', scrollbarWidth: 'thin' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ borderBottom: `1px solid ${D.border}` }}>
-                      {['WORK ORDER', 'VEHICLE', 'TASK', 'GARAGE', 'DUE', 'COST', 'STATUS', 'DOCUMENTS'].map(h => (
-                        <th key={h} style={{ padding: '12px 14px', fontSize: '0.68rem', fontWeight: 800, color: D.textSub, letterSpacing: '0.05em' }}>
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      [1,2,3,4].map(i => (
-                        <tr key={i} style={{ borderBottom: `1px solid ${D.border}` }}>
-                          <td colSpan="8" style={{ padding: '20px', textAlign: 'center' }}>
-                            <div style={{ height: 18, background: D.surfaceHi, borderRadius: 4, animation: 'pulse 1.5s infinite' }} />
-                          </td>
-                        </tr>
-                      ))
-                    ) : filtered.length === 0 ? (
-                      <tr>
-                        <td colSpan="8" style={{ padding: '48px 20px', textAlign: 'center', color: D.textSub, fontSize: '0.85rem', fontWeight: 500 }}>
-                          No matching work orders found.
+              <button
+                onClick={handleExportPDF}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '8px 16px', borderRadius: 10,
+                  background: D.surfaceHi, border: `1px solid ${D.border}`,
+                  color: D.text, fontSize: '0.78rem', fontWeight: 700,
+                  cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.1)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.28)'; e.currentTarget.style.color = '#a5b4fc' }}
+                onMouseLeave={e => { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                Export PDF
+              </button>
+            </div>
+
+            {/* Table */}
+            <div style={{ overflowX: 'auto', scrollbarWidth: 'thin' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: D.surfaceHi, borderBottom: `1px solid ${D.border}` }}>
+                    {['Work Order', 'Vehicle', 'Task', 'Garage', 'Due Date', 'Cost', 'Status', 'Docs'].map(h => (
+                      <th key={h} style={{
+                        padding: '12px 26px', fontSize: '0.72rem', fontWeight: 800,
+                        color: D.textSub, letterSpacing: '0.07em', textTransform: 'uppercase',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    [1, 2, 3, 4].map(i => (
+                      <tr key={i} style={{ borderBottom: `1px solid ${D.border}` }}>
+                        <td colSpan="8" style={{ padding: '16px 26px' }}>
+                          <div style={{ height: 14, background: D.surfaceHi, borderRadius: 4, animation: 'pulse 1.5s infinite' }} />
                         </td>
                       </tr>
-                    ) : (
-                      filtered.map(s => {
-                        const status = getTableStatus(s)
-                        
-                        // Status styling config
-                        const stConfig = {
-                          Overdue: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.2)' },
-                          'In Progress': { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.2)' },
-                          Open: { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', border: 'rgba(59,130,246,0.2)' },
-                          Completed: { color: '#10b981', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.2)' }
-                        }[status] || { color: D.textSub, bg: 'rgba(255,255,255,0.05)', border: D.border }
+                    ))
+                  ) : filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan="8" style={{ padding: '56px 20px', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                          <div style={{ width: 48, height: 48, borderRadius: 14, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <ClipboardList size={22} color={D.textSub} />
+                          </div>
+                          <p style={{ margin: 0, fontSize: '0.88rem', color: D.textSub, fontWeight: 600 }}>No matching work orders</p>
+                          <p style={{ margin: 0, fontSize: '0.75rem', color: D.textFaint }}>Try adjusting your search or filter.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filtered.map((s, rowIdx) => {
+                      const status = getTableStatus(s)
+                      const stConfig = {
+                        Overdue:      { color: '#f87171', bg: 'rgba(239,68,68,0.12)',    border: 'rgba(239,68,68,0.25)',    dot: '#ef4444' },
+                        'In Progress':{ color: '#fbbf24', bg: 'rgba(251,191,36,0.12)',   border: 'rgba(251,191,36,0.25)',   dot: '#fbbf24' },
+                        Open:         { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)',   border: 'rgba(96,165,250,0.25)',   dot: '#3b82f6' },
+                        Completed:    { color: '#34d399', bg: 'rgba(52,211,153,0.12)',   border: 'rgba(52,211,153,0.25)',   dot: '#10b981' },
+                      }[status] || { color: D.textSub, bg: 'rgba(255,255,255,0.05)', border: D.border, dot: D.textSub }
 
-                        // Status dot mapping
-                        const dotColor = status === 'Overdue' ? '#ef4444' : status === 'In Progress' ? '#fbbf24' : status === 'Completed' ? '#10b981' : '#3b82f6'
+                      const vc = allVehicles.find(v => v.registrationNo === s.vehicleRegNumber)
+                      const vehicleLabel = vc && (vc.manufacturer || vc.model)
+                        ? `${vc.manufacturer || ''} ${vc.model || ''}`.trim()
+                        : null
 
-                        // Find vehicle details
-                        const vc = allVehicles.find(v => v.registrationNo === s.vehicleRegNumber)
-                        const vehicleLabel = vc && (vc.manufacturer || vc.model) ? `${vc.manufacturer || ''} ${vc.model || ''}` : '—'
+                      return (
+                        <tr
+                          key={s.id}
+                          className="svc-row-hover"
+                          onClick={() => setDetailModal({ isOpen: true, record: s })}
+                          style={{
+                            borderBottom: `1px solid ${D.border}`,
+                            cursor: 'pointer',
+                            transition: 'background 0.15s ease',
+                            animation: `fadeUp 0.3s ease ${rowIdx * 0.03}s both`,
+                          }}
+                        >
+                          <td style={{ padding: '16px 26px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ width: 6, height: 6, borderRadius: '50%', background: stConfig.dot, boxShadow: `0 0 5px ${stConfig.dot}`, flexShrink: 0 }} />
+                              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>WO-{s.id}</span>
+                            </div>
+                          </td>
 
-                        return (
-                          <tr
-                            key={s.id}
-                            onClick={() => setDetailModal({ isOpen: true, record: s })}
-                            style={{
-                              borderBottom: `1px solid ${D.border}`,
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease'
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                          >
-                            {/* WORK ORDER */}
-                            <td style={{ padding: '16px 14px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: dotColor }} />
-                                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: D.text }}>
-                                  WO-{s.id}
-                                </span>
+                          <td style={{ padding: '16px 26px' }}>
+                            <div>
+                              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: D.text }}>{s.vehicleRegNumber}</div>
+                              {vehicleLabel && <div style={{ fontSize: '0.68rem', color: D.textSub, marginTop: 2 }}>{vehicleLabel}</div>}
+                            </div>
+                          </td>
+
+                          <td style={{ padding: '16px 26px', maxWidth: 170 }}>
+                            <div>
+                              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: D.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 155 }}>
+                                {s.serviceType?.replace(/_/g, ' ')}
                               </div>
-                            </td>
+                              {s.serviceTypeDetail && (
+                                <div style={{ fontSize: '0.68rem', color: D.textSub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 155 }}>
+                                  {s.serviceTypeDetail}
+                                </div>
+                              )}
+                            </div>
+                          </td>
 
-                            {/* VEHICLE */}
-                            <td style={{ padding: '16px 14px' }}>
-                              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: D.text }}>
-                                  {s.vehicleRegNumber}
-                                </span>
-                                <span style={{ fontSize: '0.72rem', color: D.textSub, marginTop: 2 }}>
-                                  {vehicleLabel}
-                                </span>
-                              </div>
-                            </td>
-
-                            {/* TASK */}
-                            <td style={{ padding: '16px 14px', maxWidth: 180 }}>
-                              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {s.serviceType?.replace(/_/g, ' ')}
-                                </span>
-                                {s.serviceTypeDetail && (
-                                  <span style={{ fontSize: '0.72rem', color: D.textSub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {s.serviceTypeDetail}
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-
-                            {/* GARAGE */}
-                            <td style={{ padding: '16px 14px', fontSize: '0.82rem', color: D.textSub }}>
+                          <td style={{ padding: '16px 26px', maxWidth: 130 }}>
+                            <span style={{ fontSize: '0.78rem', color: D.textSub, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>
                               {s.technicianWorkshop || '—'}
-                            </td>
+                            </span>
+                          </td>
 
-                            {/* DUE */}
-                            <td style={{ padding: '16px 14px', fontSize: '0.82rem', color: D.textSub, fontWeight: 600 }}>
-                              {s.serviceDate ? s.serviceDate.substring(0, 10) : '—'}
-                            </td>
+                          <td style={{ padding: '16px 26px', fontSize: '0.78rem', color: D.textSub, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                            {s.serviceDate ? s.serviceDate.substring(0, 10) : '—'}
+                          </td>
 
-                            {/* COST */}
-                            <td style={{ padding: '16px 14px', fontSize: '0.82rem', fontWeight: 800, color: D.text }}>
-                              LKR {Number(s.serviceCost || 0).toLocaleString()}
-                            </td>
+                          <td style={{ padding: '16px 26px', fontSize: '0.8rem', fontWeight: 800, color: D.text, whiteSpace: 'nowrap' }}>
+                            LKR {Number(s.serviceCost || 0).toLocaleString()}
+                          </td>
 
-                            {/* STATUS */}
-                            <td style={{ padding: '16px 14px' }}>
-                              <span style={{
-                                display: 'inline-block',
-                                fontSize: '0.7rem',
-                                fontWeight: 800,
-                                padding: '4px 10px',
-                                borderRadius: 6,
-                                background: stConfig.bg,
-                                color: stConfig.color,
-                                border: `1px solid ${stConfig.border}`
-                              }}>
-                                {status}
-                              </span>
-                            </td>
+                          <td style={{ padding: '16px 26px' }}>
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 5,
+                              fontSize: '0.66rem', fontWeight: 800,
+                              padding: '4px 10px', borderRadius: 999,
+                              background: stConfig.bg, color: stConfig.color,
+                              border: `1px solid ${stConfig.border}`,
+                              whiteSpace: 'nowrap',
+                            }}>
+                              <span style={{ width: 5, height: 5, borderRadius: '50%', background: stConfig.dot, flexShrink: 0 }} />
+                              {status}
+                            </span>
+                          </td>
 
-                            {/* DOCUMENTS */}
-                            <td style={{ padding: '16px 14px' }} onClick={e => e.stopPropagation()}>
-                              {s.attachmentPath ? (
+                          <td style={{ padding: '16px 26px' }} onClick={e => e.stopPropagation()}>
+                            {s.attachmentPath ? (
+                              <button
+                                onClick={() => handleViewAttachment(s)}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                                  padding: '5px 11px',
+                                  background: 'rgba(52,211,153,0.1)', color: '#34d399',
+                                  border: '1px solid rgba(52,211,153,0.22)',
+                                  borderRadius: 8, fontSize: '0.7rem', fontWeight: 700,
+                                  cursor: 'pointer', transition: 'all 0.15s',
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(52,211,153,0.22)' }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(52,211,153,0.1)' }}
+                              >
+                                <Paperclip size={11} /> View
+                              </button>
+                            ) : (
+                              !isDriver && !isAdmin ? (
                                 <button
-                                  onClick={() => handleViewAttachment(s)}
+                                  onClick={() => openEditModal(s.id)}
                                   style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 5,
-                                    padding: '6px 12px',
-                                    background: 'rgba(16,185,129,0.08)',
-                                    color: '#10b981',
-                                    border: '1px solid rgba(16,185,129,0.2)',
-                                    borderRadius: 8,
-                                    fontSize: '0.72rem',
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s ease'
+                                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                                    padding: '5px 11px',
+                                    background: D.surfaceHi, border: `1px solid ${D.border}`,
+                                    color: D.textSub, borderRadius: 8,
+                                    fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer',
+                                    transition: 'all 0.15s',
                                   }}
-                                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(16,185,129,0.18)'}
-                                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(16,185,129,0.08)'}
+                                  onMouseEnter={e => { e.currentTarget.style.color = D.text; e.currentTarget.style.borderColor = D.borderHi }}
+                                  onMouseLeave={e => { e.currentTarget.style.color = D.textSub; e.currentTarget.style.borderColor = D.border }}
                                 >
-                                  <Paperclip size={11} /> View
+                                  <Paperclip size={11} /> Attach
                                 </button>
                               ) : (
-                                !isDriver && !isAdmin ? (
-                                  <button
-                                    onClick={() => openEditModal(s.id)}
-                                    style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: 5,
-                                      padding: '6px 12px',
-                                      background: 'rgba(255,255,255,0.03)',
-                                      color: D.textSub,
-                                      border: `1px solid ${D.border}`,
-                                      borderRadius: 8,
-                                      fontSize: '0.72rem',
-                                      fontWeight: 700,
-                                      cursor: 'pointer',
-                                      transition: 'all 0.15s ease'
-                                    }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = D.text }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = D.textSub }}
-                                  >
-                                    <Paperclip size={11} /> Attach
-                                  </button>
-                                ) : (
-                                  <span style={{ fontSize: '0.75rem', color: D.textFaint }}>No Bill</span>
-                                )
-                              )}
-                            </td>
-
-                          </tr>
-                        )
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Table Footer Count indicator */}
-              {!loading && filtered.length > 0 && (
-                <div style={{ borderTop: `1px solid ${D.border}`, paddingTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.78rem', color: D.textSub }}>
-                    Showing <strong style={{ color: D.text }}>{filtered.length}</strong> of <strong style={{ color: D.text }}>{services.length}</strong> records
-                  </span>
-                  
-                  {/* Deleted drawer activator link for admin/controller */}
-                  {!isDriver && (
-                    <button
-                      onClick={() => setDeletedDrawer(true)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: D.red,
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-                      onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
-                    >
-                      <Archive size={12} /> Deleted Records ({deletedRecords.length})
-                    </button>
+                                <span style={{ fontSize: '0.7rem', color: D.textFaint }}>—</span>
+                              )
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })
                   )}
-                </div>
-              )}
-
+                </tbody>
+              </table>
             </div>
-
-            {/* RIGHT: SERVICE ALERTS PANEL */}
-            <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, padding: '24px 20px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: 16 }}>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>Service Alerts</h3>
-                  <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: D.textSub }}>Upcoming & overdue</p>
-                </div>
-                {alertRecords.length > 0 && (
-                  <span style={{
-                    fontSize: '0.65rem',
-                    fontWeight: 800,
-                    padding: '3px 8px',
-                    borderRadius: 4,
-                    background: alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239,68,68,0.12)' : 'rgba(251,191,36,0.12)',
-                    color: alertRecords.some(r => r._alertLevel === 'OVERDUE') ? '#ef4444' : '#fbbf24',
-                    border: `1px solid ${alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239,68,68,0.2)' : 'rgba(251,191,36,0.2)'}`
-                  }}>
-                    {alertRecords.length} active
-                  </span>
-                )}
-              </div>
-
-              {/* Alert list cards */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 420, overflowY: 'auto', scrollbarWidth: 'thin' }}>
-                {alertRecords.length === 0 ? (
-                  <div style={{ padding: '32px 12px', textAlign: 'center', color: D.textFaint }}>
-                    <CheckCircle size={32} style={{ color: D.green, opacity: 0.8, marginBottom: 8, marginLeft: 'auto', marginRight: 'auto', display: 'block' }} />
-                    <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>All vehicles healthy</p>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.72rem' }}>No upcoming or overdue service risks detected.</p>
-                  </div>
-                ) : (
-                  alertRecords.map(r => {
-                    const isOverdue = r._alertLevel === 'OVERDUE'
-                    const cardBorder = isOverdue ? 'rgba(239,68,68,0.35)' : 'rgba(251,191,36,0.35)'
-                    const iconColor = isOverdue ? '#ef4444' : '#fbbf24'
-                    const tagLabel = isOverdue ? 'URGENT' : 'UPCOMING'
-
-                    return (
-                      <div
-                        key={r.id}
-                        onClick={() => setDetailModal({ isOpen: true, record: r })}
-                        style={{
-                          background: D.bg,
-                          border: `1px solid ${cardBorder}`,
-                          borderRadius: 12,
-                          padding: '14px 16px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 10,
-                          transition: 'all 0.15s ease'
-                        }}
-                        onMouseEnter={e => {
-                          e.currentTarget.style.borderColor = iconColor
-                          e.currentTarget.style.boxShadow = `0 4px 12px ${iconColor}10`
-                        }}
-                        onMouseLeave={e => {
-                          e.currentTarget.style.borderColor = cardBorder
-                          e.currentTarget.style.boxShadow = 'none'
-                        }}
-                      >
-                        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                          <div style={{
-                            width: 32, height: 32, borderRadius: 8,
-                            background: isOverdue ? 'rgba(239,68,68,0.1)' : 'rgba(251,191,36,0.1)',
-                            border: `1px solid ${isOverdue ? 'rgba(239,68,68,0.2)' : 'rgba(251,191,36,0.2)'}`,
-                            color: iconColor,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            flexShrink: 0
-                          }}>
-                            <Wrench size={14} />
-                          </div>
-
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: D.text }}>
-                                {isOverdue ? 'Service Overdue Risk' : 'Service Due Soon'}
-                              </span>
-                              <span style={{
-                                fontSize: '0.55rem',
-                                fontWeight: 800,
-                                padding: '2px 6px',
-                                borderRadius: 4,
-                                background: isOverdue ? 'rgba(239,68,68,0.12)' : 'rgba(251,191,36,0.12)',
-                                color: iconColor
-                              }}>
-                                {tagLabel}
-                              </span>
-                            </div>
-                            <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: D.textSub, lineHeight: 1.4 }}>
-                              <strong style={{ color: D.text }}>{r.vehicleRegNumber}</strong> · {r.serviceType?.replace(/_/g, ' ')}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'flex', gap: 8, marginTop: 2, borderTop: `1px solid ${D.border}`, paddingTop: 8, alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '0.72rem', color: iconColor, fontWeight: 700 }}>
-                            {isOverdue ? 'Needs Attention' : 'Due Soon'}
-                          </span>
-                          <button
-                            onClick={e => {
-                              e.stopPropagation()
-                              setDetailModal({ isOpen: true, record: r })
-                            }}
-                            style={{
-                              background: 'rgba(255,255,255,0.03)',
-                              color: D.text,
-                              border: `1px solid ${D.border}`,
-                              borderRadius: 6,
-                              padding: '4px 10px',
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
-                              cursor: 'pointer'
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-                          >
-                            View
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })
-                )}
-              </div>
-
-            </div>
-
           </div>
 
-        </div>
-      </div>
+        </div>{/* end page-body */}
+      </div>{/* end main-content */}
+
 
       {/* ── Deleted Records Drawer ─────────────────────────────────── */}
       {deletedDrawer && (
