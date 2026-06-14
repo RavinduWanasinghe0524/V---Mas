@@ -249,11 +249,11 @@ export const generateStyledExcel = async (id, {
     row = addSectionHeader(ws, 'Fleet Inventory', row, COLS, BRAND.navy)
     const hdrs = ['Reg Number', 'Brand', 'Model', 'Status', 'Mileage (km)', 'Fuel Type', 'Tank Cap (L)']
     const data = vehicles.map(v => [
-      v.registrationNumber || 'N/A',
-      v.brand  || 'N/A',
+      v.registrationNo || 'N/A',
+      v.manufacturer  || 'N/A',
       v.model  || 'N/A',
       v.status || 'N/A',
-      v.mileage || 0,
+      v.currentMileageKm || 0,
       v.fuelType || 'N/A',
       v.fuelCapacity || 0,
     ])

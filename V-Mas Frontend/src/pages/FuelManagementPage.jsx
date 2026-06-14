@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
@@ -6,9 +6,9 @@ import { useAuth } from '../context/AuthContext'
 import { fuelAPI, vehicleAPI, userAPI } from '../services/api'
 import { addControllerNotification } from '../services/notificationService'
 import { 
-  Fuel, CircleDollarSign, BarChart2, Car, Trash2, ClipboardList, Plus, Search, 
-  Edit2, AlertTriangle, Check, X, Loader2, RotateCcw, FileText, ChevronRight, 
-  Calendar, Clock, User, ArrowRight, MoreVertical
+  Fuel, CircleDollarSign, BarChart2, Car, Trash2, Plus, Search, 
+  Edit2, AlertTriangle, Check, X, Loader2, RotateCcw, FileText, 
+  Calendar, Clock, User, MoreVertical
 } from 'lucide-react'
 import { computeLogsEfficiency } from '../utils/fuelUtils'
 
@@ -67,7 +67,7 @@ const FuelManagementPage = () => {
   const [deletedLogs, setDeletedLogs] = useState([])
   const [filteredLogs, setFilteredLogs] = useState([])
   const [loading, setLoading] = useState(true)
-  const [loadingDeleted, setLoadingDeleted] = useState(false)
+
 
   const [filterVehicle, setFilterVehicle] = useState('all')
   const [filterDriver, setFilterDriver] = useState('all')
@@ -103,11 +103,21 @@ const FuelManagementPage = () => {
   const [mileageError, setMileageError] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  // ── Effects ─────────────────────────────────────────────────────────────
-  useEffect(() => { loadData() }, [])
-  useEffect(() => { applyFilters() }, [allLogs, filterVehicle, filterDriver, filterFuelType, filterStatus])
+  const showToast = useCallback((msg, type = 'success') => {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 3500)
+  }, [])
 
-  const loadData = async () => {
+  const calculateStats = useCallback((logs, vehicleCount) => {
+    const totalFuel = logs.reduce((s, l) => s + l.liters, 0)
+    const totalCost = logs.reduce((s, l) => s + l.totalCost, 0)
+    const eff = logs.filter(l => l.fuelEfficiency && l.fuelEfficiency > 0)
+    const avgEfficiency = eff.length > 0
+      ? eff.reduce((s, l) => s + l.fuelEfficiency, 0) / eff.length : 0
+    setStats({ totalLogs: logs.length, totalFuel, totalCost, avgEfficiency, vehicleCount })
+  }, [])
+
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       const [fuelRes, vehRes, driverRes, delRes] = await Promise.allSettled([
@@ -155,30 +165,9 @@ const FuelManagementPage = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [calculateStats, showToast])
 
-  const loadDeletedLogs = async () => {
-    try {
-      setLoadingDeleted(true)
-      const res = await fuelAPI.getDeletedLogs()
-      setDeletedLogs(res.data.data || [])
-    } catch (err) {
-      console.error('Error loading deleted logs:', err)
-    } finally {
-      setLoadingDeleted(false)
-    }
-  }
-
-  const calculateStats = (logs, vehicleCount) => {
-    const totalFuel = logs.reduce((s, l) => s + l.liters, 0)
-    const totalCost = logs.reduce((s, l) => s + l.totalCost, 0)
-    const eff = logs.filter(l => l.fuelEfficiency && l.fuelEfficiency > 0)
-    const avgEfficiency = eff.length > 0
-      ? eff.reduce((s, l) => s + l.fuelEfficiency, 0) / eff.length : 0
-    setStats({ totalLogs: logs.length, totalFuel, totalCost, avgEfficiency, vehicleCount })
-  }
-
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = allLogs.filter(l => !l.isDeleted)
     if (filterVehicle !== 'all') filtered = filtered.filter(l => l.vehicleRegNumber === filterVehicle)
     if (filterDriver !== 'all') filtered = filtered.filter(l => l.driverUsername === filterDriver)
@@ -195,12 +184,11 @@ const FuelManagementPage = () => {
       })
     }
     setFilteredLogs(filtered)
-  }
+  }, [allLogs, filterVehicle, filterDriver, filterFuelType, filterStatus])
 
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3500)
-  }
+  // ── Effects ─────────────────────────────────────────────────────────────
+  useEffect(() => { loadData() }, [loadData])
+  useEffect(() => { applyFilters() }, [applyFilters])
 
   // ── Handlers ───────────────────────────────────────────────────────────
   const handleInputChange = e => {
@@ -300,11 +288,27 @@ const FuelManagementPage = () => {
     const editLitersNew = parseFloat(editingLog.liters)
     const editReg = editingLog.vehicleRegNumber
     const editId = editingLog.id
-    // Find the previous log's mileage for this vehicle (excluding current log)
-    const prevLogForEdit = allLogs
-      .filter(l => !l.isDeleted && l.vehicleRegNumber === editReg && l.id !== editId)
-      .sort((a, b) => new Date(b.date) - new Date(a.date))[0]
+    
+    // Find previous and next logs chronologically for validation
+    const vehicleLogs = allLogs.filter(l => !l.isDeleted && l.vehicleRegNumber === editReg)
+    vehicleLogs.sort((a, b) => new Date(a.date) - new Date(b.date) || (a.id || 0) - (b.id || 0))
+    const curIndex = vehicleLogs.findIndex(l => l.id === editId)
+    
+    const prevLogForEdit = curIndex > 0 ? vehicleLogs[curIndex - 1] : null
+    const nextLogForEdit = curIndex !== -1 && curIndex < vehicleLogs.length - 1 ? vehicleLogs[curIndex + 1] : null
     const prevMilForEdit = prevLogForEdit ? prevLogForEdit.mileage : null
+
+    if (prevLogForEdit && editMilNew < prevLogForEdit.mileage) {
+      showToast(`Mileage cannot be less than previous log's mileage (${prevLogForEdit.mileage.toLocaleString()} km)`, 'error')
+      setSubmitting(false)
+      return
+    }
+    if (nextLogForEdit && editMilNew > nextLogForEdit.mileage) {
+      showToast(`Mileage cannot be greater than subsequent log's mileage (${nextLogForEdit.mileage.toLocaleString()} km)`, 'error')
+      setSubmitting(false)
+      return
+    }
+
     try {
       await fuelAPI.controllerUpdateLog(editId, {
         ...editingLog,
@@ -330,6 +334,7 @@ const FuelManagementPage = () => {
         }
       }
     } catch (err) {
+      console.error('Update fuel log error:', err)
       showToast('Failed to update', 'error')
     } finally { setSubmitting(false) }
   }
@@ -344,6 +349,7 @@ const FuelManagementPage = () => {
       showToast('Fuel log archived.')
       addControllerNotification(`Fuel log for ${deletingLog?.vehicleRegNumber} archived`, 'FUEL_DELETE', '/fuel-management')
     } catch (err) {
+      console.error('Archive fuel log error:', err)
       showToast('Failed to archive', 'error')
     }
   }
@@ -356,6 +362,7 @@ const FuelManagementPage = () => {
       showToast('Fuel log restored successfully!')
       addControllerNotification(`Fuel log restored`, 'FUEL_RESTORE', '/fuel-management')
     } catch (err) {
+      console.error('Restore fuel log error:', err)
       showToast('Failed to restore fuel log', 'error')
     } finally {
       setRestoringId(null)
@@ -833,7 +840,7 @@ const FuelManagementPage = () => {
 
             {/* Drawer Body */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '32px 36px', background: 'rgba(0,0,0,0.02)' }}>
-              {loadingDeleted ? (
+              {loading ? (
                 <div style={{ textAlign: 'center', padding: '60px 0' }}>
                   <Loader2 size={40} className="animate-spin" color={D.purple} style={{ margin: '0 auto 20px' }} />
                   <p style={{ color: D.textSub, fontWeight: 700, fontSize: '1rem' }}>Synchronizing archive...</p>

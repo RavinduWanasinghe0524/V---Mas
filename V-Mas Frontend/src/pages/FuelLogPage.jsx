@@ -75,15 +75,13 @@ const FuelLogPage = () => {
           vehicleAPI.getAllVehicles(),
         ])
         
-        let loadedLogs = []
         if (logsRes.status === 'fulfilled') {
-          const logs = logsRes.value.data.data || []
+          const logs = (logsRes.value.data.data || []).filter(log => !log.isDeleted)
           const vehList = vehicleRes.status === 'fulfilled' ? (vehicleRes.value.data.data || []) : []
           computeLogsEfficiency(logs, vehList)
           // Sort newest-first so logs[0] is always the most recent entry
           const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date))
           setMyVehicleLogs(sorted)
-          loadedLogs = sorted
         }
         
         if (vehicleRes.status === 'fulfilled') {
@@ -168,14 +166,15 @@ const FuelLogPage = () => {
       
       // Reload driver's own logs via the correct endpoint
       const logsRes = await fuelAPI.getMyLogs()
-      const rawLogs = logsRes.data.data || []
+      const rawLogs = (logsRes.data.data || []).filter(log => !log.isDeleted)
       computeLogsEfficiency(rawLogs, allVehicles)
       // Sort newest-first so the latest mileage is always at index 0
       const updatedLogs = [...rawLogs].sort((a, b) => new Date(b.date) - new Date(a.date))
       setMyVehicleLogs(updatedLogs)
 
-      // Update previous mileage hint & pre-fill for next entry
-      const newLastMil = updatedLogs.length > 0 ? updatedLogs[0].mileage : null
+      // Update previous mileage hint & pre-fill for next entry for the current vehicle
+      const vehicleLogs = updatedLogs.filter(log => log.vehicleRegNumber === formData.vehicleRegNumber)
+      const newLastMil = vehicleLogs.length > 0 ? vehicleLogs[0].mileage : null
       setPreviousMileage(newLastMil)
 
       // Reset form — pre-fill mileage with latest reading
