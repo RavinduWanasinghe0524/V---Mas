@@ -629,7 +629,7 @@ const AuthPage = () => {
   };
 
   return (
-    <div className={`ag-container theme-lime${themeMode === 'day' ? ' theme-light' : ''}`} onMouseMove={handleMouseMove}>
+    <div className={`ag-container${themeMode === 'day' ? ' theme-light' : ''}`} onMouseMove={handleMouseMove}>
       {/* Zoom parallax background element */}
       <div className="ag-container-bg" style={{ backgroundImage: `url("${themeMode === 'day' ? loginBgWhite : loginBg}")` }} />
 
@@ -644,7 +644,7 @@ const AuthPage = () => {
           title={themeMode === 'day' ? 'Switch to Night Theme' : 'Switch to Day Theme'}
         >
           <div className="ag-theme-knob">
-            {themeMode === 'day' ? <Sun size={14} color="#2563eb" /> : <Moon size={14} color="#84cc16" />}
+            {themeMode === 'day' ? <Sun size={14} color="#2563eb" /> : <Moon size={14} color="#3b82f6" />}
           </div>
           <div className="ag-theme-icon-placeholder ag-theme-icon-left">
             <Moon size={13} />

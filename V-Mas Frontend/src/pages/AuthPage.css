@@ -26,27 +26,7 @@
       transparent 80%);
 }
 
-/* LIME ACCENTS OVERRIDE */
-.ag-container.theme-lime {
-  --accent-color: #84cc16;
-  /* Lime-500 */
-  --accent-color-hover: #65a30d;
-  /* Lime-600 */
-  --accent-color-light: #a3e635;
-  /* Lime-400 */
-  --accent-color-gradient: linear-gradient(135deg, #84cc16, #65a30d);
-  --accent-color-shadow: rgba(132, 204, 22, 0.35);
-  --info-banner-bg: rgba(132, 204, 22, 0.08);
-  --info-banner-border: rgba(132, 204, 22, 0.25);
-
-  --accent-glow: radial-gradient(320px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-      rgba(132, 204, 22, 0.65),
-      rgba(163, 230, 53, 0.22) 50%,
-      transparent 100%);
-  --accent-face-glow: radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-      rgba(132, 204, 22, 0.06),
-      transparent 80%);
-}
+/* LIME ACCENTS OVERRIDE REMOVED */
 
 /* ── Keyframes ─────────────────────────────────────────── */
 @keyframes ag-card-in {
@@ -1066,7 +1046,7 @@
 
 .theme-light .ag-card::after {
   background: radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-      rgba(132, 204, 22, 0.08),
+      rgba(59, 130, 246, 0.08),
       transparent 80%);
 }
 
@@ -1086,7 +1066,7 @@
 .theme-light .ag-input:focus {
   background: rgba(255, 255, 255, 0.8);
   border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px rgba(132, 204, 22, 0.18);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
 }
 
 .theme-light .ag-floating-label {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
-import { useD } from '../context/ThemeContext'
+import { useD, useTheme } from '../context/ThemeContext'
 import {
   Car, Fuel, Wrench, Users, DollarSign,
   FileText, Calendar, Download, ClipboardList, BarChart2, Loader2, Database, TrendingUp,
@@ -29,6 +29,8 @@ const SectionHeader = ({ title, D, icon }) => (
 
 const ReportsPage = () => {
   const D = useD()
+  const { theme } = useTheme()
+  const isDark = theme === 'blue'
   const reportTypes = [
     { id: 'master-report',      icon: <Database size={22} strokeWidth={1.5} />,    title: 'Comprehensive Master Report',   desc: 'Complete export of all system data including vehicles, fuel, services, and users.',    category: 'System',      color: D.red,    bg: D.redDim    },
     { id: 'vehicle-summary',    icon: <Car size={22} strokeWidth={1.5} />,         title: 'Vehicle Summary Report',        desc: 'Overview of all fleet vehicles including status, mileage, and assignments.',           category: 'Fleet',       color: D.indigo, bg: D.indigoDim },
@@ -533,12 +535,13 @@ const ReportsPage = () => {
           50% { box-shadow: 0 0 30px rgba(37, 99, 235, 0.35); }
         }
         .reports-hero-banner {
-          background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #3b82f6 100%);
-          border: 1px solid ${D.borderHi};
-        }
-        [data-theme="blue"] .reports-hero-banner {
-          background: linear-gradient(135deg, #080d1a 0%, #1e293b 50%, #0f172a 100%);
-          border: 1px solid rgba(37, 99, 235, 0.25);
+          background: ${isDark
+            ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
+            : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)'};
+          border: ${isDark ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid rgba(37, 99, 235, 0.2)'};
+          box-shadow: ${isDark
+            ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
+            : '0 16px 48px rgba(0,0,0,0.4)'};
         }
         .custom-card {
           background: ${D.surface};

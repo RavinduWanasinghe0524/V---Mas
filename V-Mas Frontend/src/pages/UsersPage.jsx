@@ -13,7 +13,7 @@ import { useEffect, useState, useRef } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
-import { useD } from '../context/ThemeContext'
+import { useD, useTheme } from '../context/ThemeContext'
 import { userAPI } from '../services/api'
 import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield } from 'lucide-react'
 import { jsPDF } from 'jspdf'
@@ -95,6 +95,8 @@ const getDriverMetrics = (u) => {
 
 const UsersPage = () => {
   const D = useD()
+  const { theme } = useTheme()
+  const isDark = theme === 'blue'
   const inputStyle = {
     width: '100%', padding: '10px 14px', borderRadius: 8,
     border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem',
@@ -405,14 +407,14 @@ const UsersPage = () => {
 
             {/* Hero Banner */}
             <div style={{
-              background: D.bg === '#060b18'
+              background: isDark
                 ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
                 : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
               borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
-              boxShadow: D.bg === '#060b18'
+              boxShadow: isDark
                 ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
                 : '0 16px 48px rgba(0,0,0,0.4)',
-              border: D.bg === '#060b18' ? '1px solid rgba(59, 130, 246, 0.2)' : `1px solid ${D.border}`,
+              border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : `1px solid ${D.border}`,
               display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16
             }}>
               {/* decorative circles */}
@@ -420,9 +422,9 @@ const UsersPage = () => {
                 <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
               ))}
               {/* Neon radial glow for dark */}
-              {D.bg === '#060b18' && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
+              {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-                <div style={{ background: D.bg === '#060b18' ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', backdropFilter: 'blur(8px)', border: D.bg === '#060b18' ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(255,255,255,0.15)', boxShadow: D.bg === '#060b18' ? '0 0 20px rgba(59,130,246,0.3), 0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.2)' }}>
+                <div style={{ background: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', backdropFilter: 'blur(8px)', border: isDark ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(255,255,255,0.15)', boxShadow: isDark ? '0 0 20px rgba(59,130,246,0.3), 0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.2)' }}>
                   <Users size={32} strokeWidth={1.5} />
                 </div>
                 <div>
@@ -431,12 +433,12 @@ const UsersPage = () => {
                       User Management
                     </h1>
                     {isAdmin && users.length > 0 && (
-                      <span style={{ background: D.bg === '#060b18' ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.15)', color: '#dbeafe', padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: D.bg === '#060b18' ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(255,255,255,0.2)' }}>
+                      <span style={{ background: isDark ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.15)', color: '#dbeafe', padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: isDark ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(255,255,255,0.2)' }}>
                         {users.length} users
                       </span>
                     )}
                   </div>
-                  <p style={{ margin: '6px 0 0', color: D.bg === '#060b18' ? '#93c5fd' : '#60a5fa', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <p style={{ margin: '6px 0 0', color: isDark ? '#93c5fd' : '#60a5fa', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <ShieldCheck size={14} />
                     {isAdmin ? 'Manage system users, roles, permissions & access approvals across the platform' : 'Review and process pending driver account requests'}
                   </p>
@@ -763,7 +765,7 @@ const UsersPage = () => {
 
                                 return (
                                   <div key={sidx} style={{
-                                    background: D.bg === '#060b18' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
+                                    background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
                                     border: `1px solid ${D.border}`, borderRadius: 16, padding: '14px 6px', textAlign: 'center'
                                   }}>
                                     <div style={{ fontSize: '1.15rem', fontWeight: 900, color: valColor }}>{st.value}</div>

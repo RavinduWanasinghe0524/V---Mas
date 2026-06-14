@@ -4,7 +4,7 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { serviceAPI, vehicleAPI, notificationAPI, userAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
-import { useD } from '../context/ThemeContext'
+import { useD, useTheme } from '../context/ThemeContext'
 import { addControllerNotification, addDriverNotification } from '../services/notificationService'
 import { computeMileageProgress, computeDateAlert, getAlertLevel, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
 import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle, Paperclip, User, Eye, Archive, Clock, Gauge, BellRing, MoreVertical, ShieldAlert, Wallet, Sparkles, LayoutGrid, List } from 'lucide-react'
@@ -855,6 +855,8 @@ const ServiceCalendar = ({ services, onEdit, isDriver, getStatus, STATUS_CONFIG,
 ══════════════════════════════════════════════════════════════════ */
 const ServicePage = () => {
   const D = useD()
+  const { theme } = useTheme()
+  const isDark = theme === 'blue'
   const { user } = useAuth()
   const navigate = useNavigate()
   const isDriver = user?.role === 'DRIVER'
@@ -1977,13 +1979,17 @@ const ServicePage = () => {
           ══════════════════════════════════════════════════════ */}
           <div style={{
             position: 'relative',
-            background: 'linear-gradient(135deg, #06091a 0%, #0a1230 45%, #0d1840 100%)',
-            borderRadius: 22,
+            background: isDark
+              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
+              : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+            borderRadius: 28,
             padding: '32px 36px',
             marginBottom: 28,
             overflow: 'hidden',
-            border: '1px solid rgba(99,102,241,0.2)',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.45), 0 0 0 1px rgba(99,102,241,0.08)',
+            border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid var(--border)',
+            boxShadow: isDark
+              ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
+              : '0 16px 48px rgba(0,0,0,0.4)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
