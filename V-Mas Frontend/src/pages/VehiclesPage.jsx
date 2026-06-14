@@ -682,7 +682,7 @@ const VehiclesPage = () => {
                     <p style={{ margin: '10px 0 0', color: D.textSub, fontSize: '1rem', fontWeight: 500 }}>Adjust your search terms or filters to find what you're looking for.</p>
                   </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 }}>
                     {filtered.map((v, i) => {
                       const s = statusColors[v.status] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
                       const alertInfo = vehicleAlerts[v.registrationNo]
@@ -702,87 +702,153 @@ const VehiclesPage = () => {
                       const isInsExpired = insDiff !== null && insDiff < 0
                       const isLicExpired = licDiff !== null && licDiff < 0
 
+                      const initials = v.manufacturer
+                        ? (v.manufacturer.includes(' ')
+                            ? v.manufacturer.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
+                            : v.manufacturer.substring(0, 2).toUpperCase())
+                        : 'V'
+
+                      const driver = drivers.find(d => String(d.id) === String(v.driverId))
+
                       return (
                         <div key={v.id} style={{
-                          background: D.surface, borderRadius: 20, border: `1px solid ${D.border}`,
-                          padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 24,
-                          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`,
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                        }} onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)' }} onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'var(--shadow-xs)' }}>
+                          background: D.surface, border: `1px solid ${D.border}`, borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column', gap: 20,
+                          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                          cursor: 'pointer'
+                        }}
+                          onClick={() => openProfile(v)}
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.2)' }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)' }}>
 
-                          {/* Reg No & Fuel Type */}
-                          <div style={{ width: 140, flexShrink: 0 }}>
-                            <button
-                              onClick={() => openProfile(v)}
-                              style={{
-                                background: 'none', border: 'none', padding: 0, margin: 0,
-                                fontSize: '1.1rem', fontWeight: 950, color: D.blue, letterSpacing: '0.02em',
-                                cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
-                                transition: 'color 0.15s ease', display: 'flex', alignItems: 'center', gap: 6
-                              }}
-                              onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'}
-                              onMouseLeave={e => e.currentTarget.style.color = D.blue}
-                            >
-                              {v.registrationNo ?? 'N/A'}
-                              {(isInsExpired || isLicExpired) ? (
-                                <AlertCircle size={14} style={{ color: D.red }} title={isInsExpired ? "Insurance Expired" : "License Expired"} />
-                              ) : (isInsAlert || isLicAlert) ? (
-                                <AlertTriangle size={14} style={{ color: D.orange }} title={isInsAlert ? "Insurance Expiring Soon" : "License Expiring Soon"} />
-                              ) : null}
-                            </button>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                              <span style={{ fontSize: '0.72rem', color: D.textSub, fontWeight: 800, textTransform: 'uppercase', background: D.surfaceHi, padding: '2px 8px', borderRadius: 6, border: `1px solid ${D.border}` }}>
-                                {v.fuelType ?? 'N/A'}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Make, Model, Year, Mileage */}
-                          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 48 }}>
-                            <div>
-                              <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Vehicle</div>
-                              <div style={{ fontSize: '1rem', fontWeight: 800, color: D.text }}>
-                                {v.manufacturer ?? 'N/A'} {v.model ?? ''} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>{v.year ? `(${v.year})` : ''}</span>
+                          {/* Header row */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                              {/* Avatar */}
+                              <div style={{ flexShrink: 0 }}>
+                                <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, #38bdf8, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1rem', fontWeight: 800, border: `2px solid ${D.border}` }}>
+                                  {initials}
+                                </div>
+                              </div>
+                              {/* Name and Subtitle */}
+                              <div>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); openProfile(v); }}
+                                  style={{
+                                    background: 'none', border: 'none', padding: 0, margin: 0,
+                                    fontSize: '1.05rem', fontWeight: 955, color: D.blue, letterSpacing: '0.02em',
+                                    cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+                                    transition: 'color 0.15s ease', display: 'flex', alignItems: 'center', gap: 6
+                                  }}
+                                  onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'}
+                                  onMouseLeave={e => e.currentTarget.style.color = D.blue}
+                                >
+                                  {v.registrationNo ?? 'N/A'}
+                                  {(isInsExpired || isLicExpired) ? (
+                                    <AlertCircle size={14} style={{ color: D.red }} title={isInsExpired ? "Insurance Expired" : "License Expired"} />
+                                  ) : (isInsAlert || isLicAlert) ? (
+                                    <AlertTriangle size={14} style={{ color: D.orange }} title={isInsAlert ? "Insurance Expiring Soon" : "License Expiring Soon"} />
+                                  ) : null}
+                                </button>
+                                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500 }}>
+                                  {v.manufacturer ?? 'N/A'} {v.model ?? ''}
+                                </p>
                               </div>
                             </div>
-                            <div>
-                              <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Mileage</div>
-                              <div style={{ fontSize: '1rem', fontWeight: 800, color: D.text }}>
-                                {v.currentMileageKm ? v.currentMileageKm.toLocaleString() : '0'} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>km</span>
-                              </div>
-                            </div>
-                          </div>
 
-                          {/* Next Service Status */}
-                          <div style={{ width: 140, flexShrink: 0 }}>
-                            <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Service Due</div>
-                            {ac ? (
-                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 8, background: ac.bg, color: ac.color, border: `1px solid ${ac.border}` }}>
-                                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>{ac.label}</span>
-                              </div>
-                            ) : (
-                              <span style={{ color: D.textFaint, fontSize: '0.75rem', fontWeight: 600 }}>Up to date</span>
-                            )}
-                          </div>
-
-                          {/* Status */}
-                          <div style={{ width: 100, textAlign: 'right', flexShrink: 0 }}>
-                            <span style={{ display: 'inline-block', background: s.bg, color: s.color, padding: '6px 12px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', border: `1px solid ${s.border}` }}>
+                            {/* Status Badge */}
+                            <div style={{
+                              padding: '4px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 700,
+                              background: s.bg, color: s.color, border: `1px solid ${s.border || (s.color + '30')}`,
+                              textTransform: 'uppercase', letterSpacing: '0.02em', flexShrink: 0
+                            }}>
                               {v.status ?? 'N/A'}
-                            </span>
+                            </div>
                           </div>
 
-                          {/* Actions */}
-                          {!isDriver && (
-                            <div style={{ display: 'flex', gap: 10, marginLeft: 16 }}>
-                              <button onClick={() => openProfile(v)} title="Profile" style={{ width: 42, height: 42, borderRadius: 12, border: `1px solid ${D.border}`, background: D.surface, color: D.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.25s' }} onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = D.blue; e.currentTarget.style.background = D.blue }} onMouseLeave={e => { e.currentTarget.style.color = D.blue; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface }}>
-                                <Eye size={18} />
+                          {/* Stats Cards Row */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                            <div style={{
+                              background: D.bg === '#060b18' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
+                              border: `1px solid ${D.border}`, borderRadius: 16, padding: '14px 6px', textAlign: 'center'
+                            }}>
+                              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: D.text }}>
+                                {v.currentMileageKm ? v.currentMileageKm.toLocaleString() : '0'}
+                              </div>
+                              <div style={{ fontSize: '0.65rem', fontWeight: 700, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mileage</div>
+                            </div>
+
+                            <div style={{
+                              background: D.bg === '#060b18' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
+                              border: `1px solid ${D.border}`, borderRadius: 16, padding: '14px 6px', textAlign: 'center'
+                            }}>
+                              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: D.text }}>
+                                {v.fuelType ?? 'N/A'}
+                              </div>
+                              <div style={{ fontSize: '0.65rem', fontWeight: 700, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fuel</div>
+                            </div>
+
+                            <div style={{
+                              background: D.bg === '#060b18' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
+                              border: `1px solid ${D.border}`, borderRadius: 16, padding: '14px 6px', textAlign: 'center'
+                            }}>
+                              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: ac ? ac.color : D.text }}>
+                                {ac ? ac.label : 'OK'}
+                              </div>
+                              <div style={{ fontSize: '0.65rem', fontWeight: 700, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Service</div>
+                            </div>
+                          </div>
+
+                          {/* Details section */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
+                              <User size={14} style={{ color: D.textSub, flexShrink: 0 }} />
+                              <span>Driver: {driver ? driver.userName : 'Unassigned'}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
+                              <FileText size={14} style={{ color: D.textSub, flexShrink: 0 }} />
+                              <span>Chassis: {v.chassisNumber || 'N/A'}</span>
+                            </div>
+                            {/* Compliance Expiries info */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: isInsExpired ? D.red : isInsAlert ? D.orange : D.textSub, fontWeight: 600 }}>
+                                <Calendar size={14} style={{ flexShrink: 0 }} />
+                                <span>
+                                  Insurance: {v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate).toLocaleDateString() : 'N/A'}
+                                  {isInsExpired ? ' (Expired)' : isInsAlert ? ` (${insDiff}d left)` : ''}
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: isLicExpired ? D.red : isLicAlert ? D.orange : D.textSub, fontWeight: 600 }}>
+                                <Clock size={14} style={{ flexShrink: 0 }} />
+                                <span>
+                                  License: {v.licenseExpiryDate ? new Date(v.licenseExpiryDate).toLocaleDateString() : 'N/A'}
+                                  {isLicExpired ? ' (Expired)' : isLicAlert ? ` (${licDiff}d left)` : ''}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons Row */}
+                          {!isDriver ? (
+                            <div style={{ borderTop: `1px solid ${D.border}`, margin: '8px 0 0', paddingTop: '16px', display: 'flex', gap: 10, justifyContent: 'flex-end', width: '100%' }}>
+                              <button onClick={(e) => { e.stopPropagation(); openProfile(v); }} title="Profile" style={{ padding: '8px 14px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.blue, cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontFamily: 'inherit' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = D.blue; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = D.blue }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = D.blue; e.currentTarget.style.borderColor = D.border }}>
+                                <Eye size={14} /> Profile
                               </button>
-                              <button onClick={() => openEditModal(v)} title="Edit" style={{ width: 42, height: 42, borderRadius: 12, border: `1px solid ${D.border}`, background: D.surface, color: D.textSub, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.25s' }} onMouseEnter={e => { e.currentTarget.style.color = D.purple; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.background = D.purpleDim }} onMouseLeave={e => { e.currentTarget.style.color = D.textSub; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface }}>
-                                <Edit2 size={18} />
+                              <button onClick={(e) => { e.stopPropagation(); openEditModal(v); }} title="Edit" style={{ padding: '8px 14px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontFamily: 'inherit' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.15)'; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.color = '#60a5fa' }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
+                                <Edit2 size={14} /> Edit
                               </button>
-                              <button onClick={() => openDeleteModal(v)} title="Delete" style={{ width: 42, height: 42, borderRadius: 12, border: `1px solid ${D.border}`, background: D.surface, color: D.red, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.25s' }} onMouseEnter={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.borderColor = D.red }} onMouseLeave={e => { e.currentTarget.style.background = D.surface; e.currentTarget.style.borderColor = D.border }}>
-                                <Trash2 size={18} />
+                              <button onClick={(e) => { e.stopPropagation(); openDeleteModal(v); }} title="Delete" style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontFamily: 'inherit' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = D.red }}>
+                                <Trash2 size={14} /> Delete
+                              </button>
+                            </div>
+                          ) : (
+                            <div style={{ borderTop: `1px solid ${D.border}`, margin: '8px 0 0', paddingTop: '16px', display: 'flex', width: '100%' }}>
+                              <button onClick={(e) => { e.stopPropagation(); openProfile(v); }} style={{ width: '100%', padding: '8px 16px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.blue, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.25s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'inherit' }}
+                                onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = D.blue; e.currentTarget.style.background = D.blue }} onMouseLeave={e => { e.currentTarget.style.color = D.blue; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}>
+                                <Eye size={14} /> View Details
                               </button>
                             </div>
                           )}
@@ -1010,61 +1076,60 @@ const VehiclesPage = () => {
         )}
       </div>
 
-      {/* ── Vehicle Profile Side Drawer ── */}
+      {/* ── Vehicle Profile Modal ── */}
       {isProfileOpen && selectedProfileVehicle && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', justifyContent: 'flex-end', animation: 'fadeIn 0.2s ease' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.25s ease' }}>
           {/* Backdrop */}
-          <div onClick={closeProfile} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', transition: 'opacity 0.2s ease' }} />
+          <div onClick={closeProfile} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', transition: 'opacity 0.2s ease' }} />
 
-          {/* Drawer Container */}
+          {/* Modal Container */}
           <div style={{
             position: 'relative',
-            width: '100%',
-            maxWidth: 480,
-            height: '100vh',
+            width: '92%',
+            maxWidth: 680,
+            maxHeight: '88vh',
             background: D.surface,
-            borderLeft: `1px solid ${D.border}`,
-            boxShadow: '-10px 0 40px rgba(0,0,0,0.4)',
+            borderRadius: 32,
+            boxShadow: '0 32px 100px rgba(0,0,0,0.6)',
+            border: `1px solid ${D.border}`,
             display: 'flex',
             flexDirection: 'column',
             zIndex: 10,
-            animation: 'slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+            animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
             overflow: 'hidden'
           }}>
             {/* Header section */}
-            <div style={{ padding: '24px 28px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#fff' }}>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
                 <div style={{
                   width: 52,
                   height: 52,
                   borderRadius: 14,
-                  background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)',
+                  background: 'rgba(255,255,255,0.12)',
                   color: '#fff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '1.5rem',
-                  boxShadow: '0 4px 14px rgba(37, 99, 235,0.3)',
+                  border: '1px solid rgba(255,255,255,0.2)',
                   flexShrink: 0
                 }}>
                   <Car size={26} />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>
+                  <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.35rem', color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>
                     {selectedProfileVehicle.registrationNo}
                   </h3>
-                  <p style={{ margin: '2px 0 0', color: D.textSub, fontSize: '0.85rem', fontWeight: 600 }}>
+                  <p style={{ margin: '4px 0 0', color: '#60a5fa', fontSize: '0.85rem', fontWeight: 600 }}>
                     {selectedProfileVehicle.manufacturer} {selectedProfileVehicle.model}
                   </p>
                 </div>
               </div>
-              <button onClick={closeProfile} style={{ background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.15s ease' }} onMouseEnter={e => e.currentTarget.style.transform = 'rotate(90deg)'} onMouseLeave={e => e.currentTarget.style.transform = 'rotate(0deg)'}>
-                <X size={22} />
-              </button>
+              <button onClick={closeProfile} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
             </div>
 
             {/* Status & Badges row */}
-            <div style={{ padding: '12px 28px', background: D.surface, display: 'flex', gap: 10, borderBottom: `1px solid ${D.border}` }}>
+            <div style={{ padding: '12px 32px', background: D.surface, display: 'flex', gap: 10, borderBottom: `1px solid ${D.border}` }}>
               {(() => {
                 const s = statusColors[selectedProfileVehicle.status] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
                 return (
@@ -1079,7 +1144,7 @@ const VehiclesPage = () => {
             </div>
 
             {/* Tab Navigation */}
-            <div style={{ display: 'flex', padding: '16px 28px 10px', background: D.surface, gap: 8, borderBottom: `1px solid ${D.border}` }}>
+            <div style={{ display: 'flex', padding: '16px 32px 10px', background: D.surface, gap: 8, borderBottom: `1px solid ${D.border}` }}>
               {['overview', 'services', 'fuel'].map(tab => (
                 <button
                   key={tab}
@@ -1105,7 +1170,7 @@ const VehiclesPage = () => {
             </div>
 
             {/* Drawer Content Area (Scrollable) */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', background: D.bg }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px', background: D.bg }}>
               {profileActiveTab === 'overview' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   {/* Specs Grid */}

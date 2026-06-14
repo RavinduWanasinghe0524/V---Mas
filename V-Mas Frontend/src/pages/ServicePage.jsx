@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
 import { addControllerNotification, addDriverNotification } from '../services/notificationService'
 import { computeMileageProgress, computeDateAlert, getAlertLevel, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
-import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle, Paperclip, User, Eye, Archive, Clock, Gauge, BellRing, MoreVertical, ShieldAlert, Wallet, Sparkles } from 'lucide-react'
+import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle, Paperclip, User, Eye, Archive, Clock, Gauge, BellRing, MoreVertical, ShieldAlert, Wallet, Sparkles, LayoutGrid, List } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
 
@@ -2219,16 +2219,19 @@ const ServicePage = () => {
           </div>
 
           {/* ══════════════════════════════════════════════════════
-              3. SERVICE ALERTS PANEL — Full Width
+              4. ANALYTICS ROW — Alerts + Progress Graph + Donut
           ══════════════════════════════════════════════════════ */}
+          {/* Service Alerts - Full Width */}
           <div style={{
             background: D.surface,
             border: `1px solid ${alertRecords.length > 0 ? (alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)') : D.border}`,
             borderRadius: 20,
             padding: '24px 28px',
-            marginBottom: 26,
+            display: 'flex',
+            flexDirection: 'column',
             boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
             animation: 'fadeSlideUp 0.4s ease 0.32s both',
+            marginBottom: 26,
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <div>
@@ -2257,9 +2260,12 @@ const ServicePage = () => {
               borderRadius: 16,
               overflow: 'hidden',
               background: D.bg,
+              maxHeight: alertRecords.length === 0 ? 120 : 250,
+              overflowY: alertRecords.length > 3 ? 'auto' : 'visible',
+              flex: 1,
             }}>
               {alertRecords.length === 0 ? (
-                <div style={{ padding: '32px 20px', textAlign: 'center' }}>
+                <div style={{ padding: '32px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 120 }}>
                   <div style={{
                     width: 44, height: 44, borderRadius: '50%', margin: '0 auto 12px',
                     background: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.2)',
@@ -2271,225 +2277,100 @@ const ServicePage = () => {
                   <p style={{ margin: 0, fontSize: '0.72rem', color: D.textSub }}>No upcoming or overdue service risks.</p>
                 </div>
               ) : (
-                alertRecords.map((r, ai) => {
-                  const isOverdue = r._alertLevel === 'OVERDUE'
-                  const accentColor = isOverdue ? '#f87171' : '#fbbf24'
-                  const accentBg = isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'rgba(251, 191, 36, 0.1)'
-                  const accentBorder = isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'
-                  const mileage = computeMileageProgress(r, r._vehicleCurrentKm)
-                  const date = computeDateAlert(r)
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                  gap: 12,
+                  padding: 12,
+                }}>
+                  {alertRecords.map((r) => {
+                    const isOverdue = r._alertLevel === 'OVERDUE'
+                    const accentColor = isOverdue ? '#f87171' : '#fbbf24'
+                    const accentBg = isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'rgba(251, 191, 36, 0.1)'
+                    const accentBorder = isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'
 
-                  return (
-                    <div
-                      key={r.id}
-                      className="svc-alert-card"
-                      onClick={() => setDetailModal({ isOpen: true, record: r })}
-                      style={{
-                        borderBottom: ai < alertRecords.length - 1 ? `1px solid ${D.border}` : 'none',
-                        borderLeft: `4px solid ${accentColor}`,
-                        padding: '16px 20px',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 16,
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          width: 40, height: 40, borderRadius: 10,
-                          background: accentBg, border: `1px solid ${accentBorder}`,
-                          color: accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0,
-                        }}>
-                          <Wrench size={16} />
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>
-                              {isOverdue ? 'Service Overdue Risk' : 'Service Due Soon'}
-                            </span>
-                            <span style={{
-                              fontSize: '0.6rem', fontWeight: 800, padding: '2px 8px',
-                              borderRadius: 999, background: accentBg, color: accentColor,
-                              border: `1px solid ${accentBorder}`,
-                              textTransform: 'uppercase', letterSpacing: '0.06em',
-                            }}>
-                              {isOverdue ? 'URGENT' : 'UPCOMING'}
-                            </span>
-                          </div>
-                          <p style={{ margin: 0, fontSize: '0.78rem', color: D.textSub, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                            <strong style={{ color: accentColor }}>{r.vehicleRegNumber}</strong>
-                            {' · '}{r.serviceType?.replace(/_/g, ' ')}
-                            {mileage && ` · ${fmtKmRemaining(mileage.remaining)}`}
-                            {date && ` · ${fmtDaysRemaining(date.daysRemaining)}`}
-                          </p>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={e => { e.stopPropagation(); setDetailModal({ isOpen: true, record: r }) }}
+                    return (
+                      <div
+                        key={r.id}
+                        className="svc-alert-card"
+                        onClick={() => setDetailModal({ isOpen: true, record: r })}
                         style={{
-                          background: 'rgba(255, 255, 255, 0.08)',
-                          border: `1px solid ${D.borderHi}`,
-                          color: D.text,
-                          borderRadius: 8,
-                          padding: '6px 16px',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
+                          background: D.surface,
+                          border: `1px solid ${D.border}`,
+                          borderLeft: `4px solid ${accentColor}`,
+                          borderRadius: 12,
+                          padding: '14px 18px',
                           cursor: 'pointer',
-                          transition: 'all 0.15s',
+                          transition: 'all 0.15s ease',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 12,
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)' }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.borderColor = accentColor
+                          e.currentTarget.style.transform = 'translateY(-2px)'
+                          e.currentTarget.style.boxShadow = `0 4px 12px ${accentColor}12`
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.borderColor = D.border
+                          e.currentTarget.style.transform = 'translateY(0)'
+                          e.currentTarget.style.boxShadow = 'none'
+                        }}
                       >
-                        View
-                      </button>
-                    </div>
-                  )
-                })
-              )}
-            </div>
-          </div>
-
-          {/* ══════════════════════════════════════════════════════
-              4. ANALYTICS ROW — Downtime chart + Donut
-          ══════════════════════════════════════════════════════ */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 18, marginBottom: 26 }}>
-
-            {/* LEFT: DOWNTIME TREND */}
-            <div style={{
-              background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20,
-              padding: '24px 28px', display: 'flex', flexDirection: 'column',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
-              animation: 'fadeSlideUp 0.4s ease 0.36s both',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
-                    Downtime Trend
-                  </h3>
-                  <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>Total hours off-road per month</p>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: D.surfaceHi, border: `1px solid ${D.border}`, borderRadius: 8, padding: '5px 12px' }}>
-                  <div style={{ width: 8, height: 8, borderRadius: 2, background: 'linear-gradient(135deg,#fbbf24,#6366f1)' }} />
-                  <span style={{ fontSize: '0.68rem', color: D.textSub, fontWeight: 700 }}>Last 6 months</span>
-                </div>
-              </div>
-
-              <div style={{ flex: 1, minHeight: 185, position: 'relative' }}>
-                {(() => {
-                  const trendData = getDowntimeTrendData()
-                  const maxHours = Math.max(...trendData.map(d => d.hours), 60)
-                  return (
-                    <div style={{ width: '100%', height: '100%' }}>
-                      <svg width="100%" height="175" viewBox="0 0 500 175" preserveAspectRatio="none">
-                        <defs>
-                          <linearGradient id="barGradNew" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#fbbf24" />
-                            <stop offset="100%" stopColor="#6366f1" />
-                          </linearGradient>
-                        </defs>
-                        {[0, 0.25, 0.5, 0.75, 1].map(f => (
-                          <line key={f} x1="0" y1={148 - f * 148} x2="500" y2={148 - f * 148}
-                            stroke={D.border} strokeWidth="1" strokeDasharray="4 4" />
-                        ))}
-                        {trendData.map((d, idx) => {
-                          const slotW = 500 / 6
-                          const barW = 32
-                          const x = idx * slotW + (slotW - barW) / 2
-                          const barH = (d.hours / maxHours) * 148
-                          const y = 148 - barH
-                          return (
-                            <g key={idx}>
-                              <rect x={x + 2} y={y + 2} width={barW} height={barH} rx="5" fill="rgba(0,0,0,0.2)" />
-                              <rect x={x} y={y} width={barW} height={barH} rx="5" fill="url(#barGradNew)" style={{ transition: 'all 0.5s ease' }}>
-                                <title>{d.hours} hours off-road</title>
-                              </rect>
-                              <text x={x + barW / 2} y="165" textAnchor="middle" fill={D.textSub} fontSize="10" fontWeight="700">{d.label}</text>
-                              <text x={x + barW / 2} y={y - 4} textAnchor="middle" fill="rgba(251,191,36,0.75)" fontSize="8" fontWeight="800">{d.hours}h</text>
-                            </g>
-                          )
-                        })}
-                      </svg>
-                      <div style={{ position: 'absolute', left: 0, top: 4, fontSize: '0.58rem', color: D.textFaint, fontWeight: 700 }}>{Math.round(maxHours)}h</div>
-                      <div style={{ position: 'absolute', left: 0, top: '40%', fontSize: '0.58rem', color: D.textFaint, fontWeight: 700 }}>{Math.round(maxHours / 2)}h</div>
-                      <div style={{ position: 'absolute', left: 0, bottom: 28, fontSize: '0.58rem', color: D.textFaint, fontWeight: 700 }}>0h</div>
-                    </div>
-                  )
-                })()}
-              </div>
-            </div>
-
-            {/* RIGHT: BY SERVICE TYPE donut */}
-            <div style={{
-              background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20,
-              padding: '24px', display: 'flex', flexDirection: 'column',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
-              animation: 'fadeSlideUp 0.4s ease 0.4s both',
-            }}>
-              <div style={{ marginBottom: 16 }}>
-                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>By Service Type</h3>
-                <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>Share of work orders</p>
-              </div>
-
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                {(() => {
-                  const segments = getServiceTypeShare()
-                  const r = 50
-                  const circ = 2 * Math.PI * r
-                  let accumulatedPercent = 0
-                  return (
-                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <div style={{ position: 'relative', width: 140, height: 140 }}>
-                        <svg width="140" height="140" viewBox="0 0 120 120">
-                          <circle cx="60" cy="60" r={r} fill="transparent" stroke="rgba(255,255,255,0.04)" strokeWidth="12" />
-                          {segments.map((seg) => {
-                            const strokeLength = (seg.pct / 100) * circ
-                            const strokeOffset = circ - strokeLength
-                            const rotation = (accumulatedPercent / 100) * 360 - 90
-                            accumulatedPercent += seg.pct
-                            if (seg.pct === 0) return null
-                            return (
-                              <circle key={seg.name}
-                                cx="60" cy="60" r={r}
-                                fill="transparent" stroke={seg.color}
-                                strokeWidth="12" strokeDasharray={circ}
-                                strokeDashoffset={strokeOffset}
-                                strokeLinecap="round"
-                                transform={`rotate(${rotation} 60 60)`}
-                                style={{ transition: 'stroke-dashoffset 0.6s ease', filter: `drop-shadow(0 0 5px ${seg.color}55)` }}>
-                                <title>{seg.name}: {seg.count} ({seg.pct}%)</title>
-                              </circle>
-                            )
-                          })}
-                        </svg>
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                          <span style={{ fontSize: '1.5rem', fontWeight: 900, color: D.text, fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>{total}</span>
-                          <span style={{ fontSize: '0.58rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Total</span>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 8px', marginTop: 16, width: '100%' }}>
-                        {segments.map(seg => (
-                          <div key={seg.name} style={{
-                            display: 'flex', alignItems: 'center', gap: 7,
-                            background: D.surfaceHi, border: `1px solid ${D.border}`,
-                            borderRadius: 8, padding: '6px 10px',
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+                          <div style={{
+                            width: 36, height: 36, borderRadius: 8,
+                            background: accentBg, border: `1px solid ${accentBorder}`,
+                            color: accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
                           }}>
-                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: seg.color, flexShrink: 0, boxShadow: `0 0 5px ${seg.color}` }} />
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontSize: '0.68rem', fontWeight: 700, color: D.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{seg.name}</div>
-                              <div style={{ fontSize: '0.6rem', color: D.textSub }}>{seg.pct}%</div>
-                            </div>
+                            <Wrench size={14} />
                           </div>
-                        ))}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: D.text }}>
+                                {isOverdue ? 'Overdue' : 'Due'}
+                              </span>
+                              <span style={{
+                                fontSize: '0.55rem', fontWeight: 800, padding: '1px 6px',
+                                borderRadius: 999, background: accentBg, color: accentColor,
+                                border: `1px solid ${accentBorder}`,
+                                textTransform: 'uppercase', letterSpacing: '0.04em',
+                              }}>
+                                {isOverdue ? 'URGENT' : 'UPCOMING'}
+                              </span>
+                            </div>
+                            <p style={{ margin: 0, fontSize: '0.72rem', color: D.textSub, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                              <strong style={{ color: accentColor }}>{r.vehicleRegNumber}</strong>
+                              {' · '}{r.serviceType?.replace(/_/g, ' ')}
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={e => { e.stopPropagation(); setDetailModal({ isOpen: true, record: r }) }}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.08)',
+                            border: `1px solid ${D.borderHi}`,
+                            color: D.text,
+                            borderRadius: 8,
+                            padding: '5px 12px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s',
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)' }}
+                        >
+                          View
+                        </button>
                       </div>
-                    </div>
-                  )
-                })()}
-              </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
@@ -2571,6 +2452,38 @@ const ServicePage = () => {
                 )}
               </div>
 
+              {/* View Switcher */}
+              <div style={{ display: 'flex', background: D.surfaceHi, border: `1px solid ${D.border}`, borderRadius: 10, padding: 2, gap: 2 }}>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '6px 12px', borderRadius: 8,
+                    background: viewMode === 'grid' ? 'rgba(99,102,241,0.15)' : 'transparent',
+                    border: 'none',
+                    color: viewMode === 'grid' ? '#a5b4fc' : D.textSub,
+                    cursor: 'pointer', transition: 'all 0.15s',
+                  }}
+                  title="Card View"
+                >
+                  <LayoutGrid size={15} />
+                </button>
+                <button
+                  onClick={() => setViewMode('table')}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '6px 12px', borderRadius: 8,
+                    background: viewMode === 'table' ? 'rgba(99,102,241,0.15)' : 'transparent',
+                    border: 'none',
+                    color: viewMode === 'table' ? '#a5b4fc' : D.textSub,
+                    cursor: 'pointer', transition: 'all 0.15s',
+                  }}
+                  title="Table View"
+                >
+                  <List size={15} />
+                </button>
+              </div>
+
               <button
                 onClick={handleExportPDF}
                 style={{
@@ -2588,171 +2501,220 @@ const ServicePage = () => {
               </button>
             </div>
 
-            {/* Table */}
-            <div style={{ overflowX: 'auto', scrollbarWidth: 'thin' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ background: D.surfaceHi, borderBottom: `1px solid ${D.border}` }}>
-                    {['Work Order', 'Vehicle', 'Task', 'Garage', 'Due Date', 'Cost', 'Status', 'Docs'].map(h => (
-                      <th key={h} style={{
-                        padding: '12px 26px', fontSize: '0.72rem', fontWeight: 800,
-                        color: D.textSub, letterSpacing: '0.07em', textTransform: 'uppercase',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    [1, 2, 3, 4].map(i => (
-                      <tr key={i} style={{ borderBottom: `1px solid ${D.border}` }}>
-                        <td colSpan="8" style={{ padding: '16px 26px' }}>
-                          <div style={{ height: 14, background: D.surfaceHi, borderRadius: 4, animation: 'pulse 1.5s infinite' }} />
-                        </td>
-                      </tr>
-                    ))
-                  ) : filtered.length === 0 ? (
-                    <tr>
-                      <td colSpan="8" style={{ padding: '56px 20px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                          <div style={{ width: 48, height: 48, borderRadius: 14, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <ClipboardList size={22} color={D.textSub} />
-                          </div>
-                          <p style={{ margin: 0, fontSize: '0.88rem', color: D.textSub, fontWeight: 600 }}>No matching work orders</p>
-                          <p style={{ margin: 0, fontSize: '0.75rem', color: D.textFaint }}>Try adjusting your search or filter.</p>
-                        </div>
-                      </td>
+            {/* Conditionally Render Table or Card Grid based on viewMode */}
+            {viewMode === 'grid' ? (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                gap: 20,
+                padding: '24px 26px',
+                background: D.bg,
+              }}>
+                {loading ? (
+                  [1, 2, 3, 4].map(i => (
+                    <div key={i} style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 12, height: 260, animation: 'pulse 1.5s infinite' }} />
+                  ))
+                ) : filtered.length === 0 ? (
+                  <div style={{ padding: '56px 20px', textAlign: 'center', width: '100%', gridColumn: '1 / -1' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 48, height: 48, borderRadius: 14, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <ClipboardList size={22} color={D.textSub} />
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.95rem', color: D.textSub, fontWeight: 600 }}>No matching work orders</p>
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: D.textFaint }}>Try adjusting your search or filter.</p>
+                    </div>
+                  </div>
+                ) : (
+                  filtered.map((s, index) => {
+                    const vc = allVehicles.find(v => v.registrationNo === s.vehicleRegNumber)
+                    const vehicleCurrentKm = vc ? vc.currentMileageKm : 0
+                    const isLatest = checkIsLatest(s, services)
+                    return (
+                      <ServiceGridCard
+                        key={s.id}
+                        record={s}
+                        index={index}
+                        isDriver={isDriver}
+                        isAdmin={isAdmin}
+                        currentUsername={user?.userName}
+                        vehicleCurrentKm={vehicleCurrentKm}
+                        isLatest={isLatest}
+                        onEdit={openEditModal}
+                        onDelete={confirmDelete}
+                        onView={(rec) => setDetailModal({ isOpen: true, record: rec })}
+                        onViewAttachment={handleViewAttachment}
+                        D={D}
+                      />
+                    )
+                  })
+                )}
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto', scrollbarWidth: 'thin' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: D.surfaceHi, borderBottom: `1px solid ${D.border}` }}>
+                      {['Work Order', 'Vehicle', 'Task', 'Garage', 'Due Date', 'Cost', 'Status', 'Docs'].map(h => (
+                        <th key={h} style={{
+                          padding: '16px 26px', fontSize: '0.85rem', fontWeight: 800,
+                          color: D.textSub, letterSpacing: '0.07em', textTransform: 'uppercase',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {h}
+                        </th>
+                      ))}
                     </tr>
-                  ) : (
-                    filtered.map((s, rowIdx) => {
-                      const status = getTableStatus(s)
-                      const stConfig = {
-                        Overdue: { color: '#f87171', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.25)', dot: '#ef4444' },
-                        'In Progress': { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.25)', dot: '#fbbf24' },
-                        Open: { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)', border: 'rgba(96,165,250,0.25)', dot: '#3b82f6' },
-                        Completed: { color: '#34d399', bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', dot: '#10b981' },
-                      }[status] || { color: D.textSub, bg: 'rgba(255,255,255,0.05)', border: D.border, dot: D.textSub }
-
-                      const vc = allVehicles.find(v => v.registrationNo === s.vehicleRegNumber)
-                      const vehicleLabel = vc && (vc.manufacturer || vc.model)
-                        ? `${vc.manufacturer || ''} ${vc.model || ''}`.trim()
-                        : null
-
-                      return (
-                        <tr
-                          key={s.id}
-                          className="svc-row-hover"
-                          onClick={() => setDetailModal({ isOpen: true, record: s })}
-                          style={{
-                            borderBottom: `1px solid ${D.border}`,
-                            cursor: 'pointer',
-                            transition: 'background 0.15s ease',
-                            animation: `fadeUp 0.3s ease ${rowIdx * 0.03}s both`,
-                          }}
-                        >
-                          <td style={{ padding: '16px 26px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <div style={{ width: 6, height: 6, borderRadius: '50%', background: stConfig.dot, boxShadow: `0 0 5px ${stConfig.dot}`, flexShrink: 0 }} />
-                              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>WO-{s.id}</span>
-                            </div>
-                          </td>
-
-                          <td style={{ padding: '16px 26px' }}>
-                            <div>
-                              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: D.text }}>{s.vehicleRegNumber}</div>
-                              {vehicleLabel && <div style={{ fontSize: '0.68rem', color: D.textSub, marginTop: 2 }}>{vehicleLabel}</div>}
-                            </div>
-                          </td>
-
-                          <td style={{ padding: '16px 26px', maxWidth: 170 }}>
-                            <div>
-                              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: D.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 155 }}>
-                                {s.serviceType?.replace(/_/g, ' ')}
-                              </div>
-                              {s.serviceTypeDetail && (
-                                <div style={{ fontSize: '0.68rem', color: D.textSub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 155 }}>
-                                  {s.serviceTypeDetail}
-                                </div>
-                              )}
-                            </div>
-                          </td>
-
-                          <td style={{ padding: '16px 26px', maxWidth: 130 }}>
-                            <span style={{ fontSize: '0.78rem', color: D.textSub, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>
-                              {s.technicianWorkshop || '—'}
-                            </span>
-                          </td>
-
-                          <td style={{ padding: '16px 26px', fontSize: '0.78rem', color: D.textSub, fontWeight: 600, whiteSpace: 'nowrap' }}>
-                            {s.serviceDate ? s.serviceDate.substring(0, 10) : '—'}
-                          </td>
-
-                          <td style={{ padding: '16px 26px', fontSize: '0.8rem', fontWeight: 800, color: D.text, whiteSpace: 'nowrap' }}>
-                            LKR {Number(s.serviceCost || 0).toLocaleString()}
-                          </td>
-
-                          <td style={{ padding: '16px 26px' }}>
-                            <span style={{
-                              display: 'inline-flex', alignItems: 'center', gap: 5,
-                              fontSize: '0.66rem', fontWeight: 800,
-                              padding: '4px 10px', borderRadius: 999,
-                              background: stConfig.bg, color: stConfig.color,
-                              border: `1px solid ${stConfig.border}`,
-                              whiteSpace: 'nowrap',
-                            }}>
-                              <span style={{ width: 5, height: 5, borderRadius: '50%', background: stConfig.dot, flexShrink: 0 }} />
-                              {status}
-                            </span>
-                          </td>
-
-                          <td style={{ padding: '16px 26px' }} onClick={e => e.stopPropagation()}>
-                            {s.attachmentPath ? (
-                              <button
-                                onClick={() => handleViewAttachment(s)}
-                                style={{
-                                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                                  padding: '5px 11px',
-                                  background: 'rgba(52,211,153,0.1)', color: '#34d399',
-                                  border: '1px solid rgba(52,211,153,0.22)',
-                                  borderRadius: 8, fontSize: '0.7rem', fontWeight: 700,
-                                  cursor: 'pointer', transition: 'all 0.15s',
-                                }}
-                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(52,211,153,0.22)' }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(52,211,153,0.1)' }}
-                              >
-                                <Paperclip size={11} /> View
-                              </button>
-                            ) : (
-                              !isDriver && !isAdmin ? (
-                                <button
-                                  onClick={() => openEditModal(s.id)}
-                                  style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                                    padding: '5px 11px',
-                                    background: D.surfaceHi, border: `1px solid ${D.border}`,
-                                    color: D.textSub, borderRadius: 8,
-                                    fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer',
-                                    transition: 'all 0.15s',
-                                  }}
-                                  onMouseEnter={e => { e.currentTarget.style.color = D.text; e.currentTarget.style.borderColor = D.borderHi }}
-                                  onMouseLeave={e => { e.currentTarget.style.color = D.textSub; e.currentTarget.style.borderColor = D.border }}
-                                >
-                                  <Paperclip size={11} /> Attach
-                                </button>
-                              ) : (
-                                <span style={{ fontSize: '0.7rem', color: D.textFaint }}>—</span>
-                              )
-                            )}
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      [1, 2, 3, 4].map(i => (
+                        <tr key={i} style={{ borderBottom: `1px solid ${D.border}` }}>
+                          <td colSpan="8" style={{ padding: '20px 26px' }}>
+                            <div style={{ height: 16, background: D.surfaceHi, borderRadius: 4, animation: 'pulse 1.5s infinite' }} />
                           </td>
                         </tr>
-                      )
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                      ))
+                    ) : filtered.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" style={{ padding: '56px 20px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                            <div style={{ width: 48, height: 48, borderRadius: 14, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <ClipboardList size={22} color={D.textSub} />
+                            </div>
+                            <p style={{ margin: 0, fontSize: '0.95rem', color: D.textSub, fontWeight: 600 }}>No matching work orders</p>
+                            <p style={{ margin: 0, fontSize: '0.8rem', color: D.textFaint }}>Try adjusting your search or filter.</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      filtered.map((s, rowIdx) => {
+                        const status = getTableStatus(s)
+                        const stConfig = {
+                          Overdue: { color: '#f87171', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.25)', dot: '#ef4444' },
+                          'In Progress': { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.25)', dot: '#fbbf24' },
+                          Open: { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)', border: 'rgba(96,165,250,0.25)', dot: '#3b82f6' },
+                          Completed: { color: '#34d399', bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', dot: '#10b981' },
+                        }[status] || { color: D.textSub, bg: 'rgba(255,255,255,0.05)', border: D.border, dot: D.textSub }
+
+                        const vc = allVehicles.find(v => v.registrationNo === s.vehicleRegNumber)
+                        const vehicleLabel = vc && (vc.manufacturer || vc.model)
+                          ? `${vc.manufacturer || ''} ${vc.model || ''}`.trim()
+                          : null
+
+                        return (
+                          <tr
+                            key={s.id}
+                            className="svc-row-hover"
+                            onClick={() => setDetailModal({ isOpen: true, record: s })}
+                            style={{
+                              borderBottom: `1px solid ${D.border}`,
+                              cursor: 'pointer',
+                              transition: 'background 0.15s ease',
+                              animation: `fadeUp 0.3s ease ${rowIdx * 0.03}s both`,
+                            }}
+                          >
+                            <td style={{ padding: '20px 26px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: stConfig.dot, boxShadow: `0 0 5px ${stConfig.dot}`, flexShrink: 0 }} />
+                                <span style={{ fontSize: '0.92rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>WO-{s.id}</span>
+                              </div>
+                            </td>
+
+                            <td style={{ padding: '20px 26px' }}>
+                              <div>
+                                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: D.text }}>{s.vehicleRegNumber}</div>
+                                {vehicleLabel && <div style={{ fontSize: '0.8rem', color: D.textSub, marginTop: 2 }}>{vehicleLabel}</div>}
+                              </div>
+                            </td>
+
+                            <td style={{ padding: '20px 26px', maxWidth: 170 }}>
+                              <div>
+                                <div style={{ fontSize: '0.92rem', fontWeight: 700, color: D.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 155 }}>
+                                  {s.serviceType?.replace(/_/g, ' ')}
+                                </div>
+                                {s.serviceTypeDetail && (
+                                  <div style={{ fontSize: '0.8rem', color: D.textSub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 155 }}>
+                                    {s.serviceTypeDetail}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+
+                            <td style={{ padding: '20px 26px', maxWidth: 130 }}>
+                              <span style={{ fontSize: '0.88rem', color: D.textSub, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>
+                                {s.technicianWorkshop || '—'}
+                              </span>
+                            </td>
+
+                            <td style={{ padding: '20px 26px', fontSize: '0.88rem', color: D.textSub, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                              {s.serviceDate ? s.serviceDate.substring(0, 10) : '—'}
+                            </td>
+
+                            <td style={{ padding: '20px 26px', fontSize: '0.92rem', fontWeight: 800, color: D.text, whiteSpace: 'nowrap' }}>
+                              LKR {Number(s.serviceCost || 0).toLocaleString()}
+                            </td>
+
+                            <td style={{ padding: '20px 26px' }}>
+                              <span style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 5,
+                                fontSize: '0.78rem', fontWeight: 800,
+                                padding: '4px 10px', borderRadius: 999,
+                                background: stConfig.bg, color: stConfig.color,
+                                border: `1px solid ${stConfig.border}`,
+                                whiteSpace: 'nowrap',
+                              }}>
+                                <span style={{ width: 5, height: 5, borderRadius: '50%', background: stConfig.dot, flexShrink: 0 }} />
+                                {status}
+                              </span>
+                            </td>
+
+                            <td style={{ padding: '20px 26px' }} onClick={e => e.stopPropagation()}>
+                              {s.attachmentPath ? (
+                                <button
+                                  onClick={() => handleViewAttachment(s)}
+                                  style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                                    padding: '6px 12px',
+                                    background: 'rgba(52,211,153,0.1)', color: '#34d399',
+                                    border: '1px solid rgba(52,211,153,0.22)',
+                                    borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
+                                    cursor: 'pointer', transition: 'all 0.15s',
+                                  }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(52,211,153,0.22)' }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(52,211,153,0.1)' }}
+                                >
+                                  <Paperclip size={12} /> View
+                                </button>
+                              ) : (
+                                !isDriver && !isAdmin ? (
+                                  <button
+                                    onClick={() => openEditModal(s.id)}
+                                    style={{
+                                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                                      padding: '6px 12px',
+                                      background: D.surfaceHi, border: `1px solid ${D.border}`,
+                                      color: D.textSub, borderRadius: 8,
+                                      fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
+                                      transition: 'all 0.15s',
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.color = D.text; e.currentTarget.style.borderColor = D.borderHi }}
+                                    onMouseLeave={e => { e.currentTarget.style.color = D.textSub; e.currentTarget.style.borderColor = D.border }}
+                                  >
+                                    <Paperclip size={12} /> Attach
+                                  </button>
+                                ) : (
+                                  <span style={{ fontSize: '0.82rem', color: D.textFaint }}>—</span>
+                                )
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
         </div>{/* end page-body */}
