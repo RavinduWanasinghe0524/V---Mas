@@ -15,18 +15,20 @@ const StatCard = ({ icon, label, value, colorDim, colorHex, change, onClick }) =
     padding: '28px', display: 'flex', alignItems: 'center', gap: 24,
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     cursor: onClick ? 'pointer' : 'default',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
   }}
     onMouseEnter={e => {
       e.currentTarget.style.transform = 'translateY(-6px)'
       e.currentTarget.style.borderColor = colorHex + '50'
-      e.currentTarget.style.boxShadow = `0 16px 32px ${colorHex}20`
+      e.currentTarget.style.boxShadow = `0 16px 40px rgba(0,0,0,0.35), 0 0 24px ${colorHex}22`
     }}
     onMouseLeave={e => {
       e.currentTarget.style.transform = 'translateY(0)'
       e.currentTarget.style.borderColor = 'var(--surface-border)'
       e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)'
     }}>
-    <div style={{ width: 60, height: 60, borderRadius: 18, background: colorDim, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${colorHex}30`, flexShrink: 0 }}>
+    <div style={{ width: 60, height: 60, borderRadius: 18, background: colorDim, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${colorHex}30`, flexShrink: 0, boxShadow: `0 4px 12px ${colorHex}20` }}>
       {icon}
     </div>
     <div>
@@ -52,13 +54,15 @@ const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "
     transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', opacity: disabled ? 0.6 : 1,
     display: 'flex', flexDirection: 'column', height: '100%',
     boxShadow: '0 4px 24px rgba(0,0,0,0.25)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
   }}
     onMouseEnter={e => {
       if (!disabled) {
-        e.currentTarget.style.borderColor = 'rgba(37, 99, 235,0.4)'
+        e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.45)'
         e.currentTarget.style.background = 'var(--surface-hi)'
-        e.currentTarget.style.transform = 'translateY(-4px)'
-        e.currentTarget.style.boxShadow = '0 16px 40px rgba(37, 99, 235,0.15)'
+        e.currentTarget.style.transform = 'translateY(-5px)'
+        e.currentTarget.style.boxShadow = '0 20px 50px rgba(0,0,0,0.35), 0 0 30px rgba(59,130,246,0.1)'
       }
     }}
     onMouseLeave={e => {
@@ -69,7 +73,7 @@ const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "
         e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)'
       }
     }}>
-    <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--primary-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, border: '1px solid rgba(37, 99, 235,0.2)', color: 'var(--primary)', flexShrink: 0 }}>
+    <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--primary-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, border: '1px solid rgba(59, 130, 246, 0.25)', color: 'var(--primary)', flexShrink: 0, boxShadow: '0 4px 12px rgba(59,130,246,0.15)' }}>
       {icon}
     </div>
     <h3 style={{ margin: '0 0 10px', fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{title}</h3>
@@ -81,9 +85,10 @@ const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "
       ) : (
         <button style={{
           padding: '10px 20px', borderRadius: 12, border: 'none',
-          background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
+          background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
           color: '#fff', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
-          boxShadow: '0 4px 14px rgba(29, 78, 216,0.3)',
+          boxShadow: '0 4px 16px rgba(59, 130, 246, 0.35)',
+          transition: 'all 0.2s ease',
         }}>
           {btnText}
         </button>
@@ -92,20 +97,20 @@ const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "
   </div>
 )
 
-/* ── Accent colors (theme-aware) ─────────────────────────────── */
+/* ── Accent colors (theme-aware) ──────────────────────── */
 const useAccents = (isDark) => ({
-  purple:    isDark ? '#3b82f6' : '#1d4ed8',
-  purpleDim: isDark ? 'rgba(37, 99, 235,0.18)' : 'rgba(29, 78, 216,0.1)',
-  indigo:    isDark ? '#2563eb' : '#1e40af',
-  indigoDim: isDark ? 'rgba(37, 99, 235,0.18)' : 'rgba(29, 78, 216,0.1)',
+  purple:    isDark ? '#60a5fa' : '#1d4ed8',
+  purpleDim: isDark ? 'rgba(59, 130, 246, 0.18)' : 'rgba(29, 78, 216, 0.1)',
+  indigo:    isDark ? '#818cf8' : '#1e40af',
+  indigoDim: isDark ? 'rgba(99, 102, 241, 0.18)' : 'rgba(29, 78, 216, 0.1)',
   blue:      isDark ? '#38bdf8' : '#0284c7',
-  blueDim:   isDark ? 'rgba(56,189,248,0.15)' : 'rgba(2,132,199,0.1)',
+  blueDim:   isDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(2, 132, 199, 0.1)',
   green:     isDark ? '#34d399' : '#059669',
-  greenDim:  isDark ? 'rgba(52,211,153,0.15)' : 'rgba(5,150,105,0.1)',
+  greenDim:  isDark ? 'rgba(52, 211, 153, 0.15)' : 'rgba(5, 150, 105, 0.1)',
   red:       isDark ? '#f87171' : '#dc2626',
-  redDim:    isDark ? 'rgba(248,113,113,0.15)' : 'rgba(220,38,38,0.1)',
+  redDim:    isDark ? 'rgba(248, 113, 113, 0.15)' : 'rgba(220, 38, 38, 0.1)',
   gold:      isDark ? '#fbbf24' : '#d97706',
-  goldDim:   isDark ? 'rgba(251,191,36,0.15)' : 'rgba(217,119,6,0.1)',
+  goldDim:   isDark ? 'rgba(251, 191, 36, 0.15)' : 'rgba(217, 119, 6, 0.1)',
 })
 
 const AdminDashboard = ({ stats, loading, navigate, isDark }) => {
@@ -792,27 +797,33 @@ const DashboardPage = () => {
         <Topbar title="Dashboard" subtitle="Home / Dashboard" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body">
 
-          {/* Hero Banner — Unified design matching UsersPage */}
+          {/* Hero Banner — Dynamic glassmorphic design */}
           <div style={{
-            background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+            background: isDark
+              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
+              : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
             borderRadius: 28, padding: '40px', marginBottom: 32,
             position: 'relative', overflow: 'hidden',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.4)',
-            border: '1px solid rgba(37, 99, 235,0.2)',
+            boxShadow: isDark
+              ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
+              : '0 16px 48px rgba(0,0,0,0.4)',
+            border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid rgba(37, 99, 235, 0.2)',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16,
           }}>
             {/* Decorative circles */}
-            {[['80%', '-20px', '180px', 'rgba(255,255,255,0.03)'], ['20%', '60%', '120px', 'rgba(255,255,255,0.04)'], ['55%', '80%', '90px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
+            {[['80%', '-20px', '220px', 'rgba(59,130,246,0.04)'], ['20%', '60%', '150px', 'rgba(99,102,241,0.04)'], ['55%', '80%', '100px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
               <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
             ))}
+            {/* Neon glow accent for dark mode */}
+            {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
               <div style={{
-                background: 'rgba(255,255,255,0.1)',
+                background: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.1)',
                 borderRadius: 16, width: 64, height: 64,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', backdropFilter: 'blur(4px)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                color: '#fff', backdropFilter: 'blur(8px)',
+                border: isDark ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(255,255,255,0.15)',
+                boxShadow: isDark ? '0 0 20px rgba(59,130,246,0.3), 0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.2)',
               }}>
                 {roleEmoji[user?.role] || <Car size={32} color="#fff" />}
               </div>
@@ -821,11 +832,11 @@ const DashboardPage = () => {
                   <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                     Good day, {user?.userName}!
                   </h1>
-                  <span style={{ background: 'rgba(255,255,255,0.15)', color: '#dbeafe', padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                  <span style={{ background: isDark ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.15)', color: '#dbeafe', padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: isDark ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(255,255,255,0.2)' }}>
                     {roleLabel[user?.role] || user?.role}
                   </span>
                 </div>
-                <p style={{ margin: '6px 0 0', color: '#60a5fa', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <p style={{ margin: '6px 0 0', color: isDark ? '#93c5fd' : '#60a5fa', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                   Here's your personalized fleet overview
                 </p>
               </div>

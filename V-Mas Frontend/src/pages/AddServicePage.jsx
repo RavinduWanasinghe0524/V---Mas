@@ -4,7 +4,7 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { serviceAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
-import { useD } from '../context/ThemeContext'
+import { useD, useTheme } from '../context/ThemeContext'
 import { Wrench, AlertTriangle, ArrowLeft, Check, Save, Plus } from 'lucide-react'
 
 const SERVICE_TYPES = [
@@ -33,6 +33,8 @@ const initialForm = {
 
 const AddServicePage = () => {
   const D = useD()
+  const { theme } = useTheme()
+  const isDark = theme === 'blue'
   const { user } = useAuth()
   const fieldLabel = {
     display: 'block', fontSize: '0.78rem', fontWeight: 700,
@@ -124,7 +126,7 @@ const AddServicePage = () => {
         <div className="main-content" style={{ background: D.bg }}>
           <Topbar title="Service" subtitle="Home / Service" onMenuToggle={() => setSidebarOpen(o => !o)} />
           <div className="page-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-            <div style={{ color: D.indigo, fontSize: '1rem', fontWeight: 600 }}>Loading recordÔÇª</div>
+            <div style={{ color: D.indigo, fontSize: '1rem', fontWeight: 600 }}>Loading record...</div>
           </div>
         </div>
       </div>
@@ -145,35 +147,38 @@ const AddServicePage = () => {
 
           {/* Hero Banner */}
           <div style={{
-            background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
-            borderRadius: 20,
-            padding: '32px 36px',
-            marginBottom: 28,
-            position: 'relative',
-            overflow: 'hidden',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-            border: `1px solid rgba(255,255,255,0.07)`
+            background: isDark
+              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
+              : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+            borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
+            boxShadow: isDark
+              ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
+              : '0 16px 48px rgba(0,0,0,0.4)',
+            border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : `1px solid ${D.border}`,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16
           }}>
             {/* decorative circles */}
-            {[['80%', 'ÔêÆ20px', '180px', 'rgba(255,255,255,0.03)'], ['20%', '60%', '120px', 'rgba(255,255,255,0.04)'], ['55%', '80%', '90px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
+            {[['80%', '-20px', '220px', 'rgba(59,130,246,0.04)'], ['20%', '60%', '150px', 'rgba(99,102,241,0.04)'], ['55%', '80%', '100px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
               <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
             ))}
+            {/* Neon radial glow for dark */}
+            {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ background: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', backdropFilter: 'blur(8px)', border: isDark ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(255,255,255,0.15)', boxShadow: isDark ? '0 0 20px rgba(59,130,246,0.3), 0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.2)' }}>
                 <Wrench size={32} strokeWidth={1.5} />
               </div>
               <div>
                 <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                   {isEditing ? 'Edit Service Record' : 'Add Service Record'}
                 </h1>
-                <p style={{ margin: '4px 0 0', color: '#60a5fa', fontSize: '0.9rem' }}>
+                <p style={{ margin: '6px 0 0', color: isDark ? '#93c5fd' : '#60a5fa', fontSize: '0.88rem' }}>
                   {isEditing ? 'Update the details of an existing vehicle service record.' : 'Create a new maintenance and service record.'}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* ÔöÇÔöÇ Back button ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
+          {/* ── Back button ────────────────────────────────────────────────── */}
           <button
             onClick={() => navigate('/service')}
             style={{
@@ -189,7 +194,7 @@ const AddServicePage = () => {
             <ArrowLeft size={16} /> Back to Service History
           </button>
 
-          {/* ÔöÇÔöÇ Main card ÔÇö full width of page-body ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */}
+          {/* ── Main card — full width of page-body ─────────────────────────── */}
           <div style={{
             background: D.surface,
             border: `1px solid ${D.border}`,
@@ -237,7 +242,7 @@ const AddServicePage = () => {
                 <div style={{ flex: 1, height: 1, background: D.border }} />
               </div>
 
-              {/* Row 1 ÔÇö Vehicle + Service Type */}
+              {/* Row 1 — Vehicle + Service Type */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
                 <div>
                   <label style={fieldLabel}>Vehicle (License Plate) *</label>
@@ -278,7 +283,7 @@ const AddServicePage = () => {
                   <input
                     type="text" name="serviceTypeDetail"
                     value={formData.serviceTypeDetail} onChange={handleChange}
-                    placeholder="Describe the serviceÔÇª"
+                    placeholder="Describe the service..."
                     style={fieldInput(errors.serviceTypeDetail)}
                     onFocus={focusBorder}
                     onBlur={e => blurBorder(e, errors.serviceTypeDetail)}
@@ -287,7 +292,7 @@ const AddServicePage = () => {
                 </div>
               )}
 
-              {/* Row 2 ÔÇö Date + Mileage */}
+              {/* Row 2 — Date + Mileage */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
                 <div>
                   <label style={fieldLabel}>Service Date *</label>
@@ -314,7 +319,7 @@ const AddServicePage = () => {
                 </div>
               </div>
 
-              {/* Row 3 ÔÇö Cost + Workshop */}
+              {/* Row 3 — Cost + Workshop */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
                 <div>
                   <label style={fieldLabel}>Service Cost (Rs.) *</label>
@@ -348,7 +353,7 @@ const AddServicePage = () => {
                 <div style={{ flex: 1, height: 1, background: D.border }} />
               </div>
 
-              {/* Row 4 ÔÇö Next Service + Description */}
+              {/* Row 4 — Next Service + Description */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 32 }}>
                 <div>
                   <label style={fieldLabel}>Next Service Due <span style={{ fontWeight: 400, color: D.textFaint, textTransform: 'none' }}>(Optional)</span></label>
@@ -364,7 +369,7 @@ const AddServicePage = () => {
                   <label style={fieldLabel}>Description / Notes <span style={{ fontWeight: 400, color: D.textFaint, textTransform: 'none' }}>(Optional)</span></label>
                   <textarea
                     name="description" value={formData.description} onChange={handleChange}
-                    rows={3} placeholder="Any additional notesÔÇª"
+                    rows={3} placeholder="Any additional notes..."
                     style={{ ...fieldInput(false), resize: 'none', lineHeight: 1.5 }}
                     onFocus={focusBorder}
                     onBlur={e => blurBorder(e, false)}
@@ -400,7 +405,7 @@ const AddServicePage = () => {
                   onMouseEnter={e => { if (!loading) { e.currentTarget.style.transform = 'translateY(-1px)' } }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
                 >
-                  {loading ? 'SavingÔÇª' : isEditing ? <><Save size={16} /> Save Changes</> : <><Plus size={16} /> Add Record</>}
+                  {loading ? 'Saving...' : isEditing ? <><Save size={16} /> Save Changes</> : <><Plus size={16} /> Add Record</>}
                 </button>
               </div>
 
