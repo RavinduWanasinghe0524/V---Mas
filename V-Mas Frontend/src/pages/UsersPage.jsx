@@ -17,7 +17,7 @@ import { useD } from '../context/ThemeContext'
 import { userAPI } from '../services/api'
 import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck } from 'lucide-react'
 import { jsPDF } from 'jspdf'
-import 'jspdf-autotable'
+import autoTable from 'jspdf-autotable'
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'
@@ -244,7 +244,7 @@ const UsersPage = () => {
       
       setActionMsg('Users exported to CSV successfully.')
       setTimeout(() => setActionMsg(''), 4000)
-    } catch (e) {
+    } catch {
       setError('Failed to export CSV')
       setTimeout(() => setError(''), 4000)
     }
@@ -281,7 +281,7 @@ const UsersPage = () => {
         u.accountStatus || 'ACTIVE'
       ])
       
-      doc.autoTable({
+      autoTable(doc, {
         startY: 46,
         head: [['ID', 'Username', 'Email', 'Role', 'Status']],
         body: tableData,
@@ -294,7 +294,7 @@ const UsersPage = () => {
       doc.save(`users_report_${new Date().toISOString().split('T')[0]}.pdf`)
       setActionMsg('Users exported to PDF successfully.')
       setTimeout(() => setActionMsg(''), 4000)
-    } catch (e) {
+    } catch {
       setError('Failed to export PDF')
       setTimeout(() => setError(''), 4000)
     }
