@@ -27,7 +27,7 @@ const getTableStatus = (s) => {
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  
+
   const targetDate = new Date(s.serviceDate)
   targetDate.setHours(0, 0, 0, 0)
 
@@ -55,15 +55,15 @@ const SERVICE_TYPES = [
 ]
 
 const SERVICE_LOGIC_ENGINE = {
-  OIL_CHANGE:           { intervalKm: 5000,  intervalMonths: 3 },
-  ENGINE_TUNE_UP:       { intervalKm: 10000, intervalMonths: 6 },
-  BRAKE_SERVICE:        { intervalKm: 20000, intervalMonths: 12 },
-  TIRE_ROTATION:        { intervalKm: 10000, intervalMonths: 6 },
+  OIL_CHANGE: { intervalKm: 5000, intervalMonths: 3 },
+  ENGINE_TUNE_UP: { intervalKm: 10000, intervalMonths: 6 },
+  BRAKE_SERVICE: { intervalKm: 20000, intervalMonths: 12 },
+  TIRE_ROTATION: { intervalKm: 10000, intervalMonths: 6 },
   TRANSMISSION_SERVICE: { intervalKm: 40000, intervalMonths: 24 },
-  AC_SERVICE:           { intervalKm: 20000, intervalMonths: 12 },
-  BATTERY_REPLACEMENT:  { intervalKm: 60000, intervalMonths: 36 },
-  GENERAL_INSPECTION:   { intervalKm: 10000, intervalMonths: 6 },
-  OTHER:                { intervalKm: 5000,  intervalMonths: 3 }
+  AC_SERVICE: { intervalKm: 20000, intervalMonths: 12 },
+  BATTERY_REPLACEMENT: { intervalKm: 60000, intervalMonths: 36 },
+  GENERAL_INSPECTION: { intervalKm: 10000, intervalMonths: 6 },
+  OTHER: { intervalKm: 5000, intervalMonths: 3 }
 }
 
 const initialForm = {
@@ -129,8 +129,8 @@ const STATUS_CONFIG = {
 /* ── Check if a service record is the latest chronologically ── */
 const checkIsLatest = (record, services) => {
   if (!services || services.length === 0) return true
-  const matching = services.filter(s => 
-    s.vehicleRegNumber === record.vehicleRegNumber && 
+  const matching = services.filter(s =>
+    s.vehicleRegNumber === record.vehicleRegNumber &&
     s.serviceType === record.serviceType
   )
   if (matching.length <= 1) return true
@@ -139,7 +139,7 @@ const checkIsLatest = (record, services) => {
   for (const s of matching) {
     const dateLatest = latest.serviceDate ? new Date(latest.serviceDate).getTime() : 0
     const dateS = s.serviceDate ? new Date(s.serviceDate).getTime() : 0
-    
+
     if (dateS > dateLatest) {
       latest = s
     } else if (dateS === dateLatest) {
@@ -164,7 +164,7 @@ const checkIsLatest = (record, services) => {
 ──────────────────────────────────────────────────────────────────── */
 const ServiceProgressMeter = ({ record, vehicleCurrentKm, D }) => {
   const mileage = computeMileageProgress(record, vehicleCurrentKm)
-  const date    = computeDateAlert(record)
+  const date = computeDateAlert(record)
 
   if (!mileage && !date) return null
 
@@ -234,8 +234,8 @@ const ServiceProgressMeter = ({ record, vehicleCurrentKm, D }) => {
 const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D }) => {
   if (!alertRecords || alertRecords.length === 0) return null
 
-  const overdue  = alertRecords.filter(r => r._alertLevel === 'OVERDUE')
-  const dueSoon  = alertRecords.filter(r => r._alertLevel === 'DUE_SOON')
+  const overdue = alertRecords.filter(r => r._alertLevel === 'OVERDUE')
+  const dueSoon = alertRecords.filter(r => r._alertLevel === 'DUE_SOON')
 
   return (
     <div style={{
@@ -275,11 +275,11 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
         {alertRecords.map(r => {
           const ac = ALERT_COLORS[r._alertLevel] || ALERT_COLORS.DUE_SOON
           const mileage = computeMileageProgress(r, r._vehicleCurrentKm)
-          const date    = computeDateAlert(r)
-          
+          const date = computeDateAlert(r)
+
           let progressPct = 0
           let remainingText = ''
-          
+
           if (mileage) {
             progressPct = Math.min(mileage.pct, 100)
             remainingText = fmtKmRemaining(mileage.remaining)
@@ -287,10 +287,10 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
             progressPct = Math.max(0, Math.min(100, (30 - date.daysRemaining) / 30 * 100))
             remainingText = fmtDaysRemaining(date.daysRemaining)
           }
-          
+
           return (
-            <div 
-              key={r.id} 
+            <div
+              key={r.id}
               onClick={() => onViewAlert && onViewAlert(r)}
               style={{
                 flexShrink: 0,
@@ -321,16 +321,16 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
               {/* First Row: Vehicle + type & badge */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ 
-                    width: 42, 
-                    height: 42, 
-                    borderRadius: 10, 
-                    background: ac.bg, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    flexShrink: 0, 
-                    border: `1px solid ${ac.border}` 
+                  <div style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 10,
+                    background: ac.bg,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    border: `1px solid ${ac.border}`
                   }}>
                     <Car size={18} style={{ color: ac.color }} />
                   </div>
@@ -341,14 +341,14 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
                     </span>
                   </div>
                 </div>
-                
+
                 <span style={{
-                  fontSize: '0.7rem', 
+                  fontSize: '0.7rem',
                   fontWeight: 800,
-                  padding: '5px 12px', 
+                  padding: '5px 12px',
                   borderRadius: 999,
                   background: 'rgba(0, 0, 0, 0.2)',
-                  color: ac.color, 
+                  color: ac.color,
                   border: `1px solid ${ac.color}`,
                   textTransform: 'uppercase',
                   letterSpacing: '0.03em'
@@ -358,18 +358,18 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
               {/* Second Row: Progress Bar */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
                 <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden' }}>
-                  <div style={{ 
-                    width: `${progressPct}%`, 
-                    height: '100%', 
-                    background: ac.color, 
+                  <div style={{
+                    width: `${progressPct}%`,
+                    height: '100%',
+                    background: ac.color,
                     borderRadius: 999,
-                    transition: 'width 0.6s ease' 
+                    transition: 'width 0.6s ease'
                   }} />
                 </div>
                 <span style={{ fontSize: '0.78rem', color: ac.color, fontWeight: 700, letterSpacing: '0.01em' }}>
                   {remainingText}
                 </span>
-                
+
                 {/* Secondary detail if both exist */}
                 {mileage && date && (
                   <span style={{ fontSize: '0.7rem', color: D.textSub, display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
@@ -508,12 +508,12 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
           )}
           {/* ── Attachment chip ── */}
           {record.attachmentPath && (
-            <span 
+            <span
               onClick={e => { e.stopPropagation(); onViewAttachment(record) }}
               title="Click to view attached bill"
-              style={{ 
-                display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', 
-                color: '#10b981', background: 'rgba(16,185,129,0.1)', 
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem',
+                color: '#10b981', background: 'rgba(16,185,129,0.1)',
                 padding: '3px 10px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)',
                 cursor: 'pointer', transition: 'all 0.2s',
               }}
@@ -721,12 +721,12 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
           </span>
         )}
         {record.attachmentPath && (
-          <span 
+          <span
             onClick={e => { e.stopPropagation(); onViewAttachment(record) }}
             title="Click to view attached bill"
-            style={{ 
-              marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', 
-              color: '#10b981', background: 'rgba(16,185,129,0.1)', 
+            style={{
+              marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem',
+              color: '#10b981', background: 'rgba(16,185,129,0.1)',
               padding: '3px 10px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)',
               cursor: 'pointer', transition: 'all 0.2s',
             }}
@@ -858,7 +858,7 @@ const ServicePage = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
   const isDriver = user?.role === 'DRIVER'
-  const isAdmin  = user?.role === 'ADMIN'
+  const isAdmin = user?.role === 'ADMIN'
 
   const [services, setServices] = useState([])
   const [stats, setStats] = useState(null)
@@ -945,20 +945,20 @@ const ServicePage = () => {
     }
     try {
       const doc = new jsPDF()
-      
+
       // Branding Header Banner in Blue/Navy
       doc.setFillColor(30, 58, 138)
       doc.rect(0, 0, 210, 38, 'F')
-      
+
       doc.setTextColor(255, 255, 255)
       doc.setFontSize(20)
       doc.setFont('helvetica', 'bold')
       doc.text('V-MAS Maintenance Work Orders Report', 14, 22)
-      
+
       doc.setFontSize(10)
       doc.setFont('helvetica', 'normal')
       doc.text(`Generated on: ${new Date().toLocaleString()} | Filtered Work Orders: ${filtered.length}`, 14, 30)
-      
+
       const tableData = filtered.map(s => [
         s.id ? `WO-${s.id}` : '—',
         s.vehicleRegNumber || '—',
@@ -968,7 +968,7 @@ const ServicePage = () => {
         s.serviceCost ? `LKR ${Number(s.serviceCost).toLocaleString()}` : '—',
         getTableStatus(s)
       ])
-      
+
       doc.autoTable({
         startY: 46,
         head: [['Work Order', 'Vehicle', 'Task', 'Garage', 'Due Date', 'Cost', 'Status']],
@@ -978,7 +978,7 @@ const ServicePage = () => {
         styles: { fontSize: 9 },
         margin: { left: 14, right: 14 },
       })
-      
+
       doc.save(`work_orders_${new Date().toISOString().split('T')[0]}.pdf`)
       showToast('Service records exported to PDF successfully.', 'success')
     } catch (e) {
@@ -995,13 +995,13 @@ const ServicePage = () => {
       const blob = res.data
       const type = blob.type || ''
       const url = URL.createObjectURL(blob)
-      
+
       const path = record.attachmentPath || ''
       let filename = path.substring(path.lastIndexOf('/') + 1)
       if (filename.length > 37 && filename.substring(8, 9) === '-' && filename.substring(13, 14) === '-') {
         filename = filename.substring(37)
       }
-      
+
       if (type.includes('pdf')) {
         setAttachmentViewer(prev => ({ ...prev, loading: false }))
         window.open(url, '_blank')
@@ -1057,12 +1057,12 @@ const ServicePage = () => {
         e.vehicleRegNumber = 'Please select a valid registered vehicle'
       }
     }
-    
+
     if (!data.serviceType) e.serviceType = 'Required'
     if (data.serviceType === 'OTHER' && !data.serviceTypeDetail?.trim())
       e.serviceTypeDetail = 'Required for Other'
     if (!data.serviceDate) e.serviceDate = 'Required'
-    
+
     if (!data.currentMileageKm) {
       e.currentMileageKm = 'Required'
     } else {
@@ -1074,10 +1074,10 @@ const ServicePage = () => {
         const recordDate = data.serviceDate ? new Date(data.serviceDate) : new Date()
 
         // Find service records for this vehicle with an earlier or equal date (excluding scheduled)
-        const earlierServices = services.filter(s => 
-          s.vehicleRegNumber === regNo && 
+        const earlierServices = services.filter(s =>
+          s.vehicleRegNumber === regNo &&
           (!originalRecord || s.id !== originalRecord.id) &&
-          s.currentMileageKm && 
+          s.currentMileageKm &&
           s.serviceDate &&
           getStatus(s) !== 'SCHEDULED' &&
           new Date(s.serviceDate) <= recordDate
@@ -1108,7 +1108,7 @@ const ServicePage = () => {
         }
       }
     }
-    
+
     if (!data.serviceCost) e.serviceCost = 'Required'
     if (!data.technicianWorkshop?.trim()) e.technicianWorkshop = 'Required'
     return e
@@ -1121,10 +1121,10 @@ const ServicePage = () => {
     } else {
       setFormData(prev => ({ ...prev, vehicleRegNumber: regNo }))
     }
-    setErrors(prev => ({ 
-      ...prev, 
+    setErrors(prev => ({
+      ...prev,
       vehicleRegNumber: undefined,
-      currentMileageKm: undefined 
+      currentMileageKm: undefined
     }))
 
     // calculate base mileage from vehicle entity
@@ -1138,10 +1138,10 @@ const ServicePage = () => {
 
     if (isEdit) {
       const recordDate = editFormData.serviceDate ? new Date(editFormData.serviceDate) : new Date()
-      const earlierServices = services.filter(s => 
-        s.vehicleRegNumber === regNo && 
-        s.id !== editingServiceId && 
-        s.currentMileageKm && 
+      const earlierServices = services.filter(s =>
+        s.vehicleRegNumber === regNo &&
+        s.id !== editingServiceId &&
+        s.currentMileageKm &&
         s.serviceDate &&
         getStatus(s) !== 'SCHEDULED' &&
         new Date(s.serviceDate) <= recordDate
@@ -1177,10 +1177,10 @@ const ServicePage = () => {
       const inputMil = Number(val)
 
       // Find service records for this vehicle with an earlier or equal date (excluding scheduled)
-      const earlierServices = services.filter(s => 
-        s.vehicleRegNumber === regNo && 
+      const earlierServices = services.filter(s =>
+        s.vehicleRegNumber === regNo &&
         (!originalRecord || s.id !== originalRecord.id) &&
-        s.currentMileageKm && 
+        s.currentMileageKm &&
         s.serviceDate &&
         getStatus(s) !== 'SCHEDULED' &&
         new Date(s.serviceDate) <= recordDate
@@ -1199,23 +1199,23 @@ const ServicePage = () => {
       const minLaterMileage = laterServices.reduce((min, s) => Math.min(min, Number(s.currentMileageKm)), Infinity)
 
       if (inputMil < maxEarlierMileage) {
-        setErrors(prev => ({ 
-          ...prev, 
-          currentMileageKm: `Enter reading greater than or equal to ${maxEarlierMileage.toLocaleString()} km` 
+        setErrors(prev => ({
+          ...prev,
+          currentMileageKm: `Enter reading greater than or equal to ${maxEarlierMileage.toLocaleString()} km`
         }))
       } else if (minLaterMileage !== Infinity && inputMil > minLaterMileage) {
-        setErrors(prev => ({ 
-          ...prev, 
-          currentMileageKm: `Enter reading less than or equal to ${minLaterMileage.toLocaleString()} km` 
+        setErrors(prev => ({
+          ...prev,
+          currentMileageKm: `Enter reading less than or equal to ${minLaterMileage.toLocaleString()} km`
         }))
       } else {
         setErrors(prev => ({ ...prev, currentMileageKm: undefined }))
       }
     } else {
       if (previousMileage != null && Number(val) < previousMileage) {
-        setErrors(prev => ({ 
-          ...prev, 
-          currentMileageKm: `Enter reading greater than or equal to ${previousMileage.toLocaleString()} km` 
+        setErrors(prev => ({
+          ...prev,
+          currentMileageKm: `Enter reading greater than or equal to ${previousMileage.toLocaleString()} km`
         }))
       } else {
         setErrors(prev => ({ ...prev, currentMileageKm: undefined }))
@@ -1247,7 +1247,7 @@ const ServicePage = () => {
     setAddAttachmentFile(null)
     setVehicleSearch(regNo)
     setVehicleDropdownVisible(false)
-    
+
     if (regNo) {
       const vehicleObj = allVehicles.find(v => v.registrationNo === regNo)
       const baseMil = Number(vehicleObj?.currentMileageKm || 0)
@@ -1259,7 +1259,7 @@ const ServicePage = () => {
     } else {
       setPreviousMileage(null)
     }
-    
+
     setIsAddModalOpen(true)
   }
   const closeAddModal = () => setIsAddModalOpen(false)
@@ -1331,7 +1331,7 @@ const ServicePage = () => {
     try {
       const vehicleObj = allVehicles.find(v => v.registrationNo === scheduleFormData.vehicleRegNumber)
       const currentMil = vehicleObj && vehicleObj.currentMileageKm ? Number(vehicleObj.currentMileageKm) : 0
-      
+
       const isDate = scheduleFormData.scheduleMode === 'date' || scheduleFormData.scheduleMode === 'both'
       const isMil = scheduleFormData.scheduleMode === 'mileage' || scheduleFormData.scheduleMode === 'both'
 
@@ -1344,8 +1344,8 @@ const ServicePage = () => {
         serviceCost: scheduleFormData.estimatedCost ? Number(scheduleFormData.estimatedCost) : 0,
         technicianWorkshop: scheduleFormData.preferredWorkshop || 'Scheduled (TBD)',
         description: scheduleFormData.description,
-        serviceDate: isDate 
-          ? scheduleFormData.scheduledDate 
+        serviceDate: isDate
+          ? scheduleFormData.scheduledDate
           : new Date(Date.now() + 86400000).toISOString().split('T')[0], // tomorrow if mileage only
         nextServiceDue: isDate ? scheduleFormData.scheduledDate : null,
         nextServiceMileageKm: isMil ? Number(scheduleFormData.targetMileageKm) : null,
@@ -1397,13 +1397,13 @@ const ServicePage = () => {
         }
       } else if (!addAttachmentFile) {
         const msg = `Service record added for ${formData.vehicleRegNumber} without a bill attached.`
-        
+
         // Save to backend so all controllers see it
         await notificationAPI.create({
           vehicleRegNumber: `VEH-${formData.vehicleRegNumber}`,
           message: msg,
           type: 'WARNING'
-        }).catch(() => {}) // non-fatal
+        }).catch(() => { }) // non-fatal
 
         // Still fire local events for immediate UI update
         addControllerNotification(msg, 'WARNING', '/service')
@@ -1446,10 +1446,10 @@ const ServicePage = () => {
 
     const regNo = record.vehicleRegNumber || ''
     const recordDate = record.serviceDate ? new Date(record.serviceDate) : new Date()
-    const earlierServices = services.filter(s => 
-      s.vehicleRegNumber === regNo && 
-      s.id !== id && 
-      s.currentMileageKm && 
+    const earlierServices = services.filter(s =>
+      s.vehicleRegNumber === regNo &&
+      s.id !== id &&
+      s.currentMileageKm &&
       s.serviceDate &&
       getStatus(s) !== 'SCHEDULED' &&
       new Date(s.serviceDate) <= recordDate
@@ -1537,7 +1537,7 @@ const ServicePage = () => {
         } else {
           const dateExisting = existing.serviceDate ? new Date(existing.serviceDate).getTime() : 0
           const dateNew = s.serviceDate ? new Date(s.serviceDate).getTime() : 0
-          
+
           if (dateNew > dateExisting) {
             latestServiceMap[key] = s
           } else if (dateNew === dateExisting) {
@@ -1564,15 +1564,15 @@ const ServicePage = () => {
           if (!notifiedRef.current.has(record.id)) {
             notifiedRef.current.add(record.id)
             const mileageInfo = computeMileageProgress(record, vehicleKm)
-            const dateInfo    = computeDateAlert(record)
+            const dateInfo = computeDateAlert(record)
             let msg = `${level === 'OVERDUE' ? '🔴 OVERDUE' : '🟡 Due Soon'}: Vehicle ${record.vehicleRegNumber} — ${record.serviceType?.replace(/_/g, ' ')}.`
             if (mileageInfo) msg += ` ${fmtKmRemaining(mileageInfo.remaining)}.`
-            if (dateInfo)    msg += ` ${fmtDaysRemaining(dateInfo.daysRemaining)}.`
+            if (dateInfo) msg += ` ${fmtDaysRemaining(dateInfo.daysRemaining)}.`
             notificationAPI.create({
               vehicleRegNumber: `VEH-${record.vehicleRegNumber}`,
               message: msg,
               type: level === 'OVERDUE' ? 'OVERDUE_SERVICE' : 'SERVICE_DUE'
-            }).catch(() => {}) // non-fatal
+            }).catch(() => { }) // non-fatal
           }
         }
       }
@@ -1641,7 +1641,7 @@ const ServicePage = () => {
   /* Derived counts & calculations for premium UI cards */
   const completedServices = services.filter(s => getStatus(s) === 'COMPLETED')
   const scheduledServices = services.filter(s => getStatus(s) === 'SCHEDULED')
-  
+
   // 1. OPEN ORDERS (Scheduled orders awaiting action)
   const openOrdersCount = scheduledServices.length
 
@@ -1759,7 +1759,7 @@ const ServicePage = () => {
     const desc = (s.description || '').toLowerCase()
     const detail = (s.serviceTypeDetail || '').toLowerCase()
     const parts = (s.partsReplaced || '').toLowerCase()
-    
+
     if (type === 'TIRE_ROTATION' || desc.includes('tyre') || desc.includes('tire') || desc.includes('wheel') || detail.includes('tyre') || detail.includes('tire') || parts.includes('tyre') || parts.includes('tire')) {
       return 'Tyres'
     }
@@ -1778,7 +1778,7 @@ const ServicePage = () => {
       const cat = getCategory(s)
       share[cat]++
     })
-    
+
     const totalCount = Object.values(share).reduce((a, b) => a + b, 0)
     const colors = {
       Routine: '#10b981',    // Green
@@ -1786,7 +1786,7 @@ const ServicePage = () => {
       Inspection: '#38bdf8', // Cyan / Light Blue
       Tyres: '#fbbf24'       // Yellow / Gold
     }
-    
+
     if (totalCount === 0) {
       return [
         { name: 'Routine', count: 4, pct: 40, color: colors.Routine },
@@ -1795,7 +1795,7 @@ const ServicePage = () => {
         { name: 'Tyres', count: 1, pct: 10, color: colors.Tyres }
       ]
     }
-    
+
     return Object.entries(share).map(([name, count]) => ({
       name,
       count,
@@ -1826,21 +1826,21 @@ const ServicePage = () => {
     } else if (filter !== 'ALL' && getStatus(s) !== filter) {
       return false
     }
-    
+
     if (vehicleFilter !== 'ALL' && s.vehicleRegNumber !== vehicleFilter) return false
     if (search) {
       const q = search.toLowerCase()
-      
+
       const regMatch = s.vehicleRegNumber?.toLowerCase().includes(q)
       const workshopMatch = s.technicianWorkshop?.toLowerCase().includes(q)
       const descMatch = s.description?.toLowerCase().includes(q)
       const typeDetailMatch = s.serviceTypeDetail?.toLowerCase().includes(q)
-      
+
       // Service Type Label matching
       const typeObj = SERVICE_TYPES.find(t => t.value === s.serviceType)
       const typeLabel = typeObj ? typeObj.label.toLowerCase() : s.serviceType?.toLowerCase() || ''
       const typeMatch = typeLabel.includes(q)
-      
+
       // Date matching (supports 2026-05-12, "12 May 2026", "12 May", etc.)
       let dateMatch = false
       if (s.serviceDate) {
@@ -1856,19 +1856,19 @@ const ServicePage = () => {
           month: 'short',
           year: 'numeric'
         }).toLowerCase()
-        
+
         dateMatch = dateStr.includes(q) || formattedDate.includes(q) || formattedDateShort.includes(q)
       }
 
       // Cost matching (e.g. searching 4500 or 4,500)
       const costMatch = s.serviceCost != null && (
-        String(s.serviceCost).includes(q) || 
+        String(s.serviceCost).includes(q) ||
         Number(s.serviceCost).toLocaleString().includes(q)
       )
 
       // Mileage matching (e.g. searching 500 or 12000)
       const mileageMatch = s.currentMileageKm != null && (
-        String(s.currentMileageKm).includes(q) || 
+        String(s.currentMileageKm).includes(q) ||
         Number(s.currentMileageKm).toLocaleString().includes(q)
       )
 
@@ -2629,10 +2629,10 @@ const ServicePage = () => {
                     filtered.map((s, rowIdx) => {
                       const status = getTableStatus(s)
                       const stConfig = {
-                        Overdue:      { color: '#f87171', bg: 'rgba(239,68,68,0.12)',    border: 'rgba(239,68,68,0.25)',    dot: '#ef4444' },
-                        'In Progress':{ color: '#fbbf24', bg: 'rgba(251,191,36,0.12)',   border: 'rgba(251,191,36,0.25)',   dot: '#fbbf24' },
-                        Open:         { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)',   border: 'rgba(96,165,250,0.25)',   dot: '#3b82f6' },
-                        Completed:    { color: '#34d399', bg: 'rgba(52,211,153,0.12)',   border: 'rgba(52,211,153,0.25)',   dot: '#10b981' },
+                        Overdue: { color: '#f87171', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.25)', dot: '#ef4444' },
+                        'In Progress': { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.25)', dot: '#fbbf24' },
+                        Open: { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)', border: 'rgba(96,165,250,0.25)', dot: '#3b82f6' },
+                        Completed: { color: '#34d399', bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', dot: '#10b981' },
                       }[status] || { color: D.textSub, bg: 'rgba(255,255,255,0.05)', border: D.border, dot: D.textSub }
 
                       const vc = allVehicles.find(v => v.registrationNo === s.vehicleRegNumber)
@@ -2842,7 +2842,7 @@ const ServicePage = () => {
             {/* Content */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               {deletedLoading ? (
-                [1,2,3].map(i => (
+                [1, 2, 3].map(i => (
                   <div key={i} style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 12, height: 90, animation: 'pulse 1.5s ease infinite' }} />
                 ))
               ) : deletedRecords.length === 0 ? (
@@ -2894,7 +2894,7 @@ const ServicePage = () => {
                         >
                           {restoringId === r.id ? (
                             <>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
                               Restoring…
                             </>
                           ) : (
@@ -3094,7 +3094,7 @@ const ServicePage = () => {
                           </span>
                           {r.serviceDate && (
                             <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: D.textSub }}>
-                              <Calendar size={12} /> {r.serviceDate.substring(0,10)}
+                              <Calendar size={12} /> {r.serviceDate.substring(0, 10)}
                             </span>
                           )}
                           <span style={{ fontSize: '0.75rem', fontWeight: 700, color: D.text }}>
@@ -3141,7 +3141,7 @@ const ServicePage = () => {
                         >
                           {restoringId === r.id ? (
                             <>
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
                               Restoring…
                             </>
                           ) : (
@@ -3315,11 +3315,11 @@ const ServicePage = () => {
                   <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Record Activity</span>
                   <div style={{ flex: 1, height: 1, background: D.border }} />
                   {r.attachmentPath && (
-                    <button 
+                    <button
                       onClick={() => handleViewAttachment(r)}
-                      style={{ 
-                        display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', 
-                        color: '#10b981', background: 'rgba(16,185,129,0.1)', 
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.75rem',
+                        color: '#10b981', background: 'rgba(16,185,129,0.1)',
                         padding: '4px 12px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.3)',
                         cursor: 'pointer', fontWeight: 700, transition: 'all 0.2s',
                       }}
@@ -3434,34 +3434,34 @@ const ServicePage = () => {
                     >
                       <Edit2 size={15} /> Edit Record
                     </button>
-                     <button
-                       onClick={() => { closeDetail(); confirmDelete(r.id) }}
-                       style={{ flex: 0.6, padding: '10px 0', borderRadius: 10, border: `1px solid rgba(239,68,68,0.3)`, background: D.redDim, color: D.red, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
-                     >
-                       <Trash2 size={15} /> Delete
-                     </button>
-                   </>
-                 )}
-                 {/* Driver: only show Edit if they created this record */}
-                 {isDriver && r.createdBy === user?.userName && (
-                   <button
-                     onClick={() => { closeDetail(); openEditModal(r.id) }}
-                     style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
-                   >
-                     <Edit2 size={15} /> Edit Record
-                   </button>
-                 )}
+                    <button
+                      onClick={() => { closeDetail(); confirmDelete(r.id) }}
+                      style={{ flex: 0.6, padding: '10px 0', borderRadius: 10, border: `1px solid rgba(239,68,68,0.3)`, background: D.redDim, color: D.red, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
+                    >
+                      <Trash2 size={15} /> Delete
+                    </button>
+                  </>
+                )}
+                {/* Driver: only show Edit if they created this record */}
+                {isDriver && r.createdBy === user?.userName && (
                   <button
-                    onClick={closeDetail}
-                    style={{ flex: 0.5, padding: '10px 0', borderRadius: 10, border: `1px solid ${D.border}`, background: 'transparent', color: D.textSub, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700 }}
+                    onClick={() => { closeDetail(); openEditModal(r.id) }}
+                    style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
                   >
-                    Close
+                    <Edit2 size={15} /> Edit Record
                   </button>
-                </div>
+                )}
+                <button
+                  onClick={closeDetail}
+                  style={{ flex: 0.5, padding: '10px 0', borderRadius: 10, border: `1px solid ${D.border}`, background: 'transparent', color: D.textSub, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700 }}
+                >
+                  Close
+                </button>
               </div>
             </div>
-          )
-        })()}
+          </div>
+        )
+      })()}
 
       {/* ── Add Modal ──────────────────────────────────────────────── */}
       {isAddModalOpen && (
@@ -4299,7 +4299,7 @@ const ServicePage = () => {
           }}
         >
           {/* Header controls */}
-          <div 
+          <div
             onClick={e => e.stopPropagation()}
             style={{
               position: 'absolute', top: 24, left: 24, right: 24,
@@ -4318,7 +4318,7 @@ const ServicePage = () => {
                 </p>
               </div>
             </div>
-            
+
             <div style={{ display: 'flex', gap: 8 }}>
               {/* Download button */}
               <a
@@ -4352,7 +4352,7 @@ const ServicePage = () => {
           </div>
 
           {/* Image Container */}
-          <div 
+          <div
             onClick={e => e.stopPropagation()}
             style={{
               position: 'relative', width: '100%', height: '100%',
@@ -4373,7 +4373,7 @@ const ServicePage = () => {
           </div>
         </div>
       )}
-      
+
       {/* ── Global Loading Spinner overlay for fetching attachment ── */}
       {attachmentViewer.loading && (
         <div style={{
@@ -4389,7 +4389,7 @@ const ServicePage = () => {
             boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
           }}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: '#10b981', animation: 'spin 0.8s linear infinite' }}>
-              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
             </svg>
             <span style={{ fontSize: '0.88rem', fontWeight: 700, color: D.text }}>Retrieving attachment...</span>
           </div>
