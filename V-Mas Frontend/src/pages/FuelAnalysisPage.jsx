@@ -242,6 +242,7 @@ const AdminVehicleUsageChart = ({ logs, D }) => {
 
 const FuelAnalysisPage = () => {
   const D = useD()
+  const isDark = D.bg === '#060b18' || D.bg === '#080d1a'
   const navigate = useNavigate()
   const { user, isAdmin, isController, isDriver } = useAuth()
   const [period, setPeriod] = useState('6M')
@@ -520,11 +521,18 @@ const FuelAnalysisPage = () => {
           {/* Hero Banner — admin/controller variant */}
           {(isAdmin || isController) ? (
             <div style={{
-              background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #1d4ed8 100%)',
-              borderRadius: 20, padding: '28px 36px', marginBottom: 28, position: 'relative', overflow: 'hidden',
-              boxShadow: '0 8px 40px rgba(0,0,0,0.45)', border: '1px solid rgba(96,165,250,0.18)',
+              background: isDark
+                ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
+                : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+              borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
+              boxShadow: isDark
+                ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
+                : '0 16px 48px rgba(0,0,0,0.4)',
+              border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : `1px solid ${D.border}`,
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20,
             }}>
+              {/* Neon radial glow for dark */}
+              {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
               {/* Decorative blobs */}
               <div style={{ position:'absolute', top:'-30px', right:'10%', width:220, height:220, borderRadius:'50%', background:'rgba(99,102,241,0.08)', pointerEvents:'none' }} />
               <div style={{ position:'absolute', bottom:'-40px', right:'30%', width:160, height:160, borderRadius:'50%', background:'rgba(6,182,212,0.07)', pointerEvents:'none' }} />
@@ -567,11 +575,18 @@ const FuelAnalysisPage = () => {
           ) : (
           /* Driver hero banner (updated to premium style) */
           <div style={{
-            background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #1d4ed8 100%)',
-            borderRadius: 20, padding: '28px 36px', marginBottom: 28, position: 'relative', overflow: 'hidden',
-            boxShadow: '0 8px 40px rgba(0,0,0,0.45)', border: '1px solid rgba(96,165,250,0.18)',
+            background: isDark
+              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
+              : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+            borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
+            boxShadow: isDark
+              ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
+              : '0 16px 48px rgba(0,0,0,0.4)',
+            border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : `1px solid ${D.border}`,
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20,
           }}>
+            {/* Neon radial glow for dark */}
+            {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
             {/* Decorative blobs */}
             <div style={{ position:'absolute', top:'-30px', right:'10%', width:220, height:220, borderRadius:'50%', background:'rgba(99,102,241,0.08)', pointerEvents:'none' }} />
             <div style={{ position:'absolute', bottom:'-40px', right:'30%', width:160, height:160, borderRadius:'50%', background:'rgba(6,182,212,0.07)', pointerEvents:'none' }} />

@@ -78,6 +78,7 @@ const Modal = ({ title, icon, onClose, children, D, maxWidth = 580 }) => (
 const ProfilePage = () => {
   const D = useD()
   const { theme, toggleTheme } = useTheme()
+  const isDark = theme === 'blue'
   const { user, updateUser } = useAuth()
 
   // State Hooks
@@ -319,15 +320,15 @@ const ProfilePage = () => {
 
           {/* Top Banner Header */}
           <div style={{
-            background: D.bg === '#060b18'
+            background: isDark
               ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
               : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
             borderRadius: 24, padding: '32px 36px', marginBottom: 32,
             position: 'relative', overflow: 'hidden',
-            boxShadow: D.bg === '#060b18'
+            boxShadow: isDark
               ? '0 20px 60px rgba(0,0,0,0.6), 0 0 80px rgba(59,130,246,0.06)'
               : '0 8px 32px rgba(0,0,0,0.25)',
-            border: D.bg === '#060b18' ? '1px solid rgba(59, 130, 246, 0.2)' : `1px solid ${D.border}`,
+            border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : `1px solid ${D.border}`,
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 28, flexWrap: 'wrap'
           }}>
             {/* decorative circles */}
@@ -420,7 +421,7 @@ const ProfilePage = () => {
                       width: '100%', display: 'flex', alignItems: 'center', gap: 12,
                       padding: '14px 18px', borderRadius: 16, border: 'none',
                       background: isActive 
-                        ? (D.bg === '#060b18' ? 'rgba(37, 99, 235, 0.12)' : 'rgba(37, 99, 235, 0.06)') 
+                        ? (isDark ? 'rgba(37, 99, 235, 0.12)' : 'rgba(37, 99, 235, 0.06)') 
                         : 'transparent',
                       color: isActive ? D.purple : D.textSub,
                       fontSize: '0.9rem', fontWeight: isActive ? 800 : 600,
