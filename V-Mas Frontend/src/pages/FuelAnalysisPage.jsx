@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { fuelAPI, vehicleAPI } from '../services/api'
-import { Fuel, CircleDollarSign, BarChart2, Check, X, TrendingUp, Edit2, Loader2, Plus, LayoutDashboard, Calendar, User, Search, Filter, Car, MoreVertical, Activity, Zap, Droplets, DollarSign, ArrowUpRight, ArrowDownRight, Clock, MapPin } from 'lucide-react'
+import { Fuel, Check, X, TrendingUp, Edit2, Plus, Calendar, User, Search, Filter, Car, MoreVertical, Activity, Zap, Droplets, DollarSign, ArrowUpRight, ArrowDownRight, MapPin } from 'lucide-react'
 import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 const card = (D) => ({
@@ -15,20 +16,7 @@ const card = (D) => ({
   overflow: 'hidden',
 })
 
-/* -- Input style (driver form) -------------------------------- */
-const darkInput = (D) => ({
-  width: '100%',
-  padding: '10px 14px',
-  borderRadius: 8,
-  border: '1px solid rgba(255,255,255,0.1)',
-  background: 'rgba(255,255,255,0.05)',
-  color: D.text,
-  fontSize: '0.875rem',
-  fontFamily: 'inherit',
-  outline: 'none',
-  transition: 'border-color 0.15s, box-shadow 0.15s',
-  boxSizing: 'border-box',
-})
+
 
 /* -- SVG Bar Chart (fixed 12-slot width - never resizes on period change) -- */
 const BarChart = ({ data, maxVal, highlightCount = 12, D }) => {
@@ -254,11 +242,11 @@ const AdminVehicleUsageChart = ({ logs, D }) => {
 
 const FuelAnalysisPage = () => {
   const D = useD()
+  const navigate = useNavigate()
   const { user, isAdmin, isController, isDriver } = useAuth()
   const [period, setPeriod] = useState('6M')
   const [costPeriod, setCostPeriod] = useState('ALL')
   const [liveTime, setLiveTime] = useState('')
-  const [showAddModal, setShowAddModal] = useState(false)
 
   const [summary, setSummary] = useState({ totalDiesel: 0, totalPetrol: 0, totalVolume: 0, totalCost: 0, logCount: 0 })
   const [chartData, setChartData] = useState({ months: [], data: { Diesel: [], Petrol: [] } })
@@ -272,19 +260,7 @@ const FuelAnalysisPage = () => {
   const [filterFuelType, setFilterFuelType] = useState('all')
   const [filterAuditStatus, setFilterAuditStatus] = useState('all')
   const [loading, setLoading] = useState(true)
-  const [toast, setToast] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  const [formData, setFormData] = useState({
-    vehicleRegNumber: '', fuelType: 'Diesel', liters: '', costPerLiter: '', mileage: '',
-    date: new Date().toISOString().split('T')[0],
-  })
-  const [submitting, setSubmitting] = useState(false)
-
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3500)
-  }
 
   // Live clock
   useEffect(() => {
@@ -398,25 +374,7 @@ const FuelAnalysisPage = () => {
     loadData()
   }, [isAdmin, isController, isDriver, user])
 
-  const handleInputChange = e => setFormData(p => ({ ...p, [e.target.name]: e.target.value }))
 
-  const handleAddFuelLog = async e => {
-    e.preventDefault(); setSubmitting(true)
-    try {
-      await fuelAPI.addFuelLog({
-        vehicleRegNumber: formData.vehicleRegNumber, fuelType: formData.fuelType,
-        liters: parseFloat(formData.liters), costPerLiter: parseFloat(formData.costPerLiter),
-        mileage: parseFloat(formData.mileage), date: formData.date,
-      })
-      const [sR, cR, lR] = await Promise.all([fuelAPI.getSummary(), fuelAPI.getChartData(), fuelAPI.getMyLogs()])
-      const driverLogs = lR.data.data || []
-      computeLogsEfficiency(driverLogs)
-      setSummary(sR.data.data); setChartData(cR.data.data); setMyVehicleLogs(driverLogs)
-      setFormData({ vehicleRegNumber: '', fuelType: 'Diesel', liters: '', costPerLiter: '', mileage: '', date: new Date().toISOString().split('T')[0] })
-      setShowAddModal(false); showToast('Fuel log added!')
-    } catch (err) { showToast('Failed: ' + (err.response?.data?.message || err.message), 'error') }
-    finally { setSubmitting(false) }
-  }
 
   const getFilteredLogs = () => {
     let baseLogs = []
@@ -480,8 +438,7 @@ const FuelAnalysisPage = () => {
   // Use a floor slightly below the minimum value so the chart isn't flat at the top
   const minEff = effTrend.length > 0 ? Math.max(0, Math.min(...effTrend) - 1) : 0
 
-  /* max spending for normalising hbars */
-  const maxSpend = Math.max(...vehicleStats.map(v => v.totalSpending), 1)
+
 
   /* ── Cost period filter & derived stats ────────────────────────────────── */
   const costCutoff = (() => {
@@ -558,19 +515,7 @@ const FuelAnalysisPage = () => {
         <Topbar title="Fuel Analysis" subtitle="Home / Fuel Analysis" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body" style={{ padding: '24px 28px' }}>
 
-          {/* Toast */}
-          {toast && (
-            <div style={{
-              position: 'fixed', top: 24, right: 28, zIndex: 9999, padding: '13px 20px',
-              borderRadius: 12, background: toast.type === 'error' ? 'rgba(248,113,113,0.15)' : 'rgba(74,222,128,0.15)',
-              color: toast.type === 'error' ? D.red : D.green,
-              border: `1px solid ${toast.type === 'error' ? 'rgba(248,113,113,0.3)' : 'rgba(74,222,128,0.3)'}`,
-              fontWeight: 600, fontSize: '0.875rem', boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
-              animation: 'fadeUp 0.25s ease both', display: 'flex', alignItems: 'center', gap: 10,
-            }}>
-              {toast.type === 'error' ? <X size={14}/> : <Check size={14}/>} {toast.msg}
-            </div>
-          )}
+
 
           {/* Hero Banner — admin/controller variant */}
           {(isAdmin || isController) ? (
@@ -659,7 +604,7 @@ const FuelAnalysisPage = () => {
             {/* Right: Add Fuel Log button */}
             {isDriver && (
               <button
-                onClick={() => setShowAddModal(true)}
+                onClick={() => navigate('/fuel-log')}
                 style={{ position:'relative', display:'flex', alignItems:'center', gap:10, padding:'13px 26px', borderRadius:14, border:'none', background:'rgba(255,255,255,0.95)', color:'#1e3a8a', fontSize:'0.95rem', fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 8px 30px rgba(0,0,0,0.3)', transition:'all 0.25s cubic-bezier(0.4,0,0.2,1)', flexShrink:0 }}
                 onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 14px 40px rgba(255,255,255,0.25)' }}
                 onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 8px 30px rgba(0,0,0,0.3)' }}
@@ -1368,7 +1313,15 @@ const FuelAnalysisPage = () => {
                                   <div style={{ fontSize: '1rem', fontWeight: 800, color: D.green }}>Rs. {Math.round(log.totalCost).toLocaleString()}</div>
                                 </div>
                               </div>
-                              
+                              {/* Efficiency */}
+                              <div style={{ width: 140, flexShrink: 0, padding: '0 16px', borderLeft: `1px solid ${D.border}` }}>
+                                <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Efficiency</div>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 10, background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
+                                  <span style={{ fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{badge.label}</span>
+                                  {log.fuelEfficiency != null && <span style={{ fontWeight: 950, fontSize: '0.85rem' }}>{log.fuelEfficiency.toFixed(1)}</span>}
+                                </div>
+                              </div>
+
                               <div style={{ width: 140, flexShrink: 0, padding: '0 16px', borderLeft: `1px solid ${D.border}` }}>
                                 <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Audit Status</div>
                                 {log.isDeleted ? (
@@ -1398,69 +1351,7 @@ const FuelAnalysisPage = () => {
           {/* -
               DRIVER: ADD LOG MODAL
           - */}
-          {isDriver && showAddModal && (
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={() => { if (!submitting) setShowAddModal(false) }}>
-              <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-                <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-                    <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
-                      <Plus size={24} />
-                    </div>
-                    <div>
-                      <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>Record Fuel Entry</h2>
-                      <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600, opacity: 0.9 }}>Enter the latest fill-up data for analysis</p>
-                    </div>
-                  </div>
-                  <button onClick={() => setShowAddModal(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
-                </div>
 
-                <form onSubmit={handleAddFuelLog} style={{ padding: '36px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 40 }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Vehicle Identification <span style={{ color: D.red }}>*</span></label>
-                      <input type="text" name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={handleInputChange} required placeholder="e.g. WP-1234" style={{ width: '100%', padding: '14px 18px', borderRadius: 16, border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem', color: D.text, background: D.inputBg, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }} />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Transaction Date <span style={{ color: D.red }}>*</span></label>
-                      <input type="date" name="date" value={formData.date} onChange={handleInputChange} required style={{ width: '100%', padding: '14px 18px', borderRadius: 16, border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem', color: D.text, background: D.inputBg, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }} />
-                    </div>
-                    
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Fuel Grade <span style={{ color: D.red }}>*</span></label>
-                      <select name="fuelType" value={formData.fuelType} onChange={handleInputChange} required style={{ width: '100%', padding: '14px 18px', borderRadius: 16, border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem', color: D.text, background: D.inputBg, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }}>
-                        <option value="Diesel">Diesel</option>
-                        <option value="Petrol">Petrol</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Volume Dispensed (L) <span style={{ color: D.red }}>*</span></label>
-                      <input type="number" name="liters" value={formData.liters} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={{ width: '100%', padding: '14px 18px', borderRadius: 16, border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem', color: D.text, background: D.inputBg, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }} />
-                    </div>
-                    
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Unit Price (LKR/L) <span style={{ color: D.red }}>*</span></label>
-                      <input type="number" name="costPerLiter" value={formData.costPerLiter} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={{ width: '100%', padding: '14px 18px', borderRadius: 16, border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem', color: D.text, background: D.inputBg, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }} />
-                    </div>
-                    
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Odometer Reading (km) <span style={{ color: D.red }}>*</span></label>
-                      <input type="number" name="mileage" value={formData.mileage} onChange={handleInputChange} step="0.1" required placeholder="0.0" style={{ width: '100%', padding: '14px 18px', borderRadius: 16, border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem', color: D.text, background: D.inputBg, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }} />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 20 }}>
-                    <button type="submit" disabled={submitting} style={{ flex: 2, padding: '16px', borderRadius: 18, border: 'none', background: submitting ? 'rgba(37, 99, 235,0.5)' : 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', fontSize: '1.05rem', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: submitting ? 'none' : '0 10px 25px rgba(37, 99, 235,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }} onMouseEnter={e => { if(!submitting) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 15px 35px rgba(37, 99, 235,0.5)' } }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 10px 25px rgba(37, 99, 235,0.4)' }}>
-                      {submitting ? <Loader2 size={22} className="animate-spin" /> : <Check size={22} />}
-                      {submitting ? 'Processing Entry...' : 'Complete Fuel Entry'}
-                    </button>
-                    <button type="button" disabled={submitting} onClick={() => setShowAddModal(false)} style={{ flex: 1, padding: '16px', borderRadius: 18, border: `1px solid ${D.border}`, background: D.surfaceHi, color: D.textSub, fontSize: '1.05rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = D.border} onMouseLeave={e => e.currentTarget.style.background = D.surfaceHi}>Discard</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
 
         </div>
       </div>
