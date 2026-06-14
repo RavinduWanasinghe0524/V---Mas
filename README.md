@@ -136,26 +136,25 @@ A full-stack web application for managing vehicle fleets with role-based access 
 
 ### 1. Database Setup
 
-Make sure MySQL/MariaDB is running, then create the database and seed initial users:
+The backend connects to a **shared AWS RDS MySQL instance** by default — no local database setup is needed.
 
-```bash
-mysql -u root < "V-Mas Backend/setup-database.sql"
-```
-
-> **XAMPP users:** Start MySQL from the XAMPP Control Panel before running the backend.
-
-Optional schema migrations (apply when upgrading an existing installation):
-
-```bash
-mysql -u root < "V-Mas Backend/service-migration.sql"
-mysql -u root < "V-Mas Backend/fix-database-column.sql"
-mysql -u root < "V-Mas Backend/fix-fuel-table.sql"
-mysql -u root < "V-Mas Backend/add-fuel-audit-columns.sql"
-```
+> **Optional (local DB only):** If you want to run against a local MySQL/MariaDB instance, start MySQL first (XAMPP works), then run the setup script and set the override environment variables described in the [Configuration](#configuration) section.
+>
+> ```bash
+> mysql -u root < "V-Mas Backend/setup-database.sql"
+> ```
+>
+> Optional schema patches (only needed when upgrading an existing local install):
+> ```bash
+> mysql -u root < "V-Mas Backend/service-migration.sql"
+> mysql -u root < "V-Mas Backend/fix-database-column.sql"
+> mysql -u root < "V-Mas Backend/fix-fuel-table.sql"
+> mysql -u root < "V-Mas Backend/add-fuel-audit-columns.sql"
+> ```
 
 ### 2. Backend (Spring Boot)
 
-Navigate to the `V-Mas Backend` directory, confirm your database credentials in `application.properties` (see [Configuration](#configuration)), then run:
+Navigate to the `V-Mas Backend` directory and run:
 
 ```bash
 # Windows
@@ -181,6 +180,12 @@ java -jar target/vmas-backend-0.0.1-SNAPSHOT.jar
 
 ```bash
 cd "V-Mas Frontend"
+
+# 1. Create your local .env from the example template
+copy .env.example .env    # Windows
+# cp .env.example .env    # macOS / Linux
+
+# 2. Install dependencies and start the dev server
 npm install
 npm run dev
 ```
@@ -201,28 +206,47 @@ npm run preview    # locally preview the production build
 
 ### Backend – `V-Mas Backend/src/main/resources/application.properties`
 
+The backend is pre-configured to connect to the **shared AWS RDS instance** (ap-southeast-1, Singapore) out of the box. No extra setup is needed after pulling from Git.
+
 ```properties
-# Database (auto-creates vmas_db if it doesn't exist)
-spring.datasource.url=jdbc:mysql://localhost:3306/vmas_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-spring.datasource.username=root
-spring.datasource.password=
+# Database – defaults to AWS RDS; override with environment variables for a local DB
+spring.datasource.url=${SPRING_DATASOURCE_URL:jdbc:mysql://18.136.227.181:3306/vmas_db?sslMode=DISABLED&allowPublicKeyRetrieval=true&serverTimezone=UTC&connectTimeout=10000&createDatabaseIfNotExist=true}
+spring.datasource.username=${SPRING_DATASOURCE_USERNAME:admin}
+spring.datasource.password=${SPRING_DATASOURCE_PASSWORD:Vmas2026}
 
 # JPA / Hibernate
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=true
 
-# Flyway migrations
-spring.flyway.enabled=true
-spring.flyway.baselineOnMigrate=true
-
-# JWT (replace with a secure 256-bit hex string in production)
-jwt.secret=<your-256-bit-hex-secret>
-jwt.expiration=86400000   # 24 hours in milliseconds
+# JWT
+jwt.secret=5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437
+jwt.expiration=86400000
 ```
 
-### Frontend – `V-Mas Frontend/vite.config.js`
+> **Using a local database instead?** Set the following system environment variables on your machine before running the backend — they will override the AWS RDS defaults:
+> ```
+> SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/vmas_db?...
+> SPRING_DATASOURCE_USERNAME=root
+> SPRING_DATASOURCE_PASSWORD=
+> ```
 
-The Vite dev server proxies `/api` to `http://localhost:8080` by default. Update the `proxy` section if your backend runs on a different host/port.
+### Frontend – `V-Mas Frontend/.env`
+
+The frontend reads the API base URL from a `.env` file (excluded from Git). A template is provided:
+
+```bash
+# Inside V-Mas Frontend/
+copy .env.example .env   # Windows
+# cp .env.example .env   # macOS / Linux
+```
+
+Default contents of `.env` for local development:
+
+```env
+VITE_API_BASE_URL=http://localhost:8080/api
+```
+
+The Vite dev server also proxies `/api` to `http://localhost:8080` by default. Update `vite.config.js` if your backend runs on a different host/port.
 
 ---
 

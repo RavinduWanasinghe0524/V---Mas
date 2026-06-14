@@ -91,14 +91,14 @@
 
 /* ── Dark (Space Blue) Theme Overrides ─────────────────────────── */
 [data-theme="blue"] {
-  /* ─ Brand ─ Electric blue that pops on dark ─ */
-  --primary:          #2563eb;
-  --primary-dark:     #1d4ed8;
-  --primary-light:    rgba(37, 99, 235,0.15);
-  --primary-muted:    rgba(37, 99, 235,0.18);
-  --primary-glow:     rgba(37, 99, 235,0.4);
+  /* ─ Brand ─ Electric neon blue that pops on dark ─ */
+  --primary:          #3b82f6;
+  --primary-dark:     #2563eb;
+  --primary-light:    rgba(59, 130, 246, 0.15);
+  --primary-muted:    rgba(59, 130, 246, 0.18);
+  --primary-glow:     rgba(59, 130, 246, 0.5);
 
-  /* ─ Semantic Colours — vivid on dark ─ */
+  /* ─ Semantic Colours — vivid neon on dark ─ */
   --success:          #34d399;
   --success-bg:       rgba(52,211,153,0.12);
   --success-text:     #34d399;
@@ -113,52 +113,52 @@
   --info-bg:          rgba(56,189,248,0.12);
   --info-text:        #38bdf8;
 
-  /* ─ Backgrounds — deep space, layered depth ─ */
-  --bg-body:          #080d1a;
-  --bg-white:         #0e1529;
-  --bg-gray-50:       #111c36;
-  --bg-gray-100:      #16233f;
+  /* ─ Backgrounds — ultra-deep space, layered depth ─ */
+  --bg-body:          #060b18;
+  --bg-white:         #0a1628;
+  --bg-gray-50:       #0e1d35;
+  --bg-gray-100:      #122040;
 
-  /* ─ Borders — luminous hairlines ─ */
-  --border:           rgba(37, 99, 235,0.12);
-  --border-strong:    rgba(37, 99, 235,0.25);
-  --border-focus:     #2563eb;
+  /* ─ Borders — luminous electric hairlines ─ */
+  --border:           rgba(59, 130, 246, 0.13);
+  --border-strong:    rgba(59, 130, 246, 0.28);
+  --border-focus:     #3b82f6;
 
   /* ─ Text ─ */
-  --text-primary:     #f0f2ff;
+  --text-primary:     #e8eeff;
   --text-secondary:   #bfdbfe;
-  --text-muted:       #8892b4;
-  --text-light:       #4b5680;
+  --text-muted:       #7889b4;
+  --text-light:       #3d4f7a;
   --text-white:       #ffffff;
-  --text-accent:      #3b82f6;
+  --text-accent:      #60a5fa;
 
-  /* ─ Sidebar ─ */
-  --sidebar-bg:       #0e1529;
+  /* ─ Sidebar ─ Deep glass with neon ─ */
+  --sidebar-bg:       rgba(10, 22, 40, 0.97);
 
   /* ─ Topbar ─ */
-  --topbar-bg:        rgba(14, 21, 41, 0.92);
-  --topbar-border:    rgba(37, 99, 235,0.12);
+  --topbar-bg:        rgba(8, 14, 28, 0.94);
+  --topbar-border:    rgba(59, 130, 246, 0.12);
 
   /* ─ Surface tokens ─ */
-  --surface:          #0e1529;
-  --surface-hi:       #111c36;
-  --surface-border:   rgba(37, 99, 235,0.1);
-  --surface-border-hi:rgba(37, 99, 235,0.25);
+  --surface:          rgba(10, 22, 40, 0.9);
+  --surface-hi:       rgba(14, 29, 53, 0.9);
+  --surface-border:   rgba(59, 130, 246, 0.1);
+  --surface-border-hi:rgba(59, 130, 246, 0.28);
 
   /* ─ Scrollbar ─ */
-  --scrollbar-thumb:  rgba(37, 99, 235,0.25);
+  --scrollbar-thumb:  rgba(59, 130, 246, 0.25);
 
-  /* ─ Shadows — deep glow ─ */
-  --shadow-xs:        0 1px 4px rgba(0,0,0,0.5), 0 0 0 1px rgba(37, 99, 235,0.05);
-  --shadow-sm:        0 2px 10px rgba(0,0,0,0.5), 0 0 0 1px rgba(37, 99, 235,0.06);
-  --shadow-md:        0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(37, 99, 235,0.08);
-  --shadow-lg:        0 12px 40px rgba(0,0,0,0.6), 0 0 20px rgba(37, 99, 235,0.1);
-  --shadow-xl:        0 24px 64px rgba(0,0,0,0.7), 0 0 40px rgba(37, 99, 235,0.12);
+  /* ─ Shadows — deep neon glow ─ */
+  --shadow-xs:        0 1px 4px rgba(0,0,0,0.6), 0 0 0 1px rgba(59, 130, 246, 0.06);
+  --shadow-sm:        0 2px 10px rgba(0,0,0,0.6), 0 0 12px rgba(59, 130, 246, 0.06);
+  --shadow-md:        0 6px 24px rgba(0,0,0,0.65), 0 0 24px rgba(59, 130, 246, 0.08);
+  --shadow-lg:        0 12px 40px rgba(0,0,0,0.7), 0 0 32px rgba(59, 130, 246, 0.12);
+  --shadow-xl:        0 24px 64px rgba(0,0,0,0.8), 0 0 60px rgba(59, 130, 246, 0.15);
 
-  /* ─ Dark mode body gradient ─ */
-  --body-gradient:    radial-gradient(ellipse at 15% 0%, rgba(37, 99, 235,0.12) 0%, transparent 50%),
-                      radial-gradient(ellipse at 85% 100%, rgba(59, 130, 246,0.08) 0%, transparent 50%),
-                      radial-gradient(ellipse at 50% 50%, rgba(30,27,75,0.5) 0%, transparent 80%);
+  /* ─ Dark mode body gradient — aurora effect ─ */
+  --body-gradient:    radial-gradient(ellipse at 15% 0%, rgba(59, 130, 246, 0.16) 0%, transparent 55%),
+                      radial-gradient(ellipse at 85% 100%, rgba(99, 102, 241, 0.10) 0%, transparent 55%),
+                      radial-gradient(ellipse at 50% 50%, rgba(20, 20, 60, 0.4) 0%, transparent 80%);
 }
 
 /* Dark theme scrollbar */
@@ -253,6 +253,10 @@ img { display: block; max-width: 100%; }
 @keyframes slideInRight { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.45; } }
 @keyframes pulseBar { 0%,100% { opacity:1; } 50% { opacity:0.55; transform: scaleX(1); } 25%,75% { opacity:0.8; } }
+@keyframes neonPulse { 0%,100% { box-shadow: 0 0 12px rgba(59,130,246,0.35), 0 0 24px rgba(59,130,246,0.2); } 50% { box-shadow: 0 0 20px rgba(59,130,246,0.55), 0 0 40px rgba(59,130,246,0.3); } }
+@keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+@keyframes floatY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
 /* ═══════════════════════════════════════════════════════════════════
    LAYOUT SHELL
@@ -300,12 +304,15 @@ img { display: block; max-width: 100%; }
   flex-direction: column;
   z-index: 100;
   overflow: hidden;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 2px 0 24px rgba(29, 78, 216,0.08);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 2px 0 32px rgba(29, 78, 216,0.1);
   transition: width 0.5s cubic-bezier(0.34, 1.25, 0.64, 1),
               background 0.3s ease,
               border-color 0.3s ease;
+}
+[data-theme="blue"] .sidebar {
+  box-shadow: 2px 0 40px rgba(59, 130, 246, 0.12), inset -1px 0 0 rgba(59, 130, 246, 0.1);
 }
 
 /* ── Sidebar header (logo + brand) ──────────────────────────────── */
@@ -415,6 +422,31 @@ img { display: block; max-width: 100%; }
 }
 .nav-item.active .nav-icon {
   color: #ffffff;
+}
+
+/* ── Dark mode enhanced nav states ──── */
+[data-theme="blue"] .nav-item:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: #e8eeff;
+}
+[data-theme="blue"] .nav-item.active {
+  background: linear-gradient(135deg, rgba(59,130,246,0.3) 0%, rgba(37,99,235,0.2) 100%);
+  color: #fff;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255,255,255,0.06);
+  position: relative;
+}
+[data-theme="blue"] .nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: linear-gradient(180deg, #60a5fa, #3b82f6);
+  border-radius: 0 2px 2px 0;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.8);
 }
 
 .nav-icon {
@@ -1971,5 +2003,79 @@ select.form-control option { background: #fff; }
   .feature-card:hover {
     transform: none;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   GLASSMORPHIC UTILITIES — Vroom Vision Design System
+═══════════════════════════════════════════════════════════════════ */
+
+/* Glass card base */
+.glass-card {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+}
+[data-theme="blue"] .glass-card {
+  background: rgba(10, 22, 40, 0.6);
+  border-color: rgba(59, 130, 246, 0.15);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+/* Neon glow accents for dark mode */
+[data-theme="blue"] .neon-border {
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+}
+[data-theme="blue"] .neon-text {
+  color: #60a5fa;
+  text-shadow: 0 0 20px rgba(96, 165, 250, 0.4);
+}
+
+/* Enhanced stat card for dark mode */
+[data-theme="blue"] .stat-card {
+  background: rgba(10, 22, 40, 0.8);
+  border-color: rgba(59, 130, 246, 0.12);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03);
+}
+[data-theme="blue"] .stat-card:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 24px rgba(59, 130, 246, 0.1);
+}
+
+/* Enhanced table for dark mode */
+[data-theme="blue"] .table-wrapper,
+[data-theme="blue"] .users-table {
+  background: rgba(10, 22, 40, 0.8);
+  border-color: rgba(59, 130, 246, 0.1);
+}
+[data-theme="blue"] .v-table thead,
+[data-theme="blue"] .users-table thead {
+  background: rgba(14, 29, 53, 0.9);
+}
+[data-theme="blue"] .v-table tbody tr:hover td,
+[data-theme="blue"] .users-table tbody tr:hover td {
+  background: rgba(59, 130, 246, 0.06);
+}
+
+/* Scrollbar dark mode electric blue */
+[data-theme="blue"] ::-webkit-scrollbar-track { background: rgba(6, 11, 24, 0.8); }
+[data-theme="blue"] ::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.2); border-radius: 999px; }
+[data-theme="blue"] ::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.4); }
+
+/* Animated gradient shift */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes neonPulse {
+  0%,100% { box-shadow: 0 0 12px rgba(59,130,246,0.35), 0 0 24px rgba(59,130,246,0.2); }
+  50% { box-shadow: 0 0 20px rgba(59,130,246,0.55), 0 0 40px rgba(59,130,246,0.3); }
+}
+@keyframes floatY {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
 }
 
