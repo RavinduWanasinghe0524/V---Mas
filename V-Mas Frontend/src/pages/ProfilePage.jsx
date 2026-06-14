@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
-import { useD } from '../context/ThemeContext'
+import { useD, useTheme } from '../context/ThemeContext'
 import { profileAPI, fuelAPI, serviceAPI, vehicleAPI } from '../services/api'
 import { User, Mail, Key, ShieldCheck, Shield, Globe, Fuel, Ruler, Calendar, Car, Wrench, Edit2, AlertCircle, CheckCircle, Eye, EyeOff, Check, Trophy, Activity, Lock, Settings, LogOut, Zap, Bell, Clock, Smartphone, Share2, UserCheck, X, Sun, Moon } from 'lucide-react'
 import { computeLogsEfficiency } from '../utils/fuelUtils'
@@ -79,24 +79,13 @@ const ProfilePage = () => {
   const D = useD()
   const { theme, toggleTheme } = useTheme()
   const { user, updateUser } = useAuth()
+
+  // State Hooks
   const [activeTab, setActiveTab] = useState('profile')
-
-  const inputStyle = {
-    width: '100%', padding: '14px 18px', borderRadius: 16,
-    border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem',
-    color: D.text, background: D.inputBg, outline: 'none',
-    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', fontFamily: 'inherit',
-  }
-  const labelStyle = {
-    display: 'block', marginBottom: 10, fontSize: '0.75rem', fontWeight: 800,
-    color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.08em',
-  }
-
   const [profileForm, setProfileForm] = useState({ email: '', profilePicture: '', fullName: '', phone: '', address: '' })
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileSuccess, setProfileSuccess] = useState('')
   const [profileError, setProfileError] = useState('')
-  const fileInputRef = useRef(null)
 
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
   const [pwLoading, setPwLoading] = useState(false)
@@ -113,33 +102,10 @@ const ProfilePage = () => {
   const [fleetSaving, setFleetSaving] = useState(false)
   const [fleetSaved, setFleetSaved] = useState(false)
 
-  const handleFleetSave = async () => {
-    setFleetSaving(true)
-    await new Promise(r => setTimeout(r, 800))
-    setFleetSaving(false)
-    setFleetSaved(true)
-    setTimeout(() => setFleetSaved(false), 3000)
-  }
-
-  const isSaving = profileLoading || pwLoading || notifSaving || fleetSaving;
-  const handleSaveAll = (e) => {
-    if (e) e.preventDefault();
-    if (activeTab === 'profile') {
-      handleProfileSubmit({ preventDefault: () => {} })
-    } else if (activeTab === 'security') {
-      handlePasswordSubmit({ preventDefault: () => {} })
-    } else if (activeTab === 'notifications') {
-      handleNotifSave()
-    } else if (activeTab === 'fleet') {
-      handleFleetSave()
-    }
-  }
-
   const [stats, setStats] = useState(null)
   const [statsLoading, setStatsLoading] = useState(true)
 
   const [activeModal, setActiveModal] = useState(null)
-  const closeModal = () => setActiveModal(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const [privacy, setPrivacy] = useState({
@@ -156,10 +122,31 @@ const ProfilePage = () => {
   const [notifSaving, setNotifSaving] = useState(false)
   const [notifSaved, setNotifSaved] = useState(false)
 
-  const toggleAlertType = key => setPrivacy(p => ({
-    ...p,
-    alertTypes: p.alertTypes.includes(key) ? p.alertTypes.filter(k => k !== key) : [...p.alertTypes, key],
-  }))
+  // Refs
+  const fileInputRef = useRef(null)
+
+  // Styles
+  const inputStyle = {
+    width: '100%', padding: '14px 18px', borderRadius: 16,
+    border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem',
+    color: D.text, background: D.inputBg, outline: 'none',
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', fontFamily: 'inherit',
+  }
+  const labelStyle = {
+    display: 'block', marginBottom: 10, fontSize: '0.75rem', fontWeight: 800,
+    color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.08em',
+  }
+
+  // Handlers
+  const closeModal = () => setActiveModal(null)
+
+  const handleFleetSave = async () => {
+    setFleetSaving(true)
+    await new Promise(r => setTimeout(r, 800))
+    setFleetSaving(false)
+    setFleetSaved(true)
+    setTimeout(() => setFleetSaved(false), 3000)
+  }
 
   const handlePrivacySave = async () => {
     setPrivacySaving(true)
@@ -176,6 +163,25 @@ const ProfilePage = () => {
     setNotifSaved(true)
     setTimeout(() => setNotifSaved(false), 3000)
   }
+
+  const isSaving = profileLoading || pwLoading || notifSaving || fleetSaving;
+  const handleSaveAll = (e) => {
+    if (e) e.preventDefault();
+    if (activeTab === 'profile') {
+      handleProfileSubmit({ preventDefault: () => {} })
+    } else if (activeTab === 'security') {
+      handlePasswordSubmit({ preventDefault: () => {} })
+    } else if (activeTab === 'notifications') {
+      handleNotifSave()
+    } else if (activeTab === 'fleet') {
+      handleFleetSave()
+    }
+  }
+
+  const toggleAlertType = key => setPrivacy(p => ({
+    ...p,
+    alertTypes: p.alertTypes.includes(key) ? p.alertTypes.filter(k => k !== key) : [...p.alertTypes, key],
+  }))
 
   useEffect(() => {
     if (user) {
