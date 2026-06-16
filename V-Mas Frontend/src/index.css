@@ -1740,14 +1740,35 @@ select.form-control option { background: #fff; }
 
   /* ── Grids ──────────────────────────────────────────────────── */
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
   }
   .features-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
   }
   .form-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* Automatically stack inline 1fr 1fr grids on mobile */
+  [style*="1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Dashboard Grid ─────────────────────────────────────────── */
+  .dashboard-main-grid {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto !important;
+    gap: 16px !important;
+  }
+
+  /* ── Topbar Actions & User profile text ─────────────────────── */
+  .topbar-right-actions {
+    gap: 12px !important;
+  }
+  .topbar-user-profile-text {
+    display: none !important;
   }
 
   /* ── Welcome banner ─────────────────────────────────────────── */
@@ -1904,8 +1925,8 @@ select.form-control option { background: #fff; }
 ═══════════════════════════════════════════════════════════════════ */
 @media (max-width: 480px) {
   .stats-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
   }
 
   .page-body {

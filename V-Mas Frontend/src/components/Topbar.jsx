@@ -218,7 +218,7 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
 
 
       {/* Right Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 28, marginLeft: 'auto' }}>
+      <div className="topbar-right-actions" style={{ display: 'flex', alignItems: 'center', gap: 28, marginLeft: 'auto' }}>
         {/* Theme Toggle — Premium pill with animated knob */}
         <button
           onClick={toggleTheme}
@@ -385,7 +385,7 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
                 <User size={20} color="#ffffff" strokeWidth={2} />
               </div>
             )}
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="topbar-user-profile-text" style={{ display: 'flex', flexDirection: 'column' }}>
               <span className="topbar-username-text" style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{user?.userName || 'User'}</span>
               <span className="topbar-role-text" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{roleText[user?.role] || 'Member'}</span>
             </div>
