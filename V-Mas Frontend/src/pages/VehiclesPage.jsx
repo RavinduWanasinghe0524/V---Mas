@@ -625,7 +625,7 @@ const VehiclesPage = () => {
             )}
 
             {/* Stats row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
+            <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
               <StatBadge label="Total Vehicles" value={vehicles.length} icon={<Car size={24} />} colorDim={D.purpleDim} colorHex={D.purple} D={D} />
               <StatBadge label="Active" value={counts.ACTIVE} icon={<CheckCircle size={24} />} colorDim={D.greenDim} colorHex={D.green} D={D} />
               <StatBadge label="In Service" value={counts.SERVICE} icon={<Wrench size={24} />} colorDim={D.orangeDim} colorHex={D.orange} D={D} />
@@ -882,7 +882,7 @@ const VehiclesPage = () => {
               </div>
 
               <form onSubmit={handleSubmit} style={{ padding: '36px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 32 }}>
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 32 }}>
                   <div>
                     <label style={labelStyle}>Manufacturer <span style={{ color: D.red }}>*</span></label>
                     <input type="text" name="manufacturer" value={formData.manufacturer} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. Toyota" />
@@ -972,7 +972,7 @@ const VehiclesPage = () => {
               </div>
 
               <form onSubmit={handleEditSubmit} style={{ padding: '36px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 32 }}>
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 32 }}>
                   <div>
                     <label style={labelStyle}>Manufacturer</label>
                     <input type="text" name="manufacturer" value={editFormData.manufacturer} onChange={handleEditChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
@@ -1174,7 +1174,7 @@ const VehiclesPage = () => {
               {profileActiveTab === 'overview' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   {/* Specs Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                     {[
                       { label: 'Manufacturer', value: selectedProfileVehicle.manufacturer || 'N/A', icon: <Car size={14} color={D.blue} /> },
                       { label: 'Model', value: selectedProfileVehicle.model || 'N/A', icon: <Car size={14} color={D.blue} /> },
@@ -1676,7 +1676,7 @@ const VehiclesPage = () => {
                       })()}
 
                       {/* Stats Widgets */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         {(() => {
                           const totalCost = profileFuelLogs.reduce((sum, log) => sum + (log.totalCost || 0), 0)
                           const totalLiters = profileFuelLogs.reduce((sum, log) => sum + (log.liters || 0), 0)

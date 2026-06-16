@@ -471,7 +471,7 @@ const UsersPage = () => {
 
             {/* Interactive User Statistics Dashboard */}
             {isAdmin && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
+              <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
                 {[
                   { label: 'Total Users', count: totalUsersCount, icon: <Users size={24} />, color: D.blue, bg: D.blueDim },
                   { label: 'Active Users', count: activeUsersCount, icon: <UserCheck size={24} />, color: D.green, bg: D.greenDim },
@@ -865,7 +865,7 @@ const UsersPage = () => {
             </div>
 
             <form onSubmit={handleSubmit} style={{ padding: '36px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 32 }}>
+              <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 32 }}>
                 <div>
                   <label style={labelStyle}>Username</label>
                   <input type="text" name="userName" value={formData.userName} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
