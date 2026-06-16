@@ -93,7 +93,7 @@ const VehiclesPage = () => {
       const response = await vehicleAPI.getAllVehicles()
       const updatedList = response.data.data || []
       setVehicles(updatedList)
-      
+
       const updatedVeh = updatedList.find(v => v.id === vehicleId)
       if (selectedProfileVehicle && selectedProfileVehicle.id === vehicleId && updatedVeh) {
         setSelectedProfileVehicle(updatedVeh)
@@ -110,7 +110,7 @@ const VehiclesPage = () => {
       const response = await vehicleAPI.getAllVehicles()
       const updatedList = response.data.data || []
       setVehicles(updatedList)
-      
+
       const updatedVeh = updatedList.find(v => v.id === vehicleId)
       if (selectedProfileVehicle && selectedProfileVehicle.id === vehicleId && updatedVeh) {
         setSelectedProfileVehicle(updatedVeh)
@@ -793,8 +793,8 @@ const VehiclesPage = () => {
 
                       const initials = v.manufacturer
                         ? (v.manufacturer.includes(' ')
-                            ? v.manufacturer.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
-                            : v.manufacturer.substring(0, 2).toUpperCase())
+                          ? v.manufacturer.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
+                          : v.manufacturer.substring(0, 2).toUpperCase())
                         : 'V'
 
                       const driver = drivers.find(d => String(d.id) === String(v.driverId))
@@ -894,7 +894,7 @@ const VehiclesPage = () => {
                               background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
                               border: `1px solid ${D.border}`, borderRadius: 16, padding: '14px 6px', textAlign: 'center'
                             }}>
-                            <div style={{ fontSize: '1.15rem', fontWeight: 900, color: ac ? ac.color : D.text }}>
+                              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: ac ? ac.color : D.text }}>
                                 {ac ? ac.label : 'OK'}
                               </div>
                               <div style={{ fontSize: '0.65rem', fontWeight: 700, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Service</div>
@@ -1903,18 +1903,18 @@ const VehiclesPage = () => {
                             <h5 style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                               Recent Fuel Efficiency Trend (km/L)
                             </h5>
-                            
+
                             <div style={{
                               height: 120, position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around',
                               paddingTop: 10, paddingBottom: 5, borderBottom: `1px solid ${D.border}`, margin: '10px 0'
                             }}>
                               {/* Grid line & fleet threshold indicator */}
                               <div style={{ position: 'absolute', left: 0, right: 0, top: `${100 - (5.0 / maxEff) * 100}%`, borderTop: `1px dashed ${D.red}`, opacity: 0.6, zIndex: 1 }} title="Fleet Threshold (5.0 km/L)" />
-                              
+
                               {trendLogs.map((log, idx) => {
                                 const heightPct = (log.fuelEfficiency / maxEff) * 100;
                                 const barColor = log.fuelEfficiency >= 10 ? D.green : log.fuelEfficiency >= 7 ? D.blue : log.fuelEfficiency >= 5 ? D.orange : D.red;
-                                
+
                                 return (
                                   <div key={log.id || idx} style={{
                                     display: 'flex', flexDirection: 'column', alignItems: 'center', width: `${100 / trendLogs.length - 15}%`,
@@ -1924,13 +1924,13 @@ const VehiclesPage = () => {
                                     <span style={{ fontSize: '0.72rem', fontWeight: 800, color: barColor, marginBottom: 4 }}>
                                       {log.fuelEfficiency.toFixed(1)}
                                     </span>
-                                    
+
                                     {/* Visual bar */}
                                     <div style={{
                                       width: '100%', height: `${heightPct}%`, background: barColor, borderRadius: '4px 4px 0 0',
                                       minHeight: 4, transition: 'height 0.5s ease', boxShadow: `0 2px 8px ${barColor}30`
                                     }} />
-                                    
+
                                     {/* X-axis label */}
                                     <span style={{ fontSize: '0.62rem', color: D.textSub, marginTop: 6, whiteSpace: 'nowrap' }}>
                                       {new Date(log.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
@@ -1939,7 +1939,7 @@ const VehiclesPage = () => {
                                 );
                               })}
                             </div>
-                            
+
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: D.textSub }}>
                               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: D.green }} /> Excellent (≥10)
