@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { fuelAPI, vehicleAPI } from '../services/api'
-import { Fuel, CircleDollarSign, BarChart2, Check, X, TrendingUp, Edit2, Loader2, Plus, LayoutDashboard, Calendar, User, Search, Filter, Car, MoreVertical } from 'lucide-react'
+import { Fuel, Check, X, TrendingUp, Edit2, Plus, Calendar, User, Search, Filter, Car, MoreVertical, Activity, Zap, Droplets, DollarSign, ArrowUpRight, ArrowDownRight, MapPin } from 'lucide-react'
 import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 const card = (D) => ({
@@ -15,20 +16,7 @@ const card = (D) => ({
   overflow: 'hidden',
 })
 
-/* -- Input style (driver form) -------------------------------- */
-const darkInput = (D) => ({
-  width: '100%',
-  padding: '10px 14px',
-  borderRadius: 8,
-  border: '1px solid rgba(255,255,255,0.1)',
-  background: 'rgba(255,255,255,0.05)',
-  color: D.text,
-  fontSize: '0.875rem',
-  fontFamily: 'inherit',
-  outline: 'none',
-  transition: 'border-color 0.15s, box-shadow 0.15s',
-  boxSizing: 'border-box',
-})
+
 
 /* -- SVG Bar Chart (fixed 12-slot width - never resizes on period change) -- */
 const BarChart = ({ data, maxVal, highlightCount = 12, D }) => {
@@ -148,12 +136,118 @@ const HBar = ({ label, value, max, color, sub, D }) => {
 /* -
    MAIN COMPONENT
 - */
+/* ── Admin-only SVG Area Chart (Fuel Cost Trend) ────────────────────── */
+const AdminCostTrendChart = ({ logs, D }) => {
+  // Build monthly cost data from logs
+  const monthMap = {}
+  logs.forEach(l => {
+    const d = new Date(l.date)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const label = d.toLocaleString('default', { month: 'short' })
+    if (!monthMap[key]) monthMap[key] = { label, cost: 0 }
+    monthMap[key].cost += l.totalCost || 0
+  })
+  const entries = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).slice(-6)
+  if (entries.length === 0) return <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.textSub }}>No data</div>
+
+  const W = 600, H = 160, PAD = { t: 10, b: 30, l: 50, r: 10 }
+  const costs = entries.map(([, v]) => v.cost)
+  const maxC = Math.max(...costs, 1)
+  const minC = 0
+  const range = maxC - minC || 1
+  const pts = costs.map((c, i) => ({
+    x: PAD.l + (i / Math.max(costs.length - 1, 1)) * (W - PAD.l - PAD.r),
+    y: PAD.t + (1 - (c - minC) / range) * (H - PAD.t - PAD.b),
+  }))
+  const polyline = pts.map(p => `${p.x},${p.y}`).join(' ')
+  const area = `${pts[0].x},${H - PAD.b} ` + pts.map(p => `${p.x},${p.y}`).join(' ') + ` ${pts[pts.length - 1].x},${H - PAD.b}`
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map(f => ({ y: PAD.t + (1 - f) * (H - PAD.t - PAD.b), val: Math.round(f * maxC / 1000) + 'k' }))
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', overflow: 'visible' }}>
+      <defs>
+        <linearGradient id="adminCostGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      {yTicks.map(({ y, val }, i) => (
+        <g key={i}>
+          <line x1={PAD.l} y1={y} x2={W - PAD.r} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
+          <text x={PAD.l - 6} y={y + 4} textAnchor="end" fill="rgba(148,163,184,0.7)" fontSize={9} fontWeight={600}>{val}</text>
+        </g>
+      ))}
+      <polygon points={area} fill="url(#adminCostGrad)" />
+      <polyline points={polyline} fill="none" stroke="#06b6d4" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+      {pts.map((p, i) => (
+        <g key={i}>
+          <circle cx={p.x} cy={p.y} r={4} fill="#0b132b" stroke="#06b6d4" strokeWidth={2.5}>
+            <title>{`LKR ${Math.round(costs[i]).toLocaleString()}`}</title>
+          </circle>
+          <text x={p.x} y={H - 8} textAnchor="middle" fill="rgba(148,163,184,0.8)" fontSize={10} fontWeight={600}>{entries[i][1].label}</text>
+        </g>
+      ))}
+    </svg>
+  )
+}
+
+/* ── Admin-only SVG Bar Chart (Usage by Vehicle) ─────────────────────── */
+const AdminVehicleUsageChart = ({ logs, D }) => {
+  const vMap = {}
+  logs.forEach(l => {
+    const k = l.vehicleRegNumber
+    if (!vMap[k]) vMap[k] = 0
+    vMap[k] += l.liters || 0
+  })
+  const entries = Object.entries(vMap).sort((a, b) => b[1] - a[1]).slice(0, 7)
+  if (entries.length === 0) return <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.textSub }}>No data</div>
+
+  const W = 540, H = 180, PAD = { t: 10, b: 40, l: 10, r: 10 }
+  const maxL = Math.max(...entries.map(([, v]) => v), 1)
+  const barW = Math.min(36, (W - PAD.l - PAD.r) / entries.length - 12)
+  const gap = (W - PAD.l - PAD.r - entries.length * barW) / (entries.length + 1)
+  const yTicks = [0, 85, 170, 255, 340].map(v => ({ y: PAD.t + (1 - v / 340) * (H - PAD.t - PAD.b), val: v }))
+  const colors = ['#3b82f6', '#60a5fa', '#818cf8', '#a78bfa', '#7dd3fc', '#38bdf8', '#6366f1']
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', overflow: 'visible' }}>
+      <defs>
+        {entries.map((_, i) => (
+          <linearGradient key={i} id={`vbg${i}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={colors[i % colors.length]} stopOpacity="1" />
+            <stop offset="100%" stopColor={colors[i % colors.length]} stopOpacity="0.4" />
+          </linearGradient>
+        ))}
+      </defs>
+      {yTicks.map(({ y, val }, i) => (
+        <g key={i}>
+          <line x1={PAD.l} y1={y} x2={W - PAD.r} y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth={1} />
+          <text x={PAD.l} y={y - 3} fill="rgba(148,163,184,0.6)" fontSize={9} fontWeight={600}>{val}</text>
+        </g>
+      ))}
+      {entries.map(([reg, liters], i) => {
+        const bH = Math.max((liters / maxL) * (H - PAD.t - PAD.b), liters > 0 ? 4 : 0)
+        const x = PAD.l + gap + i * (barW + gap)
+        const shortReg = reg.replace(/^[A-Z]+-/, '').slice(-7)
+        return (
+          <g key={reg}>
+            <rect x={x} y={H - PAD.b - bH} width={barW} height={bH} rx={4} fill={`url(#vbg${i})`}>
+              <title>{`${reg}: ${liters.toFixed(1)} L`}</title>
+            </rect>
+            <text x={x + barW / 2} y={H - PAD.b + 12} textAnchor="middle" fill="rgba(148,163,184,0.75)" fontSize={8} fontWeight={700}>{shortReg}</text>
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
 const FuelAnalysisPage = () => {
   const D = useD()
+  const isDark = D.bg === '#060b18' || D.bg === '#080d1a'
+  const navigate = useNavigate()
   const { user, isAdmin, isController, isDriver } = useAuth()
   const [period, setPeriod] = useState('6M')
   const [costPeriod, setCostPeriod] = useState('ALL')
-  const [showAddModal, setShowAddModal] = useState(false)
+  const [liveTime, setLiveTime] = useState('')
 
   const [summary, setSummary] = useState({ totalDiesel: 0, totalPetrol: 0, totalVolume: 0, totalCost: 0, logCount: 0 })
   const [chartData, setChartData] = useState({ months: [], data: { Diesel: [], Petrol: [] } })
@@ -167,19 +261,15 @@ const FuelAnalysisPage = () => {
   const [filterFuelType, setFilterFuelType] = useState('all')
   const [filterAuditStatus, setFilterAuditStatus] = useState('all')
   const [loading, setLoading] = useState(true)
-  const [toast, setToast] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  const [formData, setFormData] = useState({
-    vehicleRegNumber: '', fuelType: 'Diesel', liters: '', costPerLiter: '', mileage: '',
-    date: new Date().toISOString().split('T')[0],
-  })
-  const [submitting, setSubmitting] = useState(false)
-
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3500)
-  }
+  // Live clock
+  useEffect(() => {
+    const fmt = () => new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+    setLiveTime(fmt())
+    const t = setInterval(() => setLiveTime(fmt()), 30000)
+    return () => clearInterval(t)
+  }, [])
 
   useEffect(() => {
     const loadData = async () => {
@@ -285,25 +375,7 @@ const FuelAnalysisPage = () => {
     loadData()
   }, [isAdmin, isController, isDriver, user])
 
-  const handleInputChange = e => setFormData(p => ({ ...p, [e.target.name]: e.target.value }))
 
-  const handleAddFuelLog = async e => {
-    e.preventDefault(); setSubmitting(true)
-    try {
-      await fuelAPI.addFuelLog({
-        vehicleRegNumber: formData.vehicleRegNumber, fuelType: formData.fuelType,
-        liters: parseFloat(formData.liters), costPerLiter: parseFloat(formData.costPerLiter),
-        mileage: parseFloat(formData.mileage), date: formData.date,
-      })
-      const [sR, cR, lR] = await Promise.all([fuelAPI.getSummary(), fuelAPI.getChartData(), fuelAPI.getMyLogs()])
-      const driverLogs = lR.data.data || []
-      computeLogsEfficiency(driverLogs)
-      setSummary(sR.data.data); setChartData(cR.data.data); setMyVehicleLogs(driverLogs)
-      setFormData({ vehicleRegNumber: '', fuelType: 'Diesel', liters: '', costPerLiter: '', mileage: '', date: new Date().toISOString().split('T')[0] })
-      setShowAddModal(false); showToast('Fuel log added!')
-    } catch (err) { showToast('Failed: ' + (err.response?.data?.message || err.message), 'error') }
-    finally { setSubmitting(false) }
-  }
 
   const getFilteredLogs = () => {
     let baseLogs = []
@@ -367,8 +439,7 @@ const FuelAnalysisPage = () => {
   // Use a floor slightly below the minimum value so the chart isn't flat at the top
   const minEff = effTrend.length > 0 ? Math.max(0, Math.min(...effTrend) - 1) : 0
 
-  /* max spending for normalising hbars */
-  const maxSpend = Math.max(...vehicleStats.map(v => v.totalSpending), 1)
+
 
   /* ── Cost period filter & derived stats ────────────────────────────────── */
   const costCutoff = (() => {
@@ -445,106 +516,371 @@ const FuelAnalysisPage = () => {
         <Topbar title="Fuel Analysis" subtitle="Home / Fuel Analysis" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body" style={{ padding: '24px 28px' }}>
 
-          {/* Toast */}
-          {toast && (
-            <div style={{
-              position: 'fixed', top: 24, right: 28, zIndex: 9999, padding: '13px 20px',
-              borderRadius: 12, background: toast.type === 'error' ? 'rgba(248,113,113,0.15)' : 'rgba(74,222,128,0.15)',
-              color: toast.type === 'error' ? D.red : D.green,
-              border: `1px solid ${toast.type === 'error' ? 'rgba(248,113,113,0.3)' : 'rgba(74,222,128,0.3)'}`,
-              fontWeight: 600, fontSize: '0.875rem', boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
-              animation: 'fadeUp 0.25s ease both', display: 'flex', alignItems: 'center', gap: 10,
-            }}>
-              {toast.type === 'error' ? <X size={14}/> : <Check size={14}/>} {toast.msg}
-            </div>
-          )}
 
-          {/* Hero Banner */}
+
+          {/* Hero Banner — admin/controller variant */}
+          {(isAdmin || isController) ? (
+            <div style={{
+              background: isDark
+                ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
+                : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+              borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
+              boxShadow: isDark
+                ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
+                : '0 16px 48px rgba(0,0,0,0.4)',
+              border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : `1px solid ${D.border}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20,
+            }}>
+              {/* Neon radial glow for dark */}
+              {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
+              {/* Decorative blobs */}
+              <div style={{ position:'absolute', top:'-30px', right:'10%', width:220, height:220, borderRadius:'50%', background:'rgba(99,102,241,0.08)', pointerEvents:'none' }} />
+              <div style={{ position:'absolute', bottom:'-40px', right:'30%', width:160, height:160, borderRadius:'50%', background:'rgba(6,182,212,0.07)', pointerEvents:'none' }} />
+              <div style={{ position:'absolute', top:'20%', left:'60%', width:80, height:80, borderRadius:'50%', background:'rgba(255,255,255,0.03)', pointerEvents:'none' }} />
+
+              {/* Left: Icon + Text */}
+              <div style={{ position:'relative', display:'flex', alignItems:'center', gap:20 }}>
+                <div style={{ background:'rgba(255,255,255,0.12)', backdropFilter:'blur(6px)', borderRadius:16, width:60, height:60, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', flexShrink:0 }}>
+                  <Fuel size={30} strokeWidth={1.5} />
+                </div>
+                <div>
+                  <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:6 }}>
+                    <h1 style={{ margin:0, fontSize:'1.75rem', fontWeight:900, color:'#fff', letterSpacing:'-0.02em', fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
+                      Fuel &amp; Analysis, {user?.firstName || user?.username || (isAdmin ? 'Admin' : 'Controller')}!
+                    </h1>
+                    <span style={{ background:'rgba(6,182,212,0.18)', border:'1px solid rgba(6,182,212,0.4)', color:'#67e8f9', fontSize:'0.7rem', fontWeight:800, padding:'3px 10px', borderRadius:999, letterSpacing:'0.05em', textTransform:'uppercase', whiteSpace:'nowrap' }}>
+                      Consumption Insights
+                    </span>
+                  </div>
+                  <p style={{ margin:0, color:'#93c5fd', fontSize:'0.875rem', fontWeight:500 }}>
+                    Track fuel spend, efficiency and consumption patterns across every vehicle.
+                  </p>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:10 }}>
+                    <span style={{ width:8, height:8, borderRadius:'50%', background:'#4ade80', display:'inline-block', boxShadow:'0 0 6px #4ade80' }} />
+                    <span style={{ fontSize:'0.78rem', color:'rgba(255,255,255,0.55)', fontWeight:600 }}>Live · {liveTime}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Log Fuel button */}
+              <button
+                onClick={() => { setActiveTab('audit'); document.getElementById('audit-view')?.scrollIntoView({ behavior:'smooth' }) }}
+                style={{ position:'relative', display:'flex', alignItems:'center', gap:10, padding:'13px 26px', borderRadius:14, border:'none', background:'rgba(255,255,255,0.95)', color:'#1e3a8a', fontSize:'0.95rem', fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 8px 30px rgba(0,0,0,0.3)', transition:'all 0.25s cubic-bezier(0.4,0,0.2,1)', flexShrink:0 }}
+                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 14px 40px rgba(255,255,255,0.25)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 8px 30px rgba(0,0,0,0.3)' }}
+              >
+                <Plus size={18} strokeWidth={3} /> Log Fuel
+              </button>
+            </div>
+          ) : (
+          /* Driver hero banner (updated to premium style) */
           <div style={{
-            background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
-            borderRadius: 20, padding: '32px 36px', marginBottom: 28, position: 'relative', overflow: 'hidden',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)', border: `1px solid ${D.border}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20
+            background: isDark
+              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
+              : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+            borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
+            boxShadow: isDark
+              ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
+              : '0 16px 48px rgba(0,0,0,0.4)',
+            border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : `1px solid ${D.border}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20,
           }}>
-            {/* decorative circles */}
-            {[['80%','-20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
-              <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
-            ))}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-              <div style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(4px)', borderRadius: 14, width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }}>
-                <Fuel size={28} strokeWidth={1.5} />
+            {/* Neon radial glow for dark */}
+            {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
+            {/* Decorative blobs */}
+            <div style={{ position:'absolute', top:'-30px', right:'10%', width:220, height:220, borderRadius:'50%', background:'rgba(99,102,241,0.08)', pointerEvents:'none' }} />
+            <div style={{ position:'absolute', bottom:'-40px', right:'30%', width:160, height:160, borderRadius:'50%', background:'rgba(6,182,212,0.07)', pointerEvents:'none' }} />
+            <div style={{ position:'absolute', top:'20%', left:'60%', width:80, height:80, borderRadius:'50%', background:'rgba(255,255,255,0.03)', pointerEvents:'none' }} />
+
+            {/* Left: Icon + Text */}
+            <div style={{ position:'relative', display:'flex', alignItems:'center', gap:20 }}>
+              <div style={{ background:'rgba(255,255,255,0.12)', backdropFilter:'blur(6px)', borderRadius:16, width:60, height:60, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', flexShrink:0 }}>
+                <Fuel size={30} strokeWidth={1.5} />
               </div>
               <div>
-                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  Fuel Analysis
-                </h1>
-                <p style={{ margin: '4px 0 0', color: '#60a5fa', fontSize: '0.9rem' }}>
-                  {isDriver ? 'Track your vehicle fuel consumption.' : 'Fleet-wide consumption trends, cost breakdowns & efficiency tracking.'}
+                <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:6 }}>
+                  <h1 style={{ margin:0, fontSize:'1.75rem', fontWeight:900, color:'#fff', letterSpacing:'-0.02em', fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
+                    Fuel &amp; Analysis, {user?.firstName || user?.username || 'Driver'}!
+                  </h1>
+                  <span style={{ background:'rgba(6,182,212,0.18)', border:'1px solid rgba(6,182,212,0.4)', color:'#67e8f9', fontSize:'0.7rem', fontWeight:800, padding:'3px 10px', borderRadius:999, letterSpacing:'0.05em', textTransform:'uppercase', whiteSpace:'nowrap' }}>
+                    My Vehicle Insights
+                  </span>
+                </div>
+                <p style={{ margin:0, color:'#93c5fd', fontSize:'0.875rem', fontWeight:500 }}>
+                  Track your fuel fills, efficiency and mileage history.
                 </p>
+                <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:10 }}>
+                  <span style={{ width:8, height:8, borderRadius:'50%', background:'#4ade80', display:'inline-block', boxShadow:'0 0 6px #4ade80' }} />
+                  <span style={{ fontSize:'0.78rem', color:'rgba(255,255,255,0.55)', fontWeight:600 }}>Live · {liveTime}</span>
+                </div>
               </div>
             </div>
+
+            {/* Right: Add Fuel Log button */}
             {isDriver && (
-              <button 
-                onClick={() => setShowAddModal(true)}
-                style={{
-                  position: 'relative',
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '12px 24px', borderRadius: 16, border: 'none', background: '#fff',
-                  color: '#1e3a8a', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap',
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.25)', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}
+              <button
+                onClick={() => navigate('/fuel-log')}
+                style={{ position:'relative', display:'flex', alignItems:'center', gap:10, padding:'13px 26px', borderRadius:14, border:'none', background:'rgba(255,255,255,0.95)', color:'#1e3a8a', fontSize:'0.95rem', fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 8px 30px rgba(0,0,0,0.3)', transition:'all 0.25s cubic-bezier(0.4,0,0.2,1)', flexShrink:0 }}
+                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 14px 40px rgba(255,255,255,0.25)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 8px 30px rgba(0,0,0,0.3)' }}
               >
-                <Plus size={20} strokeWidth={3}/> Add Fuel Log
+                <Plus size={18} strokeWidth={3} /> Add Fuel Log
               </button>
             )}
           </div>
+          )}
 
           {/* -
               DASHBOARD
           - */}
           <>
-              {/* -- KPI cards -------------------------------- */}
-              <div style={{ display: 'grid', gridTemplateColumns: (isAdmin || isController) ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
-                {(isAdmin || isController ? [
-                  { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.indigoDim, iconColor: D.indigo, filterFuel: 'Diesel', filterStatus: 'all' },
-                  { label: 'Total Petrol', value: `${Math.round(summary.totalPetrol).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.goldDim, iconColor: D.gold, filterFuel: 'Petrol', filterStatus: 'all' },
-                  { label: 'Total Volume', value: `${Math.round(summary.totalVolume).toLocaleString()} L`, icon: <BarChart2 size={24}/>, iconBg: D.tealDim, iconColor: D.teal, filterFuel: 'all', filterStatus: 'all' },
-                  { label: 'Total Cost', value: `Rs. ${Math.round(summary.totalCost).toLocaleString()}`, icon: <CircleDollarSign size={24}/>, iconBg: D.greenDim, iconColor: D.green, filterFuel: 'all', filterStatus: 'all' },
-                  { label: 'Active Logs', value: summary.logCount, icon: <BarChart2 size={24}/>, iconBg: D.purpleDim, iconColor: D.purple, filterFuel: 'all', filterStatus: 'all' },
-                ] : [
-                  { label: 'Total Diesel', value: `${Math.round(summary.totalDiesel).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.indigoDim, iconColor: D.indigo },
-                  { label: 'Total Petrol', value: `${Math.round(summary.totalPetrol).toLocaleString()} L`, icon: <Fuel size={24}/>, iconBg: D.goldDim, iconColor: D.gold },
-                  { label: 'Total Volume', value: `${Math.round(summary.totalVolume).toLocaleString()} L`, icon: <BarChart2 size={24}/>, iconBg: D.tealDim, iconColor: D.teal },
-                  { label: 'Total Cost', value: `Rs. ${Math.round(summary.totalCost).toLocaleString()}`, icon: <CircleDollarSign size={24}/>, iconBg: D.greenDim, iconColor: D.green },
-                ]).map(s => (
-                  <div key={s.label} style={{
-                    ...card(D), padding: '28px', display: 'flex', alignItems: 'center', gap: 24,
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', cursor: (isAdmin || isController) ? 'pointer' : 'default'
-                  }} 
-                  onClick={() => {
-                     if (isAdmin || isController) {
-                         if (s.filterFuel) setFilterFuelType(s.filterFuel);
-                         if (s.filterStatus) setFilterAuditStatus(s.filterStatus);
-                         setActiveTab('audit');
-                         document.getElementById('audit-view')?.scrollIntoView({ behavior: 'smooth' });
-                     }
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.borderColor = s.iconColor + '50'; e.currentTarget.style.boxShadow = `0 16px 32px ${s.iconColor}20` }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)' }}>
-                    <div style={{ width: 60, height: 60, borderRadius: 18, background: s.iconBg, color: s.iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${s.iconColor}30`, flexShrink: 0 }}>
-                      {s.icon}
+              {/* ── Admin / Controller: Fuel Overview KPI cards (new design) ── */}
+              {(isAdmin || isController) && (() => {
+                const totalSpend = summary.totalCost
+                const litersUsed = summary.totalVolume
+                const avgEff = (() => {
+                  const effLogs = allFuelLogs.filter(l => l.fuelEfficiency && l.fuelEfficiency > 0)
+                  if (!effLogs.length) return null
+                  return effLogs.reduce((s, l) => s + l.fuelEfficiency, 0) / effLogs.length
+                })()
+                const avgCostPerLiter = litersUsed > 0 ? totalSpend / litersUsed : 0
+
+                const kpiCards = [
+                  {
+                    label: 'TOTAL SPEND',
+                    value: `LKR ${Math.round(totalSpend).toLocaleString()}`,
+                    sub: 'Recent fill-ups',
+                    icon: <DollarSign size={20} />,
+                    iconBg: 'rgba(59,130,246,0.15)',
+                    iconColor: '#60a5fa',
+                    trend: '+4.6%',
+                    trendUp: true,
+                    filterFuel: 'all', filterStatus: 'all'
+                  },
+                  {
+                    label: 'LITERS USED',
+                    value: `${Math.round(litersUsed).toLocaleString()} L`,
+                    sub: 'Across fleet',
+                    icon: <Droplets size={20} />,
+                    iconBg: 'rgba(6,182,212,0.15)',
+                    iconColor: '#22d3ee',
+                    trend: '+2.1%',
+                    trendUp: true,
+                    filterFuel: 'all', filterStatus: 'all'
+                  },
+                  {
+                    label: 'AVG EFFICIENCY',
+                    value: avgEff != null ? `${avgEff.toFixed(1)} km/L` : '—',
+                    sub: 'Fleet average',
+                    icon: <Activity size={20} />,
+                    iconBg: 'rgba(16,185,129,0.15)',
+                    iconColor: '#34d399',
+                    trend: '+1.2%',
+                    trendUp: true,
+                    filterFuel: 'all', filterStatus: 'all'
+                  },
+                  {
+                    label: 'COST / LITER',
+                    value: `LKR ${Math.round(avgCostPerLiter).toLocaleString()}`,
+                    sub: 'Blended rate',
+                    icon: <Zap size={20} />,
+                    iconBg: 'rgba(245,158,11,0.15)',
+                    iconColor: '#fbbf24',
+                    trend: '-0.8%',
+                    trendUp: false,
+                    filterFuel: 'all', filterStatus: 'all'
+                  },
+                ]
+
+                return (
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ marginBottom: 16 }}>
+                      <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel Overview</h2>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: D.textSub }}>This period's fuel performance</p>
                     </div>
-                    <div>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{s.label}</div>
-                      <div style={{ fontSize: '1.6rem', fontWeight: 900, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.1 }}>{s.value}</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+                      {kpiCards.map(s => (
+                        <div key={s.label}
+                          onClick={() => { setFilterFuelType(s.filterFuel); setFilterAuditStatus(s.filterStatus); setActiveTab('audit'); document.getElementById('audit-view')?.scrollIntoView({ behavior: 'smooth' }) }}
+                          style={{ ...card(D), padding: '20px 22px', cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)', position: 'relative', overflow: 'hidden' }}
+                          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.borderColor = s.iconColor + '50'; e.currentTarget.style.boxShadow = `0 16px 32px ${s.iconColor}18` }}
+                          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)' }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                            <div style={{ width: 40, height: 40, borderRadius: 12, background: s.iconBg, color: s.iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${s.iconColor}25`, flexShrink: 0 }}>
+                              {s.icon}
+                            </div>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: s.trendUp ? '#4ade80' : '#f87171', background: s.trendUp ? 'rgba(74,222,128,0.1)' : 'rgba(248,113,113,0.1)', padding: '3px 8px', borderRadius: 999, display: 'flex', alignItems: 'center', gap: 3 }}>
+                              {s.trendUp ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}{s.trend}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.65rem', fontWeight: 800, color: D.textSub, letterSpacing: '0.1em', marginBottom: 4 }}>{s.label}</div>
+                          <div style={{ fontSize: '1.45rem', fontWeight: 900, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif", lineHeight: 1.1, marginBottom: 4 }}>{s.value}</div>
+                          <div style={{ fontSize: '0.72rem', color: D.textSub, fontWeight: 600 }}>{s.sub}</div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
+                )
+              })()}
+
+              {/* ── Driver: upgraded KPI cards (premium design) ── */}
+              {isDriver && (
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ marginBottom: 16 }}>
+                    <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel Overview</h2>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: D.textSub }}>Your vehicle's fuel performance</p>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+                    {[
+                      {
+                        label: 'TOTAL DIESEL',
+                        value: `${Math.round(summary.totalDiesel).toLocaleString()} L`,
+                        sub: 'Diesel logs',
+                        icon: <Fuel size={20} />,
+                        iconBg: 'rgba(99,102,241,0.15)',
+                        iconColor: D.indigo,
+                      },
+                      {
+                        label: 'TOTAL PETROL',
+                        value: `${Math.round(summary.totalPetrol).toLocaleString()} L`,
+                        sub: 'Petrol logs',
+                        icon: <Fuel size={20} />,
+                        iconBg: 'rgba(245,158,11,0.15)',
+                        iconColor: D.gold,
+                      },
+                      {
+                        label: 'TOTAL VOLUME',
+                        value: `${Math.round(summary.totalVolume).toLocaleString()} L`,
+                        sub: `Logs count: ${summary.logCount || 0}`,
+                        icon: <Droplets size={20} />,
+                        iconBg: 'rgba(6,182,212,0.15)',
+                        iconColor: '#22d3ee',
+                      },
+                      {
+                        label: 'TOTAL SPEND',
+                        value: `LKR ${Math.round(summary.totalCost).toLocaleString()}`,
+                        sub: 'Total fuel cost',
+                        icon: <DollarSign size={20} />,
+                        iconBg: 'rgba(16,185,129,0.15)',
+                        iconColor: D.green,
+                      },
+                    ].map(s => (
+                      <div key={s.label}
+                        style={{ ...card(D), padding: '20px 22px', transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)', position: 'relative', overflow: 'hidden' }}
+                        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.borderColor = s.iconColor + '50'; e.currentTarget.style.boxShadow = `0 16px 32px ${s.iconColor}18` }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)' }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                          <div style={{ width: 40, height: 40, borderRadius: 12, background: s.iconBg, color: s.iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${s.iconColor}25`, flexShrink: 0 }}>
+                            {s.icon}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: D.textSub, letterSpacing: '0.1em', marginBottom: 4 }}>{s.label}</div>
+                        <div style={{ fontSize: '1.45rem', fontWeight: 900, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif", lineHeight: 1.1, marginBottom: 4 }}>{s.value}</div>
+                        <div style={{ fontSize: '0.72rem', color: D.textSub, fontWeight: 600 }}>{s.sub}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
 
-              {/* -- Charts row --------------------------------- */}
+              {/* ── Admin: Fuel Cost Trend + Usage by Vehicle ── */}
+              {(isAdmin || isController) && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 16, marginBottom: 20 }}>
+
+                  {/* Fuel Cost Trend */}
+                  <div style={{ ...card(D), padding: '22px 24px' }}>
+                    <div style={{ marginBottom: 16 }}>
+                      <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel Cost Trend</h3>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.73rem', color: D.textSub }}>Monthly spend (LKR thousands)</p>
+                    </div>
+                    <AdminCostTrendChart logs={allFuelLogs} D={D} />
+                  </div>
+
+                  {/* Usage by Vehicle */}
+                  <div style={{ ...card(D), padding: '22px 24px' }}>
+                    <div style={{ marginBottom: 16 }}>
+                      <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Usage by Vehicle</h3>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.73rem', color: D.textSub }}>Lifetime fuel per reg no.</p>
+                    </div>
+                    <AdminVehicleUsageChart logs={allFuelLogs} D={D} />
+                  </div>
+                </div>
+              )}
+
+              {/* ── Admin: Recent Fuel Logs table ── */}
+              {(isAdmin || isController) && allFuelLogs.length > 0 && (() => {
+                const recentLogs = allFuelLogs.slice(0, 10)
+                const colStyle = (w) => ({ padding: '13px 14px', fontSize: '0.82rem', color: D.text, fontWeight: 600, width: w, whiteSpace: 'nowrap' })
+                const hStyle = { padding: '10px 14px', fontSize: '0.67rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }
+                return (
+                  <div style={{ ...card(D), padding: 0, marginBottom: 20 }}>
+                    <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${D.border}` }}>
+                      <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Recent Fuel Logs</h3>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.73rem', color: D.textSub }}>Latest fill-ups across the fleet</p>
+                    </div>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr>
+                            {['DATE','VEHICLE','DRIVER','STATION','LITERS','COST','KM/L'].map(h => (
+                              <th key={h} style={hStyle}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {recentLogs.map((log, i) => {
+                            const eff = log.fuelEfficiency
+                            const effColor = eff == null ? D.textSub : eff > 10 ? '#4ade80' : eff > 7 ? '#60a5fa' : eff > 5 ? '#fbbf24' : '#f87171'
+                            const station = log.station || log.fuelStation || '—'
+                            return (
+                              <tr key={log.id || i}
+                                style={{ borderBottom: `1px solid ${D.border}`, transition: 'background 0.15s', cursor: 'default' }}
+                                onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                              >
+                                <td style={{ ...colStyle('110px'), color: D.textSub }}>
+                                  {new Date(log.date).toLocaleDateString('en-CA')}
+                                </td>
+                                <td style={{ ...colStyle('130px') }}>
+                                  <span style={{ color: '#60a5fa', fontWeight: 800 }}>{log.vehicleRegNumber}</span>
+                                </td>
+                                <td style={{ ...colStyle('130px'), color: D.text }}>
+                                  {log.driverUsername || log.uploadedBy || '—'}
+                                </td>
+                                <td style={{ ...colStyle('150px'), color: D.textSub }}>
+                                  <span style={{ display:'flex', alignItems:'center', gap:5 }}>
+                                    <MapPin size={12} style={{ opacity:0.5 }} />
+                                    {station}
+                                  </span>
+                                </td>
+                                <td style={{ ...colStyle('80px'), color: D.text }}>
+                                  {log.liters != null ? log.liters.toFixed(1) : '—'} L
+                                </td>
+                                <td style={{ ...colStyle('120px'), color: D.green, fontWeight: 800 }}>
+                                  LKR {Math.round(log.totalCost || 0).toLocaleString()}
+                                </td>
+                                <td style={{ padding: '13px 14px', width: '70px' }}>
+                                  {eff != null ? (
+                                    <span style={{ background: effColor + '18', color: effColor, border: `1px solid ${effColor}40`, padding: '3px 9px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 800 }}>
+                                      {eff.toFixed(1)}
+                                    </span>
+                                  ) : <span style={{ color: D.textSub, fontSize: '0.78rem' }}>—</span>}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* ── Driver/both: Monthly Consumption + Efficiency Trend ── */}
+              {isDriver && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
 
                 {/* Monthly Consumption Bar Chart */}
@@ -591,7 +927,6 @@ const FuelAnalysisPage = () => {
                   ) : (
                     <>
                       <LineChart data={effTrend} maxVal={maxEff} minVal={minEff} D={D} />
-                      {/* Month labels */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, paddingLeft: 10, paddingRight: 10 }}>
                         {effTrendData.map((d, i) => (
                           <span key={i} style={{ fontSize: '0.6rem', color: D.textFaint, fontWeight: 600 }}>{d.label}</span>
@@ -609,6 +944,7 @@ const FuelAnalysisPage = () => {
                   )}
                 </div>
               </div>
+              )}
 
               {/* -- Vehicle Performance (horizontal bars) ------- */}
               {(isAdmin || isController) && vehicleStats.length > 0 && (
@@ -759,79 +1095,78 @@ const FuelAnalysisPage = () => {
                 </div>
               )}
 
-              {/* -- Driver: My Fuel History --------------------- */}
+              {/* -- Driver: My Fuel History (premium table) --------- */}
               {isDriver && (
                 <div style={{ ...card(D), padding: 0, marginBottom: 20 }}>
-                  <div style={{ padding: '28px 32px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }}>
-                    <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '1.1rem' }}>My Fuel History</h3>
-                    <p style={{ margin: '3px 0 0', fontSize: '0.85rem', color: D.textSub }}>Recent fuel logs for your vehicle</p>
+                  <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${D.border}` }}>
+                    <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>My Fuel History</h3>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.73rem', color: D.textSub }}>Recent fuel logs for your vehicle</p>
                   </div>
-                  <div style={{ maxHeight: 460, overflowY: 'auto', padding: '24px 32px 40px' }}>
+                  <div style={{ maxHeight: 460, overflowY: 'auto' }}>
                     {myVehicleLogs.length === 0 ? (
                       <div style={{ padding: '80px 0', textAlign: 'center' }}>
                         <div style={{ background: D.surfaceHi, width: 90, height: 90, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: D.textSub, border: `1px solid ${D.border}` }}>
                           <Fuel size={36} opacity={0.3} />
                         </div>
                         <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.2rem' }}>No fuel logs yet</h3>
-                        <p style={{ margin: '10px 0 0', color: D.textSub, fontSize: '1rem', fontWeight: 500 }}>Switch to "Add Log" tab to add your first entry.</p>
+                        <p style={{ margin: '10px 0 0', color: D.textSub, fontSize: '1rem', fontWeight: 500 }}>Click "+ Add Fuel Log" above to add your first entry.</p>
                       </div>
-                    ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
-                        {myVehicleLogs.map((log, i) => {
-                          const badge = log.fuelEfficiency ? (
-                            log.fuelEfficiency > 10 ? { label: 'Excellent', bg: D.greenDim, color: D.green, border: 'rgba(74,222,128,0.3)' } :
-                            log.fuelEfficiency > 7 ? { label: 'Good', bg: D.blueDim, color: D.blue, border: 'rgba(96,165,250,0.3)' } :
-                            log.fuelEfficiency > 5 ? { label: 'Average', bg: D.goldDim, color: D.gold, border: 'rgba(251,191,36,0.3)' } :
-                            { label: 'Poor', bg: D.redDim, color: D.red, border: 'rgba(248,113,113,0.3)' }
-                          ) : { label: 'N/A', bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border };
-                          
-                          return (
-                            <div key={log.id} style={{
-                              background: D.surface, borderRadius: 20, border: `1px solid ${D.border}`,
-                              padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 24,
-                              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`,
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                            }} onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateX(6px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }} onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)' }}>
-                              
-                              <div style={{ width: 140, flexShrink: 0 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '1rem', color: D.text, fontWeight: 800 }}>
-                                  <Calendar size={18} color={D.textSub} strokeWidth={2.5} /> {new Date(log.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
-                                  <span style={{ fontSize: '0.75rem', color: log.fuelType === 'Diesel' ? D.indigo : D.gold, fontWeight: 800, textTransform: 'uppercase', background: log.fuelType === 'Diesel' ? D.indigoDim : D.goldDim, padding: '3px 10px', borderRadius: 6, border: `1px solid ${log.fuelType === 'Diesel' ? D.indigo : D.gold}30` }}>{log.fuelType}</span>
-                                </div>
-                              </div>
-                              
-                              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 48 }}>
-                                <div>
-                                  <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Volume</div>
-                                  <div style={{ fontSize: '1rem', fontWeight: 800, color: D.text }}>{log.liters.toFixed(1)} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>L</span></div>
-                                </div>
-                                <div>
-                                  <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Cost/L</div>
-                                  <div style={{ fontSize: '1rem', fontWeight: 800, color: D.textSub }}>Rs. {log.costPerLiter.toFixed(2)}</div>
-                                </div>
-                                <div>
-                                  <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Total Cost</div>
-                                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: D.green }}>Rs. {log.totalCost.toLocaleString()}</div>
-                                </div>
-                                <div>
-                                  <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Mileage</div>
-                                  <div style={{ fontSize: '1rem', fontWeight: 800, color: D.text }}>{log.mileage.toLocaleString()} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>km</span></div>
-                                </div>
-                              </div>
-                              
-                              <div style={{ width: 140, textAlign: 'right' }}>
-                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderRadius: 12, background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`, boxShadow: `0 4px 12px ${badge.color}15` }}>
-                                  <span style={{ fontSize: '0.78rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{badge.label}</span>
-                                  {log.fuelEfficiency && <span style={{ fontWeight: 950, fontSize: '1rem' }}>{log.fuelEfficiency.toFixed(1)}</span>}
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
+                    ) : (() => {
+                      const colStyle = (w) => ({ padding: '13px 14px', fontSize: '0.82rem', color: D.text, fontWeight: 600, width: w, whiteSpace: 'nowrap' })
+                      const hStyle = { padding: '10px 14px', fontSize: '0.67rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }
+                      return (
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                              <tr>
+                                {['DATE','FUEL GRADE','VOLUME','UNIT PRICE','TOTAL COST','ODOMETER','EFFICIENCY'].map(h => (
+                                  <th key={h} style={hStyle}>{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {myVehicleLogs.map((log, i) => {
+                                const eff = log.fuelEfficiency
+                                const effColor = eff == null ? D.textSub : eff > 10 ? '#4ade80' : eff > 7 ? '#60a5fa' : eff > 5 ? '#fbbf24' : '#f87171'
+                                return (
+                                  <tr key={log.id || i}
+                                    style={{ borderBottom: `1px solid ${D.border}`, transition: 'background 0.15s', cursor: 'default' }}
+                                    onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                  >
+                                    <td style={{ ...colStyle('110px'), color: D.textSub }}>
+                                      {new Date(log.date).toLocaleDateString('en-CA')}
+                                    </td>
+                                    <td style={{ ...colStyle('120px') }}>
+                                      <span style={{ fontSize: '0.75rem', color: log.fuelType === 'Diesel' ? D.indigo : D.gold, fontWeight: 800, textTransform: 'uppercase', background: log.fuelType === 'Diesel' ? D.indigoDim : D.goldDim, padding: '3px 10px', borderRadius: 6, border: `1px solid ${log.fuelType === 'Diesel' ? D.indigo : D.gold}30` }}>{log.fuelType}</span>
+                                    </td>
+                                    <td style={{ ...colStyle('100px'), color: D.text }}>
+                                      {log.liters != null ? log.liters.toFixed(1) : '—'} L
+                                    </td>
+                                    <td style={{ ...colStyle('120px'), color: D.textSub }}>
+                                      LKR {log.costPerLiter != null ? log.costPerLiter.toFixed(2) : '—'}
+                                    </td>
+                                    <td style={{ ...colStyle('140px'), color: D.green, fontWeight: 800 }}>
+                                      LKR {Math.round(log.totalCost || 0).toLocaleString()}
+                                    </td>
+                                    <td style={{ ...colStyle('120px'), color: D.text }}>
+                                      {log.mileage != null ? log.mileage.toLocaleString() : '—'} km
+                                    </td>
+                                    <td style={{ padding: '13px 14px', width: '90px' }}>
+                                      {eff != null ? (
+                                        <span style={{ background: effColor + '18', color: effColor, border: `1px solid ${effColor}40`, padding: '3px 9px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 800 }}>
+                                          {eff.toFixed(1)} km/L
+                                        </span>
+                                      ) : <span style={{ color: D.textSub, fontSize: '0.78rem' }}>—</span>}
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )
+                    })()}
                   </div>
                 </div>
               )}
@@ -993,7 +1328,15 @@ const FuelAnalysisPage = () => {
                                   <div style={{ fontSize: '1rem', fontWeight: 800, color: D.green }}>Rs. {Math.round(log.totalCost).toLocaleString()}</div>
                                 </div>
                               </div>
-                              
+                              {/* Efficiency */}
+                              <div style={{ width: 140, flexShrink: 0, padding: '0 16px', borderLeft: `1px solid ${D.border}` }}>
+                                <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Efficiency</div>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 10, background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
+                                  <span style={{ fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{badge.label}</span>
+                                  {log.fuelEfficiency != null && <span style={{ fontWeight: 950, fontSize: '0.85rem' }}>{log.fuelEfficiency.toFixed(1)}</span>}
+                                </div>
+                              </div>
+
                               <div style={{ width: 140, flexShrink: 0, padding: '0 16px', borderLeft: `1px solid ${D.border}` }}>
                                 <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Audit Status</div>
                                 {log.isDeleted ? (
@@ -1023,69 +1366,7 @@ const FuelAnalysisPage = () => {
           {/* -
               DRIVER: ADD LOG MODAL
           - */}
-          {isDriver && showAddModal && (
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={() => { if (!submitting) setShowAddModal(false) }}>
-              <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-                <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-                    <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
-                      <Plus size={24} />
-                    </div>
-                    <div>
-                      <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>Record Fuel Entry</h2>
-                      <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600, opacity: 0.9 }}>Enter the latest fill-up data for analysis</p>
-                    </div>
-                  </div>
-                  <button onClick={() => setShowAddModal(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
-                </div>
 
-                <form onSubmit={handleAddFuelLog} style={{ padding: '36px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 40 }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Vehicle Identification <span style={{ color: D.red }}>*</span></label>
-                      <input type="text" name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={handleInputChange} required placeholder="e.g. WP-1234" style={{ width: '100%', padding: '14px 18px', borderRadius: 16, border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem', color: D.text, background: D.inputBg, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }} />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Transaction Date <span style={{ color: D.red }}>*</span></label>
-                      <input type="date" name="date" value={formData.date} onChange={handleInputChange} required style={{ width: '100%', padding: '14px 18px', borderRadius: 16, border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem', color: D.text, background: D.inputBg, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }} />
-                    </div>
-                    
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Fuel Grade <span style={{ color: D.red }}>*</span></label>
-                      <select name="fuelType" value={formData.fuelType} onChange={handleInputChange} required style={{ width: '100%', padding: '14px 18px', borderRadius: 16, border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem', color: D.text, background: D.inputBg, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }}>
-                        <option value="Diesel">Diesel</option>
-                        <option value="Petrol">Petrol</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Volume Dispensed (L) <span style={{ color: D.red }}>*</span></label>
-                      <input type="number" name="liters" value={formData.liters} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={{ width: '100%', padding: '14px 18px', borderRadius: 16, border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem', color: D.text, background: D.inputBg, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }} />
-                    </div>
-                    
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Unit Price (LKR/L) <span style={{ color: D.red }}>*</span></label>
-                      <input type="number" name="costPerLiter" value={formData.costPerLiter} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={{ width: '100%', padding: '14px 18px', borderRadius: 16, border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem', color: D.text, background: D.inputBg, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }} />
-                    </div>
-                    
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Odometer Reading (km) <span style={{ color: D.red }}>*</span></label>
-                      <input type="number" name="mileage" value={formData.mileage} onChange={handleInputChange} step="0.1" required placeholder="0.0" style={{ width: '100%', padding: '14px 18px', borderRadius: 16, border: `1px solid ${D.inputBorder}`, fontSize: '0.95rem', color: D.text, background: D.inputBg, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 4px ${D.purpleDim}` }} onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }} />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 20 }}>
-                    <button type="submit" disabled={submitting} style={{ flex: 2, padding: '16px', borderRadius: 18, border: 'none', background: submitting ? 'rgba(37, 99, 235,0.5)' : 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', fontSize: '1.05rem', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: submitting ? 'none' : '0 10px 25px rgba(37, 99, 235,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }} onMouseEnter={e => { if(!submitting) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 15px 35px rgba(37, 99, 235,0.5)' } }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 10px 25px rgba(37, 99, 235,0.4)' }}>
-                      {submitting ? <Loader2 size={22} className="animate-spin" /> : <Check size={22} />}
-                      {submitting ? 'Processing Entry...' : 'Complete Fuel Entry'}
-                    </button>
-                    <button type="button" disabled={submitting} onClick={() => setShowAddModal(false)} style={{ flex: 1, padding: '16px', borderRadius: 18, border: `1px solid ${D.border}`, background: D.surfaceHi, color: D.textSub, fontSize: '1.05rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = D.border} onMouseLeave={e => e.currentTarget.style.background = D.surfaceHi}>Discard</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
 
         </div>
       </div>

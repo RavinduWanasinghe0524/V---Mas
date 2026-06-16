@@ -1,20 +1,22 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
-import { useD } from '../context/ThemeContext'
+import { useD, useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { fuelAPI, vehicleAPI, userAPI } from '../services/api'
 import { addControllerNotification } from '../services/notificationService'
 import { 
-  Fuel, CircleDollarSign, BarChart2, Car, Trash2, ClipboardList, Plus, Search, 
-  Edit2, AlertTriangle, Check, X, Loader2, RotateCcw, FileText, ChevronRight, 
-  Calendar, Clock, User, ArrowRight, MoreVertical
+  Fuel, CircleDollarSign, BarChart2, Car, Trash2, Plus, Search, 
+  Edit2, AlertTriangle, Check, X, Loader2, RotateCcw, FileText, 
+  Calendar, Clock, User, MoreVertical
 } from 'lucide-react'
 import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 /* ── Fuel Management Page ────────────────────────────────────────────────── */
 const FuelManagementPage = () => {
   const D = useD()
+  const { theme } = useTheme()
+  const isDark = theme === 'blue'
   const { user } = useAuth()
 
   // ── Styles ──────────────────────────────────────────────────────────────
@@ -67,7 +69,7 @@ const FuelManagementPage = () => {
   const [deletedLogs, setDeletedLogs] = useState([])
   const [filteredLogs, setFilteredLogs] = useState([])
   const [loading, setLoading] = useState(true)
-  const [loadingDeleted, setLoadingDeleted] = useState(false)
+
 
   const [filterVehicle, setFilterVehicle] = useState('all')
   const [filterDriver, setFilterDriver] = useState('all')
@@ -103,11 +105,21 @@ const FuelManagementPage = () => {
   const [mileageError, setMileageError] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  // ── Effects ─────────────────────────────────────────────────────────────
-  useEffect(() => { loadData() }, [])
-  useEffect(() => { applyFilters() }, [allLogs, filterVehicle, filterDriver, filterFuelType, filterStatus])
+  const showToast = useCallback((msg, type = 'success') => {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 3500)
+  }, [])
 
-  const loadData = async () => {
+  const calculateStats = useCallback((logs, vehicleCount) => {
+    const totalFuel = logs.reduce((s, l) => s + l.liters, 0)
+    const totalCost = logs.reduce((s, l) => s + l.totalCost, 0)
+    const eff = logs.filter(l => l.fuelEfficiency && l.fuelEfficiency > 0)
+    const avgEfficiency = eff.length > 0
+      ? eff.reduce((s, l) => s + l.fuelEfficiency, 0) / eff.length : 0
+    setStats({ totalLogs: logs.length, totalFuel, totalCost, avgEfficiency, vehicleCount })
+  }, [])
+
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       const [fuelRes, vehRes, driverRes, delRes] = await Promise.allSettled([
@@ -155,30 +167,9 @@ const FuelManagementPage = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [calculateStats, showToast])
 
-  const loadDeletedLogs = async () => {
-    try {
-      setLoadingDeleted(true)
-      const res = await fuelAPI.getDeletedLogs()
-      setDeletedLogs(res.data.data || [])
-    } catch (err) {
-      console.error('Error loading deleted logs:', err)
-    } finally {
-      setLoadingDeleted(false)
-    }
-  }
-
-  const calculateStats = (logs, vehicleCount) => {
-    const totalFuel = logs.reduce((s, l) => s + l.liters, 0)
-    const totalCost = logs.reduce((s, l) => s + l.totalCost, 0)
-    const eff = logs.filter(l => l.fuelEfficiency && l.fuelEfficiency > 0)
-    const avgEfficiency = eff.length > 0
-      ? eff.reduce((s, l) => s + l.fuelEfficiency, 0) / eff.length : 0
-    setStats({ totalLogs: logs.length, totalFuel, totalCost, avgEfficiency, vehicleCount })
-  }
-
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = allLogs.filter(l => !l.isDeleted)
     if (filterVehicle !== 'all') filtered = filtered.filter(l => l.vehicleRegNumber === filterVehicle)
     if (filterDriver !== 'all') filtered = filtered.filter(l => l.driverUsername === filterDriver)
@@ -195,12 +186,11 @@ const FuelManagementPage = () => {
       })
     }
     setFilteredLogs(filtered)
-  }
+  }, [allLogs, filterVehicle, filterDriver, filterFuelType, filterStatus])
 
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3500)
-  }
+  // ── Effects ─────────────────────────────────────────────────────────────
+  useEffect(() => { loadData() }, [loadData])
+  useEffect(() => { applyFilters() }, [applyFilters])
 
   // ── Handlers ───────────────────────────────────────────────────────────
   const handleInputChange = e => {
@@ -300,11 +290,27 @@ const FuelManagementPage = () => {
     const editLitersNew = parseFloat(editingLog.liters)
     const editReg = editingLog.vehicleRegNumber
     const editId = editingLog.id
-    // Find the previous log's mileage for this vehicle (excluding current log)
-    const prevLogForEdit = allLogs
-      .filter(l => !l.isDeleted && l.vehicleRegNumber === editReg && l.id !== editId)
-      .sort((a, b) => new Date(b.date) - new Date(a.date))[0]
+    
+    // Find previous and next logs chronologically for validation
+    const vehicleLogs = allLogs.filter(l => !l.isDeleted && l.vehicleRegNumber === editReg)
+    vehicleLogs.sort((a, b) => new Date(a.date) - new Date(b.date) || (a.id || 0) - (b.id || 0))
+    const curIndex = vehicleLogs.findIndex(l => l.id === editId)
+    
+    const prevLogForEdit = curIndex > 0 ? vehicleLogs[curIndex - 1] : null
+    const nextLogForEdit = curIndex !== -1 && curIndex < vehicleLogs.length - 1 ? vehicleLogs[curIndex + 1] : null
     const prevMilForEdit = prevLogForEdit ? prevLogForEdit.mileage : null
+
+    if (prevLogForEdit && editMilNew < prevLogForEdit.mileage) {
+      showToast(`Mileage cannot be less than previous log's mileage (${prevLogForEdit.mileage.toLocaleString()} km)`, 'error')
+      setSubmitting(false)
+      return
+    }
+    if (nextLogForEdit && editMilNew > nextLogForEdit.mileage) {
+      showToast(`Mileage cannot be greater than subsequent log's mileage (${nextLogForEdit.mileage.toLocaleString()} km)`, 'error')
+      setSubmitting(false)
+      return
+    }
+
     try {
       await fuelAPI.controllerUpdateLog(editId, {
         ...editingLog,
@@ -330,6 +336,7 @@ const FuelManagementPage = () => {
         }
       }
     } catch (err) {
+      console.error('Update fuel log error:', err)
       showToast('Failed to update', 'error')
     } finally { setSubmitting(false) }
   }
@@ -344,6 +351,7 @@ const FuelManagementPage = () => {
       showToast('Fuel log archived.')
       addControllerNotification(`Fuel log for ${deletingLog?.vehicleRegNumber} archived`, 'FUEL_DELETE', '/fuel-management')
     } catch (err) {
+      console.error('Archive fuel log error:', err)
       showToast('Failed to archive', 'error')
     }
   }
@@ -356,6 +364,7 @@ const FuelManagementPage = () => {
       showToast('Fuel log restored successfully!')
       addControllerNotification(`Fuel log restored`, 'FUEL_RESTORE', '/fuel-management')
     } catch (err) {
+      console.error('Restore fuel log error:', err)
       showToast('Failed to restore fuel log', 'error')
     } finally {
       setRestoringId(null)
@@ -406,18 +415,25 @@ const FuelManagementPage = () => {
 
           {/* Hero Banner */}
           <div style={{
-            background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
-            borderRadius: 20, padding: '32px 36px', marginBottom: 28, position: 'relative', overflow: 'hidden',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)', border: `1px solid ${D.border}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20
+            background: isDark
+              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
+              : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+            borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
+            boxShadow: isDark
+              ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
+              : '0 16px 48px rgba(0,0,0,0.4)',
+            border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : `1px solid ${D.border}`,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16
           }}>
             {/* decorative circles */}
-            {[['80%','-20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
-              <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:bg, pointerEvents:'none' }} />
+            {[['80%', '-20px', '220px', 'rgba(59,130,246,0.04)'], ['20%', '60%', '150px', 'rgba(99,102,241,0.04)'], ['55%', '80%', '100px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
+              <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
             ))}
+            {/* Neon radial glow for dark */}
+            {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-              <div style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(4px)', borderRadius: 14, width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }}>
-                <Fuel size={28} strokeWidth={1.5} />
+              <div style={{ background: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', backdropFilter: 'blur(8px)', border: isDark ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(255,255,255,0.15)', boxShadow: isDark ? '0 0 20px rgba(59,130,246,0.3), 0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.2)' }}>
+                <Fuel size={32} strokeWidth={1.5} />
               </div>
               <div>
                 <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Fleet Fuel Intelligence</h1>
@@ -833,7 +849,7 @@ const FuelManagementPage = () => {
 
             {/* Drawer Body */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '32px 36px', background: 'rgba(0,0,0,0.02)' }}>
-              {loadingDeleted ? (
+              {loading ? (
                 <div style={{ textAlign: 'center', padding: '60px 0' }}>
                   <Loader2 size={40} className="animate-spin" color={D.purple} style={{ margin: '0 auto 20px' }} />
                   <p style={{ color: D.textSub, fontWeight: 700, fontSize: '1rem' }}>Synchronizing archive...</p>

@@ -38,3 +38,11 @@ V-Mas Frontend/.vite/
 
 ### Uploaded Files ###
 V-Mas Backend/uploads/
+
+### Secrets & Environment Variables (NEVER commit these!) ###
+.env
+.env.local
+.env.production
+**/.env
+**/.env.local
+**/.env.production
