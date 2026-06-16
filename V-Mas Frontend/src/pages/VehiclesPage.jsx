@@ -8,6 +8,8 @@ import api, { vehicleAPI, userAPI, serviceAPI, fuelAPI } from '../services/api'
 import { getAlertLevel, computeMileageProgress, computeDateAlert, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
 import { getDriverMetrics } from '../utils/driverUtils'
 import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download, Phone, IdCard, Shield, Star } from 'lucide-react'
+import { generateStyledExcel } from '../utils/excelExport'
+import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'
@@ -60,6 +62,7 @@ const VehiclesPage = () => {
 
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('ALL')
+  const [fuelFilter, setFuelFilter] = useState('ALL')
   const { user, isAdmin, isDriver } = useAuth()
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -125,6 +128,15 @@ const VehiclesPage = () => {
   const [profileFuelLogs, setProfileFuelLogs] = useState([])
   const [loadingProfileFuel, setLoadingProfileFuel] = useState(false)
 
+  const handleExportExcel = async () => {
+    try {
+      await generateStyledExcel('vehicle-summary', { vehicles: filtered })
+    } catch (err) {
+      console.error("Failed to export Excel:", err)
+      alert("Failed to export Excel report.")
+    }
+  }
+
   const openProfile = async (vehicle) => {
     setSelectedProfileVehicle(vehicle)
     setProfileActiveTab('overview')
@@ -132,7 +144,9 @@ const VehiclesPage = () => {
     setLoadingProfileFuel(true)
     try {
       const res = await fuelAPI.getLogsByVehicle(vehicle.registrationNo)
-      setProfileFuelLogs(res.data.data || [])
+      const rawLogs = res.data.data || []
+      const logsWithEff = computeLogsEfficiency(rawLogs, vehicles)
+      setProfileFuelLogs(logsWithEff)
     } catch (err) {
       console.error('Error fetching fuel logs for profile:', err)
       setProfileFuelLogs([])
@@ -500,7 +514,8 @@ const VehiclesPage = () => {
       v.registrationNo?.toLowerCase().includes(search.toLowerCase()) ||
       v.manufacturer?.toLowerCase().includes(search.toLowerCase())
     const matchFilter = filter === 'ALL' || v.status === filter
-    return matchSearch && matchFilter
+    const matchFuel = fuelFilter === 'ALL' || v.fuelType?.toUpperCase() === fuelFilter
+    return matchSearch && matchFilter && matchFuel
   })
 
   const counts = {
@@ -577,17 +592,30 @@ const VehiclesPage = () => {
                 </div>
               </div>
               {!isDriver && (
-                <button onClick={openModal} style={{
-                  position: 'relative', padding: '14px 28px', borderRadius: 16, border: 'none',
-                  background: '#fff', color: '#1e3a8a', fontSize: '0.95rem', fontWeight: 800,
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
-                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.25)', whiteSpace: 'nowrap'
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}>
-                  <Plus size={20} strokeWidth={3} /> Add Vehicle
-                </button>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <button onClick={handleExportExcel} style={{
+                    position: 'relative', padding: '14px 24px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.25)',
+                    background: 'rgba(255, 255, 255, 0.08)', color: '#fff', fontSize: '0.95rem', fontWeight: 800,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, backdropFilter: 'blur(8px)',
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.15)', whiteSpace: 'nowrap'
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)' }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)' }}>
+                    <Download size={18} /> Export Excel
+                  </button>
+                  <button onClick={openModal} style={{
+                    position: 'relative', padding: '14px 28px', borderRadius: 16, border: 'none',
+                    background: '#fff', color: '#1e3a8a', fontSize: '0.95rem', fontWeight: 800,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.25)', whiteSpace: 'nowrap'
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}>
+                    <Plus size={20} strokeWidth={3} /> Add Vehicle
+                  </button>
+                </div>
               )}
             </div>
 
@@ -686,7 +714,7 @@ const VehiclesPage = () => {
                       onFocus={onFocus} onBlur={onBlur}
                     />
                   </div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                     {['ALL', 'ACTIVE', 'AVAILABLE', 'SERVICE', 'INACTIVE'].map(s => (
                       <button
                         key={s}
@@ -703,6 +731,28 @@ const VehiclesPage = () => {
                         {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
                       </button>
                     ))}
+
+                    <select
+                      value={fuelFilter}
+                      onChange={e => setFuelFilter(e.target.value)}
+                      style={{
+                        padding: '10px 18px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800,
+                        border: `1px solid ${D.border}`,
+                        background: 'rgba(255,255,255,0.05)',
+                        color: D.textSub,
+                        cursor: 'pointer', transition: 'all 0.15s ease',
+                        outline: 'none',
+                        fontFamily: 'inherit'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = D.blue; e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                    >
+                      <option value="ALL" style={{ background: D.surface, color: D.text }}>All Fuel Types</option>
+                      <option value="PETROL" style={{ background: D.surface, color: D.text }}>Petrol</option>
+                      <option value="DIESEL" style={{ background: D.surface, color: D.text }}>Diesel</option>
+                      <option value="HYBRID" style={{ background: D.surface, color: D.text }}>Hybrid</option>
+                      <option value="ELECTRIC" style={{ background: D.surface, color: D.text }}>Electric</option>
+                    </select>
                   </div>
                 </div>
                 <div style={{ fontSize: '0.9rem', color: D.textSub, fontWeight: 700, background: D.surface, padding: '8px 16px', borderRadius: 12, border: `1px solid ${D.border}`, whiteSpace: 'nowrap', flexShrink: 0 }}>
@@ -749,15 +799,29 @@ const VehiclesPage = () => {
 
                       const driver = drivers.find(d => String(d.id) === String(v.driverId))
 
+                      const cardAlertClass = (isInsExpired || isLicExpired)
+                        ? 'pulse-warning-red'
+                        : (isInsAlert || isLicAlert)
+                          ? 'pulse-warning-orange'
+                          : ''
+
+                      const defaultBorderColor = (isInsExpired || isLicExpired)
+                        ? 'rgba(239, 68, 68, 0.5)'
+                        : (isInsAlert || isLicAlert)
+                          ? 'rgba(245, 158, 11, 0.5)'
+                          : D.border
+
                       return (
-                        <div key={v.id} style={{
-                          background: D.surface, border: `1px solid ${D.border}`, borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column', gap: 20,
-                          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                          cursor: 'pointer'
-                        }}
+                        <div key={v.id}
+                          className={cardAlertClass}
+                          style={{
+                            background: D.surface, border: `1px solid ${defaultBorderColor}`, borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column', gap: 20,
+                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                            cursor: 'pointer'
+                          }}
                           onClick={() => openProfile(v)}
                           onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.2)' }}
-                          onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)' }}>
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = defaultBorderColor; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)' }}>
 
                           {/* Header row */}
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -1820,6 +1884,80 @@ const VehiclesPage = () => {
                         )
                       })()}
 
+                      {/* Fuel Efficiency Trend Chart */}
+                      {(() => {
+                        const logsWithEff = profileFuelLogs
+                          .filter(log => log.fuelEfficiency !== null && log.fuelEfficiency !== undefined)
+                          .sort((a, b) => new Date(a.date) - new Date(b.date));
+                        const trendLogs = logsWithEff.slice(-5);
+
+                        if (trendLogs.length === 0) return null;
+
+                        const maxEff = Math.max(...trendLogs.map(l => l.fuelEfficiency), 8);
+
+                        return (
+                          <div style={{
+                            background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16, padding: '18px 20px',
+                            display: 'flex', flexDirection: 'column', gap: 14, boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                          }}>
+                            <h5 style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              Recent Fuel Efficiency Trend (km/L)
+                            </h5>
+                            
+                            <div style={{
+                              height: 120, position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around',
+                              paddingTop: 10, paddingBottom: 5, borderBottom: `1px solid ${D.border}`, margin: '10px 0'
+                            }}>
+                              {/* Grid line & fleet threshold indicator */}
+                              <div style={{ position: 'absolute', left: 0, right: 0, top: `${100 - (5.0 / maxEff) * 100}%`, borderTop: `1px dashed ${D.red}`, opacity: 0.6, zIndex: 1 }} title="Fleet Threshold (5.0 km/L)" />
+                              
+                              {trendLogs.map((log, idx) => {
+                                const heightPct = (log.fuelEfficiency / maxEff) * 100;
+                                const barColor = log.fuelEfficiency >= 10 ? D.green : log.fuelEfficiency >= 7 ? D.blue : log.fuelEfficiency >= 5 ? D.orange : D.red;
+                                
+                                return (
+                                  <div key={log.id || idx} style={{
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', width: `${100 / trendLogs.length - 15}%`,
+                                    height: '100%', justifyContent: 'flex-end', position: 'relative', zIndex: 2
+                                  }}>
+                                    {/* Bar value */}
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: barColor, marginBottom: 4 }}>
+                                      {log.fuelEfficiency.toFixed(1)}
+                                    </span>
+                                    
+                                    {/* Visual bar */}
+                                    <div style={{
+                                      width: '100%', height: `${heightPct}%`, background: barColor, borderRadius: '4px 4px 0 0',
+                                      minHeight: 4, transition: 'height 0.5s ease', boxShadow: `0 2px 8px ${barColor}30`
+                                    }} />
+                                    
+                                    {/* X-axis label */}
+                                    <span style={{ fontSize: '0.62rem', color: D.textSub, marginTop: 6, whiteSpace: 'nowrap' }}>
+                                      {new Date(log.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: D.textSub }}>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: D.green }} /> Excellent (≥10)
+                              </span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: D.blue }} /> Good (7-10)
+                              </span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: D.orange }} /> Avg (5-7)
+                              </span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: D.red }} /> Poor (&lt;5)
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                       {/* Stats Widgets */}
                       <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         {(() => {
@@ -2041,6 +2179,24 @@ const VehiclesPage = () => {
         )
       })()}
 
+      <style>{`
+        @keyframes pulse-red {
+          0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); border-color: rgba(239, 68, 68, 0.5); }
+          50% { box-shadow: 0 0 12px 4px rgba(239, 68, 68, 0.25); border-color: rgba(239, 68, 68, 0.8); }
+          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); border-color: rgba(239, 68, 68, 0.5); }
+        }
+        @keyframes pulse-orange {
+          0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); border-color: rgba(245, 158, 11, 0.5); }
+          50% { box-shadow: 0 0 12px 4px rgba(245, 158, 11, 0.25); border-color: rgba(245, 158, 11, 0.8); }
+          100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); border-color: rgba(245, 158, 11, 0.5); }
+        }
+        .pulse-warning-red {
+          animation: pulse-red 2s infinite ease-in-out !important;
+        }
+        .pulse-warning-orange {
+          animation: pulse-orange 2s infinite ease-in-out !important;
+        }
+      `}</style>
     </>
   )
 }
