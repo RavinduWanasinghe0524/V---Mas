@@ -6,7 +6,8 @@ import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import api, { vehicleAPI, userAPI, serviceAPI, fuelAPI } from '../services/api'
 import { getAlertLevel, computeMileageProgress, computeDateAlert, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
-import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download } from 'lucide-react'
+import { getDriverMetrics } from '../utils/driverUtils'
+import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download, Phone, IdCard, Shield, Star } from 'lucide-react'
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'
@@ -78,6 +79,44 @@ const VehiclesPage = () => {
   const [serviceRecords, setServiceRecords] = useState([])
   const [drivers, setDrivers] = useState([])
   const [fuelStats, setFuelStats] = useState([])
+
+  const [driverDetailsUser, setDriverDetailsUser] = useState(null)
+  const [isDriverDetailsOpen, setIsDriverDetailsOpen] = useState(false)
+  const [activeAssigningVehicleId, setActiveAssigningVehicleId] = useState(null)
+
+  const handleInlineAssignDriver = async (vehicleId, driverId) => {
+    try {
+      await vehicleAPI.assignDriver(vehicleId, driverId)
+      const response = await vehicleAPI.getAllVehicles()
+      const updatedList = response.data.data || []
+      setVehicles(updatedList)
+      
+      const updatedVeh = updatedList.find(v => v.id === vehicleId)
+      if (selectedProfileVehicle && selectedProfileVehicle.id === vehicleId && updatedVeh) {
+        setSelectedProfileVehicle(updatedVeh)
+      }
+    } catch (err) {
+      console.error("Failed to assign driver inline:", err)
+      alert(err.response?.data?.message || "Failed to assign driver.")
+    }
+  }
+
+  const handleInlineUnassignDriver = async (vehicleId) => {
+    try {
+      await vehicleAPI.unassignDriver(vehicleId)
+      const response = await vehicleAPI.getAllVehicles()
+      const updatedList = response.data.data || []
+      setVehicles(updatedList)
+      
+      const updatedVeh = updatedList.find(v => v.id === vehicleId)
+      if (selectedProfileVehicle && selectedProfileVehicle.id === vehicleId && updatedVeh) {
+        setSelectedProfileVehicle(updatedVeh)
+      }
+    } catch (err) {
+      console.error("Failed to unassign driver inline:", err)
+      alert(err.response?.data?.message || "Failed to unassign driver.")
+    }
+  }
 
   // --- VEHICLE PROFILE STATE ---
   const [selectedProfileVehicle, setSelectedProfileVehicle] = useState(null)
@@ -791,7 +830,7 @@ const VehiclesPage = () => {
                               background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
                               border: `1px solid ${D.border}`, borderRadius: 16, padding: '14px 6px', textAlign: 'center'
                             }}>
-                              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: ac ? ac.color : D.text }}>
+                            <div style={{ fontSize: '1.15rem', fontWeight: 900, color: ac ? ac.color : D.text }}>
                                 {ac ? ac.label : 'OK'}
                               </div>
                               <div style={{ fontSize: '0.65rem', fontWeight: 700, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Service</div>
@@ -800,9 +839,89 @@ const VehiclesPage = () => {
 
                           {/* Details section */}
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }} onClick={e => e.stopPropagation()}>
                               <User size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                              <span>Driver: {driver ? driver.userName : 'Unassigned'}</span>
+                              <span>Driver: </span>
+                              {driver ? (
+                                <span
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDriverDetailsUser(driver);
+                                    setIsDriverDetailsOpen(true);
+                                  }}
+                                  style={{
+                                    color: D.blue,
+                                    cursor: 'pointer',
+                                    fontWeight: 800,
+                                    textDecoration: 'underline',
+                                    transition: 'color 0.2s',
+                                  }}
+                                  onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'}
+                                  onMouseLeave={e => e.currentTarget.style.color = D.blue}
+                                >
+                                  {driver.userName}
+                                </span>
+                              ) : !isDriver ? (
+                                activeAssigningVehicleId === v.id ? (
+                                  <select
+                                    value=""
+                                    onChange={async (e) => {
+                                      const drvId = e.target.value;
+                                      if (drvId) {
+                                        await handleInlineAssignDriver(v.id, drvId);
+                                      }
+                                      setActiveAssigningVehicleId(null);
+                                    }}
+                                    onBlur={() => setActiveAssigningVehicleId(null)}
+                                    autoFocus
+                                    style={{
+                                      background: D.inputBg,
+                                      color: D.text,
+                                      border: `1px solid ${D.purple}`,
+                                      borderRadius: 8,
+                                      fontSize: '0.75rem',
+                                      padding: '2px 6px',
+                                      outline: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    <option value="">Select Driver...</option>
+                                    {drivers
+                                      .filter(d => !vehicles.some(veh => String(veh.driverId) === String(d.id)))
+                                      .map(d => (
+                                        <option key={d.id} value={d.id}>{d.userName}</option>
+                                      ))
+                                    }
+                                  </select>
+                                ) : (
+                                  <span
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveAssigningVehicleId(v.id);
+                                    }}
+                                    style={{
+                                      color: D.blue,
+                                      cursor: 'pointer',
+                                      fontWeight: 800,
+                                      background: D.blueDim,
+                                      padding: '2px 8px',
+                                      borderRadius: 99,
+                                      fontSize: '0.72rem',
+                                      border: `1px solid ${D.blue}30`,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 4,
+                                      transition: 'all 0.2s',
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = D.blue; e.currentTarget.style.color = '#fff'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = D.blueDim; e.currentTarget.style.color = D.blue; }}
+                                  >
+                                    + Assign Driver
+                                  </span>
+                                )
+                              ) : (
+                                <span style={{ color: D.textFaint, fontStyle: 'italic' }}>Unassigned</span>
+                              )}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
                               <FileText size={14} style={{ color: D.textSub, flexShrink: 0 }} />
@@ -1174,12 +1293,38 @@ const VehiclesPage = () => {
               {profileActiveTab === 'overview' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   {/* Specs Grid */}
-                  <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 12 }}>
                     {[
                       { label: 'Manufacturer', value: selectedProfileVehicle.manufacturer || 'N/A', icon: <Car size={14} color={D.blue} /> },
                       { label: 'Model', value: selectedProfileVehicle.model || 'N/A', icon: <Car size={14} color={D.blue} /> },
                       { label: 'Year', value: selectedProfileVehicle.year || 'N/A', icon: <Calendar size={14} color={D.purple} /> },
-                      { label: 'Current Mileage', value: selectedProfileVehicle.currentMileageKm ? `${selectedProfileVehicle.currentMileageKm.toLocaleString()} km` : 'N/A', icon: <Gauge size={14} color={D.green} /> }
+                      { label: 'Current Mileage', value: selectedProfileVehicle.currentMileageKm ? `${selectedProfileVehicle.currentMileageKm.toLocaleString()} km` : 'N/A', icon: <Gauge size={14} color={D.green} /> },
+                      {
+                        label: 'Driver',
+                        value: (() => {
+                          const profileDriver = drivers.find(d => String(d.id) === String(selectedProfileVehicle.driverId))
+                          return profileDriver ? (
+                            <span
+                              onClick={() => {
+                                setDriverDetailsUser(profileDriver);
+                                setIsDriverDetailsOpen(true);
+                              }}
+                              style={{
+                                color: D.blue,
+                                cursor: 'pointer',
+                                fontWeight: 800,
+                                textDecoration: 'underline',
+                                transition: 'color 0.15s'
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'}
+                              onMouseLeave={e => e.currentTarget.style.color = D.blue}
+                            >
+                              {profileDriver.userName}
+                            </span>
+                          ) : 'Unassigned'
+                        })(),
+                        icon: <User size={14} color={D.blue} />
+                      }
                     ].map((item, idx) => (
                       <div key={idx} style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                         <span style={{ fontSize: '0.65rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1762,6 +1907,139 @@ const VehiclesPage = () => {
           </div>
         </div>
       )}
+
+      {/* ── Driver Details Modal ── */}
+      {isDriverDetailsOpen && driverDetailsUser && (() => {
+        const metrics = getDriverMetrics(driverDetailsUser, vehicles)
+        const initials = driverDetailsUser.userName
+          ? driverDetailsUser.userName.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
+          : 'D'
+
+        let dutyStyles = {
+          bg: 'rgba(255,255,255,0.05)',
+          color: D.textSub,
+          border: `1px solid ${D.border}`
+        }
+        if (metrics.status === 'On Duty' || metrics.status === 'Active') {
+          dutyStyles = {
+            bg: 'rgba(52, 211, 153, 0.12)',
+            color: '#34d399',
+            border: '1px solid rgba(52, 211, 153, 0.25)'
+          }
+        } else if (metrics.status === 'On Leave' || metrics.status === 'Pending') {
+          dutyStyles = {
+            bg: 'rgba(251, 191, 36, 0.12)',
+            color: '#fbbf24',
+            border: '1px solid rgba(251, 191, 36, 0.25)'
+          }
+        } else if (metrics.status === 'Suspended' || metrics.status === 'Inactive') {
+          dutyStyles = {
+            bg: 'rgba(248, 113, 113, 0.12)',
+            color: '#f87171',
+            border: '1px solid rgba(248, 113, 113, 0.25)'
+          }
+        }
+
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, animation: 'fadeIn 0.25s ease' }} onClick={() => setIsDriverDetailsOpen(false)}>
+            <div style={{ background: D.surface, borderRadius: 32, width: '90%', maxWidth: 480, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+              {/* Header Banner */}
+              <div style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #172554 100%)', padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#fff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  {driverDetailsUser.profilePicture ? (
+                    <img src={driverDetailsUser.profilePicture} alt={driverDetailsUser.userName} style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.2)' }} />
+                  ) : (
+                    <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.2rem', fontWeight: 800, border: '2px solid rgba(255,255,255,0.2)' }}>
+                      {initials}
+                    </div>
+                  )}
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{driverDetailsUser.userName}</h3>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600 }}>Driver Profile & Stats</p>
+                  </div>
+                </div>
+                <button onClick={() => setIsDriverDetailsOpen(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 8, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }}><X size={18} /></button>
+              </div>
+
+              {/* Content body */}
+              <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* Duty status row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.82rem', color: D.textSub, fontWeight: 700 }}>Duty Status</span>
+                  <span style={{ padding: '4px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 800, background: dutyStyles.bg, color: dutyStyles.color, border: dutyStyles.border, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    {metrics.status}
+                  </span>
+                </div>
+
+                {/* Stats grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                  {[
+                    { value: metrics.trips, label: 'Trips' },
+                    { value: `${metrics.rating}★`, label: 'Rating', color: '#fbbf24' },
+                    { value: metrics.safety, label: 'Safety', color: '#34d399' }
+                  ].map((st, idx) => (
+                    <div key={idx} style={{ background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)', border: `1px solid ${D.border}`, borderRadius: 16, padding: '14px 6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 900, color: st.color || D.text }}>{st.value}</div>
+                      <div style={{ fontSize: '0.65rem', fontWeight: 700, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{st.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Detailed Info */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: D.surfaceHi, padding: 18, borderRadius: 20, border: `1px solid ${D.border}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
+                    <span style={{ color: D.textSub, width: 80, display: 'flex', alignItems: 'center', gap: 4 }}><Phone size={12} /> Phone:</span>
+                    <span>{metrics.phone}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
+                    <span style={{ color: D.textSub, width: 80, display: 'flex', alignItems: 'center', gap: 4 }}><IdCard size={12} /> License:</span>
+                    <span>{metrics.license}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
+                    <span style={{ color: D.textSub, width: 80, display: 'flex', alignItems: 'center', gap: 4 }}><Car size={12} /> Vehicle:</span>
+                    <span style={{ fontWeight: 800, color: metrics.assignedVehicleId ? D.blue : D.text }}>{metrics.vehicle}</span>
+                  </div>
+                </div>
+
+                {/* Quick Actions (only for Admin/Controller) */}
+                {!isDriver && (
+                  <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                    {metrics.assignedVehicleId ? (
+                      <button
+                        onClick={async () => {
+                          if (window.confirm(`Unassign driver ${driverDetailsUser.userName} from vehicle ${metrics.vehicle}?`)) {
+                            await handleInlineUnassignDriver(metrics.assignedVehicleId)
+                            setIsDriverDetailsOpen(false)
+                          }
+                        }}
+                        style={{ flex: 1, padding: '12px', borderRadius: 12, border: `1px solid ${D.red}30`, background: D.redDim, color: D.red, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', fontFamily: 'inherit' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red; }}
+                      >
+                        Unassign Vehicle
+                      </button>
+                    ) : null}
+                    <button
+                      onClick={() => {
+                        setIsDriverDetailsOpen(false)
+                        if (metrics.assignedVehicleId) {
+                          const veh = vehicles.find(v => v.id === metrics.assignedVehicleId)
+                          if (veh) openEditModal(veh)
+                        }
+                      }}
+                      style={{ flex: 1, padding: '12px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', fontFamily: 'inherit' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                    >
+                      {metrics.assignedVehicleId ? 'Change Assignment' : 'Close'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
     </>
   )
