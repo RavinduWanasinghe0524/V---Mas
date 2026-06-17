@@ -1,5 +1,11 @@
 # V-MAS: Smart Vehicle Service Management System
 
+<p align="left">
+  <a href="https://v-mas.vercel.app" target="_blank">
+    <img src="https://img.shields.io/badge/Launch%20V--MAS-Live%20Site-3b82f6?style=for-the-badge&logo=vercel&logoColor=white" alt="Launch V-MAS Site" />
+  </a>
+</p>
+
 V-MAS (Vehicle Management and Service System) is a modern, responsive, and feature-rich fleet management platform designed to streamline vehicle tracking, maintenance services, fuel analytics, and user administration.
 
 ---
