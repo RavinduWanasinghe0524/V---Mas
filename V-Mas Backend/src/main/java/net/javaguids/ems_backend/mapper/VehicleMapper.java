@@ -12,6 +12,7 @@ public class VehicleMapper {
 //                vehicle.getVehicleName(),
                 vehicle.getRegistrationNo(),
                 vehicle.getChassisNo(),
+                vehicle.getEngineNo(),
                 vehicle.getManufacturer(),
                 vehicle.getModel(),
                 vehicle.getYear(),
@@ -28,7 +29,10 @@ public class VehicleMapper {
                 vehicle.getDriver() != null ? vehicle.getDriver().getUserName() : null,
                 vehicle.getInsuranceDocumentPath(),
                 vehicle.getLicenseDocumentPath(),
-                vehicle.getRegistrationBookPath()
+                vehicle.getRegistrationBookPath(),
+                vehicle.isDeleted(),
+                vehicle.getDeletedBy(),
+                vehicle.getDeletedAt()
         );
     }
 
@@ -44,6 +48,7 @@ public class VehicleMapper {
         vehicle.setYear(dto.getYear());
         vehicle.setCurrentMileageKm(dto.getCurrentMileageKm());
         vehicle.setChassisNo(dto.getChassisNumber());
+        vehicle.setEngineNo(dto.getEngineNumber());
         vehicle.setStatus(dto.getStatus());
         vehicle.setFuelType(dto.getFuelType());
         vehicle.setInsuranceExpiryDate(dto.getInsuranceExpiryDate());
@@ -51,6 +56,9 @@ public class VehicleMapper {
         vehicle.setInsuranceDocumentPath(dto.getInsuranceDocumentPath());
         vehicle.setLicenseDocumentPath(dto.getLicenseDocumentPath());
         vehicle.setRegistrationBookPath(dto.getRegistrationBookPath());
+        vehicle.setDeleted(dto.isDeleted());
+        vehicle.setDeletedBy(dto.getDeletedBy());
+        vehicle.setDeletedAt(dto.getDeletedAt());
         return vehicle;
     }
 }
