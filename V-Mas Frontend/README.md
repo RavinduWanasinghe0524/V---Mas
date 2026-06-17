@@ -1,43 +1,45 @@
-# V-MAS: Smart Vehicle Service Management System
+# 🚗 V-MAS: Smart Vehicle Service Management System
 
-<p align="left">
-  <a href="https://v-mas.vercel.app" target="_blank">
-    <img src="https://img.shields.io/badge/Launch%20V--MAS-Live%20Site-3b82f6?style=for-the-badge&logo=vercel&logoColor=white" alt="Launch V-MAS Site" />
-  </a>
-</p>
+> A premium, modern, and feature-rich fleet management platform designed to streamline vehicle tracking, maintenance services, fuel analytics, and user administration.
 
-V-MAS (Vehicle Management and Service System) is a modern, responsive, and feature-rich fleet management platform designed to streamline vehicle tracking, maintenance services, fuel analytics, and user administration.
+***
 
----
+## 🌐 Live Application
 
-## 🚀 Key Features
+### 🔗 **[👉 CLICK HERE TO LAUNCH V-MAS LIVE SITE 👈](https://v-mas.vercel.app)**
+*(Use credentials: **admin** / **admin123** to test)*
 
-*   **📊 Interactive Dashboard:** Overview of fleet metrics, service statuses, fuel logs, and system health widgets.
-*   **🚗 Fleet Management:** Register, update, and manage vehicle details including model, status, license numbers, and assignments.
-*   **🛠️ Service & Maintenance:** Track servicing records, schedule maintenance events, and monitor status updates (Pending, In Progress, Completed).
-*   **⛽ Fuel Management & Analysis:** Log fuel consumption, analyze fuel efficiency (km/L metrics), and track monthly expenditures.
-*   **📍 Location Tracking:** Real-time visual tracking of vehicles across registered service routes.
-*   **👥 User Management:** Admin dashboard to view, register, edit, and control system access permissions for users and drivers.
-*   **📈 Reports:** Generate historical data summaries, export logs, and compile fleet-wide analytics.
+***
 
----
+## 🌟 Key Modules & Features
 
-## 🛠️ Technology Stack
+| Module | Icon | Description | Key Capabilities |
+| :--- | :---: | :--- | :--- |
+| **Interactive Dashboard** | 📊 | Real-time system monitoring | Overview of fleet metrics, service statuses, fuel logs, and system health widgets. |
+| **Fleet Management** | 🚗 | Comprehensive vehicle logging | Register, update, and manage vehicle details including model, status, and assignments. |
+| **Service & Maintenance** | 🛠️ | Service lifecycle tracking | Track servicing records, schedule maintenance, and monitor status updates (Pending/In Progress/Completed). |
+| **Fuel Management** | ⛽ | Consumption and analytics | Log fuel usage, analyze fuel efficiency (km/L metrics), and track monthly expenditures. |
+| **Location Tracking** | 📍 | Route visualization | Real-time visual tracking of vehicles across registered service routes. |
+| **User Administration** | 👥 | Role and permission management | Admin controls to view, register, edit, and control system access for users and drivers. |
+| **Reports & Logs** | 📈 | Data export and summary | Generate historical data summaries, export logs, and compile fleet-wide analytics. |
 
-### Frontend
-*   **Framework:** React (Vite-powered, eagerly & lazily code-split components)
-*   **Language:** JavaScript (JSX)
-*   **Routing:** React Router v6
-*   **Styling:** Custom Modern Vanilla CSS (tailored HSL colors, sleek dark mode, glassmorphism, responsive grid layouts)
-*   **Hosting:** [Vercel](https://v-mas.vercel.app)
+***
 
-### Backend
-*   **Framework:** Spring Boot (Java)
-*   **Database:** AWS RDS (MySQL)
-*   **Deployment:** AWS Elastic Beanstalk (Corretto 17)
+## ⚙️ Technology Stack & Architecture
 
-### Infrastructure & Proxy Chain
-To ensure secure HTTPS communication and avoid CORS issues, requests follow this proxy architecture:
+### 💻 Frontend
+* **Core:** React (Vite-powered build tool)
+* **Performance:** Eagerly & lazily code-split components for fast initial load times
+* **Styling:** Custom Modern Vanilla CSS (tailored HSL colors, sleek dark mode, glassmorphism, responsive grid layouts)
+* **Hosting:** [Vercel](https://v-mas.vercel.app)
+
+### ⚙️ Backend & Database
+* **Backend Framework:** Spring Boot (Java) running on Corretto 17
+* **Database:** AWS RDS (MySQL)
+* **Deployment:** AWS Elastic Beanstalk (Single-Instance Environment)
+
+### 🔒 Secure Proxy Chain & Architecture
+To ensure secure HTTPS communication, prevent CORS issues, and route traffic efficiently, requests follow this flow:
 
 ```
 [ Browser / Client ]  ---(HTTPS)--->  [ Vercel (v-mas.vercel.app) ]
@@ -51,39 +53,40 @@ To ensure secure HTTPS communication and avoid CORS issues, requests follow this
 [ AWS RDS MySQL Database ]
 ```
 
----
+***
 
-## ⚙️ Project Setup & Configuration
+## 🛠️ Local Development & Setup
 
 ### Prerequisites
-*   **Node.js:** v18 or later
-*   **npm:** v9 or later
+* **Node.js** v18 or later
+* **npm** v9 or later
 
-### Local Development
+### Getting Started
 
-1.  **Clone the Repository:**
-    ```bash
-    git clone https://github.com/RavinduWanasinghe0524/V---Mas.git
-    cd V---Mas/V-Mas Frontend
-    ```
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/RavinduWanasinghe0524/V---Mas.git
+   cd V---Mas/V-Mas Frontend
+   ```
 
-2.  **Install Dependencies:**
-    ```bash
-    npm install
-    ```
+2. **Install all dependencies:**
+   ```bash
+   npm install
+   ```
 
-3.  **Run the Local Development Server:**
-    ```bash
-    npm run dev
-    ```
-    *The app will be accessible at `http://localhost:5173`.*
+3. **Launch the development server:**
+   ```bash
+   npm run dev
+   ```
+   *The local app will run at `http://localhost:5173`.*
 
-4.  **Local API Configuration:**
-    The React application uses path-based routing (`/api/*`). In local development, the development server proxies api requests to the backend. In production, Vercel routes `/api/*` requests to the CloudFront domain via [vercel.json](vercel.json).
+4. **API Configuration:**
+   * In local development, the Vite dev server proxies API requests to the backend.
+   * In production, Vercel routes `/api/*` requests to the CloudFront distribution endpoint.
 
----
+***
 
-## 🌐 Production URL Configuration
-*   **Frontend Site:** [https://v-mas.vercel.app](https://v-mas.vercel.app)
-*   **Production API Origin (CloudFront):** `https://d3dqxbt72t73lz.cloudfront.net`
-*   **Elastic Beanstalk Backend Instance:** `http://vmas-backend-env.eba-arpg3c5y.ap-southeast-1.elasticbeanstalk.com`
+## 🌐 Production URL Summary
+* **Live Web App:** [https://v-mas.vercel.app](https://v-mas.vercel.app)
+* **Production API Gateway (CloudFront):** `https://d3dqxbt72t73lz.cloudfront.net`
+* **Elastic Beanstalk Backend Instance:** `http://vmas-backend-env.eba-arpg3c5y.ap-southeast-1.elasticbeanstalk.com`
