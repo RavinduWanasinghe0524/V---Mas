@@ -1,73 +1,83 @@
-# React + TypeScript + Vite
+# V-MAS: Smart Vehicle Service Management System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+V-MAS (Vehicle Management and Service System) is a modern, responsive, and feature-rich fleet management platform designed to streamline vehicle tracking, maintenance services, fuel analytics, and user administration.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🚀 Key Features
 
-## React Compiler
+*   **📊 Interactive Dashboard:** Overview of fleet metrics, service statuses, fuel logs, and system health widgets.
+*   **🚗 Fleet Management:** Register, update, and manage vehicle details including model, status, license numbers, and assignments.
+*   **🛠️ Service & Maintenance:** Track servicing records, schedule maintenance events, and monitor status updates (Pending, In Progress, Completed).
+*   **⛽ Fuel Management & Analysis:** Log fuel consumption, analyze fuel efficiency (km/L metrics), and track monthly expenditures.
+*   **📍 Location Tracking:** Real-time visual tracking of vehicles across registered service routes.
+*   **👥 User Management:** Admin dashboard to view, register, edit, and control system access permissions for users and drivers.
+*   **📈 Reports:** Generate historical data summaries, export logs, and compile fleet-wide analytics.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🛠️ Technology Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Frontend
+*   **Framework:** React (Vite-powered, eagerly & lazily code-split components)
+*   **Language:** JavaScript (JSX)
+*   **Routing:** React Router v6
+*   **Styling:** Custom Modern Vanilla CSS (tailored HSL colors, sleek dark mode, glassmorphism, responsive grid layouts)
+*   **Hosting:** [Vercel](https://v-mas.vercel.app)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Backend
+*   **Framework:** Spring Boot (Java)
+*   **Database:** AWS RDS (MySQL)
+*   **Deployment:** AWS Elastic Beanstalk (Corretto 17)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Infrastructure & Proxy Chain
+To ensure secure HTTPS communication and avoid CORS issues, requests follow this proxy architecture:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+[ Browser / Client ]  ---(HTTPS)--->  [ Vercel (v-mas.vercel.app) ]
+                                                   |
+                                            (Server-side Proxy)
+                                                   v
+[ Spring Boot Backend ] <---(HTTP)--- [ AWS CloudFront (d3dqxbt72t73lz) ]
+          |
+     (JDBC Connection)
+          v
+[ AWS RDS MySQL Database ]
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## ⚙️ Project Setup & Configuration
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### Prerequisites
+*   **Node.js:** v18 or later
+*   **npm:** v9 or later
+
+### Local Development
+
+1.  **Clone the Repository:**
+    ```bash
+    git clone https://github.com/RavinduWanasinghe0524/V---Mas.git
+    cd V---Mas/V-Mas Frontend
+    ```
+
+2.  **Install Dependencies:**
+    ```bash
+    npm install
+    ```
+
+3.  **Run the Local Development Server:**
+    ```bash
+    npm run dev
+    ```
+    *The app will be accessible at `http://localhost:5173`.*
+
+4.  **Local API Configuration:**
+    The React application uses path-based routing (`/api/*`). In local development, the development server proxies api requests to the backend. In production, Vercel routes `/api/*` requests to the CloudFront domain via [vercel.json](vercel.json).
+
+---
+
+## 🌐 Production URL Configuration
+*   **Frontend Site:** [https://v-mas.vercel.app](https://v-mas.vercel.app)
+*   **Production API Origin (CloudFront):** `https://d3dqxbt72t73lz.cloudfront.net`
+*   **Elastic Beanstalk Backend Instance:** `http://vmas-backend-env.eba-arpg3c5y.ap-southeast-1.elasticbeanstalk.com`
