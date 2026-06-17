@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "http://vmas-backend-env.eba-arg3c5y.ap-southeast-1.elasticbeanstalk.com/api/:path*"
+      "destination": "https://d3dqxbt72c73lz.cloudfront.net/api/:path*"
     },
     {
       "source": "/(.*)",
