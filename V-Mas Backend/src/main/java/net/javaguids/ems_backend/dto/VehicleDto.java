@@ -16,6 +16,7 @@ public class VehicleDto {
 //    private String vehicleName;
     private String registrationNo;
     private String chassisNumber;
+    private String engineNumber;
     private String manufacturer;
     private String model;
     private Integer year;
@@ -35,4 +36,8 @@ public class VehicleDto {
     private String insuranceDocumentPath;
     private String licenseDocumentPath;
     private String registrationBookPath;
+
+    private boolean deleted;
+    private String deletedBy;
+    private java.time.LocalDateTime deletedAt;
 }

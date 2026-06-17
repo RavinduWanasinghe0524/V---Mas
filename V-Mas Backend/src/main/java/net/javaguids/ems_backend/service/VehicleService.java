@@ -22,4 +22,8 @@ public interface VehicleService {
     VehicleDto uploadDocument(Long id, String docType, org.springframework.web.multipart.MultipartFile file);
 
     org.springframework.core.io.Resource getDocument(Long id, String docType);
+
+    List<VehicleDto> getDeletedVehicles();
+
+    VehicleDto restoreVehicle(Long id);
 }

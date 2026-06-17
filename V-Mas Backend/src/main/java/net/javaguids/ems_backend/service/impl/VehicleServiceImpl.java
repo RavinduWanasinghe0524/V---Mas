@@ -67,6 +67,7 @@ public class VehicleServiceImpl implements VehicleService {
     @Override
     public List<VehicleDto> getAllVehicles() {
         return vehicleRepository.findAll().stream()
+                .filter(v -> !v.isDeleted())
                 .map(VehicleMapper::mapToVehicleDto)
                 .collect(Collectors.toList());
     }
@@ -91,6 +92,8 @@ public class VehicleServiceImpl implements VehicleService {
         vehicle.setYear(vehicleDto.getYear());
         if (vehicleDto.getFuelType() != null) vehicle.setFuelType(vehicleDto.getFuelType());
         vehicle.setCurrentMileageKm(vehicleDto.getCurrentMileageKm());
+        vehicle.setChassisNo(vehicleDto.getChassisNumber());
+        vehicle.setEngineNo(vehicleDto.getEngineNumber());
         
         // Expiry dates
         vehicle.setInsuranceExpiryDate(vehicleDto.getInsuranceExpiryDate());
@@ -142,7 +145,11 @@ public class VehicleServiceImpl implements VehicleService {
     @Transactional
     public void deleteVehicle(Long id) {
         Vehicle vehicle = vehicleRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
-        vehicleRepository.delete(vehicle);
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        vehicle.setDeleted(true);
+        vehicle.setDeletedBy(auth != null && auth.isAuthenticated() ? auth.getName() : "unknown");
+        vehicle.setDeletedAt(LocalDateTime.now());
+        vehicleRepository.save(vehicle);
     }
 
     @Override
@@ -272,5 +279,28 @@ public class VehicleServiceImpl implements VehicleService {
         } catch (java.net.MalformedURLException e) {
             throw new RuntimeException("Error reading document file path: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    public List<VehicleDto> getDeletedVehicles() {
+        return vehicleRepository.findAll().stream()
+                .filter(Vehicle::isDeleted)
+                .map(VehicleMapper::mapToVehicleDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public VehicleDto restoreVehicle(Long id) {
+        Vehicle vehicle = vehicleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
+        if (!vehicle.isDeleted()) {
+            throw new RuntimeException("Vehicle is not deleted.");
+        }
+        vehicle.setDeleted(false);
+        vehicle.setDeletedBy(null);
+        vehicle.setDeletedAt(null);
+        Vehicle restored = vehicleRepository.save(vehicle);
+        return VehicleMapper.mapToVehicleDto(restored);
     }
 }

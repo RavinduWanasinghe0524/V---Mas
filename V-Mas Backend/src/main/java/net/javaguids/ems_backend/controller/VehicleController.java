@@ -45,6 +45,14 @@ public class VehicleController {
         return ApiResponseUtil.success("Vehicles fetched successfully", vehicles, HttpStatus.OK);
     }
 
+    // GET /api/vehicles/deleted — Get all soft-deleted vehicles (Admin & Controller only)
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @GetMapping("/deleted")
+    public ResponseEntity<ApiResponse<List<VehicleDto>>> getDeletedVehicles() {
+        List<VehicleDto> vehicles = vehicleService.getDeletedVehicles();
+        return ApiResponseUtil.success("Deleted vehicles fetched successfully", vehicles, HttpStatus.OK);
+    }
+
     // GET /api/vehicles/{id} — Get vehicle by ID
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     @GetMapping("/{id}")
@@ -70,6 +78,14 @@ public class VehicleController {
     public ResponseEntity<ApiResponse<Object>> deleteVehicle(@PathVariable Long id) {
         vehicleService.deleteVehicle(id);
         return ApiResponseUtil.success("Vehicle deleted successfully", null, HttpStatus.OK);
+    }
+
+    // PATCH /api/vehicles/{id}/restore — Restore a soft-deleted vehicle (Admin & Controller only)
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @PatchMapping("/{id}/restore")
+    public ResponseEntity<ApiResponse<VehicleDto>> restoreVehicle(@PathVariable Long id) {
+        VehicleDto restored = vehicleService.restoreVehicle(id);
+        return ApiResponseUtil.success("Vehicle restored successfully", restored, HttpStatus.OK);
     }
 
     // PUT /api/vehicles/{id}/assign/{driverId} — Assign a driver to a vehicle

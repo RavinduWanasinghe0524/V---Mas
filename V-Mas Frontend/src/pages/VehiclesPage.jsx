@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
@@ -7,7 +7,7 @@ import { useD, useTheme } from '../context/ThemeContext'
 import api, { vehicleAPI, userAPI, serviceAPI, fuelAPI } from '../services/api'
 import { getAlertLevel, computeMileageProgress, computeDateAlert, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
 import { getDriverMetrics } from '../utils/driverUtils'
-import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download, Phone, IdCard, Shield, Star, Zap, LayoutGrid, List } from 'lucide-react'
+import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download, Phone, IdCard, Shield, Star, Zap, LayoutGrid, List, Archive, RotateCcw } from 'lucide-react'
 import { generateStyledExcel } from '../utils/excelExport'
 import { computeLogsEfficiency } from '../utils/fuelUtils'
 
@@ -96,6 +96,12 @@ const VehiclesPage = () => {
   const [odometerVehicle, setOdometerVehicle] = useState(null)
   const [newOdometerValue, setNewOdometerValue] = useState('')
   const [odometerError, setOdometerError] = useState('')
+
+  const [deletedDrawer, setDeletedDrawer] = useState(false)
+  const [deletedVehicles, setDeletedVehicles] = useState([])
+  const [deletedLoading, setDeletedLoading] = useState(false)
+  const [restoringId, setRestoringId] = useState(null)
+  const [deletedDetail, setDeletedDetail] = useState(null)
 
   const handleOdometerSubmit = async (e) => {
     e.preventDefault()
@@ -355,6 +361,7 @@ const VehiclesPage = () => {
     model: '',
     registrationNo: '',
     chassisNumber: '',
+    engineNumber: '',
     manufacturer: '',
     year: '',
     fuelType: '',
@@ -368,6 +375,7 @@ const VehiclesPage = () => {
     model: '',
     registrationNo: '',
     chassisNumber: '',
+    engineNumber: '',
     manufacturer: '',
     year: '',
     fuelType: '',
@@ -378,14 +386,20 @@ const VehiclesPage = () => {
     fuelCapacity: ''
   })
 
+  // Document upload file states
+  const [insuranceFile, setInsuranceFile] = useState(null)
+  const [licenseFile, setLicenseFile] = useState(null)
+  const [editInsuranceFile, setEditInsuranceFile] = useState(null)
+  const [editLicenseFile, setEditLicenseFile] = useState(null)
+
   useEffect(() => {
-    if (isModalOpen || isEditModalOpen || isDeleteModalOpen || isProfileOpen || isOdometerModalOpen) {
+    if (isModalOpen || isEditModalOpen || isDeleteModalOpen || isProfileOpen || isOdometerModalOpen || deletedDrawer) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
     }
     return () => { document.body.style.overflow = '' }
-  }, [isModalOpen, isEditModalOpen, isDeleteModalOpen, isProfileOpen, isOdometerModalOpen])
+  }, [isModalOpen, isEditModalOpen, isDeleteModalOpen, isProfileOpen, isOdometerModalOpen, deletedDrawer])
 
   useEffect(() => {
     const loadData = async () => {
@@ -418,6 +432,7 @@ const VehiclesPage = () => {
       model: '',
       registrationNo: '',
       chassisNumber: '',
+      engineNumber: '',
       manufacturer: '',
       year: '',
       fuelType: '',
@@ -427,6 +442,8 @@ const VehiclesPage = () => {
       licenseExpiryDate: '',
       fuelCapacity: ''
     })
+    setInsuranceFile(null)
+    setLicenseFile(null)
   }
 
   const handleSubmit = async (e) => {
@@ -451,9 +468,24 @@ const VehiclesPage = () => {
       }
       const saveRes = await vehicleAPI.registerVehicle(vehiclePayload)
       const saved = saveRes.data.data
-      if (driverId && saved?.id) {
-        await vehicleAPI.assignDriver(saved.id, driverId)
+      
+      const uploadPromises = []
+      if (saved?.id) {
+        if (insuranceFile) {
+          uploadPromises.push(vehicleAPI.uploadDocument(saved.id, 'insurance', insuranceFile))
+        }
+        if (licenseFile) {
+          uploadPromises.push(vehicleAPI.uploadDocument(saved.id, 'license', licenseFile))
+        }
+        if (driverId) {
+          uploadPromises.push(vehicleAPI.assignDriver(saved.id, driverId))
+        }
       }
+      
+      if (uploadPromises.length > 0) {
+        await Promise.all(uploadPromises)
+      }
+      
       const response = await vehicleAPI.getAllVehicles()
       setVehicles(response.data.data || [])
       closeModal()
@@ -474,6 +506,7 @@ const VehiclesPage = () => {
       model: vehicle.model || '',
       registrationNo: vehicle.registrationNo || '',
       chassisNumber: vehicle.chassisNumber || '',
+      engineNumber: vehicle.engineNumber || '',
       manufacturer: vehicle.manufacturer || '',
       year: vehicle.year || '',
       fuelType: vehicle.fuelType?.toUpperCase() || '',
@@ -495,6 +528,7 @@ const VehiclesPage = () => {
       model: '',
       registrationNo: '',
       chassisNumber: '',
+      engineNumber: '',
       manufacturer: '',
       year: '',
       fuelType: '',
@@ -505,6 +539,8 @@ const VehiclesPage = () => {
       fuelCapacity: '',
       status: ''
     })
+    setEditInsuranceFile(null)
+    setEditLicenseFile(null)
   }
 
   const handleEditChange = (e) => {
@@ -526,6 +562,7 @@ const VehiclesPage = () => {
         model: editFormData.model,
         registrationNo: editFormData.registrationNo,
         chassisNumber: editFormData.chassisNumber,
+        engineNumber: editFormData.engineNumber,
         manufacturer: editFormData.manufacturer,
         year: editFormData.year,
         fuelType: editFormData.fuelType.toUpperCase(),
@@ -535,12 +572,25 @@ const VehiclesPage = () => {
         licenseExpiryDate: editFormData.licenseExpiryDate || null,
         status: editFormData.status
       })
+      
+      const uploadPromises = []
+      if (editInsuranceFile) {
+        uploadPromises.push(vehicleAPI.uploadDocument(editingVehicle.id, 'insurance', editInsuranceFile))
+      }
+      if (editLicenseFile) {
+        uploadPromises.push(vehicleAPI.uploadDocument(editingVehicle.id, 'license', editLicenseFile))
+      }
       // Assign / re-assign driver if changed
       if (editFormData.driverId) {
-        await vehicleAPI.assignDriver(editingVehicle.id, editFormData.driverId)
+        uploadPromises.push(vehicleAPI.assignDriver(editingVehicle.id, editFormData.driverId))
       } else {
-        await vehicleAPI.unassignDriver(editingVehicle.id)
+        uploadPromises.push(vehicleAPI.unassignDriver(editingVehicle.id))
       }
+      
+      if (uploadPromises.length > 0) {
+        await Promise.all(uploadPromises)
+      }
+      
       const response = await vehicleAPI.getAllVehicles()
       setVehicles(response.data.data || [])
       closeEditModal()
@@ -568,8 +618,41 @@ const VehiclesPage = () => {
       const response = await vehicleAPI.getAllVehicles()
       setVehicles(response.data.data || [])
       closeDeleteModal()
+      closeProfile()
     } catch (err) {
       console.error('Error deleting vehicle:', err)
+    }
+  }
+
+  const loadDeletedVehicles = useCallback(async () => {
+    setDeletedLoading(true)
+    try {
+      const res = await vehicleAPI.getDeletedVehicles()
+      setDeletedVehicles(res.data.data || [])
+    } catch (err) {
+      console.error('Error loading deleted vehicles:', err)
+    } finally {
+      setDeletedLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (deletedDrawer) loadDeletedVehicles()
+  }, [deletedDrawer, loadDeletedVehicles])
+
+  const restoreVehicle = async (id) => {
+    setRestoringId(id)
+    try {
+      await vehicleAPI.restoreVehicle(id)
+      const response = await vehicleAPI.getAllVehicles()
+      setVehicles(response.data.data || [])
+      setDeletedVehicles(prev => prev.filter(v => v.id !== id))
+      setDeletedDetail(null)
+    } catch (err) {
+      console.error('Error restoring vehicle:', err)
+      alert(err.response?.data?.message || 'Failed to restore vehicle.')
+    } finally {
+      setRestoringId(null)
     }
   }
 
@@ -858,6 +941,25 @@ const VehiclesPage = () => {
                   <div style={{ fontSize: '0.9rem', color: D.textSub, fontWeight: 700, background: D.surface, padding: '8px 16px', borderRadius: 12, border: `1px solid ${D.border}`, whiteSpace: 'nowrap' }}>
                     <span style={{ color: D.purple }}>{filtered.length}</span> Vehicles
                   </div>
+
+                  {/* Deleted Vehicles Button */}
+                  {!isDriver && (
+                    <button
+                      onClick={() => setDeletedDrawer(true)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '8px 16px', borderRadius: 12,
+                        background: D.surfaceHi, border: `1px solid ${D.border}`,
+                        color: D.textSub, fontSize: '0.78rem', fontWeight: 700,
+                        cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.28)'; e.currentTarget.style.color = '#f87171' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.textSub }}
+                    >
+                      <Archive size={13} />
+                      Deleted Vehicles
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1043,32 +1145,18 @@ const VehiclesPage = () => {
                                     <Eye size={13} />
                                   </button>
                                   {!isDriver && (
-                                    <>
-                                      <button
-                                        onClick={() => openEditModal(v)}
-                                        style={{
-                                          background: 'none', border: 'none', padding: '4px 8px', borderRadius: 6,
-                                          color: D.text, cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
-                                          display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease'
-                                        }}
-                                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
-                                        onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
-                                      >
-                                        <Edit2 size={13} />
-                                      </button>
-                                      <button
-                                        onClick={() => openDeleteModal(v)}
-                                        style={{
-                                          background: 'none', border: 'none', padding: '4px 8px', borderRadius: 6,
-                                          color: D.red, cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
-                                          display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease'
-                                        }}
-                                        onMouseEnter={e => { e.currentTarget.style.background = D.redDim }}
-                                        onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
-                                      >
-                                        <Trash2 size={13} />
-                                      </button>
-                                    </>
+                                    <button
+                                      onClick={() => openEditModal(v)}
+                                      style={{
+                                        background: 'none', border: 'none', padding: '4px 8px', borderRadius: 6,
+                                        color: D.text, cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
+                                        display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease'
+                                      }}
+                                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+                                      onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                                    >
+                                      <Edit2 size={13} />
+                                    </button>
                                   )}
                                 </div>
                               </td>
@@ -1338,10 +1426,6 @@ const VehiclesPage = () => {
                                 onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
                                 <Edit2 size={14} /> Edit
                               </button>
-                              <button onClick={(e) => { e.stopPropagation(); openDeleteModal(v); }} title="Delete" style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontFamily: 'inherit' }}
-                                onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = D.red }}>
-                                <Trash2 size={14} /> Delete
-                              </button>
                             </div>
                           ) : (
                             <div style={{ borderTop: `1px solid ${D.border}`, margin: '8px 0 0', paddingTop: '16px', display: 'flex', width: '100%' }}>
@@ -1396,6 +1480,14 @@ const VehiclesPage = () => {
                     <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Format: WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, ABC-1234</p>
                   </div>
                   <div>
+                    <label style={labelStyle}>Chassis Number</label>
+                    <input type="text" name="chassisNumber" value={formData.chassisNumber} onChange={handleChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 17-digit chassis number" />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Engine Number</label>
+                    <input type="text" name="engineNumber" value={formData.engineNumber} onChange={handleChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. Engine serial number" />
+                  </div>
+                  <div>
                     <label style={labelStyle}>Year <span style={{ color: D.red }}>*</span></label>
                     <input type="number" min={1985} name="year" value={formData.year} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 2020" />
                   </div>
@@ -1437,6 +1529,62 @@ const VehiclesPage = () => {
                   <div>
                     <label style={labelStyle}>License Expiry</label>
                     <input type="date" name="licenseExpiryDate" value={formData.licenseExpiryDate} onChange={handleChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                  </div>
+
+                  <div style={{ gridColumn: '1 / -1', borderTop: `1px solid ${D.border}`, paddingTop: 16, marginTop: 8 }}>
+                    <h4 style={{ margin: '0 0 8px', fontSize: '0.8rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Documents & Attachments</h4>
+                  </div>
+                  
+                  <div>
+                    <label style={labelStyle}>Insurance Document</label>
+                    <div style={{
+                      position: 'relative', display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '10px 14px', borderRadius: 8, border: `1px dashed ${D.border}`,
+                      background: D.inputBg, cursor: 'pointer', transition: 'all 0.2s'
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = D.blue}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = D.border}
+                    >
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={e => setInsuranceFile(e.target.files[0])}
+                        style={{
+                          position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                          opacity: 0, cursor: 'pointer'
+                        }}
+                      />
+                      <Upload size={14} style={{ color: D.textSub, flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.8rem', color: insuranceFile ? D.text : D.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '85%' }}>
+                        {insuranceFile ? insuranceFile.name : 'Upload Insurance (Image / PDF)'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>License Document</label>
+                    <div style={{
+                      position: 'relative', display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '10px 14px', borderRadius: 8, border: `1px dashed ${D.border}`,
+                      background: D.inputBg, cursor: 'pointer', transition: 'all 0.2s'
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = D.blue}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = D.border}
+                    >
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={e => setLicenseFile(e.target.files[0])}
+                        style={{
+                          position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                          opacity: 0, cursor: 'pointer'
+                        }}
+                      />
+                      <Upload size={14} style={{ color: D.textSub, flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.8rem', color: licenseFile ? D.text : D.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '85%' }}>
+                        {licenseFile ? licenseFile.name : 'Upload License (Image / PDF)'}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 {addError && (
@@ -1488,6 +1636,14 @@ const VehiclesPage = () => {
                     <label style={labelStyle}>Registration Number</label>
                     <input type="text" name="registrationNo" value={editFormData.registrationNo} onChange={(e) => setEditFormData({ ...editFormData, registrationNo: e.target.value.toUpperCase() })} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                     <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Format: WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, ABC-1234</p>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Chassis Number</label>
+                    <input type="text" name="chassisNumber" value={editFormData.chassisNumber} onChange={handleEditChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Engine Number</label>
+                    <input type="text" name="engineNumber" value={editFormData.engineNumber} onChange={handleEditChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                   </div>
                   <div>
                     <label style={labelStyle}>Year</label>
@@ -1542,6 +1698,142 @@ const VehiclesPage = () => {
                     <label style={labelStyle}>License Expiry</label>
                     <input type="date" name="licenseExpiryDate" value={editFormData.licenseExpiryDate} onChange={handleEditChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                   </div>
+
+                  <div style={{ gridColumn: '1 / -1', borderTop: `1px solid ${D.border}`, paddingTop: 16, marginTop: 8 }}>
+                    <h4 style={{ margin: '0 0 8px', fontSize: '0.8rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Documents & Attachments</h4>
+                  </div>
+                  
+                  <div>
+                    <label style={labelStyle}>Insurance Document</label>
+                    {editingVehicle?.insuranceDocumentPath && !editInsuranceFile ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', gap: 10, padding: '10px 14px', borderRadius: 8, border: `1px solid ${D.border}`, background: D.surfaceHi }}>
+                        <button
+                          type="button"
+                          onClick={() => downloadDocument(editingVehicle.id, 'insurance', editingVehicle.insuranceDocumentPath.substring(editingVehicle.insuranceDocumentPath.lastIndexOf('_') + 1))}
+                          style={{
+                            background: 'none', border: 'none', padding: 0, margin: 0,
+                            color: D.blue, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit',
+                            textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '70%'
+                          }}
+                        >
+                          <FileText size={14} style={{ flexShrink: 0 }} />
+                          <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                            {editingVehicle.insuranceDocumentPath.substring(editingVehicle.insuranceDocumentPath.lastIndexOf('_') + 1)}
+                          </span>
+                        </button>
+                        <label style={{ cursor: 'pointer', marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            onChange={e => setEditInsuranceFile(e.target.files[0])}
+                            style={{ display: 'none' }}
+                          />
+                          <span style={{ color: D.textSub, fontSize: '0.75rem', fontWeight: 700, textDecoration: 'underline' }}>
+                            Replace
+                          </span>
+                        </label>
+                      </div>
+                    ) : (
+                      <div style={{
+                        position: 'relative', display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 14px', borderRadius: 8, border: `1px dashed ${D.border}`,
+                        background: D.inputBg, cursor: 'pointer', transition: 'all 0.2s'
+                      }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = D.blue}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = D.border}
+                      >
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={e => setEditInsuranceFile(e.target.files[0])}
+                          style={{
+                            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                            opacity: 0, cursor: 'pointer'
+                          }}
+                        />
+                        <Upload size={14} style={{ color: D.textSub, flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.8rem', color: editInsuranceFile ? D.text : D.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '85%' }}>
+                          {editInsuranceFile ? editInsuranceFile.name : 'Upload Insurance (Image / PDF)'}
+                        </span>
+                        {editInsuranceFile && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setEditInsuranceFile(null); }}
+                            style={{ position: 'absolute', right: 10, background: 'none', border: 'none', color: D.red, cursor: 'pointer', zIndex: 10 }}
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>License Document</label>
+                    {editingVehicle?.licenseDocumentPath && !editLicenseFile ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', gap: 10, padding: '10px 14px', borderRadius: 8, border: `1px solid ${D.border}`, background: D.surfaceHi }}>
+                        <button
+                          type="button"
+                          onClick={() => downloadDocument(editingVehicle.id, 'license', editingVehicle.licenseDocumentPath.substring(editingVehicle.licenseDocumentPath.lastIndexOf('_') + 1))}
+                          style={{
+                            background: 'none', border: 'none', padding: 0, margin: 0,
+                            color: D.blue, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit',
+                            textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '70%'
+                          }}
+                        >
+                          <FileText size={14} style={{ flexShrink: 0 }} />
+                          <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                            {editingVehicle.licenseDocumentPath.substring(editingVehicle.licenseDocumentPath.lastIndexOf('_') + 1)}
+                          </span>
+                        </button>
+                        <label style={{ cursor: 'pointer', marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            onChange={e => setEditLicenseFile(e.target.files[0])}
+                            style={{ display: 'none' }}
+                          />
+                          <span style={{ color: D.textSub, fontSize: '0.75rem', fontWeight: 700, textDecoration: 'underline' }}>
+                            Replace
+                          </span>
+                        </label>
+                      </div>
+                    ) : (
+                      <div style={{
+                        position: 'relative', display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 14px', borderRadius: 8, border: `1px dashed ${D.border}`,
+                        background: D.inputBg, cursor: 'pointer', transition: 'all 0.2s'
+                      }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = D.blue}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = D.border}
+                      >
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={e => setEditLicenseFile(e.target.files[0])}
+                          style={{
+                            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                            opacity: 0, cursor: 'pointer'
+                          }}
+                        />
+                        <Upload size={14} style={{ color: D.textSub, flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.8rem', color: editLicenseFile ? D.text : D.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '85%' }}>
+                          {editLicenseFile ? editLicenseFile.name : 'Upload License (Image / PDF)'}
+                        </span>
+                        {editLicenseFile && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setEditLicenseFile(null); }}
+                            style={{ position: 'absolute', right: 10, background: 'none', border: 'none', color: D.red, cursor: 'pointer', zIndex: 10 }}
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {editError && (
                   <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 8, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', color: D.red, fontSize: '0.83rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1570,13 +1862,317 @@ const VehiclesPage = () => {
               </div>
               <h3 style={{ margin: '0 0 12px', fontWeight: 900, color: D.text, fontSize: '1.4rem', fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: '-0.02em' }}>Confirm Deletion</h3>
               <p style={{ margin: '0 0 32px', color: D.textSub, fontSize: '0.95rem', lineHeight: 1.6 }}>
-                Are you sure you want to delete vehicle <strong style={{ color: D.text }}>{deletingVehicle?.registrationNo}</strong> ({deletingVehicle?.manufacturer} {deletingVehicle?.model})? This action cannot be undone.
+                Are you sure you want to delete vehicle <strong style={{ color: D.text }}>{deletingVehicle?.registrationNo}</strong> ({deletingVehicle?.manufacturer} {deletingVehicle?.model})? This record will be moved to the archive and can be restored at any time.
               </p>
               <div style={{ display: 'flex', gap: 16 }}>
                 <button type="button" onClick={closeDeleteModal} style={{ flex: 1, padding: '14px 24px', borderRadius: 16, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.95rem', fontWeight: 800, transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>Cancel</button>
                 <button type="button" onClick={handleDeleteConfirm} style={{ flex: 1, padding: '14px 24px', borderRadius: 16, border: 'none', background: D.red, color: '#fff', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 8px 24px rgba(239,68,68,0.4)' }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(239,68,68,0.5)' }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(239,68,68,0.4)' }}>
                   <Trash2 size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Delete
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Deleted Vehicles Drawer ─────────────────────────────────── */}
+        {deletedDrawer && (
+          <div
+            onClick={() => { setDeletedDrawer(false); setDeletedDetail(null) }}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(6px)', zIndex: 1200,
+              animation: 'fadeIn 0.18s ease',
+            }}
+          >
+            {/* Drawer panel */}
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                position: 'fixed', top: 0, right: 0, bottom: 0,
+                width: '100%', maxWidth: 700,
+                background: D.bg, display: 'flex', flexDirection: 'column',
+                boxShadow: '-20px 0 60px rgba(0,0,0,0.4)',
+                animation: 'slideInRight 0.28s cubic-bezier(0.22,1,0.36,1)',
+                borderLeft: `1px solid ${D.border}`,
+              }}
+            >
+              {/* Drawer Header */}
+              <div style={{
+                background: 'linear-gradient(135deg,#7f1d1d 0%,#991b1b 45%,#dc2626 100%)',
+                padding: '22px 28px', display: 'flex', alignItems: 'center',
+                justifyContent: 'space-between', flexShrink: 0, gap: 16,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{
+                    width: 48, height: 48, borderRadius: 12,
+                    background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+                  }}>
+                    <Archive size={24} />
+                  </div>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#fff', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                      Deleted Vehicles
+                    </h2>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)' }}>
+                      Soft-deleted vehicles are preserved — not permanently removed
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setDeletedDrawer(false); setDeletedDetail(null) }}
+                  style={{
+                    background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: 8, cursor: 'pointer', color: '#fff',
+                    padding: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Count badge */}
+              {!deletedLoading && (
+                <div style={{
+                  padding: '14px 28px', background: D.surface,
+                  borderBottom: `1px solid ${D.border}`,
+                  display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
+                }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '4px 14px', borderRadius: 999,
+                    background: 'rgba(239,68,68,0.1)', color: '#ef4444',
+                    border: '1px solid rgba(239,68,68,0.2)',
+                    fontSize: '0.78rem', fontWeight: 700,
+                  }}>
+                    <Trash2 size={12} />
+                    {deletedVehicles.length} vehicle{deletedVehicles.length !== 1 ? 's' : ''} deleted
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: D.textSub }}>
+                    These fleet records are preserved for audit purposes
+                  </span>
+                </div>
+              )}
+
+              {/* Content */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {deletedLoading ? (
+                  [1, 2, 3].map(i => (
+                    <div key={i} style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 12, height: 90, animation: 'pulse 1.5s ease infinite' }} />
+                  ))
+                ) : deletedVehicles.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '60px 20px', color: D.textSub }}>
+                    <div style={{ opacity: 0.4, display: 'flex', justifyContent: 'center', marginBottom: 14 }}><Archive size={44} /></div>
+                    <p style={{ fontSize: '0.95rem', fontWeight: 500 }}>No deleted vehicles found.</p>
+                    <p style={{ fontSize: '0.8rem', marginTop: 4 }}>Deleted vehicles will appear here.</p>
+                  </div>
+                ) : deletedDetail ? (
+                  /* ── Inner Detail View ───────────────────────────────── */
+                  (() => {
+                    const v = deletedDetail
+                    return (
+                      <div style={{ animation: 'fadeIn 0.15s ease' }}>
+                        {/* Action row: Back + Restore */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                          <button
+                            onClick={() => setDeletedDetail(null)}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 6,
+                              padding: '8px 16px', borderRadius: 8,
+                              background: D.surface, border: `1px solid ${D.border}`,
+                              color: D.textSub, cursor: 'pointer', fontSize: '0.78rem',
+                              fontWeight: 600,
+                            }}
+                          >
+                            ← Back to list
+                          </button>
+
+                          {/* Restore button */}
+                          <button
+                            id={`restore-veh-btn-${v.id}`}
+                            onClick={() => restoreVehicle(v.id)}
+                            disabled={restoringId === v.id}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 7,
+                              padding: '8px 20px', borderRadius: 8,
+                              background: restoringId === v.id ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.12)',
+                              color: '#10b981',
+                              border: '1px solid rgba(16,185,129,0.3)',
+                              cursor: restoringId === v.id ? 'not-allowed' : 'pointer',
+                              fontSize: '0.82rem', fontWeight: 700,
+                              transition: 'all 0.15s',
+                              opacity: restoringId === v.id ? 0.7 : 1,
+                            }}
+                            onMouseEnter={e => { if (restoringId !== v.id) { e.currentTarget.style.background = '#10b981'; e.currentTarget.style.color = '#fff' } }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.12)'; e.currentTarget.style.color = '#10b981' }}
+                          >
+                            {restoringId === v.id ? (
+                              <>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                                Restoring…
+                              </>
+                            ) : (
+                              <>
+                                <RotateCcw size={14} /> Restore Vehicle
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Vehicle header card */}
+                        <div style={{
+                          background: 'linear-gradient(135deg,rgba(127,29,29,0.15) 0%,rgba(239,68,68,0.08) 100%)',
+                          border: '1px solid rgba(239,68,68,0.2)',
+                          borderRadius: 14, padding: '20px 22px', marginBottom: 16,
+                          display: 'flex', alignItems: 'center', gap: 16,
+                        }}>
+                          <div style={{
+                            width: 52, height: 52, borderRadius: 12, flexShrink: 0,
+                            background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.25)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444',
+                          }}>
+                            <Car size={26} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 800, fontSize: '1.05rem', color: D.text }}>
+                              {v.registrationNo}
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: D.textSub, marginTop: 2 }}>
+                              {v.manufacturer} {v.model}
+                            </div>
+                          </div>
+                          <span style={{
+                            padding: '4px 12px', borderRadius: 999, fontSize: '0.68rem', fontWeight: 700,
+                            background: 'rgba(239,68,68,0.12)', color: '#ef4444',
+                            border: '1px solid rgba(239,68,68,0.25)', letterSpacing: '0.05em',
+                            textTransform: 'uppercase', flexShrink: 0,
+                          }}>DELETED</span>
+                        </div>
+
+                        {/* Deletion info */}
+                        <div style={{
+                          background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+                          borderRadius: 12, padding: '16px 20px', marginBottom: 16,
+                        }}>
+                          <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#ef4444', marginBottom: 10 }}>
+                            🗑 Deletion Information
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px' }}>
+                            <div>
+                              <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: D.textSub, marginBottom: 4 }}>Deleted By</div>
+                              <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <User size={14} /> {v.deletedBy || '—'}
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: D.textSub, marginBottom: 4 }}>Deleted At</div>
+                              <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <Clock size={14} />
+                                {v.deletedAt ? new Date(v.deletedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Specs */}
+                        <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+                          Vehicle Specs <div style={{ flex: 1, height: 1, background: D.border }} />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px 20px', marginBottom: 16 }}>
+                          {[
+                            ['Manufacturer', v.manufacturer],
+                            ['Model', v.model],
+                            ['Year', v.year],
+                            ['Fuel Type', v.fuelType],
+                            ['Mileage', v.currentMileageKm ? `${v.currentMileageKm.toLocaleString()} km` : '0 km'],
+                            ['Chassis No', v.chassisNumber],
+                            ['Engine No', v.engineNumber],
+                          ].map(([label, val]) => (
+                            <div key={label}>
+                              <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: D.textSub, marginBottom: 4 }}>{label}</div>
+                              <div style={{ fontSize: '0.88rem', fontWeight: 600, color: val ? D.text : D.textSub }}>{val || '—'}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })()
+                ) : (
+                  /* ── Deleted Vehicles List ────────────────────────────── */
+                  deletedVehicles.map((v, i) => (
+                    <div
+                      key={v.id}
+                      onClick={() => setDeletedDetail(v)}
+                      style={{
+                        background: D.surface,
+                        border: '1px solid rgba(239,68,68,0.15)',
+                        borderRadius: 12,
+                        padding: '16px 20px',
+                        cursor: 'pointer',
+                        transition: 'all 0.18s ease',
+                        animation: `fadeUp 0.25s ease ${i * 0.04}s both`,
+                        display: 'flex', alignItems: 'flex-start', gap: 14,
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.background = D.surfaceHi
+                        e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)'
+                        e.currentTarget.style.transform = 'translateY(-1px)'
+                        e.currentTarget.style.boxShadow = '0 6px 24px rgba(239,68,68,0.1)'
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = D.surface
+                        e.currentTarget.style.borderColor = 'rgba(239,68,68,0.15)'
+                        e.currentTarget.style.transform = 'translateY(0)'
+                        e.currentTarget.style.boxShadow = 'none'
+                      }}
+                    >
+                      <div style={{
+                        width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                        background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444',
+                      }}>
+                        <Car size={20} />
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.9rem', color: D.text }}>
+                            {v.registrationNo}
+                          </span>
+                          <span style={{
+                            fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.06em',
+                            textTransform: 'uppercase', padding: '2px 8px', borderRadius: 999,
+                            background: 'rgba(239,68,68,0.1)', color: '#ef4444',
+                            border: '1px solid rgba(239,68,68,0.2)',
+                          }}>DELETED</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.75rem', color: D.textSub }}>
+                            {v.manufacturer} {v.model}
+                          </span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: D.textSub }}>
+                            <User size={12} /> by {v.deletedBy || 'unknown'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={e => { e.stopPropagation(); restoreVehicle(v.id) }}
+                        disabled={restoringId === v.id}
+                        style={{
+                          background: 'none', border: 'none', padding: '6px 12px', borderRadius: 8,
+                          color: '#10b981', cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
+                          display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease',
+                          border: '1px solid rgba(16,185,129,0.2)'
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.1)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                      >
+                        {restoringId === v.id ? 'Restoring...' : 'Restore'}
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -1698,6 +2294,8 @@ const VehiclesPage = () => {
                         onClick: (e) => openOdometerModal(e, selectedProfileVehicle)
                       },
                       { label: 'Tank Capacity', value: selectedProfileVehicle.fuelCapacity ? `${selectedProfileVehicle.fuelCapacity} Liters` : 'N/A', icon: <Fuel size={14} color={D.gold} /> },
+                      { label: 'Chassis Number', value: selectedProfileVehicle.chassisNumber || 'N/A', icon: <Shield size={14} color={D.blue} /> },
+                      { label: 'Engine Number', value: selectedProfileVehicle.engineNumber || 'N/A', icon: <IdCard size={14} color={D.purple} /> },
                       {
                         label: 'Driver',
                         value: (() => {
@@ -2431,6 +3029,24 @@ const VehiclesPage = () => {
                 </div>
               )}
             </div>
+
+            {/* Footer */}
+            {!isDriver && (
+              <div style={{ padding: '16px 32px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 10, background: D.surfaceHi, flexShrink: 0 }}>
+                <button
+                  onClick={() => { closeProfile(); openEditModal(selectedProfileVehicle); }}
+                  style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
+                >
+                  <Edit2 size={15} /> Edit Vehicle
+                </button>
+                <button
+                  onClick={() => openDeleteModal(selectedProfileVehicle)}
+                  style={{ flex: 0.6, padding: '10px 0', borderRadius: 10, border: `1px solid rgba(239,68,68,0.3)`, background: D.redDim, color: D.red, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
+                >
+                  <Trash2 size={15} /> Delete
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
