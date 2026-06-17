@@ -410,8 +410,9 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
   const sc = STATUS_CONFIG[status]
   const icon = SERVICE_TYPE_ICONS[record.serviceType] || <Wrench size={22} />
 
-  // Drivers may edit only records they personally created; Admin is view-only
-  const canEdit = !isDriver && !isAdmin || (!isAdmin && record.createdBy === currentUsername)
+  // Drivers may edit only records they personally created; Admin and Controller can edit all
+  const canEdit = !isDriver || record.createdBy === currentUsername
+  const canDelete = !isDriver
 
   return (
     <div
@@ -447,13 +448,13 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
       {/* Main info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
-          <span style={{ fontWeight: 700, fontSize: '0.95rem', color: D.text }}>
+          <span style={{ fontWeight: 800, fontSize: '1.05rem', color: D.text }}>
             {record.serviceType?.replace(/_/g, ' ') || 'Service'}
           </span>
           {/* Status badge */}
           <span style={{
             padding: '2px 10px', borderRadius: 999,
-            fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.06em',
+            fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.06em',
             textTransform: 'uppercase',
             background: sc.bg, color: sc.color,
             border: `1px solid ${sc.border}`,
@@ -463,7 +464,7 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
           {/* Classification badge */}
           <span style={{
             padding: '2px 10px', borderRadius: 999,
-            fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.06em',
+            fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.06em',
             textTransform: 'uppercase',
             background: record.serviceClassification === 'AD_HOC' ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)',
             color: record.serviceClassification === 'AD_HOC' ? '#ef4444' : '#10b981',
@@ -472,37 +473,37 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
             {record.serviceClassification === 'AD_HOC' ? '🛠️ Ad-hoc Repair' : '🟢 Routine'}
           </span>
           {record.serviceTypeDetail && (
-            <span style={{ fontSize: '0.75rem', color: D.textSub }}>({record.serviceTypeDetail})</span>
+            <span style={{ fontSize: '0.85rem', color: D.textSub }}>({record.serviceTypeDetail})</span>
           )}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: D.blue, fontWeight: 600 }}>
-            <Car size={14} /> {record.vehicleRegNumber || '—'}
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.9rem', color: D.blue, fontWeight: 700 }}>
+            <Car size={15} /> {record.vehicleRegNumber || '—'}
           </span>
           {record.serviceDate && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: D.textSub }}>
-              <Calendar size={14} /> {record.serviceDate.substring(0, 10)}
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.9rem', color: D.textSub, fontWeight: 600 }}>
+              <Calendar size={15} /> {record.serviceDate.substring(0, 10)}
             </span>
           )}
           {record.currentMileageKm && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: D.textSub }}>
-              <MapPin size={14} /> {Number(record.currentMileageKm).toLocaleString()} km
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.9rem', color: D.textSub, fontWeight: 600 }}>
+              <MapPin size={15} /> {Number(record.currentMileageKm).toLocaleString()} km
             </span>
           )}
           {record.technicianWorkshop && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: D.textSub }}>
-              <Wrench size={14} /> {record.technicianWorkshop}
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.9rem', color: D.textSub, fontWeight: 600 }}>
+              <Wrench size={15} /> {record.technicianWorkshop}
             </span>
           )}
           {/* ── Who added + when ── */}
           {record.createdBy && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', color: D.textSub }}>
-              <User size={12} /> {record.createdBy}
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.82rem', color: D.textSub, fontWeight: 600 }}>
+              <User size={13} /> {record.createdBy}
             </span>
           )}
           {record.createdAt && (
-            <span style={{ fontSize: '0.72rem', color: D.textSub }}>
+            <span style={{ fontSize: '0.82rem', color: D.textSub, fontWeight: 500 }}>
               {new Date(record.createdAt).toLocaleDateString()}
             </span>
           )}
@@ -512,7 +513,7 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
               onClick={e => { e.stopPropagation(); onViewAttachment(record) }}
               title="Click to view attached bill"
               style={{
-                display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem',
+                display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.82rem',
                 color: '#10b981', background: 'rgba(16,185,129,0.1)',
                 padding: '3px 10px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)',
                 cursor: 'pointer', transition: 'all 0.2s',
@@ -520,24 +521,24 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.2)'; e.currentTarget.style.transform = 'scale(1.03)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.1)'; e.currentTarget.style.transform = 'scale(1)' }}
             >
-              <Paperclip size={11} /> Bill attached · <span style={{ textDecoration: 'underline', fontWeight: 700 }}>View</span>
+              <Paperclip size={12} /> Bill attached · <span style={{ textDecoration: 'underline', fontWeight: 700 }}>View</span>
             </span>
           )}
         </div>
 
         {record.description && (
-          <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: D.textSub, fontStyle: 'italic' }}>
+          <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: D.textSub, fontStyle: 'italic' }}>
             {record.description}
           </p>
         )}
         {/* Parts Replaced */}
         {record.partsReplaced && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6, alignItems: 'center' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Parts:</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Parts:</span>
             {record.partsReplaced.split(',').map((part, pi) => (
               <span key={pi} style={{
                 background: D.surfaceHi, border: `1px solid ${D.border}`,
-                color: D.text, borderRadius: 6, padding: '2px 8px', fontSize: '0.68rem', fontWeight: 600
+                color: D.text, borderRadius: 6, padding: '2px 8px', fontSize: '0.78rem', fontWeight: 600
               }}>
                 {part.trim()}
               </span>
@@ -550,32 +551,33 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
 
       {/* Cost */}
       <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 90 }}>
-        <div style={{ fontSize: '1rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
           Rs. {Number(record.serviceCost || 0).toLocaleString()}
         </div>
       </div>
 
-      {/* Actions — stop propagation so clicking buttons doesn't also open the detail modal */}
-      {canEdit && (
+      {(canEdit || canDelete) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
-          <button
-            onClick={e => { e.stopPropagation(); onEdit(record.id) }}
-            style={{
-              padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 600,
-              background: D.indigoDim, color: D.indigo,
-              border: `1px solid ${D.borderHi}`, cursor: 'pointer',
-              transition: 'all 0.15s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = D.indigo; e.currentTarget.style.color = '#fff' }}
-            onMouseLeave={e => { e.currentTarget.style.background = D.indigoDim; e.currentTarget.style.color = D.indigo }}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Edit2 size={12} /> Edit</span>
-          </button>
-          {!isDriver && (
+          {canEdit && (
+            <button
+              onClick={e => { e.stopPropagation(); onEdit(record.id) }}
+              style={{
+                padding: '6px 16px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
+                background: D.indigoDim, color: D.indigo,
+                border: `1px solid ${D.borderHi}`, cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = D.indigo; e.currentTarget.style.color = '#fff' }}
+              onMouseLeave={e => { e.currentTarget.style.background = D.indigoDim; e.currentTarget.style.color = D.indigo }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Edit2 size={12} /> Edit</span>
+            </button>
+          )}
+          {canDelete && (
             <button
               onClick={e => { e.stopPropagation(); onDelete(record.id) }}
               style={{
-                padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 600,
+                padding: '6px 16px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
                 background: D.redDim, color: D.red,
                 border: `1px solid rgba(239,68,68,0.25)`, cursor: 'pointer',
                 transition: 'all 0.15s',
@@ -598,8 +600,9 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
 
-  // Drivers may edit only records they personally created; Admin is view-only
-  const canEdit = !isDriver && !isAdmin || (!isAdmin && record.createdBy === currentUsername)
+  // Drivers may edit only records they personally created; Admin and Controller can edit all
+  const canEdit = !isDriver || record.createdBy === currentUsername
+  const canDelete = !isDriver
 
   return (
     <div
@@ -623,10 +626,10 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <div style={{ color: D.indigo, fontSize: '1.05rem', fontWeight: 700, marginBottom: 4 }}>
+          <div style={{ color: D.indigo, fontSize: '1.05rem', fontWeight: 800, marginBottom: 4 }}>
             {record.serviceType?.replace(/_/g, ' ') || 'Service'}
           </div>
-          <div style={{ color: D.textSub, fontSize: '0.8rem' }}>
+          <div style={{ color: D.textSub, fontSize: '0.9rem' }}>
             {record.vehicleRegNumber || '—'}
             {record.serviceTypeDetail ? ` - ${record.serviceTypeDetail}` : ''}
           </div>
@@ -634,7 +637,7 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
           <div style={{
             padding: '4px 10px', borderRadius: 999,
-            fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em',
+            fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.05em',
             background: sc.bg, color: sc.color,
             border: `1px solid ${sc.border}`,
             textTransform: 'uppercase'
@@ -643,7 +646,7 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
           </div>
           <div style={{
             padding: '4px 10px', borderRadius: 999,
-            fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em',
+            fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.05em',
             background: record.serviceClassification === 'AD_HOC' ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)',
             color: record.serviceClassification === 'AD_HOC' ? '#ef4444' : '#10b981',
             border: `1px solid ${record.serviceClassification === 'AD_HOC' ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)'}`,
@@ -658,7 +661,7 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
 
       {/* Description — only show when there is real content */}
       {record.description && (
-        <div style={{ color: D.textSub, fontSize: '0.82rem', lineHeight: 1.6 }}>
+        <div style={{ color: D.textSub, fontSize: '0.9rem', lineHeight: 1.6 }}>
           {record.description}
         </div>
       )}
@@ -666,11 +669,11 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
       {/* Parts Replaced */}
       {record.partsReplaced && (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Parts:</span>
+          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Parts:</span>
           {record.partsReplaced.split(',').map((part, pi) => (
             <span key={pi} style={{
               background: D.surfaceHi, border: `1px solid ${D.border}`,
-              color: D.text, borderRadius: 6, padding: '2px 8px', fontSize: '0.68rem', fontWeight: 600
+              color: D.text, borderRadius: 6, padding: '2px 8px', fontSize: '0.78rem', fontWeight: 600
             }}>
               {part.trim()}
             </span>
@@ -681,28 +684,28 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
       {/* Stats Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
         <div>
-          <div style={{ color: D.textSub, fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Date</div>
-          <div style={{ color: D.text, fontSize: '0.9rem', fontWeight: 700 }}>
+          <div style={{ color: D.textSub, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Date</div>
+          <div style={{ color: D.text, fontSize: '1.0rem', fontWeight: 800 }}>
             {record.serviceDate ? new Date(record.serviceDate).toLocaleDateString() : '—'}
           </div>
         </div>
         <div>
-          <div style={{ color: D.textSub, fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Mileage</div>
-          <div style={{ color: D.text, fontSize: '0.9rem', fontWeight: 700 }}>
+          <div style={{ color: D.textSub, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Mileage</div>
+          <div style={{ color: D.text, fontSize: '1.0rem', fontWeight: 800 }}>
             {record.currentMileageKm ? `${Number(record.currentMileageKm).toLocaleString()} km` : '—'}
           </div>
         </div>
         <div>
-          <div style={{ color: D.textSub, fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Cost</div>
-          <div style={{ color: D.text, fontSize: '0.9rem', fontWeight: 700 }}>
+          <div style={{ color: D.textSub, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Cost</div>
+          <div style={{ color: D.text, fontSize: '1.0rem', fontWeight: 800 }}>
             Rs. {Number(record.serviceCost || 0).toLocaleString()}
           </div>
         </div>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: D.textSub, fontSize: '0.75rem' }}>
-          <Wrench size={12} /> {record.technicianWorkshop || '—'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: D.textSub, fontSize: '0.85rem', fontWeight: 600 }}>
+          <Wrench size={13} /> {record.technicianWorkshop || '—'}
         </div>
       </div>
       {/* Service progress meter */}
@@ -711,12 +714,12 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
       {/* ── Created by / at + attachment ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', paddingTop: 8, borderTop: `1px solid ${D.border}` }}>
         {record.createdBy && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', color: D.textSub }}>
-            <User size={11} /> {record.createdBy}
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
+            <User size={12} /> {record.createdBy}
           </span>
         )}
         {record.createdAt && (
-          <span style={{ fontSize: '0.7rem', color: D.textSub }}>
+          <span style={{ fontSize: '0.8rem', color: D.textSub, fontWeight: 500 }}>
             · {new Date(record.createdAt).toLocaleDateString()}
           </span>
         )}
@@ -725,7 +728,7 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
             onClick={e => { e.stopPropagation(); onViewAttachment(record) }}
             title="Click to view attached bill"
             style={{
-              marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem',
+              marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem',
               color: '#10b981', background: 'rgba(16,185,129,0.1)',
               padding: '3px 10px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.2)',
               cursor: 'pointer', transition: 'all 0.2s',
@@ -733,30 +736,32 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.2)'; e.currentTarget.style.transform = 'scale(1.03)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.1)'; e.currentTarget.style.transform = 'scale(1)' }}
           >
-            <Paperclip size={11} /> Bill attached · <span style={{ textDecoration: 'underline', fontWeight: 700 }}>View</span>
+            <Paperclip size={12} /> Bill attached · <span style={{ textDecoration: 'underline', fontWeight: 700 }}>View</span>
           </span>
         )}
       </div>
 
       {/* Actions — stop propagation so clicking buttons doesn't also open the detail modal */}
-      {canEdit && (
+      {(canEdit || canDelete) && (
         <div style={{ display: 'flex', gap: 8, marginTop: 12, borderTop: `1px solid ${D.border}`, paddingTop: 12 }}>
-          <button
-            onClick={e => { e.stopPropagation(); onEdit(record.id) }}
-            style={{
-              flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600,
-              background: D.indigoDim, color: D.indigo, border: `1px solid ${D.borderHi}`, cursor: 'pointer', transition: 'all 0.15s'
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = D.indigo; e.currentTarget.style.color = '#fff' }}
-            onMouseLeave={e => { e.currentTarget.style.background = D.indigoDim; e.currentTarget.style.color = D.indigo }}
-          >
-            Edit
-          </button>
-          {!isDriver && (
+          {canEdit && (
+            <button
+              onClick={e => { e.stopPropagation(); onEdit(record.id) }}
+              style={{
+                flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
+                background: D.indigoDim, color: D.indigo, border: `1px solid ${D.borderHi}`, cursor: 'pointer', transition: 'all 0.15s'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = D.indigo; e.currentTarget.style.color = '#fff' }}
+              onMouseLeave={e => { e.currentTarget.style.background = D.indigoDim; e.currentTarget.style.color = D.indigo }}
+            >
+              Edit
+            </button>
+          )}
+          {canDelete && (
             <button
               onClick={e => { e.stopPropagation(); onDelete(record.id) }}
               style={{
-                flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600,
+                flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
                 background: D.redDim, color: D.red, border: `1px solid rgba(239,68,68,0.2)`, cursor: 'pointer', transition: 'all 0.15s'
               }}
               onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
@@ -2020,8 +2025,8 @@ const ServicePage = () => {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 5 }}>
                   <h1 style={{
-                    margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#f0f2ff',
-                    letterSpacing: '-0.03em', fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif",
+                    margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#f0f2ff',
+                    letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', 'Outfit', sans-serif",
                   }}>
                     {isDriver ? 'Service History' : 'Maintenance Center'}
                   </h1>
@@ -2037,7 +2042,7 @@ const ServicePage = () => {
                   </span>
                 </div>
 
-                <p style={{ margin: '0 0 8px', color: 'rgba(165,180,252,0.7)', fontSize: '0.88rem', fontWeight: 400 }}>
+                <p style={{ margin: '0 0 8px', color: 'rgba(165,180,252,0.7)', fontSize: '0.9rem', fontWeight: 400 }}>
                   {isDriver
                     ? 'View your service history and track vehicle maintenance records.'
                     : 'Schedule services, manage work orders and minimise fleet downtime.'}
@@ -2068,8 +2073,8 @@ const ServicePage = () => {
                   onClick={openScheduleModal}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8,
-                    padding: '10px 22px', borderRadius: 12,
-                    fontSize: '0.83rem', fontWeight: 700,
+                    padding: '14px 24px', borderRadius: 16,
+                    fontSize: '0.95rem', fontWeight: 700,
                     background: 'rgba(99,102,241,0.14)',
                     color: '#a5b4fc',
                     border: '1px solid rgba(99,102,241,0.28)',
@@ -2079,7 +2084,7 @@ const ServicePage = () => {
                   onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.28)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.14)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.28)' }}
                 >
-                  <Clock size={15} /> Schedule
+                  <Clock size={16} /> Schedule
                 </button>
               )}
               {!isAdmin && (
@@ -2087,8 +2092,8 @@ const ServicePage = () => {
                   onClick={() => openAddModal()}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8,
-                    padding: '10px 22px', borderRadius: 12,
-                    fontSize: '0.83rem', fontWeight: 700,
+                    padding: '14px 28px', borderRadius: 16,
+                    fontSize: '0.95rem', fontWeight: 800,
                     background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
                     color: '#fff',
                     border: '1px solid rgba(99,102,241,0.45)',
@@ -2098,7 +2103,7 @@ const ServicePage = () => {
                   onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.52)' }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.38)' }}
                 >
-                  <Sparkles size={15} /> New Work Order
+                  <Sparkles size={16} strokeWidth={3} /> New Work Order
                 </button>
               )}
             </div>
@@ -2204,15 +2209,15 @@ const ServicePage = () => {
                   )}
                 </div>
 
-                <p style={{ margin: '0 0 5px', fontSize: '0.65rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <p style={{ margin: '0 0 6px', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                   {card.label}
                 </p>
                 <p
                   style={{
-                    margin: '0 0 4px', fontFamily: "'Outfit', sans-serif",
-                    fontSize: card.displayValue ? '1.38rem' : '1.75rem',
+                    margin: '0 0 4px', fontFamily: "'Plus Jakarta Sans', 'Outfit', sans-serif",
+                    fontSize: '1.6rem',
                     fontWeight: 900, color: card.urgent ? '#f87171' : D.text,
-                    lineHeight: 1,
+                    lineHeight: 1.1,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}
                   title={card.fullValue || card.displayValue || String(card.value)}
@@ -2417,8 +2422,8 @@ const ServicePage = () => {
                       key={t.val}
                       onClick={() => setFilter(t.val)}
                       style={{
-                        padding: '5px 14px', borderRadius: 999,
-                        fontSize: '0.74rem', fontWeight: 700,
+                        padding: '7px 18px', borderRadius: 999,
+                        fontSize: '0.85rem', fontWeight: 800,
                         background: isSel ? `${t.color}1f` : 'transparent',
                         color: isSel ? t.color : D.textSub,
                         border: isSel ? `1.5px solid ${t.color}50` : `1.5px solid ${D.border}`,
@@ -2434,9 +2439,9 @@ const ServicePage = () => {
             </div>
 
             {/* Search + Export */}
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '14px 26px', borderBottom: `1px solid ${D.border}` }}>
+             <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '14px 26px', borderBottom: `1px solid ${D.border}` }}>
               <div style={{ position: 'relative', flex: 1 }}>
-                <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
+                <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, opacity: 0.8 }} />
                 <input
                   type="text"
                   id="service-search"
@@ -2444,17 +2449,17 @@ const ServicePage = () => {
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   style={{
-                    width: '100%', padding: '8px 34px 8px 34px',
+                    width: '100%', padding: '12px 36px 12px 38px',
                     background: D.inputBg, border: `1px solid ${search ? 'rgba(99,102,241,0.4)' : D.inputBorder}`,
-                    borderRadius: 10, color: D.text, fontSize: '0.8rem', outline: 'none',
-                    boxSizing: 'border-box', transition: 'border-color 0.15s',
+                    borderRadius: 14, color: D.text, fontSize: '0.95rem', outline: 'none',
+                    boxSizing: 'border-box', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                   }}
-                  onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.08)' }}
-                  onBlur={e => { e.target.style.borderColor = search ? 'rgba(99,102,241,0.4)' : D.inputBorder; e.target.style.boxShadow = 'none' }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; e.target.style.boxShadow = '0 0 0 4px rgba(99,102,241,0.08)'; e.target.style.background = D.surface }}
+                  onBlur={e => { e.target.style.borderColor = search ? 'rgba(99,102,241,0.4)' : D.inputBorder; e.target.style.boxShadow = 'none'; e.target.style.background = D.inputBg }}
                 />
                 {search && (
-                  <X size={14} onClick={() => setSearch('')}
-                    style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: D.textSub, cursor: 'pointer' }} />
+                  <X size={16} onClick={() => setSearch('')}
+                    style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, cursor: 'pointer' }} />
                 )}
               </div>
 
@@ -2494,17 +2499,35 @@ const ServicePage = () => {
                 onClick={handleExportPDF}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6,
-                  padding: '8px 16px', borderRadius: 10,
+                  padding: '10px 18px', borderRadius: 12,
                   background: D.surfaceHi, border: `1px solid ${D.border}`,
-                  color: D.text, fontSize: '0.78rem', fontWeight: 700,
+                  color: D.text, fontSize: '0.88rem', fontWeight: 800,
                   cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.1)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.28)'; e.currentTarget.style.color = '#a5b4fc' }}
                 onMouseLeave={e => { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}
               >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                 Export PDF
               </button>
+
+              {!isDriver && (
+                <button
+                  onClick={() => setDeletedDrawer(true)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '10px 18px', borderRadius: 12,
+                    background: D.surfaceHi, border: `1px solid ${D.border}`,
+                    color: D.textSub, fontSize: '0.88rem', fontWeight: 800,
+                    cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.28)'; e.currentTarget.style.color = '#f87171' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.textSub }}
+                >
+                  <Archive size={15} />
+                  Deleted Records
+                </button>
+              )}
             </div>
 
             {/* Conditionally Render Table or Card Grid based on viewMode */}
@@ -3393,8 +3416,8 @@ const ServicePage = () => {
 
               {/* Footer */}
               <div style={{ padding: '16px 28px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 10, background: D.surfaceHi, flexShrink: 0 }}>
-                {/* Controller only: show Edit + Delete; Admin is view-only */}
-                {!isDriver && !isAdmin && (
+                {/* Controller & Admin: show Edit + Delete */}
+                {!isDriver && (
                   <>
                     <button
                       onClick={() => { closeDetail(); openEditModal(r.id) }}

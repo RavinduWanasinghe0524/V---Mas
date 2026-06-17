@@ -27,6 +27,9 @@ public class Vehicle {
     @Column(name = "chassis_no", nullable = true, length = 150)
     private String chassisNo;
 
+    @Column(name = "engine_no", nullable = true, length = 150)
+    private String engineNo;
+
     @Column(name = "registration_no", nullable = false, unique = true, length = 50)
     private String registrationNo;
 
@@ -78,4 +81,18 @@ public class Vehicle {
 
     @Column(name = "registration_book_path", length = 500, nullable = true)
     private String registrationBookPath;
+
+    // ── Soft-delete fields ────────────────────────────────────────────────
+
+    /** True when the record has been soft-deleted (not physically removed). */
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean deleted = false;
+
+    /** Username of the person who performed the soft-delete. */
+    @Column(name = "deleted_by", length = 100)
+    private String deletedBy;
+
+    /** Timestamp of when the soft-delete was performed. */
+    @Column(name = "deleted_at")
+    private java.time.LocalDateTime deletedAt;
 }

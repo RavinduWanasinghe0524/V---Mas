@@ -88,7 +88,9 @@ export const vehicleAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
-  getDocumentUrl: (id, docType) => `${API_BASE_URL}/vehicles/${id}/document/${docType}`
+  getDocumentUrl: (id, docType) => `${API_BASE_URL}/vehicles/${id}/document/${docType}`,
+  getDeletedVehicles: () => api.get('/vehicles/deleted'),
+  restoreVehicle: (id) => api.patch(`/vehicles/${id}/restore`)
 }
 
 export const fuelAPI = {
