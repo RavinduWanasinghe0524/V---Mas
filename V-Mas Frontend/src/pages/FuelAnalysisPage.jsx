@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useD } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { fuelAPI, vehicleAPI } from '../services/api'
-import { Fuel, Check, X, TrendingUp, Edit2, Plus, Calendar, User, Search, Filter, Car, MoreVertical, Activity, Zap, Droplets, DollarSign, ArrowUpRight, ArrowDownRight, MapPin } from 'lucide-react'
+import { Fuel, Check, X, TrendingUp, Edit2, Plus, Calendar, User, Search, Filter, Car, MoreVertical, Activity, Zap, Droplets, DollarSign, ArrowUpRight, ArrowDownRight, MapPin, RefreshCw } from 'lucide-react'
 import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 const card = (D) => ({
@@ -145,7 +145,9 @@ const AdminCostTrendChart = ({ logs, D }) => {
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     const label = d.toLocaleString('default', { month: 'short' })
     if (!monthMap[key]) monthMap[key] = { label, cost: 0 }
-    monthMap[key].cost += l.totalCost || 0
+    // Use totalCost if available, otherwise compute from liters * costPerLiter
+    const cost = l.totalCost != null ? l.totalCost : (l.liters || 0) * (l.costPerLiter || 0)
+    monthMap[key].cost += cost
   })
   const entries = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).slice(-6)
   if (entries.length === 0) return <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.textSub }}>No data</div>
@@ -155,12 +157,18 @@ const AdminCostTrendChart = ({ logs, D }) => {
   const maxC = Math.max(...costs, 1)
   const minC = 0
   const range = maxC - minC || 1
+
+  // For a single data point, center it; otherwise distribute evenly
   const pts = costs.map((c, i) => ({
-    x: PAD.l + (i / Math.max(costs.length - 1, 1)) * (W - PAD.l - PAD.r),
+    x: costs.length === 1
+      ? (W - PAD.l - PAD.r) / 2 + PAD.l
+      : PAD.l + (i / (costs.length - 1)) * (W - PAD.l - PAD.r),
     y: PAD.t + (1 - (c - minC) / range) * (H - PAD.t - PAD.b),
   }))
   const polyline = pts.map(p => `${p.x},${p.y}`).join(' ')
-  const area = `${pts[0].x},${H - PAD.b} ` + pts.map(p => `${p.x},${p.y}`).join(' ') + ` ${pts[pts.length - 1].x},${H - PAD.b}`
+  const area = costs.length === 1
+    ? `${pts[0].x - 20},${H - PAD.b} ${pts[0].x},${pts[0].y} ${pts[0].x + 20},${H - PAD.b}`
+    : `${pts[0].x},${H - PAD.b} ` + pts.map(p => `${p.x},${p.y}`).join(' ') + ` ${pts[pts.length - 1].x},${H - PAD.b}`
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map(f => ({ y: PAD.t + (1 - f) * (H - PAD.t - PAD.b), val: Math.round(f * maxC / 1000) + 'k' }))
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', overflow: 'visible' }}>
@@ -248,6 +256,9 @@ const FuelAnalysisPage = () => {
   const [period, setPeriod] = useState('6M')
   const [costPeriod, setCostPeriod] = useState('ALL')
   const [liveTime, setLiveTime] = useState('')
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const refreshTimeoutRef = useRef(null)
 
   const [summary, setSummary] = useState({ totalDiesel: 0, totalPetrol: 0, totalVolume: 0, totalCost: 0, logCount: 0 })
   const [chartData, setChartData] = useState({ months: [], data: { Diesel: [], Petrol: [] } })
@@ -271,109 +282,141 @@ const FuelAnalysisPage = () => {
     return () => clearInterval(t)
   }, [])
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true)
+  const loadData = useCallback(async (silent = false) => {
+    try {
+      if (!silent) setLoading(true)
 
-        if (isAdmin || isController) {
-          // -- Admin/Controller: compute everything locally from raw logs --
-          const [allLogsRes, vehiclesRes] = await Promise.all([
-            fuelAPI.getAllFuelLogs(),
-            vehicleAPI.getAllVehicles(),
-          ])
-          const rawLogs = allLogsRes.data.data || []
-          const vehicles = vehiclesRes.data.data || []
-          
-          if (isAdmin) {
-            try {
-              const deletedRes = await fuelAPI.getDeletedLogs()
-              setDeletedFuelLogs((deletedRes.data.data || []).sort((a, b) => new Date(b.date) - new Date(a.date)))
-            } catch (err) {
-              console.error("Failed to fetch deleted logs:", err)
-            }
+      if (isAdmin || isController) {
+        // -- Admin/Controller: compute everything locally from raw logs --
+        const [allLogsRes, vehiclesRes] = await Promise.all([
+          fuelAPI.getAllFuelLogs(),
+          vehicleAPI.getAllVehicles(),
+        ])
+        const rawLogs = allLogsRes.data.data || []
+        const vehicles = vehiclesRes.data.data || []
+        
+        if (isAdmin) {
+          try {
+            const deletedRes = await fuelAPI.getDeletedLogs()
+            setDeletedFuelLogs((deletedRes.data.data || []).sort((a, b) => new Date(b.date) - new Date(a.date)))
+          } catch (err) {
+            console.error("Failed to fetch deleted logs:", err)
           }
-          
-          const activeLogs = rawLogs.filter(l => !l.isDeleted)
-
-          // Calculate efficiency client-side — pass vehicles so first log gets a baseline
-          computeLogsEfficiency(activeLogs, vehicles)
-
-          // Sort for display table (newest first)
-          setAllFuelLogs([...activeLogs].sort((a, b) => new Date(b.date) - new Date(a.date)))
-
-          // -- Summary KPIs (all-time totals, same as FuelManagementPage) --
-          const curYear = new Date().getFullYear()
-
-          const totalDiesel = activeLogs.filter(l => l.fuelType?.toLowerCase() === 'diesel').reduce((s, l) => s + (l.liters || 0), 0)
-          const totalPetrol = activeLogs.filter(l => l.fuelType?.toLowerCase() === 'petrol').reduce((s, l) => s + (l.liters || 0), 0)
-          const totalVolume = totalDiesel + totalPetrol
-          const totalCost   = activeLogs.reduce((s, l) => s + (l.totalCost || 0), 0)
-
-          setSummary({ totalDiesel, totalPetrol, totalVolume, totalCost, logCount: activeLogs.length })
-
-          // -- Monthly Chart (current year) ------------------------------
-          const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
-          const dieselArr = Array(12).fill(0)
-          const petrolArr = Array(12).fill(0)
-
-          activeLogs.forEach(l => {
-            const d = new Date(l.date)
-            if (d.getFullYear() !== curYear) return
-            const m = d.getMonth()
-            if (l.fuelType?.toLowerCase() === 'diesel') dieselArr[m] += (l.liters || 0)
-            else if (l.fuelType?.toLowerCase() === 'petrol') petrolArr[m] += (l.liters || 0)
-          })
-
-          setChartData({ months, data: { Diesel: dieselArr, Petrol: petrolArr } })
-
-          // -- Per-vehicle stats -----------------------------------------
-          const vehicleMap = {}
-          activeLogs.forEach(l => {
-            if (!vehicleMap[l.vehicleRegNumber]) {
-              vehicleMap[l.vehicleRegNumber] = { logs: [], totalSpending: 0 }
-            }
-            vehicleMap[l.vehicleRegNumber].logs.push(l)
-            vehicleMap[l.vehicleRegNumber].totalSpending += (l.totalCost || 0)
-          })
-
-          const statsArr = Object.entries(vehicleMap).map(([reg, { logs, totalSpending }]) => {
-            // Sort logs by date desc, efficiency = (latestMileage - prevMileage) / latestLiters
-            const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date))
-            let fuelEfficiency = null
-            if (sorted.length >= 2) {
-              const diff = sorted[0].mileage - sorted[1].mileage
-              const lit  = sorted[0].liters
-              if (lit > 0) fuelEfficiency = Math.round((diff / lit) * 100) / 100
-            }
-            const efficiencyStatus = fuelEfficiency == null ? 'Insufficient Data'
-              : fuelEfficiency < 5  ? 'Poor'
-              : fuelEfficiency < 10 ? 'Good'
-              : 'Excellent'
-            return { vehicleRegNumber: reg, fuelEfficiency, totalSpending, efficiencyStatus }
-          })
-
-          setVehicleStats(statsArr)
-
-        } else if (isDriver) {
-          // -- Driver: use own-scoped summary + chart + logs + vehicles for baseline --
-          const [summaryRes, chartRes, logsRes, vehiclesRes] = await Promise.all([
-            fuelAPI.getSummary(), fuelAPI.getChartData(), fuelAPI.getMyLogs(),
-            vehicleAPI.getAllVehicles(),
-          ])
-          setSummary(summaryRes.data.data || { totalDiesel: 0, totalPetrol: 0, totalVolume: 0, totalCost: 0 })
-          setChartData(chartRes.data.data || { months: [], data: { Diesel: [], Petrol: [] } })
-          const driverLogs = logsRes.data.data || []
-          const vehicles = vehiclesRes.data.data || []
-          computeLogsEfficiency(driverLogs, vehicles)
-          setMyVehicleLogs(driverLogs)
         }
+        
+        const activeLogs = rawLogs.filter(l => !l.isDeleted)
 
-      } catch (err) { console.error('Error loading fuel data:', err) }
-      finally { setLoading(false) }
+        // Calculate efficiency client-side — pass vehicles so first log gets a baseline
+        computeLogsEfficiency(activeLogs, vehicles)
+
+        // Sort for display table (newest first)
+        setAllFuelLogs([...activeLogs].sort((a, b) => new Date(b.date) - new Date(a.date)))
+
+        // -- Summary KPIs (all-time totals, same as FuelManagementPage) --
+        const curYear = new Date().getFullYear()
+
+        const totalDiesel = activeLogs.filter(l => l.fuelType?.toLowerCase() === 'diesel').reduce((s, l) => s + (l.liters || 0), 0)
+        const totalPetrol = activeLogs.filter(l => l.fuelType?.toLowerCase() === 'petrol').reduce((s, l) => s + (l.liters || 0), 0)
+        const totalVolume = totalDiesel + totalPetrol
+        const totalCost   = activeLogs.reduce((s, l) => s + (l.totalCost || 0), 0)
+
+        setSummary({ totalDiesel, totalPetrol, totalVolume, totalCost, logCount: activeLogs.length })
+
+        // -- Monthly Chart (current year) ------------------------------
+        const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
+        const dieselArr = Array(12).fill(0)
+        const petrolArr = Array(12).fill(0)
+
+        activeLogs.forEach(l => {
+          const d = new Date(l.date)
+          if (d.getFullYear() !== curYear) return
+          const m = d.getMonth()
+          if (l.fuelType?.toLowerCase() === 'diesel') dieselArr[m] += (l.liters || 0)
+          else if (l.fuelType?.toLowerCase() === 'petrol') petrolArr[m] += (l.liters || 0)
+        })
+
+        setChartData({ months, data: { Diesel: dieselArr, Petrol: petrolArr } })
+
+        // -- Per-vehicle stats -----------------------------------------
+        const vehicleMap = {}
+        activeLogs.forEach(l => {
+          if (!vehicleMap[l.vehicleRegNumber]) {
+            vehicleMap[l.vehicleRegNumber] = { logs: [], totalSpending: 0 }
+          }
+          vehicleMap[l.vehicleRegNumber].logs.push(l)
+          vehicleMap[l.vehicleRegNumber].totalSpending += (l.totalCost || 0)
+        })
+
+        const statsArr = Object.entries(vehicleMap).map(([reg, { logs, totalSpending }]) => {
+          // Sort logs by date desc, efficiency = (latestMileage - prevMileage) / latestLiters
+          const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date))
+          let fuelEfficiency = null
+          if (sorted.length >= 2) {
+            const diff = sorted[0].mileage - sorted[1].mileage
+            const lit  = sorted[0].liters
+            if (lit > 0) fuelEfficiency = Math.round((diff / lit) * 100) / 100
+          }
+          const efficiencyStatus = fuelEfficiency == null ? 'Insufficient Data'
+            : fuelEfficiency < 5  ? 'Poor'
+            : fuelEfficiency < 10 ? 'Good'
+            : 'Excellent'
+          return { vehicleRegNumber: reg, fuelEfficiency, totalSpending, efficiencyStatus }
+        })
+
+        setVehicleStats(statsArr)
+
+      } else if (isDriver) {
+        // -- Driver: use own-scoped summary + chart + logs + vehicles for baseline --
+        const [summaryRes, chartRes, logsRes, vehiclesRes] = await Promise.all([
+          fuelAPI.getSummary(), fuelAPI.getChartData(), fuelAPI.getMyLogs(),
+          vehicleAPI.getAllVehicles(),
+        ])
+        setSummary(summaryRes.data.data || { totalDiesel: 0, totalPetrol: 0, totalVolume: 0, totalCost: 0 })
+        setChartData(chartRes.data.data || { months: [], data: { Diesel: [], Petrol: [] } })
+        const driverLogs = logsRes.data.data || []
+        const vehicles = vehiclesRes.data.data || []
+        computeLogsEfficiency(driverLogs, vehicles)
+        setMyVehicleLogs(driverLogs)
+      }
+
+    } catch (err) { console.error('Error loading fuel data:', err) }
+    finally {
+      setLoading(false)
+      setIsRefreshing(false)
     }
-    loadData()
-  }, [isAdmin, isController, isDriver, user])
+  }, [isAdmin, isController, isDriver])
+
+  // Initial load + re-load on refreshKey change
+  useEffect(() => {
+    loadData(refreshKey > 0) // silent refresh after first load
+  }, [loadData, refreshKey])
+
+  // Auto-poll every 30 seconds (admin/controller only)
+  useEffect(() => {
+    if (!isAdmin && !isController) return
+    const interval = setInterval(() => {
+      setRefreshKey(k => k + 1)
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [isAdmin, isController])
+
+  const handleManualRefresh = () => {
+    if (isRefreshing) return
+    setIsRefreshing(true)
+    setRefreshKey(k => k + 1)
+  }
+
+  // Refresh when user switches back to this tab (e.g. after adding/removing on FuelManagementPage)
+  useEffect(() => {
+    if (!isAdmin && !isController) return
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        setRefreshKey(k => k + 1)
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [isAdmin, isController])
 
 
 
@@ -562,15 +605,26 @@ const FuelAnalysisPage = () => {
                 </div>
               </div>
 
-              {/* Right: Log Fuel button */}
+              {/* Right: Refresh button */}
               <button
-                onClick={() => { setActiveTab('audit'); document.getElementById('audit-view')?.scrollIntoView({ behavior:'smooth' }) }}
-                style={{ position:'relative', display:'flex', alignItems:'center', gap:10, padding:'13px 26px', borderRadius:14, border:'none', background:'rgba(255,255,255,0.95)', color:'#1e3a8a', fontSize:'0.95rem', fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 8px 30px rgba(0,0,0,0.3)', transition:'all 0.25s cubic-bezier(0.4,0,0.2,1)', flexShrink:0 }}
-                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 14px 40px rgba(255,255,255,0.25)' }}
-                onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 8px 30px rgba(0,0,0,0.3)' }}
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+                style={{
+                  position: 'relative', display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '11px 22px', borderRadius: 14, border: '1px solid rgba(255,255,255,0.25)',
+                  background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: '0.88rem',
+                  fontWeight: 700, cursor: isRefreshing ? 'not-allowed' : 'pointer',
+                  backdropFilter: 'blur(8px)', transition: 'all 0.2s', flexShrink: 0,
+                  opacity: isRefreshing ? 0.7 : 1,
+                }}
+                onMouseEnter={e => { if (!isRefreshing) e.currentTarget.style.background = 'rgba(255,255,255,0.2)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
               >
-                <Plus size={18} strokeWidth={3} /> Log Fuel
+                <RefreshCw size={16} style={{ animation: isRefreshing ? 'spin 0.7s linear infinite' : 'none' }} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
               </button>
+
+
             </div>
           ) : (
           /* Driver hero banner (updated to premium style) */
