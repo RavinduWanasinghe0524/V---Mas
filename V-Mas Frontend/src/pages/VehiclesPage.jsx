@@ -6,7 +6,10 @@ import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import api, { vehicleAPI, userAPI, serviceAPI, fuelAPI } from '../services/api'
 import { getAlertLevel, computeMileageProgress, computeDateAlert, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
-import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download } from 'lucide-react'
+import { getDriverMetrics } from '../utils/driverUtils'
+import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download, Phone, IdCard, Shield, Star, Zap, LayoutGrid, List } from 'lucide-react'
+import { generateStyledExcel } from '../utils/excelExport'
+import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'
@@ -59,6 +62,12 @@ const VehiclesPage = () => {
 
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('ALL')
+  const [fuelFilter, setFuelFilter] = useState('ALL')
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('vmas_vehicles_view_mode') || 'grid')
+
+  useEffect(() => {
+    localStorage.setItem('vmas_vehicles_view_mode', viewMode)
+  }, [viewMode])
   const { user, isAdmin, isDriver } = useAuth()
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -79,12 +88,112 @@ const VehiclesPage = () => {
   const [drivers, setDrivers] = useState([])
   const [fuelStats, setFuelStats] = useState([])
 
+  const [driverDetailsUser, setDriverDetailsUser] = useState(null)
+  const [isDriverDetailsOpen, setIsDriverDetailsOpen] = useState(false)
+  const [activeAssigningVehicleId, setActiveAssigningVehicleId] = useState(null)
+
+  const [isOdometerModalOpen, setIsOdometerModalOpen] = useState(false)
+  const [odometerVehicle, setOdometerVehicle] = useState(null)
+  const [newOdometerValue, setNewOdometerValue] = useState('')
+  const [odometerError, setOdometerError] = useState('')
+
+  const handleOdometerSubmit = async (e) => {
+    e.preventDefault()
+    setOdometerError('')
+    if (!newOdometerValue || isNaN(newOdometerValue) || Number(newOdometerValue) < 0) {
+      setOdometerError('Please enter a valid mileage (positive number).')
+      return
+    }
+    try {
+      await vehicleAPI.updateVehicle(odometerVehicle.id, {
+        model: odometerVehicle.model,
+        registrationNo: odometerVehicle.registrationNo,
+        chassisNumber: odometerVehicle.chassisNumber,
+        manufacturer: odometerVehicle.manufacturer,
+        year: odometerVehicle.year,
+        fuelType: odometerVehicle.fuelType?.toUpperCase(),
+        currentMileageKm: Number(newOdometerValue),
+        fuelCapacity: odometerVehicle.fuelCapacity ? Number(odometerVehicle.fuelCapacity) : null,
+        insuranceExpiryDate: odometerVehicle.insuranceExpiryDate || null,
+        licenseExpiryDate: odometerVehicle.licenseExpiryDate || null,
+        status: odometerVehicle.status
+      })
+      const response = await vehicleAPI.getAllVehicles()
+      const updatedList = response.data.data || []
+      setVehicles(updatedList)
+
+      const updatedVeh = updatedList.find(v => v.id === odometerVehicle.id)
+      if (selectedProfileVehicle && selectedProfileVehicle.id === odometerVehicle.id && updatedVeh) {
+        setSelectedProfileVehicle(updatedVeh)
+      }
+
+      setIsOdometerModalOpen(false)
+      setOdometerVehicle(null)
+      setNewOdometerValue('')
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Failed to update mileage.'
+      setOdometerError(msg)
+      console.error('Error updating odometer:', err)
+    }
+  }
+
+  const openOdometerModal = (e, vehicle) => {
+    e.stopPropagation()
+    setOdometerVehicle(vehicle)
+    setNewOdometerValue(vehicle.currentMileageKm || '')
+    setOdometerError('')
+    setIsOdometerModalOpen(true)
+  }
+
+  const handleInlineAssignDriver = async (vehicleId, driverId) => {
+    try {
+      await vehicleAPI.assignDriver(vehicleId, driverId)
+      const response = await vehicleAPI.getAllVehicles()
+      const updatedList = response.data.data || []
+      setVehicles(updatedList)
+
+      const updatedVeh = updatedList.find(v => v.id === vehicleId)
+      if (selectedProfileVehicle && selectedProfileVehicle.id === vehicleId && updatedVeh) {
+        setSelectedProfileVehicle(updatedVeh)
+      }
+    } catch (err) {
+      console.error("Failed to assign driver inline:", err)
+      alert(err.response?.data?.message || "Failed to assign driver.")
+    }
+  }
+
+  const handleInlineUnassignDriver = async (vehicleId) => {
+    try {
+      await vehicleAPI.unassignDriver(vehicleId)
+      const response = await vehicleAPI.getAllVehicles()
+      const updatedList = response.data.data || []
+      setVehicles(updatedList)
+
+      const updatedVeh = updatedList.find(v => v.id === vehicleId)
+      if (selectedProfileVehicle && selectedProfileVehicle.id === vehicleId && updatedVeh) {
+        setSelectedProfileVehicle(updatedVeh)
+      }
+    } catch (err) {
+      console.error("Failed to unassign driver inline:", err)
+      alert(err.response?.data?.message || "Failed to unassign driver.")
+    }
+  }
+
   // --- VEHICLE PROFILE STATE ---
   const [selectedProfileVehicle, setSelectedProfileVehicle] = useState(null)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [profileActiveTab, setProfileActiveTab] = useState('overview')
   const [profileFuelLogs, setProfileFuelLogs] = useState([])
   const [loadingProfileFuel, setLoadingProfileFuel] = useState(false)
+
+  const handleExportExcel = async () => {
+    try {
+      await generateStyledExcel('vehicle-summary', { vehicles: filtered })
+    } catch (err) {
+      console.error("Failed to export Excel:", err)
+      alert("Failed to export Excel report.")
+    }
+  }
 
   const openProfile = async (vehicle) => {
     setSelectedProfileVehicle(vehicle)
@@ -93,7 +202,9 @@ const VehiclesPage = () => {
     setLoadingProfileFuel(true)
     try {
       const res = await fuelAPI.getLogsByVehicle(vehicle.registrationNo)
-      setProfileFuelLogs(res.data.data || [])
+      const rawLogs = res.data.data || []
+      const logsWithEff = computeLogsEfficiency(rawLogs, vehicles)
+      setProfileFuelLogs(logsWithEff)
     } catch (err) {
       console.error('Error fetching fuel logs for profile:', err)
       setProfileFuelLogs([])
@@ -250,7 +361,8 @@ const VehiclesPage = () => {
     driverId: '',
     currentMileageKm: '',
     insuranceExpiryDate: '',
-    licenseExpiryDate: ''
+    licenseExpiryDate: '',
+    fuelCapacity: ''
   })
   const [editFormData, setEditFormData] = useState({
     model: '',
@@ -262,17 +374,18 @@ const VehiclesPage = () => {
     driverId: '',
     currentMileageKm: '',
     insuranceExpiryDate: '',
-    licenseExpiryDate: ''
+    licenseExpiryDate: '',
+    fuelCapacity: ''
   })
 
   useEffect(() => {
-    if (isModalOpen || isEditModalOpen || isDeleteModalOpen || isProfileOpen) {
+    if (isModalOpen || isEditModalOpen || isDeleteModalOpen || isProfileOpen || isOdometerModalOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
     }
     return () => { document.body.style.overflow = '' }
-  }, [isModalOpen, isEditModalOpen, isDeleteModalOpen, isProfileOpen])
+  }, [isModalOpen, isEditModalOpen, isDeleteModalOpen, isProfileOpen, isOdometerModalOpen])
 
   useEffect(() => {
     const loadData = async () => {
@@ -311,7 +424,8 @@ const VehiclesPage = () => {
       driverId: '',
       currentMileageKm: '',
       insuranceExpiryDate: '',
-      licenseExpiryDate: ''
+      licenseExpiryDate: '',
+      fuelCapacity: ''
     })
   }
 
@@ -331,6 +445,7 @@ const VehiclesPage = () => {
         ...rest,
         year: rest.year ? Number(rest.year) : undefined,
         currentMileageKm: rest.currentMileageKm ? Number(rest.currentMileageKm) : undefined,
+        fuelCapacity: rest.fuelCapacity ? Number(rest.fuelCapacity) : null,
         insuranceExpiryDate: rest.insuranceExpiryDate || null,
         licenseExpiryDate: rest.licenseExpiryDate || null,
       }
@@ -365,7 +480,9 @@ const VehiclesPage = () => {
       driverId: vehicle.driverId || '',
       currentMileageKm: vehicle.currentMileageKm || '',
       insuranceExpiryDate: vehicle.insuranceExpiryDate || '',
-      licenseExpiryDate: vehicle.licenseExpiryDate || ''
+      licenseExpiryDate: vehicle.licenseExpiryDate || '',
+      fuelCapacity: vehicle.fuelCapacity || '',
+      status: vehicle.status || ''
     })
     setIsEditModalOpen(true)
   }
@@ -384,7 +501,9 @@ const VehiclesPage = () => {
       driverId: '',
       currentMileageKm: '',
       insuranceExpiryDate: '',
-      licenseExpiryDate: ''
+      licenseExpiryDate: '',
+      fuelCapacity: '',
+      status: ''
     })
   }
 
@@ -411,6 +530,7 @@ const VehiclesPage = () => {
         year: editFormData.year,
         fuelType: editFormData.fuelType.toUpperCase(),
         currentMileageKm: editFormData.currentMileageKm,
+        fuelCapacity: editFormData.fuelCapacity ? Number(editFormData.fuelCapacity) : null,
         insuranceExpiryDate: editFormData.insuranceExpiryDate || null,
         licenseExpiryDate: editFormData.licenseExpiryDate || null,
         status: editFormData.status
@@ -461,7 +581,8 @@ const VehiclesPage = () => {
       v.registrationNo?.toLowerCase().includes(search.toLowerCase()) ||
       v.manufacturer?.toLowerCase().includes(search.toLowerCase())
     const matchFilter = filter === 'ALL' || v.status === filter
-    return matchSearch && matchFilter
+    const matchFuel = fuelFilter === 'ALL' || v.fuelType?.toUpperCase() === fuelFilter
+    return matchSearch && matchFilter && matchFuel
   })
 
   const counts = {
@@ -538,17 +659,30 @@ const VehiclesPage = () => {
                 </div>
               </div>
               {!isDriver && (
-                <button onClick={openModal} style={{
-                  position: 'relative', padding: '14px 28px', borderRadius: 16, border: 'none',
-                  background: '#fff', color: '#1e3a8a', fontSize: '0.95rem', fontWeight: 800,
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
-                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.25)', whiteSpace: 'nowrap'
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}>
-                  <Plus size={20} strokeWidth={3} /> Add Vehicle
-                </button>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <button onClick={handleExportExcel} style={{
+                    position: 'relative', padding: '14px 24px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.25)',
+                    background: 'rgba(255, 255, 255, 0.08)', color: '#fff', fontSize: '0.95rem', fontWeight: 800,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, backdropFilter: 'blur(8px)',
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.15)', whiteSpace: 'nowrap'
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)' }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)' }}>
+                    <Download size={18} /> Export Excel
+                  </button>
+                  <button onClick={openModal} style={{
+                    position: 'relative', padding: '14px 28px', borderRadius: 16, border: 'none',
+                    background: '#fff', color: '#1e3a8a', fontSize: '0.95rem', fontWeight: 800,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.25)', whiteSpace: 'nowrap'
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}>
+                    <Plus size={20} strokeWidth={3} /> Add Vehicle
+                  </button>
+                </div>
               )}
             </div>
 
@@ -625,7 +759,7 @@ const VehiclesPage = () => {
             )}
 
             {/* Stats row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
+            <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
               <StatBadge label="Total Vehicles" value={vehicles.length} icon={<Car size={24} />} colorDim={D.purpleDim} colorHex={D.purple} D={D} />
               <StatBadge label="Active" value={counts.ACTIVE} icon={<CheckCircle size={24} />} colorDim={D.greenDim} colorHex={D.green} D={D} />
               <StatBadge label="In Service" value={counts.SERVICE} icon={<Wrench size={24} />} colorDim={D.orangeDim} colorHex={D.orange} D={D} />
@@ -647,7 +781,7 @@ const VehiclesPage = () => {
                       onFocus={onFocus} onBlur={onBlur}
                     />
                   </div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                     {['ALL', 'ACTIVE', 'AVAILABLE', 'SERVICE', 'INACTIVE'].map(s => (
                       <button
                         key={s}
@@ -664,10 +798,66 @@ const VehiclesPage = () => {
                         {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
                       </button>
                     ))}
+
+                    <select
+                      value={fuelFilter}
+                      onChange={e => setFuelFilter(e.target.value)}
+                      style={{
+                        padding: '10px 18px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800,
+                        border: `1px solid ${D.border}`,
+                        background: 'rgba(255,255,255,0.05)',
+                        color: D.textSub,
+                        cursor: 'pointer', transition: 'all 0.15s ease',
+                        outline: 'none',
+                        fontFamily: 'inherit'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = D.blue; e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                    >
+                      <option value="ALL" style={{ background: D.surface, color: D.text }}>All Fuel Types</option>
+                      <option value="PETROL" style={{ background: D.surface, color: D.text }}>Petrol</option>
+                      <option value="DIESEL" style={{ background: D.surface, color: D.text }}>Diesel</option>
+                      <option value="HYBRID" style={{ background: D.surface, color: D.text }}>Hybrid</option>
+                      <option value="ELECTRIC" style={{ background: D.surface, color: D.text }}>Electric</option>
+                    </select>
                   </div>
                 </div>
-                <div style={{ fontSize: '0.9rem', color: D.textSub, fontWeight: 700, background: D.surface, padding: '8px 16px', borderRadius: 12, border: `1px solid ${D.border}`, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  <span style={{ color: D.purple }}>{filtered.length}</span> Vehicles
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                  {/* View Toggler */}
+                  <div style={{
+                    display: 'flex', background: 'rgba(255,255,255,0.03)', border: `1px solid ${D.border}`,
+                    borderRadius: 12, padding: 3, gap: 2
+                  }}>
+                    <button
+                      onClick={() => setViewMode('grid')}
+                      title="Grid View"
+                      style={{
+                        background: viewMode === 'grid' ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'transparent',
+                        color: viewMode === 'grid' ? '#fff' : D.textSub,
+                        border: 'none', borderRadius: 8, padding: '6px 8px', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', cursor: 'pointer', transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <LayoutGrid size={15} />
+                    </button>
+                    <button
+                      onClick={() => setViewMode('table')}
+                      title="List View"
+                      style={{
+                        background: viewMode === 'table' ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'transparent',
+                        color: viewMode === 'table' ? '#fff' : D.textSub,
+                        border: 'none', borderRadius: 8, padding: '6px 8px', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', cursor: 'pointer', transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <List size={15} />
+                    </button>
+                  </div>
+
+                  {/* Vehicle Count Badge */}
+                  <div style={{ fontSize: '0.9rem', color: D.textSub, fontWeight: 700, background: D.surface, padding: '8px 16px', borderRadius: 12, border: `1px solid ${D.border}`, whiteSpace: 'nowrap' }}>
+                    <span style={{ color: D.purple }}>{filtered.length}</span> Vehicles
+                  </div>
                 </div>
               </div>
 
@@ -680,6 +870,213 @@ const VehiclesPage = () => {
                     </div>
                     <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.2rem' }}>No matching vehicles</h3>
                     <p style={{ margin: '10px 0 0', color: D.textSub, fontSize: '1rem', fontWeight: 500 }}>Adjust your search terms or filters to find what you're looking for.</p>
+                  </div>
+                ) : viewMode === 'table' ? (
+                  <div style={{ overflowX: 'auto', background: 'rgba(255,255,255,0.01)', borderRadius: 16, border: `1px solid ${D.border}` }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                      <thead>
+                        <tr style={{ borderBottom: `2px solid ${D.border}`, background: D.surfaceHi }}>
+                          <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Reg Number</th>
+                          <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Make / Model</th>
+                          <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Status</th>
+                          <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Odometer</th>
+                          <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Driver</th>
+                          <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Fuel Type</th>
+                          <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em', textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtered.map((v, i) => {
+                          const s = statusColors[v.status] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
+                          const driver = drivers.find(d => String(d.id) === String(v.driverId))
+
+                          const today = new Date()
+                          const insExpiry = v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate) : null
+                          const licExpiry = v.licenseExpiryDate ? new Date(v.licenseExpiryDate) : null
+                          const insDiff = insExpiry ? Math.ceil((insExpiry - today) / (1000 * 60 * 60 * 24)) : null
+                          const licDiff = licExpiry ? Math.ceil((licExpiry - today) / (1000 * 60 * 60 * 24)) : null
+                          const isInsExpired = insDiff !== null && insDiff < 0
+                          const isLicExpired = licDiff !== null && licDiff < 0
+                          const isInsAlert = insDiff !== null && insDiff <= 30
+                          const isLicAlert = licDiff !== null && licDiff <= 30
+
+                          const rowAlertBorder = (isInsExpired || isLicExpired)
+                            ? `left 3px solid ${D.red}`
+                            : (isInsAlert || isLicAlert)
+                              ? `left 3px solid ${D.orange}`
+                              : 'none'
+
+                          return (
+                            <tr
+                              key={v.id}
+                              style={{
+                                borderBottom: `1px solid ${D.border}`,
+                                transition: 'background 0.2s ease',
+                                cursor: 'pointer',
+                                background: D.surface
+                              }}
+                              onClick={() => openProfile(v)}
+                              onMouseEnter={e => { e.currentTarget.style.background = D.surfaceHi }}
+                              onMouseLeave={e => { e.currentTarget.style.background = D.surface }}
+                            >
+                              <td style={{ padding: '14px 20px', fontWeight: 700, borderLeft: rowAlertBorder }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ color: D.blue, textDecoration: 'underline' }}>{v.registrationNo ?? 'N/A'}</span>
+                                  {(isInsExpired || isLicExpired) ? (
+                                    <AlertCircle size={13} style={{ color: D.red }} title={isInsExpired ? "Insurance Expired" : "License Expired"} />
+                                  ) : (isInsAlert || isLicAlert) ? (
+                                    <AlertTriangle size={13} style={{ color: D.orange }} title={isInsAlert ? "Insurance Expiring Soon" : "License Expiring Soon"} />
+                                  ) : null}
+                                </div>
+                              </td>
+                              <td style={{ padding: '14px 20px', color: D.text, fontWeight: 600 }}>
+                                {v.manufacturer ?? 'N/A'} {v.model ?? ''}
+                              </td>
+                              <td style={{ padding: '14px 20px' }}>
+                                <span style={{
+                                  padding: '3px 10px', borderRadius: 99, fontSize: '0.7rem', fontWeight: 700,
+                                  background: s.bg, color: s.color, border: `1px solid ${s.border || (s.color + '30')}`,
+                                  textTransform: 'uppercase', letterSpacing: '0.02em', display: 'inline-block'
+                                }}>
+                                  {v.status ?? 'N/A'}
+                                </span>
+                              </td>
+                              <td style={{ padding: '14px 20px' }}>
+                                <div
+                                  onClick={(e) => { e.stopPropagation(); openOdometerModal(e, v); }}
+                                  style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                                    padding: '4px 8px', borderRadius: 8, border: `1px solid transparent`,
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                  onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.background = D.purpleDim; }}
+                                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }}
+                                  title="Quick Update Mileage"
+                                >
+                                  <span style={{ fontWeight: 750, color: D.text }}>
+                                    {v.currentMileageKm ? `${v.currentMileageKm.toLocaleString()} km` : '0 km'}
+                                  </span>
+                                  <Edit2 size={10} style={{ opacity: 0.6 }} />
+                                </div>
+                              </td>
+                              <td style={{ padding: '14px 20px' }} onClick={e => e.stopPropagation()}>
+                                {driver ? (
+                                  <span
+                                    onClick={() => {
+                                      setDriverDetailsUser(driver);
+                                      setIsDriverDetailsOpen(true);
+                                    }}
+                                    style={{
+                                      color: D.blue,
+                                      cursor: 'pointer',
+                                      fontWeight: 800,
+                                      textDecoration: 'underline'
+                                    }}
+                                  >
+                                    {driver.userName}
+                                  </span>
+                                ) : !isDriver ? (
+                                  activeAssigningVehicleId === v.id ? (
+                                    <select
+                                      value=""
+                                      onChange={async (e) => {
+                                        const drvId = e.target.value;
+                                        if (drvId) {
+                                          await handleInlineAssignDriver(v.id, drvId);
+                                        }
+                                        setActiveAssigningVehicleId(null);
+                                      }}
+                                      onBlur={() => setActiveAssigningVehicleId(null)}
+                                      autoFocus
+                                      style={{
+                                        background: D.inputBg,
+                                        color: D.text,
+                                        border: `1px solid ${D.purple}`,
+                                        borderRadius: 8,
+                                        fontSize: '0.75rem',
+                                        padding: '2px 6px',
+                                        outline: 'none',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      <option value="">Select Driver...</option>
+                                      {drivers
+                                        .filter(d => !vehicles.some(veh => String(veh.driverId) === String(d.id)))
+                                        .map(d => (
+                                          <option key={d.id} value={d.id}>{d.userName}</option>
+                                        ))
+                                      }
+                                    </select>
+                                  ) : (
+                                    <span
+                                      onClick={() => setActiveAssigningVehicleId(v.id)}
+                                      style={{
+                                        color: D.blue,
+                                        cursor: 'pointer',
+                                        fontWeight: 700,
+                                        fontSize: '0.75rem',
+                                        textDecoration: 'underline'
+                                      }}
+                                    >
+                                      Assign
+                                    </span>
+                                  )
+                                ) : (
+                                  <span style={{ color: D.textFaint, fontStyle: 'italic' }}>Unassigned</span>
+                                )}
+                              </td>
+                              <td style={{ padding: '14px 20px', fontWeight: 600, color: D.textSub }}>
+                                {v.fuelType ?? 'N/A'}
+                              </td>
+                              <td style={{ padding: '14px 20px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                                <div style={{ display: 'inline-flex', gap: 8 }}>
+                                  <button
+                                    onClick={() => openProfile(v)}
+                                    style={{
+                                      background: 'none', border: 'none', padding: '4px 8px', borderRadius: 6,
+                                      color: D.blue, cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
+                                      display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease'
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = D.blueDim }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                                  >
+                                    <Eye size={13} />
+                                  </button>
+                                  {!isDriver && (
+                                    <>
+                                      <button
+                                        onClick={() => openEditModal(v)}
+                                        style={{
+                                          background: 'none', border: 'none', padding: '4px 8px', borderRadius: 6,
+                                          color: D.text, cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
+                                          display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease'
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                                      >
+                                        <Edit2 size={13} />
+                                      </button>
+                                      <button
+                                        onClick={() => openDeleteModal(v)}
+                                        style={{
+                                          background: 'none', border: 'none', padding: '4px 8px', borderRadius: 6,
+                                          color: D.red, cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
+                                          display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease'
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = D.redDim }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                                      >
+                                        <Trash2 size={13} />
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 }}>
@@ -704,21 +1101,35 @@ const VehiclesPage = () => {
 
                       const initials = v.manufacturer
                         ? (v.manufacturer.includes(' ')
-                            ? v.manufacturer.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
-                            : v.manufacturer.substring(0, 2).toUpperCase())
+                          ? v.manufacturer.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
+                          : v.manufacturer.substring(0, 2).toUpperCase())
                         : 'V'
 
                       const driver = drivers.find(d => String(d.id) === String(v.driverId))
 
+                      const cardAlertClass = (isInsExpired || isLicExpired)
+                        ? 'pulse-warning-red'
+                        : (isInsAlert || isLicAlert)
+                          ? 'pulse-warning-orange'
+                          : ''
+
+                      const defaultBorderColor = (isInsExpired || isLicExpired)
+                        ? 'rgba(239, 68, 68, 0.5)'
+                        : (isInsAlert || isLicAlert)
+                          ? 'rgba(245, 158, 11, 0.5)'
+                          : D.border
+
                       return (
-                        <div key={v.id} style={{
-                          background: D.surface, border: `1px solid ${D.border}`, borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column', gap: 20,
-                          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                          cursor: 'pointer'
-                        }}
+                        <div key={v.id}
+                          className={cardAlertClass}
+                          style={{
+                            background: D.surface, border: `1px solid ${defaultBorderColor}`, borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column', gap: 20,
+                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                            cursor: 'pointer'
+                          }}
                           onClick={() => openProfile(v)}
                           onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.2)' }}
-                          onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)' }}>
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = defaultBorderColor; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)' }}>
 
                           {/* Header row */}
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -767,12 +1178,20 @@ const VehiclesPage = () => {
 
                           {/* Stats Cards Row */}
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-                            <div style={{
-                              background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
-                              border: `1px solid ${D.border}`, borderRadius: 16, padding: '14px 6px', textAlign: 'center'
-                            }}>
-                              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: D.text }}>
+                            <div 
+                              onClick={(e) => { e.stopPropagation(); openOdometerModal(e, v); }}
+                              style={{
+                                background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
+                                border: `1px solid ${D.border}`, borderRadius: 16, padding: '14px 6px', textAlign: 'center',
+                                position: 'relative', cursor: 'pointer', transition: 'all 0.2s ease'
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.background = D.purpleDim; }}
+                              onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)'; }}
+                              title="Quick Update Mileage"
+                            >
+                              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: D.text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                                 {v.currentMileageKm ? v.currentMileageKm.toLocaleString() : '0'}
+                                <Edit2 size={10} style={{ opacity: 0.6 }} />
                               </div>
                               <div style={{ fontSize: '0.65rem', fontWeight: 700, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mileage</div>
                             </div>
@@ -800,9 +1219,89 @@ const VehiclesPage = () => {
 
                           {/* Details section */}
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }} onClick={e => e.stopPropagation()}>
                               <User size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                              <span>Driver: {driver ? driver.userName : 'Unassigned'}</span>
+                              <span>Driver: </span>
+                              {driver ? (
+                                <span
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDriverDetailsUser(driver);
+                                    setIsDriverDetailsOpen(true);
+                                  }}
+                                  style={{
+                                    color: D.blue,
+                                    cursor: 'pointer',
+                                    fontWeight: 800,
+                                    textDecoration: 'underline',
+                                    transition: 'color 0.2s',
+                                  }}
+                                  onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'}
+                                  onMouseLeave={e => e.currentTarget.style.color = D.blue}
+                                >
+                                  {driver.userName}
+                                </span>
+                              ) : !isDriver ? (
+                                activeAssigningVehicleId === v.id ? (
+                                  <select
+                                    value=""
+                                    onChange={async (e) => {
+                                      const drvId = e.target.value;
+                                      if (drvId) {
+                                        await handleInlineAssignDriver(v.id, drvId);
+                                      }
+                                      setActiveAssigningVehicleId(null);
+                                    }}
+                                    onBlur={() => setActiveAssigningVehicleId(null)}
+                                    autoFocus
+                                    style={{
+                                      background: D.inputBg,
+                                      color: D.text,
+                                      border: `1px solid ${D.purple}`,
+                                      borderRadius: 8,
+                                      fontSize: '0.75rem',
+                                      padding: '2px 6px',
+                                      outline: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    <option value="">Select Driver...</option>
+                                    {drivers
+                                      .filter(d => !vehicles.some(veh => String(veh.driverId) === String(d.id)))
+                                      .map(d => (
+                                        <option key={d.id} value={d.id}>{d.userName}</option>
+                                      ))
+                                    }
+                                  </select>
+                                ) : (
+                                  <span
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveAssigningVehicleId(v.id);
+                                    }}
+                                    style={{
+                                      color: D.blue,
+                                      cursor: 'pointer',
+                                      fontWeight: 800,
+                                      background: D.blueDim,
+                                      padding: '2px 8px',
+                                      borderRadius: 99,
+                                      fontSize: '0.72rem',
+                                      border: `1px solid ${D.blue}30`,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 4,
+                                      transition: 'all 0.2s',
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = D.blue; e.currentTarget.style.color = '#fff'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = D.blueDim; e.currentTarget.style.color = D.blue; }}
+                                  >
+                                    + Assign Driver
+                                  </span>
+                                )
+                              ) : (
+                                <span style={{ color: D.textFaint, fontStyle: 'italic' }}>Unassigned</span>
+                              )}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
                               <FileText size={14} style={{ color: D.textSub, flexShrink: 0 }} />
@@ -882,7 +1381,7 @@ const VehiclesPage = () => {
               </div>
 
               <form onSubmit={handleSubmit} style={{ padding: '36px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 32 }}>
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 32 }}>
                   <div>
                     <label style={labelStyle}>Manufacturer <span style={{ color: D.red }}>*</span></label>
                     <input type="text" name="manufacturer" value={formData.manufacturer} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. Toyota" />
@@ -913,6 +1412,10 @@ const VehiclesPage = () => {
                   <div>
                     <label style={labelStyle}>Current Mileage (km) <span style={{ color: D.red }}>*</span></label>
                     <input type="number" name="currentMileageKm" value={formData.currentMileageKm} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 15000" />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Fuel Tank Capacity (Liters)</label>
+                    <input type="number" name="fuelCapacity" value={formData.fuelCapacity} onChange={handleChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 50" />
                   </div>
 
                   <div>
@@ -972,7 +1475,7 @@ const VehiclesPage = () => {
               </div>
 
               <form onSubmit={handleEditSubmit} style={{ padding: '36px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 32 }}>
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 32 }}>
                   <div>
                     <label style={labelStyle}>Manufacturer</label>
                     <input type="text" name="manufacturer" value={editFormData.manufacturer} onChange={handleEditChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
@@ -1003,6 +1506,10 @@ const VehiclesPage = () => {
                   <div>
                     <label style={labelStyle}>Current Mileage (km)</label>
                     <input type="number" name="currentMileageKm" value={editFormData.currentMileageKm} onChange={handleEditChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Fuel Tank Capacity (Liters)</label>
+                    <input type="number" name="fuelCapacity" value={editFormData.fuelCapacity} onChange={handleEditChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 50" />
                   </div>
 
                   <div>
@@ -1174,14 +1681,71 @@ const VehiclesPage = () => {
               {profileActiveTab === 'overview' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   {/* Specs Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 12 }}>
                     {[
                       { label: 'Manufacturer', value: selectedProfileVehicle.manufacturer || 'N/A', icon: <Car size={14} color={D.blue} /> },
                       { label: 'Model', value: selectedProfileVehicle.model || 'N/A', icon: <Car size={14} color={D.blue} /> },
                       { label: 'Year', value: selectedProfileVehicle.year || 'N/A', icon: <Calendar size={14} color={D.purple} /> },
-                      { label: 'Current Mileage', value: selectedProfileVehicle.currentMileageKm ? `${selectedProfileVehicle.currentMileageKm.toLocaleString()} km` : 'N/A', icon: <Gauge size={14} color={D.green} /> }
+                      { 
+                        label: 'Current Mileage', 
+                        value: (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {selectedProfileVehicle.currentMileageKm ? `${selectedProfileVehicle.currentMileageKm.toLocaleString()} km` : 'N/A'}
+                            <Edit2 size={12} style={{ opacity: 0.6 }} />
+                          </span>
+                        ), 
+                        icon: <Gauge size={14} color={D.green} />,
+                        onClick: (e) => openOdometerModal(e, selectedProfileVehicle)
+                      },
+                      { label: 'Tank Capacity', value: selectedProfileVehicle.fuelCapacity ? `${selectedProfileVehicle.fuelCapacity} Liters` : 'N/A', icon: <Fuel size={14} color={D.gold} /> },
+                      {
+                        label: 'Driver',
+                        value: (() => {
+                          const profileDriver = drivers.find(d => String(d.id) === String(selectedProfileVehicle.driverId))
+                          return profileDriver ? (
+                            <span
+                              onClick={() => {
+                                setDriverDetailsUser(profileDriver);
+                                setIsDriverDetailsOpen(true);
+                              }}
+                              style={{
+                                color: D.blue,
+                                cursor: 'pointer',
+                                fontWeight: 800,
+                                textDecoration: 'underline',
+                                transition: 'color 0.15s'
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'}
+                              onMouseLeave={e => e.currentTarget.style.color = D.blue}
+                            >
+                              {profileDriver.userName}
+                            </span>
+                          ) : 'Unassigned'
+                        })(),
+                        icon: <User size={14} color={D.blue} />
+                      }
                     ].map((item, idx) => (
-                      <div key={idx} style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div key={idx} 
+                        onClick={item.onClick}
+                        style={{ 
+                          background: D.surface, border: `1px solid ${D.border}`, borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6,
+                          cursor: item.onClick ? 'pointer' : 'default',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={e => {
+                          if (item.onClick) {
+                            e.currentTarget.style.borderColor = D.purple;
+                            e.currentTarget.style.background = D.purpleDim;
+                          }
+                        }}
+                        onMouseLeave={e => {
+                          if (item.onClick) {
+                            e.currentTarget.style.borderColor = D.border;
+                            e.currentTarget.style.background = D.surface;
+                          }
+                        }}
+                        title={item.onClick ? "Quick Update Mileage" : ""}
+                      >
                         <span style={{ fontSize: '0.65rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
                           {item.icon} {item.label}
                         </span>
@@ -1191,6 +1755,40 @@ const VehiclesPage = () => {
                       </div>
                     ))}
                   </div>
+
+                  {/* Estimated Range Card */}
+                  {(() => {
+                    const capacity = Number(selectedProfileVehicle.fuelCapacity)
+                    if (!capacity || isNaN(capacity)) return null;
+
+                    const vStat = fuelStats.find(s => s.vehicleRegNumber === selectedProfileVehicle.registrationNo)
+                    // If no efficiency data exists, assume a baseline of 10.0 km/L
+                    const avgEfficiency = vStat && vStat.fuelEfficiency ? vStat.fuelEfficiency : 10.0
+                    const estRange = avgEfficiency * capacity
+
+                    return (
+                      <div style={{
+                        background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16, padding: '16px 20px',
+                        display: 'flex', alignItems: 'center', gap: 16, boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                      }}>
+                        <div style={{
+                          width: 44, height: 44, borderRadius: 12, background: D.blueDim, color: D.blue,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${D.blue}30`, flexShrink: 0
+                        }}>
+                          <Zap size={22} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: D.textSub }}>Estimated Driving Range</span>
+                          <h4 style={{ margin: '4px 0 0', fontSize: '1.25rem', fontWeight: 900, color: D.text }}>
+                            ~{Math.round(estRange).toLocaleString()} km
+                          </h4>
+                        </div>
+                        <div style={{ textAlign: 'right', fontSize: '0.72rem', color: D.textSub, maxWidth: 180 }}>
+                          Based on avg efficiency: <strong style={{ color: D.text }}>{avgEfficiency.toFixed(1)} km/L</strong> and <strong style={{ color: D.text }}>{capacity}L</strong> capacity.
+                        </div>
+                      </div>
+                    )
+                  })()}
 
                   {/* Expiry / Compliance Section */}
                   <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -1675,8 +2273,82 @@ const VehiclesPage = () => {
                         )
                       })()}
 
+                      {/* Fuel Efficiency Trend Chart */}
+                      {(() => {
+                        const logsWithEff = profileFuelLogs
+                          .filter(log => log.fuelEfficiency !== null && log.fuelEfficiency !== undefined)
+                          .sort((a, b) => new Date(a.date) - new Date(b.date));
+                        const trendLogs = logsWithEff.slice(-5);
+
+                        if (trendLogs.length === 0) return null;
+
+                        const maxEff = Math.max(...trendLogs.map(l => l.fuelEfficiency), 8);
+
+                        return (
+                          <div style={{
+                            background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16, padding: '18px 20px',
+                            display: 'flex', flexDirection: 'column', gap: 14, boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                          }}>
+                            <h5 style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              Recent Fuel Efficiency Trend (km/L)
+                            </h5>
+
+                            <div style={{
+                              height: 120, position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around',
+                              paddingTop: 10, paddingBottom: 5, borderBottom: `1px solid ${D.border}`, margin: '10px 0'
+                            }}>
+                              {/* Grid line & fleet threshold indicator */}
+                              <div style={{ position: 'absolute', left: 0, right: 0, top: `${100 - (5.0 / maxEff) * 100}%`, borderTop: `1px dashed ${D.red}`, opacity: 0.6, zIndex: 1 }} title="Fleet Threshold (5.0 km/L)" />
+
+                              {trendLogs.map((log, idx) => {
+                                const heightPct = (log.fuelEfficiency / maxEff) * 100;
+                                const barColor = log.fuelEfficiency >= 10 ? D.green : log.fuelEfficiency >= 7 ? D.blue : log.fuelEfficiency >= 5 ? D.orange : D.red;
+
+                                return (
+                                  <div key={log.id || idx} style={{
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', width: `${100 / trendLogs.length - 15}%`,
+                                    height: '100%', justifyContent: 'flex-end', position: 'relative', zIndex: 2
+                                  }}>
+                                    {/* Bar value */}
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: barColor, marginBottom: 4 }}>
+                                      {log.fuelEfficiency.toFixed(1)}
+                                    </span>
+
+                                    {/* Visual bar */}
+                                    <div style={{
+                                      width: '100%', height: `${heightPct}%`, background: barColor, borderRadius: '4px 4px 0 0',
+                                      minHeight: 4, transition: 'height 0.5s ease', boxShadow: `0 2px 8px ${barColor}30`
+                                    }} />
+
+                                    {/* X-axis label */}
+                                    <span style={{ fontSize: '0.62rem', color: D.textSub, marginTop: 6, whiteSpace: 'nowrap' }}>
+                                      {new Date(log.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: D.textSub }}>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: D.green }} /> Excellent (≥10)
+                              </span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: D.blue }} /> Good (7-10)
+                              </span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: D.orange }} /> Avg (5-7)
+                              </span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: D.red }} /> Poor (&lt;5)
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                       {/* Stats Widgets */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         {(() => {
                           const totalCost = profileFuelLogs.reduce((sum, log) => sum + (log.totalCost || 0), 0)
                           const totalLiters = profileFuelLogs.reduce((sum, log) => sum + (log.liters || 0), 0)
@@ -1763,6 +2435,212 @@ const VehiclesPage = () => {
         </div>
       )}
 
+      {/* ── Driver Details Modal ── */}
+      {isDriverDetailsOpen && driverDetailsUser && (() => {
+        const metrics = getDriverMetrics(driverDetailsUser, vehicles)
+        const initials = driverDetailsUser.userName
+          ? driverDetailsUser.userName.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
+          : 'D'
+
+        let dutyStyles = {
+          bg: 'rgba(255,255,255,0.05)',
+          color: D.textSub,
+          border: `1px solid ${D.border}`
+        }
+        if (metrics.status === 'On Duty' || metrics.status === 'Active') {
+          dutyStyles = {
+            bg: 'rgba(52, 211, 153, 0.12)',
+            color: '#34d399',
+            border: '1px solid rgba(52, 211, 153, 0.25)'
+          }
+        } else if (metrics.status === 'On Leave' || metrics.status === 'Pending') {
+          dutyStyles = {
+            bg: 'rgba(251, 191, 36, 0.12)',
+            color: '#fbbf24',
+            border: '1px solid rgba(251, 191, 36, 0.25)'
+          }
+        } else if (metrics.status === 'Suspended' || metrics.status === 'Inactive') {
+          dutyStyles = {
+            bg: 'rgba(248, 113, 113, 0.12)',
+            color: '#f87171',
+            border: '1px solid rgba(248, 113, 113, 0.25)'
+          }
+        }
+
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, animation: 'fadeIn 0.25s ease' }} onClick={() => setIsDriverDetailsOpen(false)}>
+            <div style={{ background: D.surface, borderRadius: 32, width: '90%', maxWidth: 480, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+              {/* Header Banner */}
+              <div style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #172554 100%)', padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#fff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  {driverDetailsUser.profilePicture ? (
+                    <img src={driverDetailsUser.profilePicture} alt={driverDetailsUser.userName} style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.2)' }} />
+                  ) : (
+                    <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.2rem', fontWeight: 800, border: '2px solid rgba(255,255,255,0.2)' }}>
+                      {initials}
+                    </div>
+                  )}
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{driverDetailsUser.userName}</h3>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600 }}>Driver Profile & Stats</p>
+                  </div>
+                </div>
+                <button onClick={() => setIsDriverDetailsOpen(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 8, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }}><X size={18} /></button>
+              </div>
+
+              {/* Content body */}
+              <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* Duty status row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.82rem', color: D.textSub, fontWeight: 700 }}>Duty Status</span>
+                  <span style={{ padding: '4px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 800, background: dutyStyles.bg, color: dutyStyles.color, border: dutyStyles.border, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    {metrics.status}
+                  </span>
+                </div>
+
+                {/* Stats grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                  {[
+                    { value: metrics.trips, label: 'Trips' },
+                    { value: `${metrics.rating}★`, label: 'Rating', color: '#fbbf24' },
+                    { value: metrics.safety, label: 'Safety', color: '#34d399' }
+                  ].map((st, idx) => (
+                    <div key={idx} style={{ background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)', border: `1px solid ${D.border}`, borderRadius: 16, padding: '14px 6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 900, color: st.color || D.text }}>{st.value}</div>
+                      <div style={{ fontSize: '0.65rem', fontWeight: 700, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{st.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Detailed Info */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: D.surfaceHi, padding: 18, borderRadius: 20, border: `1px solid ${D.border}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
+                    <span style={{ color: D.textSub, width: 80, display: 'flex', alignItems: 'center', gap: 4 }}><Phone size={12} /> Phone:</span>
+                    <span>{metrics.phone}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
+                    <span style={{ color: D.textSub, width: 80, display: 'flex', alignItems: 'center', gap: 4 }}><IdCard size={12} /> License:</span>
+                    <span>{metrics.license}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
+                    <span style={{ color: D.textSub, width: 80, display: 'flex', alignItems: 'center', gap: 4 }}><Car size={12} /> Vehicle:</span>
+                    <span style={{ fontWeight: 800, color: metrics.assignedVehicleId ? D.blue : D.text }}>{metrics.vehicle}</span>
+                  </div>
+                </div>
+
+                {/* Quick Actions (only for Admin/Controller) */}
+                {!isDriver && (
+                  <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                    {metrics.assignedVehicleId ? (
+                      <button
+                        onClick={async () => {
+                          if (window.confirm(`Unassign driver ${driverDetailsUser.userName} from vehicle ${metrics.vehicle}?`)) {
+                            await handleInlineUnassignDriver(metrics.assignedVehicleId)
+                            setIsDriverDetailsOpen(false)
+                          }
+                        }}
+                        style={{ flex: 1, padding: '12px', borderRadius: 12, border: `1px solid ${D.red}30`, background: D.redDim, color: D.red, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', fontFamily: 'inherit' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red; }}
+                      >
+                        Unassign Vehicle
+                      </button>
+                    ) : null}
+                    <button
+                      onClick={() => {
+                        setIsDriverDetailsOpen(false)
+                        if (metrics.assignedVehicleId) {
+                          const veh = vehicles.find(v => v.id === metrics.assignedVehicleId)
+                          if (veh) openEditModal(veh)
+                        }
+                      }}
+                      style={{ flex: 1, padding: '12px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', fontFamily: 'inherit' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                    >
+                      {metrics.assignedVehicleId ? 'Change Assignment' : 'Close'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+        {/* ── Odometer Quick Update Modal ────────────────────────────── */}
+        {isOdometerModalOpen && odometerVehicle && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1250, animation: 'fadeIn 0.25s ease' }} onClick={() => { setIsOdometerModalOpen(false); setOdometerVehicle(null); }}>
+            <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 440, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+              <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#fff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0 }}>
+                    <Gauge size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Update Odometer</h3>
+                    <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#60a5fa', fontWeight: 600 }}>{odometerVehicle.registrationNo}</p>
+                  </div>
+                </div>
+                <button onClick={() => { setIsOdometerModalOpen(false); setOdometerVehicle(null); }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 8, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }}><X size={18} /></button>
+              </div>
+
+              <form onSubmit={handleOdometerSubmit} style={{ padding: '28px 32px' }}>
+                <div style={{ marginBottom: 24 }}>
+                  <label style={labelStyle}>Current Mileage (KM)</label>
+                  <input
+                    type="number"
+                    value={newOdometerValue}
+                    onChange={e => setNewOdometerValue(e.target.value)}
+                    required
+                    style={inputStyle}
+                    onFocus={onFocus}
+                    onBlur={onBlur}
+                    placeholder="Enter new mileage..."
+                    autoFocus
+                  />
+                  <p style={{ margin: '6px 0 0', fontSize: '0.7rem', color: D.textSub }}>
+                    Previous: <strong style={{ color: D.text }}>{odometerVehicle.currentMileageKm?.toLocaleString() || '0'} km</strong>
+                  </p>
+                </div>
+
+                {odometerError && (
+                  <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', color: D.red, fontSize: '0.8rem', fontWeight: 600 }}>
+                    ⚠ {odometerError}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(37, 99, 235,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Check size={16} /> Save Mileage
+                  </button>
+                  <button type="button" onClick={() => { setIsOdometerModalOpen(false); setOdometerVehicle(null); }} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+      <style>{`
+        @keyframes pulse-red {
+          0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); border-color: rgba(239, 68, 68, 0.5); }
+          50% { box-shadow: 0 0 12px 4px rgba(239, 68, 68, 0.25); border-color: rgba(239, 68, 68, 0.8); }
+          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); border-color: rgba(239, 68, 68, 0.5); }
+        }
+        @keyframes pulse-orange {
+          0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); border-color: rgba(245, 158, 11, 0.5); }
+          50% { box-shadow: 0 0 12px 4px rgba(245, 158, 11, 0.25); border-color: rgba(245, 158, 11, 0.8); }
+          100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); border-color: rgba(245, 158, 11, 0.5); }
+        }
+        .pulse-warning-red {
+          animation: pulse-red 2s infinite ease-in-out !important;
+        }
+        .pulse-warning-orange {
+          animation: pulse-orange 2s infinite ease-in-out !important;
+        }
+      `}</style>
     </>
   )
 }
