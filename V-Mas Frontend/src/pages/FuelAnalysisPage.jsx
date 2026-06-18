@@ -294,7 +294,7 @@ const FuelAnalysisPage = () => {
         ])
         const rawLogs = allLogsRes.data.data || []
         const vehicles = vehiclesRes.data.data || []
-        
+
         if (isAdmin) {
           try {
             const deletedRes = await fuelAPI.getDeletedLogs()
@@ -303,7 +303,7 @@ const FuelAnalysisPage = () => {
             console.error("Failed to fetch deleted logs:", err)
           }
         }
-        
+
         const activeLogs = rawLogs.filter(l => !l.isDeleted)
 
         // Calculate efficiency client-side — pass vehicles so first log gets a baseline
@@ -318,12 +318,12 @@ const FuelAnalysisPage = () => {
         const totalDiesel = activeLogs.filter(l => l.fuelType?.toLowerCase() === 'diesel').reduce((s, l) => s + (l.liters || 0), 0)
         const totalPetrol = activeLogs.filter(l => l.fuelType?.toLowerCase() === 'petrol').reduce((s, l) => s + (l.liters || 0), 0)
         const totalVolume = totalDiesel + totalPetrol
-        const totalCost   = activeLogs.reduce((s, l) => s + (l.totalCost || 0), 0)
+        const totalCost = activeLogs.reduce((s, l) => s + (l.totalCost || 0), 0)
 
         setSummary({ totalDiesel, totalPetrol, totalVolume, totalCost, logCount: activeLogs.length })
 
         // -- Monthly Chart (current year) ------------------------------
-        const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
+        const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
         const dieselArr = Array(12).fill(0)
         const petrolArr = Array(12).fill(0)
 
@@ -353,13 +353,13 @@ const FuelAnalysisPage = () => {
           let fuelEfficiency = null
           if (sorted.length >= 2) {
             const diff = sorted[0].mileage - sorted[1].mileage
-            const lit  = sorted[0].liters
+            const lit = sorted[0].liters
             if (lit > 0) fuelEfficiency = Math.round((diff / lit) * 100) / 100
           }
           const efficiencyStatus = fuelEfficiency == null ? 'Insufficient Data'
-            : fuelEfficiency < 5  ? 'Poor'
-            : fuelEfficiency < 10 ? 'Good'
-            : 'Excellent'
+            : fuelEfficiency < 5 ? 'Poor'
+              : fuelEfficiency < 10 ? 'Good'
+                : 'Excellent'
           return { vehicleRegNumber: reg, fuelEfficiency, totalSpending, efficiencyStatus }
         })
 
@@ -525,9 +525,9 @@ const FuelAnalysisPage = () => {
         : null
       const status = avgEff == null ? 'N/A'
         : avgEff > 10 ? 'Excellent'
-        : avgEff > 7 ? 'Good'
-        : avgEff > 5 ? 'Average'
-        : 'Poor'
+          : avgEff > 7 ? 'Good'
+            : avgEff > 5 ? 'Average'
+              : 'Poor'
       return { name, logCount: logs.length, totalCost, totalLiters, avgEff, status }
     })
     .sort((a, b) => (b.avgEff ?? -Infinity) - (a.avgEff ?? -Infinity))
@@ -577,251 +577,169 @@ const FuelAnalysisPage = () => {
               {/* Neon radial glow for dark */}
               {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
               {/* Decorative blobs */}
-              <div style={{ position:'absolute', top:'-30px', right:'10%', width:220, height:220, borderRadius:'50%', background:'rgba(99,102,241,0.08)', pointerEvents:'none' }} />
-              <div style={{ position:'absolute', bottom:'-40px', right:'30%', width:160, height:160, borderRadius:'50%', background:'rgba(6,182,212,0.07)', pointerEvents:'none' }} />
-              <div style={{ position:'absolute', top:'20%', left:'60%', width:80, height:80, borderRadius:'50%', background:'rgba(255,255,255,0.03)', pointerEvents:'none' }} />
+              <div style={{ position: 'absolute', top: '-30px', right: '10%', width: 220, height: 220, borderRadius: '50%', background: 'rgba(99,102,241,0.08)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', bottom: '-40px', right: '30%', width: 160, height: 160, borderRadius: '50%', background: 'rgba(6,182,212,0.07)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', top: '20%', left: '60%', width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.03)', pointerEvents: 'none' }} />
 
               {/* Left: Icon + Text */}
-              <div style={{ position:'relative', display:'flex', alignItems:'center', gap:20 }}>
-                <div style={{ background:'rgba(255,255,255,0.12)', backdropFilter:'blur(6px)', borderRadius:16, width:60, height:60, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', flexShrink:0 }}>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
+                <div style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(6px)', borderRadius: 16, width: 60, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0 }}>
                   <Fuel size={30} strokeWidth={1.5} />
                 </div>
                 <div>
-                  <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:6 }}>
-                    <h1 style={{ margin:0, fontSize:'1.75rem', fontWeight:900, color:'#fff', letterSpacing:'-0.02em', fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+                    <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
                       Fuel &amp; Analysis, {user?.firstName || user?.username || (isAdmin ? 'Admin' : 'Controller')}!
                     </h1>
-                    <span style={{ background:'rgba(6,182,212,0.18)', border:'1px solid rgba(6,182,212,0.4)', color:'#67e8f9', fontSize:'0.7rem', fontWeight:800, padding:'3px 10px', borderRadius:999, letterSpacing:'0.05em', textTransform:'uppercase', whiteSpace:'nowrap' }}>
+                    <span style={{ background: 'rgba(6,182,212,0.18)', border: '1px solid rgba(6,182,212,0.4)', color: '#67e8f9', fontSize: '0.7rem', fontWeight: 800, padding: '3px 10px', borderRadius: 999, letterSpacing: '0.05em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                       Consumption Insights
                     </span>
                   </div>
-                  <p style={{ margin:0, color:'#93c5fd', fontSize:'0.875rem', fontWeight:500 }}>
+                  <p style={{ margin: 0, color: '#93c5fd', fontSize: '0.875rem', fontWeight: 500 }}>
                     Track fuel spend, efficiency and consumption patterns across every vehicle.
                   </p>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:10 }}>
-                    <span style={{ width:8, height:8, borderRadius:'50%', background:'#4ade80', display:'inline-block', boxShadow:'0 0 6px #4ade80' }} />
-                    <span style={{ fontSize:'0.78rem', color:'rgba(255,255,255,0.55)', fontWeight:600 }}>Live · {liveTime}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80', display: 'inline-block', boxShadow: '0 0 6px #4ade80' }} />
+                    <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>Live · {liveTime}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Right: Refresh button */}
-              <button
-                onClick={handleManualRefresh}
-                disabled={isRefreshing}
-                style={{
-                  position: 'relative', display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '11px 22px', borderRadius: 14, border: '1px solid rgba(255,255,255,0.25)',
-                  background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: '0.88rem',
-                  fontWeight: 700, cursor: isRefreshing ? 'not-allowed' : 'pointer',
-                  backdropFilter: 'blur(8px)', transition: 'all 0.2s', flexShrink: 0,
-                  opacity: isRefreshing ? 0.7 : 1,
-                }}
-                onMouseEnter={e => { if (!isRefreshing) e.currentTarget.style.background = 'rgba(255,255,255,0.2)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
-              >
-                <RefreshCw size={16} style={{ animation: isRefreshing ? 'spin 0.7s linear infinite' : 'none' }} />
-                {isRefreshing ? 'Refreshing...' : 'Refresh'}
-              </button>
+
 
 
             </div>
           ) : (
-          /* Driver hero banner (updated to premium style) */
-          <div style={{
-            background: isDark
-              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
-              : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
-            borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
-            boxShadow: isDark
-              ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
-              : '0 16px 48px rgba(0,0,0,0.4)',
-            border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : `1px solid ${D.border}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20,
-          }}>
-            {/* Neon radial glow for dark */}
-            {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
-            {/* Decorative blobs */}
-            <div style={{ position:'absolute', top:'-30px', right:'10%', width:220, height:220, borderRadius:'50%', background:'rgba(99,102,241,0.08)', pointerEvents:'none' }} />
-            <div style={{ position:'absolute', bottom:'-40px', right:'30%', width:160, height:160, borderRadius:'50%', background:'rgba(6,182,212,0.07)', pointerEvents:'none' }} />
-            <div style={{ position:'absolute', top:'20%', left:'60%', width:80, height:80, borderRadius:'50%', background:'rgba(255,255,255,0.03)', pointerEvents:'none' }} />
+            /* Driver hero banner (updated to premium style) */
+            <div style={{
+              background: isDark
+                ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
+                : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+              borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
+              boxShadow: isDark
+                ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
+                : '0 16px 48px rgba(0,0,0,0.4)',
+              border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : `1px solid ${D.border}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20,
+            }}>
+              {/* Neon radial glow for dark */}
+              {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
+              {/* Decorative blobs */}
+              <div style={{ position: 'absolute', top: '-30px', right: '10%', width: 220, height: 220, borderRadius: '50%', background: 'rgba(99,102,241,0.08)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', bottom: '-40px', right: '30%', width: 160, height: 160, borderRadius: '50%', background: 'rgba(6,182,212,0.07)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', top: '20%', left: '60%', width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.03)', pointerEvents: 'none' }} />
 
-            {/* Left: Icon + Text */}
-            <div style={{ position:'relative', display:'flex', alignItems:'center', gap:20 }}>
-              <div style={{ background:'rgba(255,255,255,0.12)', backdropFilter:'blur(6px)', borderRadius:16, width:60, height:60, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', flexShrink:0 }}>
-                <Fuel size={30} strokeWidth={1.5} />
-              </div>
-              <div>
-                <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:6 }}>
-                  <h1 style={{ margin:0, fontSize:'1.75rem', fontWeight:900, color:'#fff', letterSpacing:'-0.02em', fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
-                    Fuel &amp; Analysis, {user?.firstName || user?.username || 'Driver'}!
-                  </h1>
-                  <span style={{ background:'rgba(6,182,212,0.18)', border:'1px solid rgba(6,182,212,0.4)', color:'#67e8f9', fontSize:'0.7rem', fontWeight:800, padding:'3px 10px', borderRadius:999, letterSpacing:'0.05em', textTransform:'uppercase', whiteSpace:'nowrap' }}>
-                    My Vehicle Insights
-                  </span>
+              {/* Left: Icon + Text */}
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
+                <div style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(6px)', borderRadius: 16, width: 60, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0 }}>
+                  <Fuel size={30} strokeWidth={1.5} />
                 </div>
-                <p style={{ margin:0, color:'#93c5fd', fontSize:'0.875rem', fontWeight:500 }}>
-                  Track your fuel fills, efficiency and mileage history.
-                </p>
-                <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:10 }}>
-                  <span style={{ width:8, height:8, borderRadius:'50%', background:'#4ade80', display:'inline-block', boxShadow:'0 0 6px #4ade80' }} />
-                  <span style={{ fontSize:'0.78rem', color:'rgba(255,255,255,0.55)', fontWeight:600 }}>Live · {liveTime}</span>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+                    <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                      Fuel &amp; Analysis, {user?.firstName || user?.username || 'Driver'}!
+                    </h1>
+                    <span style={{ background: 'rgba(6,182,212,0.18)', border: '1px solid rgba(6,182,212,0.4)', color: '#67e8f9', fontSize: '0.7rem', fontWeight: 800, padding: '3px 10px', borderRadius: 999, letterSpacing: '0.05em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                      My Vehicle Insights
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, color: '#93c5fd', fontSize: '0.875rem', fontWeight: 500 }}>
+                    Track your fuel fills, efficiency and mileage history.
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80', display: 'inline-block', boxShadow: '0 0 6px #4ade80' }} />
+                    <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>Live · {liveTime}</span>
+                  </div>
                 </div>
               </div>
+
+              {/* Right: Add Fuel Log button */}
+              {isDriver && (
+                <button
+                  onClick={() => navigate('/fuel-log')}
+                  style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, padding: '13px 26px', borderRadius: 14, border: 'none', background: 'rgba(255,255,255,0.95)', color: '#1e3a8a', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 8px 30px rgba(0,0,0,0.3)', transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)', flexShrink: 0 }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 14px 40px rgba(255,255,255,0.25)' }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.3)' }}
+                >
+                  <Plus size={18} strokeWidth={3} /> Add Fuel Log
+                </button>
+              )}
             </div>
-
-            {/* Right: Add Fuel Log button */}
-            {isDriver && (
-              <button
-                onClick={() => navigate('/fuel-log')}
-                style={{ position:'relative', display:'flex', alignItems:'center', gap:10, padding:'13px 26px', borderRadius:14, border:'none', background:'rgba(255,255,255,0.95)', color:'#1e3a8a', fontSize:'0.95rem', fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 8px 30px rgba(0,0,0,0.3)', transition:'all 0.25s cubic-bezier(0.4,0,0.2,1)', flexShrink:0 }}
-                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 14px 40px rgba(255,255,255,0.25)' }}
-                onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 8px 30px rgba(0,0,0,0.3)' }}
-              >
-                <Plus size={18} strokeWidth={3} /> Add Fuel Log
-              </button>
-            )}
-          </div>
           )}
 
           {/* -
               DASHBOARD
           - */}
           <>
-              {/* ── Admin / Controller: Fuel Overview KPI cards (new design) ── */}
-              {(isAdmin || isController) && (() => {
-                const totalSpend = summary.totalCost
-                const litersUsed = summary.totalVolume
-                const avgEff = (() => {
-                  const effLogs = allFuelLogs.filter(l => l.fuelEfficiency && l.fuelEfficiency > 0)
-                  if (!effLogs.length) return null
-                  return effLogs.reduce((s, l) => s + l.fuelEfficiency, 0) / effLogs.length
-                })()
-                const avgCostPerLiter = litersUsed > 0 ? totalSpend / litersUsed : 0
+            {/* ── Admin / Controller: Fuel Overview KPI cards (new design) ── */}
+            {(isAdmin || isController) && (() => {
+              const totalSpend = summary.totalCost
+              const litersUsed = summary.totalVolume
+              const avgEff = (() => {
+                const effLogs = allFuelLogs.filter(l => l.fuelEfficiency && l.fuelEfficiency > 0)
+                if (!effLogs.length) return null
+                return effLogs.reduce((s, l) => s + l.fuelEfficiency, 0) / effLogs.length
+              })()
+              const avgCostPerLiter = litersUsed > 0 ? totalSpend / litersUsed : 0
 
-                const kpiCards = [
-                  {
-                    label: 'TOTAL SPEND',
-                    value: `LKR ${Math.round(totalSpend).toLocaleString()}`,
-                    sub: 'Recent fill-ups',
-                    icon: <DollarSign size={20} />,
-                    iconBg: 'rgba(59,130,246,0.15)',
-                    iconColor: '#60a5fa',
-                    trend: '+4.6%',
-                    trendUp: true,
-                    filterFuel: 'all', filterStatus: 'all'
-                  },
-                  {
-                    label: 'LITERS USED',
-                    value: `${Math.round(litersUsed).toLocaleString()} L`,
-                    sub: 'Across fleet',
-                    icon: <Droplets size={20} />,
-                    iconBg: 'rgba(6,182,212,0.15)',
-                    iconColor: '#22d3ee',
-                    trend: '+2.1%',
-                    trendUp: true,
-                    filterFuel: 'all', filterStatus: 'all'
-                  },
-                  {
-                    label: 'AVG EFFICIENCY',
-                    value: avgEff != null ? `${avgEff.toFixed(1)} km/L` : '—',
-                    sub: 'Fleet average',
-                    icon: <Activity size={20} />,
-                    iconBg: 'rgba(16,185,129,0.15)',
-                    iconColor: '#34d399',
-                    trend: '+1.2%',
-                    trendUp: true,
-                    filterFuel: 'all', filterStatus: 'all'
-                  },
-                  {
-                    label: 'COST / LITER',
-                    value: `LKR ${Math.round(avgCostPerLiter).toLocaleString()}`,
-                    sub: 'Blended rate',
-                    icon: <Zap size={20} />,
-                    iconBg: 'rgba(245,158,11,0.15)',
-                    iconColor: '#fbbf24',
-                    trend: '-0.8%',
-                    trendUp: false,
-                    filterFuel: 'all', filterStatus: 'all'
-                  },
-                ]
+              const kpiCards = [
+                {
+                  label: 'TOTAL SPEND',
+                  value: `LKR ${Math.round(totalSpend).toLocaleString()}`,
+                  sub: 'Recent fill-ups',
+                  icon: <DollarSign size={20} />,
+                  iconBg: 'rgba(59,130,246,0.15)',
+                  iconColor: '#60a5fa',
+                  trend: '+4.6%',
+                  trendUp: true,
+                  filterFuel: 'all', filterStatus: 'all'
+                },
+                {
+                  label: 'LITERS USED',
+                  value: `${Math.round(litersUsed).toLocaleString()} L`,
+                  sub: 'Across fleet',
+                  icon: <Droplets size={20} />,
+                  iconBg: 'rgba(6,182,212,0.15)',
+                  iconColor: '#22d3ee',
+                  trend: '+2.1%',
+                  trendUp: true,
+                  filterFuel: 'all', filterStatus: 'all'
+                },
+                {
+                  label: 'AVG EFFICIENCY',
+                  value: avgEff != null ? `${avgEff.toFixed(1)} km/L` : '—',
+                  sub: 'Fleet average',
+                  icon: <Activity size={20} />,
+                  iconBg: 'rgba(16,185,129,0.15)',
+                  iconColor: '#34d399',
+                  trend: '+1.2%',
+                  trendUp: true,
+                  filterFuel: 'all', filterStatus: 'all'
+                },
+                {
+                  label: 'COST / LITER',
+                  value: `LKR ${Math.round(avgCostPerLiter).toLocaleString()}`,
+                  sub: 'Blended rate',
+                  icon: <Zap size={20} />,
+                  iconBg: 'rgba(245,158,11,0.15)',
+                  iconColor: '#fbbf24',
+                  trend: '-0.8%',
+                  trendUp: false,
+                  filterFuel: 'all', filterStatus: 'all'
+                },
+              ]
 
-                return (
-                  <div style={{ marginBottom: 24 }}>
-                    <div style={{ marginBottom: 16 }}>
-                      <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel Overview</h2>
-                      <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: D.textSub }}>This period's fuel performance</p>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
-                      {kpiCards.map(s => (
-                        <div key={s.label}
-                          onClick={() => { setFilterFuelType(s.filterFuel); setFilterAuditStatus(s.filterStatus); setActiveTab('audit'); document.getElementById('audit-view')?.scrollIntoView({ behavior: 'smooth' }) }}
-                          style={{ ...card(D), padding: '20px 22px', cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)', position: 'relative', overflow: 'hidden' }}
-                          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.borderColor = s.iconColor + '50'; e.currentTarget.style.boxShadow = `0 16px 32px ${s.iconColor}18` }}
-                          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)' }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-                            <div style={{ width: 40, height: 40, borderRadius: 12, background: s.iconBg, color: s.iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${s.iconColor}25`, flexShrink: 0 }}>
-                              {s.icon}
-                            </div>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: s.trendUp ? '#4ade80' : '#f87171', background: s.trendUp ? 'rgba(74,222,128,0.1)' : 'rgba(248,113,113,0.1)', padding: '3px 8px', borderRadius: 999, display: 'flex', alignItems: 'center', gap: 3 }}>
-                              {s.trendUp ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}{s.trend}
-                            </span>
-                          </div>
-                          <div style={{ fontSize: '0.65rem', fontWeight: 800, color: D.textSub, letterSpacing: '0.1em', marginBottom: 4 }}>{s.label}</div>
-                          <div style={{ fontSize: '1.45rem', fontWeight: 900, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif", lineHeight: 1.1, marginBottom: 4 }}>{s.value}</div>
-                          <div style={{ fontSize: '0.72rem', color: D.textSub, fontWeight: 600 }}>{s.sub}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })()}
-
-              {/* ── Driver: upgraded KPI cards (premium design) ── */}
-              {isDriver && (
+              return (
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ marginBottom: 16 }}>
                     <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel Overview</h2>
-                    <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: D.textSub }}>Your vehicle's fuel performance</p>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: D.textSub }}>This period's fuel performance</p>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
-                    {[
-                      {
-                        label: 'TOTAL DIESEL',
-                        value: `${Math.round(summary.totalDiesel).toLocaleString()} L`,
-                        sub: 'Diesel logs',
-                        icon: <Fuel size={20} />,
-                        iconBg: 'rgba(99,102,241,0.15)',
-                        iconColor: D.indigo,
-                      },
-                      {
-                        label: 'TOTAL PETROL',
-                        value: `${Math.round(summary.totalPetrol).toLocaleString()} L`,
-                        sub: 'Petrol logs',
-                        icon: <Fuel size={20} />,
-                        iconBg: 'rgba(245,158,11,0.15)',
-                        iconColor: D.gold,
-                      },
-                      {
-                        label: 'TOTAL VOLUME',
-                        value: `${Math.round(summary.totalVolume).toLocaleString()} L`,
-                        sub: `Logs count: ${summary.logCount || 0}`,
-                        icon: <Droplets size={20} />,
-                        iconBg: 'rgba(6,182,212,0.15)',
-                        iconColor: '#22d3ee',
-                      },
-                      {
-                        label: 'TOTAL SPEND',
-                        value: `LKR ${Math.round(summary.totalCost).toLocaleString()}`,
-                        sub: 'Total fuel cost',
-                        icon: <DollarSign size={20} />,
-                        iconBg: 'rgba(16,185,129,0.15)',
-                        iconColor: D.green,
-                      },
-                    ].map(s => (
+                    {kpiCards.map(s => (
                       <div key={s.label}
-                        style={{ ...card(D), padding: '20px 22px', transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)', position: 'relative', overflow: 'hidden' }}
+                        onClick={() => { setFilterFuelType(s.filterFuel); setFilterAuditStatus(s.filterStatus); setActiveTab('audit'); document.getElementById('audit-view')?.scrollIntoView({ behavior: 'smooth' }) }}
+                        style={{ ...card(D), padding: '20px 22px', cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)', position: 'relative', overflow: 'hidden' }}
                         onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.borderColor = s.iconColor + '50'; e.currentTarget.style.boxShadow = `0 16px 32px ${s.iconColor}18` }}
                         onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)' }}
                       >
@@ -829,6 +747,9 @@ const FuelAnalysisPage = () => {
                           <div style={{ width: 40, height: 40, borderRadius: 12, background: s.iconBg, color: s.iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${s.iconColor}25`, flexShrink: 0 }}>
                             {s.icon}
                           </div>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: s.trendUp ? '#4ade80' : '#f87171', background: s.trendUp ? 'rgba(74,222,128,0.1)' : 'rgba(248,113,113,0.1)', padding: '3px 8px', borderRadius: 999, display: 'flex', alignItems: 'center', gap: 3 }}>
+                            {s.trendUp ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}{s.trend}
+                          </span>
                         </div>
                         <div style={{ fontSize: '0.65rem', fontWeight: 800, color: D.textSub, letterSpacing: '0.1em', marginBottom: 4 }}>{s.label}</div>
                         <div style={{ fontSize: '1.45rem', fontWeight: 900, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif", lineHeight: 1.1, marginBottom: 4 }}>{s.value}</div>
@@ -837,104 +758,166 @@ const FuelAnalysisPage = () => {
                     ))}
                   </div>
                 </div>
-              )}
+              )
+            })()}
 
-
-              {/* ── Admin: Fuel Cost Trend + Usage by Vehicle ── */}
-              {(isAdmin || isController) && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 16, marginBottom: 20 }}>
-
-                  {/* Fuel Cost Trend */}
-                  <div style={{ ...card(D), padding: '22px 24px' }}>
-                    <div style={{ marginBottom: 16 }}>
-                      <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel Cost Trend</h3>
-                      <p style={{ margin: '3px 0 0', fontSize: '0.73rem', color: D.textSub }}>Monthly spend (LKR thousands)</p>
+            {/* ── Driver: upgraded KPI cards (premium design) ── */}
+            {isDriver && (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ marginBottom: 16 }}>
+                  <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel Overview</h2>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: D.textSub }}>Your vehicle's fuel performance</p>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+                  {[
+                    {
+                      label: 'TOTAL DIESEL',
+                      value: `${Math.round(summary.totalDiesel).toLocaleString()} L`,
+                      sub: 'Diesel logs',
+                      icon: <Fuel size={20} />,
+                      iconBg: 'rgba(99,102,241,0.15)',
+                      iconColor: D.indigo,
+                    },
+                    {
+                      label: 'TOTAL PETROL',
+                      value: `${Math.round(summary.totalPetrol).toLocaleString()} L`,
+                      sub: 'Petrol logs',
+                      icon: <Fuel size={20} />,
+                      iconBg: 'rgba(245,158,11,0.15)',
+                      iconColor: D.gold,
+                    },
+                    {
+                      label: 'TOTAL VOLUME',
+                      value: `${Math.round(summary.totalVolume).toLocaleString()} L`,
+                      sub: `Logs count: ${summary.logCount || 0}`,
+                      icon: <Droplets size={20} />,
+                      iconBg: 'rgba(6,182,212,0.15)',
+                      iconColor: '#22d3ee',
+                    },
+                    {
+                      label: 'TOTAL SPEND',
+                      value: `LKR ${Math.round(summary.totalCost).toLocaleString()}`,
+                      sub: 'Total fuel cost',
+                      icon: <DollarSign size={20} />,
+                      iconBg: 'rgba(16,185,129,0.15)',
+                      iconColor: D.green,
+                    },
+                  ].map(s => (
+                    <div key={s.label}
+                      style={{ ...card(D), padding: '20px 22px', transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)', position: 'relative', overflow: 'hidden' }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.borderColor = s.iconColor + '50'; e.currentTarget.style.boxShadow = `0 16px 32px ${s.iconColor}18` }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 12, background: s.iconBg, color: s.iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${s.iconColor}25`, flexShrink: 0 }}>
+                          {s.icon}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '0.65rem', fontWeight: 800, color: D.textSub, letterSpacing: '0.1em', marginBottom: 4 }}>{s.label}</div>
+                      <div style={{ fontSize: '1.45rem', fontWeight: 900, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif", lineHeight: 1.1, marginBottom: 4 }}>{s.value}</div>
+                      <div style={{ fontSize: '0.72rem', color: D.textSub, fontWeight: 600 }}>{s.sub}</div>
                     </div>
-                    <AdminCostTrendChart logs={allFuelLogs} D={D} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+
+            {/* ── Admin: Fuel Cost Trend + Usage by Vehicle ── */}
+            {(isAdmin || isController) && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 16, marginBottom: 20 }}>
+
+                {/* Fuel Cost Trend */}
+                <div style={{ ...card(D), padding: '22px 24px' }}>
+                  <div style={{ marginBottom: 16 }}>
+                    <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel Cost Trend</h3>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.73rem', color: D.textSub }}>Monthly spend (LKR thousands)</p>
                   </div>
+                  <AdminCostTrendChart logs={allFuelLogs} D={D} />
+                </div>
 
-                  {/* Usage by Vehicle */}
-                  <div style={{ ...card(D), padding: '22px 24px' }}>
-                    <div style={{ marginBottom: 16 }}>
-                      <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Usage by Vehicle</h3>
-                      <p style={{ margin: '3px 0 0', fontSize: '0.73rem', color: D.textSub }}>Lifetime fuel per reg no.</p>
-                    </div>
-                    <AdminVehicleUsageChart logs={allFuelLogs} D={D} />
+                {/* Usage by Vehicle */}
+                <div style={{ ...card(D), padding: '22px 24px' }}>
+                  <div style={{ marginBottom: 16 }}>
+                    <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Usage by Vehicle</h3>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.73rem', color: D.textSub }}>Lifetime fuel per reg no.</p>
+                  </div>
+                  <AdminVehicleUsageChart logs={allFuelLogs} D={D} />
+                </div>
+              </div>
+            )}
+
+            {/* ── Admin: Recent Fuel Logs table ── */}
+            {(isAdmin || isController) && allFuelLogs.length > 0 && (() => {
+              const recentLogs = allFuelLogs.slice(0, 10)
+              const colStyle = (w) => ({ padding: '13px 14px', fontSize: '0.82rem', color: D.text, fontWeight: 600, width: w, whiteSpace: 'nowrap' })
+              const hStyle = { padding: '10px 14px', fontSize: '0.67rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }
+              return (
+                <div style={{ ...card(D), padding: 0, marginBottom: 20 }}>
+                  <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${D.border}` }}>
+                    <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Recent Fuel Logs</h3>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.73rem', color: D.textSub }}>Latest fill-ups across the fleet</p>
+                  </div>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr>
+                          {['DATE', 'VEHICLE', 'DRIVER', 'STATION', 'LITERS', 'COST', 'KM/L'].map(h => (
+                            <th key={h} style={hStyle}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {recentLogs.map((log, i) => {
+                          const eff = log.fuelEfficiency
+                          const effColor = eff == null ? D.textSub : eff > 10 ? '#4ade80' : eff > 7 ? '#60a5fa' : eff > 5 ? '#fbbf24' : '#f87171'
+                          const station = log.station || log.fuelStation || '—'
+                          return (
+                            <tr key={log.id || i}
+                              style={{ borderBottom: `1px solid ${D.border}`, transition: 'background 0.15s', cursor: 'default' }}
+                              onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <td style={{ ...colStyle('110px'), color: D.textSub }}>
+                                {new Date(log.date).toLocaleDateString('en-CA')}
+                              </td>
+                              <td style={{ ...colStyle('130px') }}>
+                                <span style={{ color: '#60a5fa', fontWeight: 800 }}>{log.vehicleRegNumber}</span>
+                              </td>
+                              <td style={{ ...colStyle('130px'), color: D.text }}>
+                                {log.driverUsername || log.uploadedBy || '—'}
+                              </td>
+                              <td style={{ ...colStyle('150px'), color: D.textSub }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                  <MapPin size={12} style={{ opacity: 0.5 }} />
+                                  {station}
+                                </span>
+                              </td>
+                              <td style={{ ...colStyle('80px'), color: D.text }}>
+                                {log.liters != null ? log.liters.toFixed(1) : '—'} L
+                              </td>
+                              <td style={{ ...colStyle('120px'), color: D.green, fontWeight: 800 }}>
+                                LKR {Math.round(log.totalCost || 0).toLocaleString()}
+                              </td>
+                              <td style={{ padding: '13px 14px', width: '70px' }}>
+                                {eff != null ? (
+                                  <span style={{ background: effColor + '18', color: effColor, border: `1px solid ${effColor}40`, padding: '3px 9px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 800 }}>
+                                    {eff.toFixed(1)}
+                                  </span>
+                                ) : <span style={{ color: D.textSub, fontSize: '0.78rem' }}>—</span>}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-              )}
+              )
+            })()}
 
-              {/* ── Admin: Recent Fuel Logs table ── */}
-              {(isAdmin || isController) && allFuelLogs.length > 0 && (() => {
-                const recentLogs = allFuelLogs.slice(0, 10)
-                const colStyle = (w) => ({ padding: '13px 14px', fontSize: '0.82rem', color: D.text, fontWeight: 600, width: w, whiteSpace: 'nowrap' })
-                const hStyle = { padding: '10px 14px', fontSize: '0.67rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }
-                return (
-                  <div style={{ ...card(D), padding: 0, marginBottom: 20 }}>
-                    <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${D.border}` }}>
-                      <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Recent Fuel Logs</h3>
-                      <p style={{ margin: '3px 0 0', fontSize: '0.73rem', color: D.textSub }}>Latest fill-ups across the fleet</p>
-                    </div>
-                    <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr>
-                            {['DATE','VEHICLE','DRIVER','STATION','LITERS','COST','KM/L'].map(h => (
-                              <th key={h} style={hStyle}>{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {recentLogs.map((log, i) => {
-                            const eff = log.fuelEfficiency
-                            const effColor = eff == null ? D.textSub : eff > 10 ? '#4ade80' : eff > 7 ? '#60a5fa' : eff > 5 ? '#fbbf24' : '#f87171'
-                            const station = log.station || log.fuelStation || '—'
-                            return (
-                              <tr key={log.id || i}
-                                style={{ borderBottom: `1px solid ${D.border}`, transition: 'background 0.15s', cursor: 'default' }}
-                                onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}
-                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                              >
-                                <td style={{ ...colStyle('110px'), color: D.textSub }}>
-                                  {new Date(log.date).toLocaleDateString('en-CA')}
-                                </td>
-                                <td style={{ ...colStyle('130px') }}>
-                                  <span style={{ color: '#60a5fa', fontWeight: 800 }}>{log.vehicleRegNumber}</span>
-                                </td>
-                                <td style={{ ...colStyle('130px'), color: D.text }}>
-                                  {log.driverUsername || log.uploadedBy || '—'}
-                                </td>
-                                <td style={{ ...colStyle('150px'), color: D.textSub }}>
-                                  <span style={{ display:'flex', alignItems:'center', gap:5 }}>
-                                    <MapPin size={12} style={{ opacity:0.5 }} />
-                                    {station}
-                                  </span>
-                                </td>
-                                <td style={{ ...colStyle('80px'), color: D.text }}>
-                                  {log.liters != null ? log.liters.toFixed(1) : '—'} L
-                                </td>
-                                <td style={{ ...colStyle('120px'), color: D.green, fontWeight: 800 }}>
-                                  LKR {Math.round(log.totalCost || 0).toLocaleString()}
-                                </td>
-                                <td style={{ padding: '13px 14px', width: '70px' }}>
-                                  {eff != null ? (
-                                    <span style={{ background: effColor + '18', color: effColor, border: `1px solid ${effColor}40`, padding: '3px 9px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 800 }}>
-                                      {eff.toFixed(1)}
-                                    </span>
-                                  ) : <span style={{ color: D.textSub, fontSize: '0.78rem' }}>—</span>}
-                                </td>
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )
-              })()}
-
-              {/* ── Driver/both: Monthly Consumption + Efficiency Trend ── */}
-              {isDriver && (
+            {/* ── Driver/both: Monthly Consumption + Efficiency Trend ── */}
+            {isDriver && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
 
                 {/* Monthly Consumption Bar Chart */}
@@ -998,75 +981,37 @@ const FuelAnalysisPage = () => {
                   )}
                 </div>
               </div>
-              )}
+            )}
 
-              {/* -- Vehicle Performance (horizontal bars) ------- */}
-              {(isAdmin || isController) && vehicleStats.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
+            {/* -- Vehicle Performance (horizontal bars) ------- */}
+            {(isAdmin || isController) && vehicleStats.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
 
-                  {/* Efficiency H-bars */}
-                  <div style={{ ...card(D), padding: '22px 24px' }}>
-                    <div style={{ marginBottom: 20 }}>
-                      <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Vehicle Fuel Efficiency</h3>
-                      <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>km per litre by vehicle</p>
-                    </div>
-                    {vehicleStats.slice(0, 8).map(v => (
-                      <HBar key={v.vehicleRegNumber}
-                        label={v.vehicleRegNumber}
-                        value={v.fuelEfficiency || 0}
-                        max={maxEff || 1}
-                        color={hBarColor(v.efficiencyStatus)}
-                        sub={v.fuelEfficiency != null ? `${v.fuelEfficiency.toFixed(2)} km/L` : 'N/A'}
-                        D={D}
-                      />
-                    ))}
+                {/* Efficiency H-bars */}
+                <div style={{ ...card(D), padding: '22px 24px' }}>
+                  <div style={{ marginBottom: 20 }}>
+                    <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Vehicle Fuel Efficiency</h3>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>km per litre by vehicle</p>
                   </div>
-
-                  {/* Spending H-bars */}
-                  <div style={{ ...card(D), padding: '22px 24px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-                      <div>
-                        <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fleet Fuel Spending</h3>
-                        <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>
-                          {costPeriod === 'ALL' ? 'All-time LKR spent per vehicle' : `Last ${costPeriod} — LKR per vehicle`}
-                        </p>
-                      </div>
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        {['3M', '6M', '12M', 'ALL'].map(p => (
-                          <button key={p} onClick={() => setCostPeriod(p)} style={{
-                            padding: '4px 10px', borderRadius: 999, border: 'none', cursor: 'pointer',
-                            fontSize: '0.72rem', fontWeight: 700, transition: 'all 0.15s',
-                            background: costPeriod === p ? 'rgba(59, 130, 246,0.25)' : 'transparent',
-                            color: costPeriod === p ? D.indigo : D.textSub,
-                          }}>{p}</button>
-                        ))}
-                      </div>
-                    </div>
-                    {filteredSpendStats.length === 0 ? (
-                      <div style={{ padding: '28px 0', textAlign: 'center', color: D.textSub, fontSize: '0.82rem', opacity: 0.6 }}>No data for selected period</div>
-                    ) : filteredSpendStats.slice(0, 8).map((v, i) => (
-                      <HBar key={v.vehicleRegNumber}
-                        label={v.vehicleRegNumber}
-                        value={v.totalSpending}
-                        max={maxFilteredSpend}
-                        color={[D.blue, D.indigo, D.teal, D.purple, D.green, D.gold][i % 6]}
-                        sub={`Rs. ${Math.round(v.totalSpending).toLocaleString()}`}
-                        D={D}
-                      />
-                    ))}
-                  </div>
+                  {vehicleStats.slice(0, 8).map(v => (
+                    <HBar key={v.vehicleRegNumber}
+                      label={v.vehicleRegNumber}
+                      value={v.fuelEfficiency || 0}
+                      max={maxEff || 1}
+                      color={hBarColor(v.efficiencyStatus)}
+                      sub={v.fuelEfficiency != null ? `${v.fuelEfficiency.toFixed(2)} km/L` : 'N/A'}
+                      D={D}
+                    />
+                  ))}
                 </div>
-              )}
 
-              {/* ── Driver Performance Ranking ─────────────────────────────────── */}
-              {(isAdmin || isController) && driverRanking.length > 0 && (
-                <div style={{ ...card(D), padding: 0, marginBottom: 20 }}>
-                  {/* Header */}
-                  <div style={{ padding: '22px 28px 18px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {/* Spending H-bars */}
+                <div style={{ ...card(D), padding: '22px 24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
                     <div>
-                      <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Driver Fuel Performance Ranking</h3>
+                      <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fleet Fuel Spending</h3>
                       <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>
-                        Ranked by average km/L · {costPeriod === 'ALL' ? 'All time' : `Last ${costPeriod}`}
+                        {costPeriod === 'ALL' ? 'All-time LKR spent per vehicle' : `Last ${costPeriod} — LKR per vehicle`}
                       </p>
                     </div>
                     <div style={{ display: 'flex', gap: 4 }}>
@@ -1080,342 +1025,380 @@ const FuelAnalysisPage = () => {
                       ))}
                     </div>
                   </div>
-                  {/* Ranked list */}
-                  <div style={{ padding: '20px 28px 28px' }}>
-                    {driverRanking.map((drv, idx) => {
-                      const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null
-                      const effColor = drv.status === 'Excellent' ? D.green
-                        : drv.status === 'Good' ? D.blue
+                  {filteredSpendStats.length === 0 ? (
+                    <div style={{ padding: '28px 0', textAlign: 'center', color: D.textSub, fontSize: '0.82rem', opacity: 0.6 }}>No data for selected period</div>
+                  ) : filteredSpendStats.slice(0, 8).map((v, i) => (
+                    <HBar key={v.vehicleRegNumber}
+                      label={v.vehicleRegNumber}
+                      value={v.totalSpending}
+                      max={maxFilteredSpend}
+                      color={[D.blue, D.indigo, D.teal, D.purple, D.green, D.gold][i % 6]}
+                      sub={`Rs. ${Math.round(v.totalSpending).toLocaleString()}`}
+                      D={D}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Driver Performance Ranking ─────────────────────────────────── */}
+            {(isAdmin || isController) && driverRanking.length > 0 && (
+              <div style={{ ...card(D), padding: 0, marginBottom: 20 }}>
+                {/* Header */}
+                <div style={{ padding: '22px 28px 18px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Driver Fuel Performance Ranking</h3>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>
+                      Ranked by average km/L · {costPeriod === 'ALL' ? 'All time' : `Last ${costPeriod}`}
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {['3M', '6M', '12M', 'ALL'].map(p => (
+                      <button key={p} onClick={() => setCostPeriod(p)} style={{
+                        padding: '4px 10px', borderRadius: 999, border: 'none', cursor: 'pointer',
+                        fontSize: '0.72rem', fontWeight: 700, transition: 'all 0.15s',
+                        background: costPeriod === p ? 'rgba(59, 130, 246,0.25)' : 'transparent',
+                        color: costPeriod === p ? D.indigo : D.textSub,
+                      }}>{p}</button>
+                    ))}
+                  </div>
+                </div>
+                {/* Ranked list */}
+                <div style={{ padding: '20px 28px 28px' }}>
+                  {driverRanking.map((drv, idx) => {
+                    const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null
+                    const effColor = drv.status === 'Excellent' ? D.green
+                      : drv.status === 'Good' ? D.blue
                         : drv.status === 'Average' ? D.gold
-                        : drv.status === 'Poor' ? D.red
-                        : D.textSub
-                      const effBg = drv.status === 'Excellent' ? D.greenDim
-                        : drv.status === 'Good' ? D.blueDim
+                          : drv.status === 'Poor' ? D.red
+                            : D.textSub
+                    const effBg = drv.status === 'Excellent' ? D.greenDim
+                      : drv.status === 'Good' ? D.blueDim
                         : drv.status === 'Average' ? D.goldDim
-                        : drv.status === 'Poor' ? D.redDim
-                        : 'rgba(255,255,255,0.04)'
-                      return (
-                        <div key={drv.name} style={{
-                          display: 'flex', alignItems: 'center', gap: 20,
-                          padding: '13px 18px', borderRadius: 16, marginBottom: 10,
-                          background: idx < 3 ? `${effColor}08` : D.surfaceHi,
-                          border: `1px solid ${idx < 3 ? effColor + '28' : D.border}`,
-                          transition: 'all 0.2s ease',
-                          animation: `fadeUp 0.4s ease ${idx * 0.06}s both`,
-                        }}
+                          : drv.status === 'Poor' ? D.redDim
+                            : 'rgba(255,255,255,0.04)'
+                    return (
+                      <div key={drv.name} style={{
+                        display: 'flex', alignItems: 'center', gap: 20,
+                        padding: '13px 18px', borderRadius: 16, marginBottom: 10,
+                        background: idx < 3 ? `${effColor}08` : D.surfaceHi,
+                        border: `1px solid ${idx < 3 ? effColor + '28' : D.border}`,
+                        transition: 'all 0.2s ease',
+                        animation: `fadeUp 0.4s ease ${idx * 0.06}s both`,
+                      }}
                         onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.boxShadow = `0 6px 20px ${effColor}15` }}
                         onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.boxShadow = 'none' }}
-                        >
-                          {/* Rank */}
-                          <div style={{ width: 36, flexShrink: 0, textAlign: 'center' }}>
-                            {medal
-                              ? <span style={{ fontSize: '1.35rem', lineHeight: 1 }}>{medal}</span>
-                              : <span style={{ fontSize: '0.88rem', fontWeight: 900, color: D.textSub, opacity: 0.45 }}>#{idx + 1}</span>
-                            }
+                      >
+                        {/* Rank */}
+                        <div style={{ width: 36, flexShrink: 0, textAlign: 'center' }}>
+                          {medal
+                            ? <span style={{ fontSize: '1.35rem', lineHeight: 1 }}>{medal}</span>
+                            : <span style={{ fontSize: '0.88rem', fontWeight: 900, color: D.textSub, opacity: 0.45 }}>#{idx + 1}</span>
+                          }
+                        </div>
+                        {/* Driver name + stats */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '0.92rem', fontWeight: 800, color: D.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {drv.name}
                           </div>
-                          {/* Driver name + stats */}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: '0.92rem', fontWeight: 800, color: D.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {drv.name}
-                            </div>
-                            <div style={{ fontSize: '0.72rem', color: D.textSub, marginTop: 3 }}>
-                              {drv.logCount} log{drv.logCount !== 1 ? 's' : ''} · {drv.totalLiters.toFixed(1)} L consumed
-                            </div>
-                          </div>
-                          {/* Total cost */}
-                          <div style={{ textAlign: 'right', flexShrink: 0, marginRight: 8 }}>
-                            <div style={{ fontSize: '0.65rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Total Cost</div>
-                            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: D.green }}>Rs. {Math.round(drv.totalCost).toLocaleString()}</div>
-                          </div>
-                          {/* Efficiency badge */}
-                          <div style={{ flexShrink: 0 }}>
-                            <div style={{
-                              display: 'inline-flex', flexDirection: 'column', alignItems: 'center',
-                              padding: '8px 18px', borderRadius: 12, background: effBg,
-                              border: `1px solid ${effColor}35`,
-                            }}>
-                              <span style={{ fontSize: '1.08rem', fontWeight: 900, color: effColor, lineHeight: 1 }}>
-                                {drv.avgEff != null ? drv.avgEff.toFixed(2) : '—'}
-                              </span>
-                              <span style={{ fontSize: '0.6rem', fontWeight: 700, color: effColor, textTransform: 'uppercase', letterSpacing: '0.04em', opacity: 0.8, marginTop: 2 }}>
-                                {drv.avgEff != null ? 'km/L' : 'N/A'}
-                              </span>
-                            </div>
+                          <div style={{ fontSize: '0.72rem', color: D.textSub, marginTop: 3 }}>
+                            {drv.logCount} log{drv.logCount !== 1 ? 's' : ''} · {drv.totalLiters.toFixed(1)} L consumed
                           </div>
                         </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* -- Driver: My Fuel History (premium table) --------- */}
-              {isDriver && (
-                <div style={{ ...card(D), padding: 0, marginBottom: 20 }}>
-                  <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${D.border}` }}>
-                    <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>My Fuel History</h3>
-                    <p style={{ margin: '3px 0 0', fontSize: '0.73rem', color: D.textSub }}>Recent fuel logs for your vehicle</p>
-                  </div>
-                  <div style={{ maxHeight: 460, overflowY: 'auto' }}>
-                    {myVehicleLogs.length === 0 ? (
-                      <div style={{ padding: '80px 0', textAlign: 'center' }}>
-                        <div style={{ background: D.surfaceHi, width: 90, height: 90, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: D.textSub, border: `1px solid ${D.border}` }}>
-                          <Fuel size={36} opacity={0.3} />
+                        {/* Total cost */}
+                        <div style={{ textAlign: 'right', flexShrink: 0, marginRight: 8 }}>
+                          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Total Cost</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: D.green }}>Rs. {Math.round(drv.totalCost).toLocaleString()}</div>
                         </div>
-                        <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.2rem' }}>No fuel logs yet</h3>
-                        <p style={{ margin: '10px 0 0', color: D.textSub, fontSize: '1rem', fontWeight: 500 }}>Click "+ Add Fuel Log" above to add your first entry.</p>
+                        {/* Efficiency badge */}
+                        <div style={{ flexShrink: 0 }}>
+                          <div style={{
+                            display: 'inline-flex', flexDirection: 'column', alignItems: 'center',
+                            padding: '8px 18px', borderRadius: 12, background: effBg,
+                            border: `1px solid ${effColor}35`,
+                          }}>
+                            <span style={{ fontSize: '1.08rem', fontWeight: 900, color: effColor, lineHeight: 1 }}>
+                              {drv.avgEff != null ? drv.avgEff.toFixed(2) : '—'}
+                            </span>
+                            <span style={{ fontSize: '0.6rem', fontWeight: 700, color: effColor, textTransform: 'uppercase', letterSpacing: '0.04em', opacity: 0.8, marginTop: 2 }}>
+                              {drv.avgEff != null ? 'km/L' : 'N/A'}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    ) : (() => {
-                      const colStyle = (w) => ({ padding: '13px 14px', fontSize: '0.82rem', color: D.text, fontWeight: 600, width: w, whiteSpace: 'nowrap' })
-                      const hStyle = { padding: '10px 14px', fontSize: '0.67rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }
-                      return (
-                        <div style={{ overflowX: 'auto' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                              <tr>
-                                {['DATE','FUEL GRADE','VOLUME','UNIT PRICE','TOTAL COST','ODOMETER','EFFICIENCY'].map(h => (
-                                  <th key={h} style={hStyle}>{h}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {myVehicleLogs.map((log, i) => {
-                                const eff = log.fuelEfficiency
-                                const effColor = eff == null ? D.textSub : eff > 10 ? '#4ade80' : eff > 7 ? '#60a5fa' : eff > 5 ? '#fbbf24' : '#f87171'
-                                return (
-                                  <tr key={log.id || i}
-                                    style={{ borderBottom: `1px solid ${D.border}`, transition: 'background 0.15s', cursor: 'default' }}
-                                    onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}
-                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                  >
-                                    <td style={{ ...colStyle('110px'), color: D.textSub }}>
-                                      {new Date(log.date).toLocaleDateString('en-CA')}
-                                    </td>
-                                    <td style={{ ...colStyle('120px') }}>
-                                      <span style={{ fontSize: '0.75rem', color: log.fuelType === 'Diesel' ? D.indigo : D.gold, fontWeight: 800, textTransform: 'uppercase', background: log.fuelType === 'Diesel' ? D.indigoDim : D.goldDim, padding: '3px 10px', borderRadius: 6, border: `1px solid ${log.fuelType === 'Diesel' ? D.indigo : D.gold}30` }}>{log.fuelType}</span>
-                                    </td>
-                                    <td style={{ ...colStyle('100px'), color: D.text }}>
-                                      {log.liters != null ? log.liters.toFixed(1) : '—'} L
-                                    </td>
-                                    <td style={{ ...colStyle('120px'), color: D.textSub }}>
-                                      LKR {log.costPerLiter != null ? log.costPerLiter.toFixed(2) : '—'}
-                                    </td>
-                                    <td style={{ ...colStyle('140px'), color: D.green, fontWeight: 800 }}>
-                                      LKR {Math.round(log.totalCost || 0).toLocaleString()}
-                                    </td>
-                                    <td style={{ ...colStyle('120px'), color: D.text }}>
-                                      {log.mileage != null ? log.mileage.toLocaleString() : '—'} km
-                                    </td>
-                                    <td style={{ padding: '13px 14px', width: '90px' }}>
-                                      {eff != null ? (
-                                        <span style={{ background: effColor + '18', color: effColor, border: `1px solid ${effColor}40`, padding: '3px 9px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 800 }}>
-                                          {eff.toFixed(1)} km/L
-                                        </span>
-                                      ) : <span style={{ color: D.textSub, fontSize: '0.78rem' }}>—</span>}
-                                    </td>
-                                  </tr>
-                                )
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )
-                    })()}
-                  </div>
+                    )
+                  })}
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* -- Admin/Controller: All Fuel Logs ------------ */}
-              {(isAdmin || isController) && (
-                <div id="audit-view" style={{ ...card(D), padding: 0 }}>
-                  <div style={{ padding: '28px 32px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-                      <div>
-                        <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '1.1rem' }}>All Fuel Logs - Audit View</h3>
-                        <p style={{ margin: '3px 0 0', fontSize: '0.85rem', color: D.textSub }}>Complete log history with creator and editor info</p>
+            {/* -- Driver: My Fuel History (premium table) --------- */}
+            {isDriver && (
+              <div style={{ ...card(D), padding: 0, marginBottom: 20 }}>
+                <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${D.border}` }}>
+                  <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>My Fuel History</h3>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.73rem', color: D.textSub }}>Recent fuel logs for your vehicle</p>
+                </div>
+                <div style={{ maxHeight: 460, overflowY: 'auto' }}>
+                  {myVehicleLogs.length === 0 ? (
+                    <div style={{ padding: '80px 0', textAlign: 'center' }}>
+                      <div style={{ background: D.surfaceHi, width: 90, height: 90, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: D.textSub, border: `1px solid ${D.border}` }}>
+                        <Fuel size={36} opacity={0.3} />
                       </div>
-                      
-                      {isAdmin && (
-                        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', padding: 6, borderRadius: 16, border: `1px solid ${D.border}` }}>
-                          <button onClick={() => setActiveTab('audit')} style={{ padding: '8px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.2s', background: activeTab === 'audit' ? D.surface : 'transparent', color: activeTab === 'audit' ? D.text : D.textSub, boxShadow: activeTab === 'audit' ? '0 4px 12px rgba(0,0,0,0.2)' : 'none' }}>
-                            Active Logs
-                          </button>
-                          <button onClick={() => setActiveTab('deleted')} style={{ padding: '8px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.2s', background: activeTab === 'deleted' ? D.surface : 'transparent', color: activeTab === 'deleted' ? D.red : D.textSub, boxShadow: activeTab === 'deleted' ? '0 4px 12px rgba(0,0,0,0.2)' : 'none' }}>
-                            Archived Vault
-                          </button>
-                        </div>
-                      )}
+                      <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.2rem' }}>No fuel logs yet</h3>
+                      <p style={{ margin: '10px 0 0', color: D.textSub, fontSize: '1rem', fontWeight: 500 }}>Click "+ Add Fuel Log" above to add your first entry.</p>
                     </div>
-                    
-                    {/* Filters Bar */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-
-                      {/* Vehicle Dropdown */}
-                      <div style={{ position: 'relative', minWidth: 180 }}>
-                        <Car size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: D.blue, pointerEvents: 'none', opacity: 0.8 }} />
-                        <select
-                          value={filterVehicle}
-                          onChange={e => { setFilterVehicle(e.target.value) }}
-                          style={{ width: '100%', padding: '11px 32px 11px 36px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', cursor: 'pointer', appearance: 'none', fontFamily: 'inherit' }}
-                          onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 3px ${D.purpleDim}` }}
-                          onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }}
-                        >
-                          <option value="all">All Vehicles</option>
-                          {uniqueVehiclesInLogs.map(reg => (
-                            <option key={reg} value={reg}>{reg}</option>
-                          ))}
-                        </select>
-                        <MoreVertical size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
+                  ) : (() => {
+                    const colStyle = (w) => ({ padding: '13px 14px', fontSize: '0.82rem', color: D.text, fontWeight: 600, width: w, whiteSpace: 'nowrap' })
+                    const hStyle = { padding: '10px 14px', fontSize: '0.67rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }
+                    return (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                          <thead>
+                            <tr>
+                              {['DATE', 'FUEL GRADE', 'VOLUME', 'UNIT PRICE', 'TOTAL COST', 'ODOMETER', 'EFFICIENCY'].map(h => (
+                                <th key={h} style={hStyle}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {myVehicleLogs.map((log, i) => {
+                              const eff = log.fuelEfficiency
+                              const effColor = eff == null ? D.textSub : eff > 10 ? '#4ade80' : eff > 7 ? '#60a5fa' : eff > 5 ? '#fbbf24' : '#f87171'
+                              return (
+                                <tr key={log.id || i}
+                                  style={{ borderBottom: `1px solid ${D.border}`, transition: 'background 0.15s', cursor: 'default' }}
+                                  onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}
+                                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                  <td style={{ ...colStyle('110px'), color: D.textSub }}>
+                                    {new Date(log.date).toLocaleDateString('en-CA')}
+                                  </td>
+                                  <td style={{ ...colStyle('120px') }}>
+                                    <span style={{ fontSize: '0.75rem', color: log.fuelType === 'Diesel' ? D.indigo : D.gold, fontWeight: 800, textTransform: 'uppercase', background: log.fuelType === 'Diesel' ? D.indigoDim : D.goldDim, padding: '3px 10px', borderRadius: 6, border: `1px solid ${log.fuelType === 'Diesel' ? D.indigo : D.gold}30` }}>{log.fuelType}</span>
+                                  </td>
+                                  <td style={{ ...colStyle('100px'), color: D.text }}>
+                                    {log.liters != null ? log.liters.toFixed(1) : '—'} L
+                                  </td>
+                                  <td style={{ ...colStyle('120px'), color: D.textSub }}>
+                                    LKR {log.costPerLiter != null ? log.costPerLiter.toFixed(2) : '—'}
+                                  </td>
+                                  <td style={{ ...colStyle('140px'), color: D.green, fontWeight: 800 }}>
+                                    LKR {Math.round(log.totalCost || 0).toLocaleString()}
+                                  </td>
+                                  <td style={{ ...colStyle('120px'), color: D.text }}>
+                                    {log.mileage != null ? log.mileage.toLocaleString() : '—'} km
+                                  </td>
+                                  <td style={{ padding: '13px 14px', width: '90px' }}>
+                                    {eff != null ? (
+                                      <span style={{ background: effColor + '18', color: effColor, border: `1px solid ${effColor}40`, padding: '3px 9px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 800 }}>
+                                        {eff.toFixed(1)} km/L
+                                      </span>
+                                    ) : <span style={{ color: D.textSub, fontSize: '0.78rem' }}>—</span>}
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
                       </div>
+                    )
+                  })()}
+                </div>
+              </div>
+            )}
 
-                      {/* Driver Dropdown */}
-                      <div style={{ position: 'relative', minWidth: 180 }}>
-                        <User size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: D.purple, pointerEvents: 'none', opacity: 0.8 }} />
-                        <select
-                          value={filterDriver}
-                          onChange={e => { setFilterDriver(e.target.value) }}
-                          style={{ width: '100%', padding: '11px 32px 11px 36px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', cursor: 'pointer', appearance: 'none', fontFamily: 'inherit' }}
-                          onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 3px ${D.purpleDim}` }}
-                          onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }}
-                        >
-                          <option value="all">All Drivers</option>
-                          {uniqueDriversInLogs.map(drv => (
-                            <option key={drv} value={drv}>{drv}</option>
-                          ))}
-                        </select>
-                        <MoreVertical size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
-                      </div>
+            {/* -- Admin/Controller: All Fuel Logs ------------ */}
+            {(isAdmin || isController) && (
+              <div id="audit-view" style={{ ...card(D), padding: 0 }}>
+                <div style={{ padding: '28px 32px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontWeight: 700, color: D.text, fontSize: '1.1rem' }}>All Fuel Logs - Audit View</h3>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.85rem', color: D.textSub }}>Complete log history with creator and editor info</p>
+                    </div>
 
-                      {/* Fuel Type Dropdown */}
-                      <div style={{ position: 'relative', minWidth: 150 }}>
-                        <Filter size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
-                        <select value={filterFuelType} onChange={e => setFilterFuelType(e.target.value)} style={{ width: '100%', padding: '11px 32px 11px 36px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', cursor: 'pointer', appearance: 'none', fontFamily: 'inherit' }} onFocus={e => { e.target.style.borderColor = D.purple }} onBlur={e => { e.target.style.borderColor = D.inputBorder }}>
-                          <option value="all" style={{ background: D.surface, color: D.text }}>All Fuels</option>
-                          <option value="Diesel" style={{ background: D.surface, color: D.text }}>Diesel</option>
-                          <option value="Petrol" style={{ background: D.surface, color: D.text }}>Petrol</option>
-                        </select>
-                        <MoreVertical size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
-                      </div>
-
-                      {/* Status Dropdown */}
-                      <div style={{ position: 'relative', minWidth: 150 }}>
-                        <Filter size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
-                        <select value={filterAuditStatus} onChange={e => setFilterAuditStatus(e.target.value)} style={{ width: '100%', padding: '11px 32px 11px 36px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', cursor: 'pointer', appearance: 'none', fontFamily: 'inherit' }} onFocus={e => { e.target.style.borderColor = D.purple }} onBlur={e => { e.target.style.borderColor = D.inputBorder }}>
-                          <option value="all" style={{ background: D.surface, color: D.text }}>All Status</option>
-                          <option value="original" style={{ background: D.surface, color: D.text }}>Original</option>
-                          <option value="edited" style={{ background: D.surface, color: D.text }}>Edited</option>
-                        </select>
-                        <MoreVertical size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
-                      </div>
-
-                      {/* Clear button */}
-                      {(filterVehicle !== 'all' || filterDriver !== 'all' || filterFuelType !== 'all' || filterAuditStatus !== 'all') && (
-                        <button
-                          onClick={() => { setFilterVehicle('all'); setFilterDriver('all'); setFilterFuelType('all'); setFilterAuditStatus('all') }}
-                          style={{ padding: '11px 16px', borderRadius: 12, border: `1px solid ${D.red}40`, background: D.redDim, color: D.red, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', whiteSpace: 'nowrap' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
-                          onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
-                        >
-                          <X size={14} /> Clear
+                    {isAdmin && (
+                      <div style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', padding: 6, borderRadius: 16, border: `1px solid ${D.border}` }}>
+                        <button onClick={() => setActiveTab('audit')} style={{ padding: '8px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.2s', background: activeTab === 'audit' ? D.surface : 'transparent', color: activeTab === 'audit' ? D.text : D.textSub, boxShadow: activeTab === 'audit' ? '0 4px 12px rgba(0,0,0,0.2)' : 'none' }}>
+                          Active Logs
                         </button>
-                      )}
-
-                      <div style={{ marginLeft: 'auto', fontSize: '0.8rem', color: D.textSub, fontWeight: 700, background: D.surface, padding: '11px 16px', borderRadius: 12, border: `1px solid ${D.border}`, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                        <span style={{ color: D.purple }}>{displayLogs.length}</span> Records
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ maxHeight: 600, overflowY: 'auto', padding: '24px 32px 40px' }}>
-                    {displayLogs.length === 0 ? (
-                      <div style={{ padding: '80px 0', textAlign: 'center' }}>
-                        <div style={{ background: D.surfaceHi, width: 90, height: 90, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: D.textSub, border: `1px solid ${D.border}` }}>
-                          <Search size={36} opacity={0.3} />
-                        </div>
-                        <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.2rem' }}>No matching logs found</h3>
-                        <p style={{ margin: '10px 0 0', color: D.textSub, fontSize: '1rem', fontWeight: 500 }}>Try adjusting your search or filters.</p>
-                      </div>
-                    ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
-                        {displayLogs.map((log, i) => {
-                          const badge = log.fuelEfficiency ? (
-                            log.fuelEfficiency > 10 ? { label: 'Excellent', bg: D.greenDim, color: D.green, border: 'rgba(74,222,128,0.3)' } :
-                            log.fuelEfficiency > 7 ? { label: 'Good', bg: D.blueDim, color: D.blue, border: 'rgba(96,165,250,0.3)' } :
-                            log.fuelEfficiency > 5 ? { label: 'Average', bg: D.goldDim, color: D.gold, border: 'rgba(251,191,36,0.3)' } :
-                            { label: 'Poor', bg: D.redDim, color: D.red, border: 'rgba(248,113,113,0.3)' }
-                          ) : { label: 'N/A', bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border };
-                          
-                          return (
-                            <div key={log.id} style={{
-                              background: D.surface, borderRadius: 20, border: `1px solid ${D.border}`,
-                              padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 24,
-                              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`,
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                            }} onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateX(6px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }} onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)' }}>
-                              
-                              <div style={{ width: 130, flexShrink: 0 }}>
-                                <div style={{ fontSize: '1.05rem', fontWeight: 950, color: D.blue, letterSpacing: '0.02em' }}>{log.vehicleRegNumber}</div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                                   <span style={{ fontSize: '0.72rem', color: log.fuelType === 'Diesel' ? D.indigo : D.gold, fontWeight: 800, textTransform: 'uppercase', background: log.fuelType === 'Diesel' ? D.indigoDim : D.goldDim, padding: '2px 8px', borderRadius: 6, border: `1px solid ${log.fuelType === 'Diesel' ? D.indigo : D.gold}30` }}>{log.fuelType}</span>
-                                </div>
-                              </div>
-                              
-                              <div style={{ width: 150, flexShrink: 0 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem', color: D.text, fontWeight: 700 }}>
-                                  <Calendar size={16} color={D.textSub} strokeWidth={2.5} /> {new Date(log.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: D.textSub, marginTop: 6, fontWeight: 600 }}>
-                                  <User size={14} opacity={0.7} /> {log.uploadedBy || log.driverUsername || '-'}
-                                </div>
-                              </div>
-
-                              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 40 }}>
-                                <div>
-                                  <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Volume</div>
-                                  <div style={{ fontSize: '1rem', fontWeight: 800, color: D.text }}>{log.liters.toFixed(1)} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>L</span></div>
-                                </div>
-                                <div>
-                                  <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Mileage</div>
-                                  <div style={{ fontSize: '1rem', fontWeight: 800, color: D.text }}>{log.mileage.toLocaleString()} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>km</span></div>
-                                </div>
-                                <div>
-                                  <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Total Cost</div>
-                                  <div style={{ fontSize: '1rem', fontWeight: 800, color: D.green }}>Rs. {Math.round(log.totalCost).toLocaleString()}</div>
-                                </div>
-                              </div>
-                              {/* Efficiency */}
-                              <div style={{ width: 140, flexShrink: 0, padding: '0 16px', borderLeft: `1px solid ${D.border}` }}>
-                                <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Efficiency</div>
-                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 10, background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
-                                  <span style={{ fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{badge.label}</span>
-                                  {log.fuelEfficiency != null && <span style={{ fontWeight: 950, fontSize: '0.85rem' }}>{log.fuelEfficiency.toFixed(1)}</span>}
-                                </div>
-                              </div>
-
-                              <div style={{ width: 140, flexShrink: 0, padding: '0 16px', borderLeft: `1px solid ${D.border}` }}>
-                                <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Audit Status</div>
-                                {log.isDeleted ? (
-                                  <div>
-                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 800, color: D.red, marginBottom: 2 }}><X size={12}/> Deleted</div>
-                                    <div style={{ fontSize: '0.7rem', color: D.textSub }}>By {log.deletedBy || '-'}</div>
-                                  </div>
-                                ) : log.isUpdated ? (
-                                  <div>
-                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 800, color: D.purple, marginBottom: 2 }}><Edit2 size={12}/> Edited</div>
-                                    <div style={{ fontSize: '0.7rem', color: D.textSub }}>By {log.updatedBy}</div>
-                                  </div>
-                                ) : (
-                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 800, color: D.green }}><Check size={12}/> Original</div>
-                                )}
-                              </div>
-                            </div>
-                          )
-                        })}
+                        <button onClick={() => setActiveTab('deleted')} style={{ padding: '8px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.2s', background: activeTab === 'deleted' ? D.surface : 'transparent', color: activeTab === 'deleted' ? D.red : D.textSub, boxShadow: activeTab === 'deleted' ? '0 4px 12px rgba(0,0,0,0.2)' : 'none' }}>
+                          Archived Vault
+                        </button>
                       </div>
                     )}
                   </div>
+
+                  {/* Filters Bar */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+
+                    {/* Vehicle Dropdown */}
+                    <div style={{ position: 'relative', minWidth: 180 }}>
+                      <Car size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: D.blue, pointerEvents: 'none', opacity: 0.8 }} />
+                      <select
+                        value={filterVehicle}
+                        onChange={e => { setFilterVehicle(e.target.value) }}
+                        style={{ width: '100%', padding: '11px 32px 11px 36px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', cursor: 'pointer', appearance: 'none', fontFamily: 'inherit' }}
+                        onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 3px ${D.purpleDim}` }}
+                        onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }}
+                      >
+                        <option value="all">All Vehicles</option>
+                        {uniqueVehiclesInLogs.map(reg => (
+                          <option key={reg} value={reg}>{reg}</option>
+                        ))}
+                      </select>
+                      <MoreVertical size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
+                    </div>
+
+                    {/* Driver Dropdown */}
+                    <div style={{ position: 'relative', minWidth: 180 }}>
+                      <User size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: D.purple, pointerEvents: 'none', opacity: 0.8 }} />
+                      <select
+                        value={filterDriver}
+                        onChange={e => { setFilterDriver(e.target.value) }}
+                        style={{ width: '100%', padding: '11px 32px 11px 36px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', cursor: 'pointer', appearance: 'none', fontFamily: 'inherit' }}
+                        onFocus={e => { e.target.style.borderColor = D.purple; e.target.style.boxShadow = `0 0 0 3px ${D.purpleDim}` }}
+                        onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }}
+                      >
+                        <option value="all">All Drivers</option>
+                        {uniqueDriversInLogs.map(drv => (
+                          <option key={drv} value={drv}>{drv}</option>
+                        ))}
+                      </select>
+                      <MoreVertical size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
+                    </div>
+
+                    {/* Fuel Type Dropdown */}
+                    <div style={{ position: 'relative', minWidth: 150 }}>
+                      <Filter size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
+                      <select value={filterFuelType} onChange={e => setFilterFuelType(e.target.value)} style={{ width: '100%', padding: '11px 32px 11px 36px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', cursor: 'pointer', appearance: 'none', fontFamily: 'inherit' }} onFocus={e => { e.target.style.borderColor = D.purple }} onBlur={e => { e.target.style.borderColor = D.inputBorder }}>
+                        <option value="all" style={{ background: D.surface, color: D.text }}>All Fuels</option>
+                        <option value="Diesel" style={{ background: D.surface, color: D.text }}>Diesel</option>
+                        <option value="Petrol" style={{ background: D.surface, color: D.text }}>Petrol</option>
+                      </select>
+                      <MoreVertical size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
+                    </div>
+
+                    {/* Status Dropdown */}
+                    <div style={{ position: 'relative', minWidth: 150 }}>
+                      <Filter size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
+                      <select value={filterAuditStatus} onChange={e => setFilterAuditStatus(e.target.value)} style={{ width: '100%', padding: '11px 32px 11px 36px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', cursor: 'pointer', appearance: 'none', fontFamily: 'inherit' }} onFocus={e => { e.target.style.borderColor = D.purple }} onBlur={e => { e.target.style.borderColor = D.inputBorder }}>
+                        <option value="all" style={{ background: D.surface, color: D.text }}>All Status</option>
+                        <option value="original" style={{ background: D.surface, color: D.text }}>Original</option>
+                        <option value="edited" style={{ background: D.surface, color: D.text }}>Edited</option>
+                      </select>
+                      <MoreVertical size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
+                    </div>
+
+                    {/* Clear button */}
+                    {(filterVehicle !== 'all' || filterDriver !== 'all' || filterFuelType !== 'all' || filterAuditStatus !== 'all') && (
+                      <button
+                        onClick={() => { setFilterVehicle('all'); setFilterDriver('all'); setFilterFuelType('all'); setFilterAuditStatus('all') }}
+                        style={{ padding: '11px 16px', borderRadius: 12, border: `1px solid ${D.red}40`, background: D.redDim, color: D.red, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', whiteSpace: 'nowrap' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
+                      >
+                        <X size={14} /> Clear
+                      </button>
+                    )}
+
+                    <div style={{ marginLeft: 'auto', fontSize: '0.8rem', color: D.textSub, fontWeight: 700, background: D.surface, padding: '11px 16px', borderRadius: 12, border: `1px solid ${D.border}`, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                      <span style={{ color: D.purple }}>{displayLogs.length}</span> Records
+                    </div>
+                  </div>
                 </div>
-              )}
-            </>
+                <div style={{ maxHeight: 600, overflowY: 'auto', padding: '24px 32px 40px' }}>
+                  {displayLogs.length === 0 ? (
+                    <div style={{ padding: '80px 0', textAlign: 'center' }}>
+                      <div style={{ background: D.surfaceHi, width: 90, height: 90, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: D.textSub, border: `1px solid ${D.border}` }}>
+                        <Search size={36} opacity={0.3} />
+                      </div>
+                      <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.2rem' }}>No matching logs found</h3>
+                      <p style={{ margin: '10px 0 0', color: D.textSub, fontSize: '1rem', fontWeight: 500 }}>Try adjusting your search or filters.</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
+                      {displayLogs.map((log, i) => {
+                        const badge = log.fuelEfficiency ? (
+                          log.fuelEfficiency > 10 ? { label: 'Excellent', bg: D.greenDim, color: D.green, border: 'rgba(74,222,128,0.3)' } :
+                            log.fuelEfficiency > 7 ? { label: 'Good', bg: D.blueDim, color: D.blue, border: 'rgba(96,165,250,0.3)' } :
+                              log.fuelEfficiency > 5 ? { label: 'Average', bg: D.goldDim, color: D.gold, border: 'rgba(251,191,36,0.3)' } :
+                                { label: 'Poor', bg: D.redDim, color: D.red, border: 'rgba(248,113,113,0.3)' }
+                        ) : { label: 'N/A', bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border };
+
+                        return (
+                          <div key={log.id} style={{
+                            background: D.surface, borderRadius: 20, border: `1px solid ${D.border}`,
+                            padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 24,
+                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                          }} onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateX(6px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }} onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)' }}>
+
+                            <div style={{ width: 130, flexShrink: 0 }}>
+                              <div style={{ fontSize: '1.05rem', fontWeight: 950, color: D.blue, letterSpacing: '0.02em' }}>{log.vehicleRegNumber}</div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                                <span style={{ fontSize: '0.72rem', color: log.fuelType === 'Diesel' ? D.indigo : D.gold, fontWeight: 800, textTransform: 'uppercase', background: log.fuelType === 'Diesel' ? D.indigoDim : D.goldDim, padding: '2px 8px', borderRadius: 6, border: `1px solid ${log.fuelType === 'Diesel' ? D.indigo : D.gold}30` }}>{log.fuelType}</span>
+                              </div>
+                            </div>
+
+                            <div style={{ width: 150, flexShrink: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem', color: D.text, fontWeight: 700 }}>
+                                <Calendar size={16} color={D.textSub} strokeWidth={2.5} /> {new Date(log.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: D.textSub, marginTop: 6, fontWeight: 600 }}>
+                                <User size={14} opacity={0.7} /> {log.uploadedBy || log.driverUsername || '-'}
+                              </div>
+                            </div>
+
+                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 40 }}>
+                              <div>
+                                <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Volume</div>
+                                <div style={{ fontSize: '1rem', fontWeight: 800, color: D.text }}>{log.liters.toFixed(1)} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>L</span></div>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Mileage</div>
+                                <div style={{ fontSize: '1rem', fontWeight: 800, color: D.text }}>{log.mileage.toLocaleString()} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>km</span></div>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Total Cost</div>
+                                <div style={{ fontSize: '1rem', fontWeight: 800, color: D.green }}>Rs. {Math.round(log.totalCost).toLocaleString()}</div>
+                              </div>
+                            </div>
+                            {/* Efficiency */}
+                            <div style={{ width: 140, flexShrink: 0, padding: '0 16px', borderLeft: `1px solid ${D.border}` }}>
+                              <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Efficiency</div>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 10, background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
+                                <span style={{ fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{badge.label}</span>
+                                {log.fuelEfficiency != null && <span style={{ fontWeight: 950, fontSize: '0.85rem' }}>{log.fuelEfficiency.toFixed(1)}</span>}
+                              </div>
+                            </div>
+
+                            <div style={{ width: 140, flexShrink: 0, padding: '0 16px', borderLeft: `1px solid ${D.border}` }}>
+                              <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Audit Status</div>
+                              {log.isDeleted ? (
+                                <div>
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 800, color: D.red, marginBottom: 2 }}><X size={12} /> Deleted</div>
+                                  <div style={{ fontSize: '0.7rem', color: D.textSub }}>By {log.deletedBy || '-'}</div>
+                                </div>
+                              ) : log.isUpdated ? (
+                                <div>
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 800, color: D.purple, marginBottom: 2 }}><Edit2 size={12} /> Edited</div>
+                                  <div style={{ fontSize: '0.7rem', color: D.textSub }}>By {log.updatedBy}</div>
+                                </div>
+                              ) : (
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 800, color: D.green }}><Check size={12} /> Original</div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
 
           {/* -
               DRIVER: ADD LOG MODAL
