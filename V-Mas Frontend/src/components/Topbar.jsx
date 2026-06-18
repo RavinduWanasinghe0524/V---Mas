@@ -218,7 +218,7 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
 
 
       {/* Right Actions */}
-      <div className="topbar-right-actions" style={{ display: 'flex', alignItems: 'center', gap: 28, marginLeft: 'auto' }}>
+      <div className="topbar-right-actions" style={{ display: 'flex', alignItems: 'center', gap: 'clamp(12px, 2vw, 28px)', marginLeft: 'auto' }}>
         {/* Theme Toggle — Premium pill with animated knob */}
         <button
           onClick={toggleTheme}
@@ -283,7 +283,7 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
             </div>
 
             {showNotifications && (
-              <div style={{
+              <div className="topbar-notif-dropdown" style={{
                 position: 'absolute', top: '100%', right: -20, marginTop: 16, width: 340, background: 'var(--surface)',
                 border: `1px solid var(--surface-border)`, borderRadius: 16, boxShadow: 'var(--shadow-xl)', zIndex: 100, display: 'flex', flexDirection: 'column', overflow: 'hidden'
               }}>

@@ -1,20 +1,20 @@
-/* ═══════════════════════════════════════════════════════════════════
-   V-MAS Design System — Premium Theme Engine
+﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   V-MAS Design System â€” Premium Theme Engine
    Stunning Light + Dark mode with depth, glow & glassmorphism
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-/* ── CSS Variables — Light Mode (default) ──────────────────────── */
+/* â”€â”€ CSS Variables â€” Light Mode (default) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 :root {
-  /* ─ Brand Accent ─ */
+  /* â”€ Brand Accent â”€ */
   --primary:          #1d4ed8;
   --primary-dark:     #1d4ed8;
   --primary-light:    #eff6ff;
   --primary-muted:    rgba(29, 78, 216, 0.1);
   --primary-glow:     rgba(29, 78, 216, 0.28);
 
-  /* ─ Semantic Colours ─ */
+  /* â”€ Semantic Colours â”€ */
   --success:          #059669;
   --success-bg:       #d1fae5;
   --success-text:     #065f46;
@@ -29,19 +29,19 @@
   --info-bg:          #e0f2fe;
   --info-text:        #075985;
 
-  /* ─ Background Layers ─ */
+  /* â”€ Background Layers â”€ */
   /* Subtle warm-white layered system */
   --bg-body:          #f5f5fb;
   --bg-white:         #ffffff;
   --bg-gray-50:       #f8f8fd;
   --bg-gray-100:      #eeeef8;
 
-  /* ─ Borders ─ */
+  /* â”€ Borders â”€ */
   --border:           rgba(29, 78, 216, 0.1);
   --border-strong:    rgba(29, 78, 216, 0.2);
   --border-focus:     #1d4ed8;
 
-  /* ─ Text ─ */
+  /* â”€ Text â”€ */
   --text-primary:     #0f0f1a;
   --text-secondary:   #172554;
   --text-muted:       #4b5563;
@@ -49,23 +49,23 @@
   --text-white:       #ffffff;
   --text-accent:      #1d4ed8;
 
-  /* ─ Sidebar ─ */
+  /* â”€ Sidebar â”€ */
   --sidebar-w:        290px;
   --sidebar-w-collapsed: 76px;
   --sidebar-bg:       #ffffff;
 
-  /* ─ Topbar ─ */
+  /* â”€ Topbar â”€ */
   --navbar-h:         64px;
   --topbar-bg:        rgba(255,255,255,0.88);
   --topbar-border:    rgba(29, 78, 216, 0.08);
 
-  /* ─ Surface tokens ─ */
+  /* â”€ Surface tokens â”€ */
   --surface:          #ffffff;
   --surface-hi:       #f8f8fd;
   --surface-border:   rgba(29, 78, 216, 0.08);
   --surface-border-hi:rgba(29, 78, 216, 0.2);
 
-  /* ─ Radius ─ */
+  /* â”€ Radius â”€ */
   --radius-xs:        4px;
   --radius-sm:        8px;
   --radius-md:        12px;
@@ -73,32 +73,32 @@
   --radius-xl:        20px;
   --radius-2xl:       24px;
 
-  /* ─ Shadows — softer, cooler tinted ─ */
+  /* â”€ Shadows â€” softer, cooler tinted â”€ */
   --shadow-xs:        0 1px 3px rgba(29, 78, 216,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-sm:        0 2px 8px rgba(29, 78, 216,0.08), 0 1px 3px rgba(0,0,0,0.05);
   --shadow-md:        0 6px 20px rgba(29, 78, 216,0.12), 0 2px 6px rgba(0,0,0,0.04);
   --shadow-lg:        0 12px 32px rgba(29, 78, 216,0.15), 0 4px 10px rgba(0,0,0,0.05);
   --shadow-xl:        0 24px 48px rgba(29, 78, 216,0.18), 0 10px 20px rgba(0,0,0,0.06);
 
-  /* ─ Transitions ─ */
+  /* â”€ Transitions â”€ */
   --t-fast:           0.15s ease;
   --t-med:            0.25s ease;
 
-  /* ─ Light mode decorative gradient for bg ─ */
+  /* â”€ Light mode decorative gradient for bg â”€ */
   --body-gradient:    radial-gradient(ellipse at 20% 0%, rgba(29, 78, 216,0.06) 0%, transparent 60%),
                       radial-gradient(ellipse at 80% 100%, rgba(37, 99, 235,0.04) 0%, transparent 60%);
 }
 
-/* ── Dark (Space Blue) Theme Overrides ─────────────────────────── */
+/* â”€â”€ Dark (Space Blue) Theme Overrides â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 [data-theme="blue"] {
-  /* ─ Brand ─ Electric neon blue that pops on dark ─ */
+  /* â”€ Brand â”€ Electric neon blue that pops on dark â”€ */
   --primary:          #3b82f6;
   --primary-dark:     #2563eb;
   --primary-light:    rgba(59, 130, 246, 0.15);
   --primary-muted:    rgba(59, 130, 246, 0.18);
   --primary-glow:     rgba(59, 130, 246, 0.5);
 
-  /* ─ Semantic Colours — vivid neon on dark ─ */
+  /* â”€ Semantic Colours â€” vivid neon on dark â”€ */
   --success:          #34d399;
   --success-bg:       rgba(52,211,153,0.12);
   --success-text:     #34d399;
@@ -113,18 +113,18 @@
   --info-bg:          rgba(56,189,248,0.12);
   --info-text:        #38bdf8;
 
-  /* ─ Backgrounds — ultra-deep space, layered depth ─ */
+  /* â”€ Backgrounds â€” ultra-deep space, layered depth â”€ */
   --bg-body:          #060b18;
   --bg-white:         #0a1628;
   --bg-gray-50:       #0e1d35;
   --bg-gray-100:      #122040;
 
-  /* ─ Borders — luminous electric hairlines ─ */
+  /* â”€ Borders â€” luminous electric hairlines â”€ */
   --border:           rgba(59, 130, 246, 0.13);
   --border-strong:    rgba(59, 130, 246, 0.28);
   --border-focus:     #3b82f6;
 
-  /* ─ Text ─ */
+  /* â”€ Text â”€ */
   --text-primary:     #e8eeff;
   --text-secondary:   #bfdbfe;
   --text-muted:       #7889b4;
@@ -132,30 +132,30 @@
   --text-white:       #ffffff;
   --text-accent:      #60a5fa;
 
-  /* ─ Sidebar ─ Deep glass with neon ─ */
+  /* â”€ Sidebar â”€ Deep glass with neon â”€ */
   --sidebar-bg:       rgba(10, 22, 40, 0.97);
 
-  /* ─ Topbar ─ */
+  /* â”€ Topbar â”€ */
   --topbar-bg:        rgba(8, 14, 28, 0.94);
   --topbar-border:    rgba(59, 130, 246, 0.12);
 
-  /* ─ Surface tokens ─ */
+  /* â”€ Surface tokens â”€ */
   --surface:          rgba(10, 22, 40, 0.9);
   --surface-hi:       rgba(14, 29, 53, 0.9);
   --surface-border:   rgba(59, 130, 246, 0.1);
   --surface-border-hi:rgba(59, 130, 246, 0.28);
 
-  /* ─ Scrollbar ─ */
+  /* â”€ Scrollbar â”€ */
   --scrollbar-thumb:  rgba(59, 130, 246, 0.25);
 
-  /* ─ Shadows — deep neon glow ─ */
+  /* â”€ Shadows â€” deep neon glow â”€ */
   --shadow-xs:        0 1px 4px rgba(0,0,0,0.6), 0 0 0 1px rgba(59, 130, 246, 0.06);
   --shadow-sm:        0 2px 10px rgba(0,0,0,0.6), 0 0 12px rgba(59, 130, 246, 0.06);
   --shadow-md:        0 6px 24px rgba(0,0,0,0.65), 0 0 24px rgba(59, 130, 246, 0.08);
   --shadow-lg:        0 12px 40px rgba(0,0,0,0.7), 0 0 32px rgba(59, 130, 246, 0.12);
   --shadow-xl:        0 24px 64px rgba(0,0,0,0.8), 0 0 60px rgba(59, 130, 246, 0.15);
 
-  /* ─ Dark mode body gradient — aurora effect ─ */
+  /* â”€ Dark mode body gradient â€” aurora effect â”€ */
   --body-gradient:    radial-gradient(ellipse at 15% 0%, rgba(59, 130, 246, 0.16) 0%, transparent 55%),
                       radial-gradient(ellipse at 85% 100%, rgba(99, 102, 241, 0.10) 0%, transparent 55%),
                       radial-gradient(ellipse at 50% 50%, rgba(20, 20, 60, 0.4) 0%, transparent 80%);
@@ -185,7 +185,7 @@
 [data-theme="blue"] .status-badge.status-active  { background: rgba(52,211,153,0.15); color: #34d399; }
 [data-theme="blue"] .status-badge.status-inactive { background: rgba(248,113,113,0.15); color: #f87171; }
 
-/* ── Blue theme form controls ──────────────────────────────────── */
+/* â”€â”€ Blue theme form controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 [data-theme="blue"] .form-control {
   background: rgba(37, 99, 235,0.06);
   border-color: rgba(37, 99, 235,0.18);
@@ -199,7 +199,7 @@
 [data-theme="blue"] select.form-control option  { background: #111c36; }
 [data-theme="blue"] select option { background: #111c36; color: #f0f2ff; }
 
-/* ── Dark theme icon colors ───────────────────────────────────── */
+/* â”€â”€ Dark theme icon colors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 [data-theme="blue"] .icon-purple { background: rgba(37, 99, 235,0.18);  color: #3b82f6; }
 [data-theme="blue"] .icon-blue   { background: rgba(56,189,248,0.15);  color: #38bdf8; }
 [data-theme="blue"] .icon-green  { background: rgba(52,211,153,0.15);  color: #34d399; }
@@ -210,7 +210,7 @@
 [data-theme="blue"] .icon-indigo { background: rgba(37, 99, 235,0.18);  color: #3b82f6; }
 
 
-/* ── Reset & Base ──────────────────────────────────────────────── */
+/* â”€â”€ Reset & Base â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 
@@ -237,14 +237,14 @@ button { cursor: pointer; font-family: inherit; }
 input, select, textarea { font-family: inherit; }
 img { display: block; max-width: 100%; }
 
-/* ── Scrollbar ─────────────────────────────────────────────────── */
+/* â”€â”€ Scrollbar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-gray-100); }
 ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; }
 ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 
 
-/* ── Animations ────────────────────────────────────────────────── */
+/* â”€â”€ Animations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @keyframes spin    { to { transform: rotate(360deg); } }
 @keyframes fadeUp  { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
 @keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
@@ -258,9 +258,9 @@ img { display: block; max-width: 100%; }
 @keyframes floatY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    LAYOUT SHELL
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .app-shell {
   display: flex;
   min-height: 100vh;
@@ -282,17 +282,17 @@ img { display: block; max-width: 100%; }
   animation: fadeUp 0.3s ease both;
 }
 
-/* ── Container ─────────────────────────────────────────────────── */
+/* â”€â”€ Container â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .container {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 2rem;
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   SIDEBAR — Unified, conflict-free styles
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   SIDEBAR â€” Unified, conflict-free styles
    (The scoped <style> in Sidebar.jsx has been removed; all rules live here)
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .sidebar {
   width: var(--sidebar-w);
   height: 100vh;
@@ -315,7 +315,7 @@ img { display: block; max-width: 100%; }
   box-shadow: 2px 0 40px rgba(59, 130, 246, 0.12), inset -1px 0 0 rgba(59, 130, 246, 0.1);
 }
 
-/* ── Sidebar header (logo + brand) ──────────────────────────────── */
+/* â”€â”€ Sidebar header (logo + brand) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sidebar-header {
   padding: 20px 16px 16px;
   border-bottom: 1px solid var(--border);
@@ -361,7 +361,7 @@ img { display: block; max-width: 100%; }
   max-width: 200px;
 }
 
-/* ── Nav area ───────────────────────────────────────────────────── */
+/* â”€â”€ Nav area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sidebar-nav {
   flex: 1;
   padding: 12px 8px;
@@ -391,7 +391,7 @@ img { display: block; max-width: 100%; }
   max-height: 40px;
 }
 
-/* ── Nav items ──────────────────────────────────────────────────── */
+/* â”€â”€ Nav items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .nav-item {
   display: flex;
   align-items: center;
@@ -424,7 +424,7 @@ img { display: block; max-width: 100%; }
   color: #ffffff;
 }
 
-/* ── Dark mode enhanced nav states ──── */
+/* â”€â”€ Dark mode enhanced nav states â”€â”€â”€â”€ */
 [data-theme="blue"] .nav-item:hover {
   background: rgba(59, 130, 246, 0.1);
   color: #e8eeff;
@@ -485,7 +485,7 @@ img { display: block; max-width: 100%; }
   padding-left: 49px;
 }
 
-/* ── Collapsed state ─────────────────────────────────────────────── */
+/* â”€â”€ Collapsed state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sidebar-collapsed {
   width: var(--sidebar-w-collapsed) !important;
   transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
@@ -525,7 +525,7 @@ img { display: block; max-width: 100%; }
   padding: 12px;
 }
 
-/* ── Collapse toggle button ──────────────────────────────────────── */
+/* â”€â”€ Collapse toggle button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sidebar-toggle-btn {
   position: fixed;
   top: 50%;
@@ -569,7 +569,7 @@ img { display: block; max-width: 100%; }
   transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
 }
 
-/* ── Tooltip for collapsed icon-only mode ────────────────────────── */
+/* â”€â”€ Tooltip for collapsed icon-only mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sidebar-nav-tooltip {
   position: relative;
   width: 100%;
@@ -607,9 +607,9 @@ img { display: block; max-width: 100%; }
 }
 
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    NAVBAR (Topbar)
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .topbar {
   height: var(--navbar-h);
   background: var(--topbar-bg);
@@ -657,7 +657,7 @@ img { display: block; max-width: 100%; }
 .topbar-name { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); }
 .topbar-role { font-size: 0.68rem; color: var(--text-muted); }
 
-/* ── Standalone Navbar (for pages using Navbar.jsx) ────────────── */
+/* â”€â”€ Standalone Navbar (for pages using Navbar.jsx) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .navbar {
   background: var(--bg-white);
   border-bottom: 1px solid var(--border);
@@ -729,9 +729,9 @@ img { display: block; max-width: 100%; }
 }
 .btn-logout:hover { background: var(--danger); color: #fff; }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    BUTTONS
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -798,9 +798,9 @@ img { display: block; max-width: 100%; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 .w-full { width: 100%; }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    CARDS
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .card {
   background: var(--bg-white);
   border: 1px solid var(--border);
@@ -809,7 +809,7 @@ img { display: block; max-width: 100%; }
   box-shadow: var(--shadow-xs);
 }
 
-/* ── Stat Cards ────────────────────────────────────────────────── */
+/* â”€â”€ Stat Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -870,7 +870,7 @@ img { display: block; max-width: 100%; }
   letter-spacing: 0.06em;
 }
 
-/* Color-coded icon backgrounds — Light mode (indigo/violet palette) */
+/* Color-coded icon backgrounds â€” Light mode (indigo/violet palette) */
 .icon-purple { background: #dbeafe; color: #5b21b6; }
 .icon-blue   { background: #dbeafe; color: #1d4ed8; }
 .icon-green  { background: #d1fae5; color: #059669; }
@@ -880,7 +880,7 @@ img { display: block; max-width: 100%; }
 .icon-pink   { background: #fce7f3; color: #9d174d; }
 .icon-indigo { background: #dbeafe; color: #1e40af; }
 
-/* ── Feature Cards ─────────────────────────────────────────────── */
+/* â”€â”€ Feature Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .features-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -923,9 +923,9 @@ img { display: block; max-width: 100%; }
   line-height: 1.6;
 }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    PAGE HEADER
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .page-header {
   display: flex;
   align-items: flex-start;
@@ -945,7 +945,7 @@ img { display: block; max-width: 100%; }
 }
 .page-subtitle { font-size: 0.875rem; color: var(--text-muted); margin-top: 3px; }
 
-/* ── Section Headers ───────────────────────────────────────────── */
+/* â”€â”€ Section Headers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .section-title {
   font-size: 1rem;
@@ -955,9 +955,9 @@ img { display: block; max-width: 100%; }
 }
 .section-divider { flex: 1; height: 1px; background: var(--border); }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    BADGE SYSTEM
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -1010,9 +1010,9 @@ img { display: block; max-width: 100%; }
 .status-badge.status-active   { background: var(--success-bg); color: var(--success-text); }
 .status-badge.status-inactive { background: var(--danger-bg);  color: var(--danger-text); }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    FORMS
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .form-grid.full { grid-template-columns: 1fr; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
@@ -1062,9 +1062,9 @@ select.form-control option { background: #fff; }
 }
 .form-group input:not(.form-control)::placeholder { color: var(--text-light); }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    ALERTS
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .alert {
   display: flex;
   align-items: center;
@@ -1102,9 +1102,9 @@ select.form-control option { background: #fff; }
   margin-bottom: 16px;
 }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    TABLE
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .table-wrapper, .users-table {
   background: var(--bg-white);
   border: 1px solid var(--border);
@@ -1162,9 +1162,9 @@ select.form-control option { background: #fff; }
   gap: 6px;
 }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    MODALS
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1238,9 +1238,9 @@ select.form-control option { background: #fff; }
 .modal .form-group { margin-bottom: 14px; }
 .modal .form-group label { display: block; margin-bottom: 5px; }
 
-/* ═══════════════════════════════════════════════════════════════════
-   AUTH PAGES — Split Panel Design
-═══════════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   AUTH PAGES â€” Split Panel Design
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .auth-page, .auth-container {
   min-height: 100vh;
   display: flex;
@@ -1436,9 +1436,9 @@ select.form-control option { background: #fff; }
 }
 .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    DASHBOARD WELCOME BANNER
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .welcome-banner {
   background: linear-gradient(135deg, var(--primary) 0%, #2563eb 100%);
   border-radius: var(--radius-xl);
@@ -1470,7 +1470,7 @@ select.form-control option { background: #fff; }
 .welcome-text p { font-size: 0.875rem; color: rgba(255,255,255,0.8); }
 .welcome-icon { font-size: 2.5rem; opacity: 0.85; flex-shrink: 0; }
 
-/* ── Dashboard legacy layout ───────────────────────────────────── */
+/* â”€â”€ Dashboard legacy layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .dashboard { padding: 28px 0; }
 .dashboard-header { margin-bottom: 28px; }
 .dashboard-header h1 {
@@ -1483,9 +1483,9 @@ select.form-control option { background: #fff; }
 }
 .dashboard-header p { font-size: 0.875rem; color: var(--text-muted); }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    EMPTY STATE & LOADING
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .empty-state {
   text-align: center;
   padding: 56px 20px;
@@ -1519,9 +1519,9 @@ select.form-control option { background: #fff; }
   flex-shrink: 0;
 }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    PROFILE PAGE
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .avatar-xl {
   width: 88px; height: 88px;
   border-radius: 50%;
@@ -1536,9 +1536,9 @@ select.form-control option { background: #fff; }
   border: 2px solid var(--primary-light);
 }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    SPLASH SCREEN
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .splash-screen {
   min-height: 100vh;
   display: flex;
@@ -1562,9 +1562,9 @@ select.form-control option { background: #fff; }
   animation: spin 0.8s linear infinite;
 }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    USERS PAGE
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .users-page { padding: 28px 0; }
 .users-page .page-header {
   display: flex; align-items: flex-start; justify-content: space-between;
@@ -1577,9 +1577,9 @@ select.form-control option { background: #fff; }
 }
 .users-page .page-header p { font-size: 0.875rem; color: var(--text-muted); }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    UTILITIES
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .text-accent  { color: var(--primary); }
 .text-success { color: var(--success); }
 .text-danger  { color: var(--danger); }
@@ -1596,9 +1596,9 @@ select.form-control option { background: #fff; }
 .relative { position: relative; }
 .btn-icon { padding: 8px; border-radius: var(--radius-sm); }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    MOBILE SIDEBAR DRAWER SYSTEM
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /* Sidebar overlay backdrop (mobile only) */
 .sidebar-overlay {
@@ -1655,9 +1655,9 @@ select.form-control option { background: #fff; }
   color: var(--danger-text);
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   RESPONSIVE — TABLET (≤1024px)
-═══════════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   RESPONSIVE â€” TABLET (â‰¤1024px)
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 @media (max-width: 1024px) {
   .auth-left { display: none; }
 
@@ -1667,66 +1667,92 @@ select.form-control option { background: #fff; }
   .features-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  /* â”€â”€ Collapse 4-column inline grids to 2-column on tablet â”€â”€ */
+  [style*="repeat(4, 1fr)"],
+  [style*="repeat(4,1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* â”€â”€ Collapse 3-column grids to 2-column on tablet â”€â”€ */
+  [style*="repeat(3, 1fr)"],
+  [style*="repeat(3,1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* â”€â”€ Reduce hero banner padding on tablet â”€â”€ */
+  .page-body {
+    padding: 20px 24px;
+  }
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   RESPONSIVE — MOBILE (≤768px)
-═══════════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   RESPONSIVE â€” MOBILE (â‰¤768px)
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 @media (max-width: 768px) {
 
-  /* ── Layout ─────────────────────────────────────────────────── */
+  /* â”€â”€ Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .main-content {
     margin-left: 0 !important;
+    overflow-x: hidden;
+    width: 100%;
   }
   .page-body {
-    padding: 16px;
+    padding: 14px 12px;
+    overflow-x: hidden;
+  }
+  .app-shell {
+    overflow-x: hidden;
   }
 
-  /* ── Sidebar drawer ─────────────────────────────────────────── */
+  /* â”€â”€ Sidebar drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .sidebar {
     transform: translateX(-100%);
     transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 200;
     position: fixed;
-    width: 260px !important; /* always full width on mobile */
+    width: 270px !important;
   }
   .sidebar.sidebar-open {
     transform: translateX(0);
     box-shadow: 4px 0 32px rgba(0, 0, 0, 0.35);
   }
-  .sidebar-overlay {
-    display: block;
-  }
-  .sidebar-close-btn {
-    display: flex;
-  }
-  /* Collapsed class must not shrink sidebar on mobile (drawer mode) */
-  .sidebar-collapsed {
-    width: 260px !important;
-  }
-  .sidebar-header {
-    padding-right: 52px; /* make room for close button */
-  }
+  .sidebar-overlay { display: block; }
+  .sidebar-close-btn { display: flex; }
+  .sidebar-collapsed { width: 270px !important; }
+  .sidebar-header { padding-right: 52px; }
+  /* Hide desktop collapse toggle on mobile */
+  .sidebar-toggle-btn { display: none !important; }
 
-  /* ── Topbar ─────────────────────────────────────────────────── */
-  .topbar-hamburger {
-    display: flex;
-  }
+  /* â”€â”€ Topbar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  .topbar-hamburger { display: flex; }
   .topbar {
-    padding: 0 16px;
-    gap: 10px;
+    padding: 0 14px;
+    gap: 8px;
   }
-  /* Hide search bar on mobile to save space */
-  .topbar-search {
-    display: none !important;
-  }
-  /* Collapse user name/role text */
+  .topbar-search { display: none !important; }
   .topbar-username-text,
-  .topbar-role-text {
-    display: none;
+  .topbar-role-text { display: none; }
+  /* Truncate title on small screens */
+  .topbar-title {
+    font-size: 0.95rem;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .topbar-breadcrumb { display: none; }
+
+  /* â”€â”€ Notification dropdown â€” viewport safe â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  .topbar-notif-dropdown {
+    right: 0 !important;
+    left: auto !important;
+    width: calc(100vw - 24px) !important;
+    max-width: 340px !important;
+    top: calc(100% + 10px) !important;
   }
 
-  /* ── Page header ────────────────────────────────────────────── */
+  /* â”€â”€ Page header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .page-header {
     flex-direction: column;
     align-items: stretch;
@@ -1738,299 +1764,277 @@ select.form-control option { background: #fff; }
     justify-content: center;
   }
 
-  /* ── Grids ──────────────────────────────────────────────────── */
+  /* â”€â”€ ALL inline-style grids â€” collapse to 1 or 2 columns â”€â”€â”€â”€â”€â”€ */
+
+  /* 4-column â†’ 2-column on mobile */
+  [style*="repeat(4, 1fr)"],
+  [style*="repeat(4,1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* 3-column â†’ 1-column on mobile */
+  [style*="repeat(3, 1fr)"],
+  [style*="repeat(3,1fr)"] {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* 2-column â†’ 1-column on mobile */
+  [style*="repeat(2, 1fr)"],
+  [style*="repeat(2,1fr)"] {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Inline "1fr 1fr" template string */
+  [style*="1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Inline "1fr 2fr" or "2fr 1fr" variants */
+  [style*="1fr 2fr"],
+  [style*="2fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* â”€â”€ Class-based grids â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .stats-grid {
     grid-template-columns: repeat(2, 1fr) !important;
-    gap: 12px !important;
+    gap: 10px !important;
   }
   .features-grid {
     grid-template-columns: 1fr !important;
   }
   .form-grid {
     grid-template-columns: 1fr !important;
-    gap: 16px !important;
+    gap: 14px !important;
   }
-
-  /* Automatically stack inline 1fr 1fr grids on mobile */
-  [style*="1fr 1fr"] {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* ── Dashboard Grid ─────────────────────────────────────────── */
   .dashboard-main-grid {
     grid-template-columns: 1fr !important;
     grid-template-rows: auto !important;
-    gap: 16px !important;
+    gap: 14px !important;
   }
 
-  /* ── Topbar Actions & User profile text ─────────────────────── */
-  .topbar-right-actions {
-    gap: 12px !important;
+  /* â”€â”€ Hero banners â€” compact + stack â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* Target all gradient banners inside page-body */
+  .page-body > div[style*="linear-gradient"],
+  .page-body > div[style*="gradient("] {
+    padding: 18px 16px !important;
+    border-radius: 16px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 14px !important;
   }
-  .topbar-user-profile-text {
-    display: none !important;
+  .page-body > div[style*="linear-gradient"] h1,
+  .page-body > div[style*="gradient("] h1 {
+    font-size: 1.2rem !important;
+    line-height: 1.3 !important;
+  }
+  .page-body > div[style*="linear-gradient"] p,
+  .page-body > div[style*="gradient("] p {
+    font-size: 0.8rem !important;
+  }
+  /* Action buttons inside hero â€” full width */
+  .page-body > div[style*="linear-gradient"] button,
+  .page-body > div[style*="gradient("] button {
+    width: 100%;
+    justify-content: center;
+  }
+  /* Button container inside hero â€” stack */
+  .page-body > div[style*="linear-gradient"] > div[style*="display: flex"],
+  .page-body > div[style*="linear-gradient"] > div[style*="flex"],
+  .page-body > div[style*="gradient("] > div[style*="display: flex"] {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  /* Hero icon â€” smaller */
+  .page-body > div[style*="linear-gradient"] > div[style*="width: 64px"],
+  .page-body > div[style*="linear-gradient"] > div[style*="width:64px"] {
+    width: 48px !important;
+    height: 48px !important;
   }
 
-  /* ── Welcome banner ─────────────────────────────────────────── */
+  /* â”€â”€ Inline cards with large padding â€” reduce on mobile â”€â”€â”€â”€â”€â”€â”€â”€ */
+  [style*="padding: 40px"],
+  [style*="padding: 36px"] {
+    padding: 18px 14px !important;
+  }
+  [style*="padding: 32px 36px"],
+  [style*="padding: 32px"] {
+    padding: 16px 12px !important;
+  }
+  [style*="padding: 28px 32px"],
+  [style*="padding: 28px"] {
+    padding: 14px 12px !important;
+  }
+  [style*="padding: 24px 32px"] {
+    padding: 12px !important;
+  }
+
+  /* â”€â”€ Welcome banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .welcome-banner {
     flex-direction: column;
-    padding: 20px;
-    gap: 12px;
+    padding: 18px 16px;
+    gap: 10px;
   }
-  .welcome-text h1 {
-    font-size: 1.1rem;
-  }
-  .welcome-icon {
-    font-size: 1.8rem;
-  }
+  .welcome-text h1 { font-size: 1.1rem; }
+  .welcome-icon { font-size: 1.8rem; }
 
-  /* ── Tables — horizontal scroll ─────────────────────────────── */
+  /* â”€â”€ Tables â€” horizontal scroll â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .table-wrapper,
   .users-table {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
   .v-table,
-  .users-table table {
-    min-width: 600px;
-  }
+  .users-table table { min-width: 580px; }
 
-  /* ── Modals — near full-screen on mobile ────────────────────── */
-  .modal-overlay {
-    padding: 12px;
-    align-items: flex-end;
-  }
-  .modal {
-    max-width: 100%;
-    max-height: 92vh;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  }
-
-  /* ── Auth pages ─────────────────────────────────────────────── */
-  .auth-right {
-    padding: 32px 20px 40px;
-  }
-  .auth-left {
-    display: none !important;
-  }
-
-  /* ── Dashboard hero banner ──────────────────────────────────── */
-  .dashboard-hero {
-    padding: 20px !important;
-    border-radius: 16px !important;
-  }
-  .dashboard-hero h1 {
-    font-size: 1.3rem !important;
-  }
-  .dashboard-hero-icon {
-    width: 48px !important;
-    height: 48px !important;
-  }
-
-  /* ── Notification dropdown ──────────────────────────────────── */
-  .notif-dropdown {
-    right: -80px !important;
-    width: calc(100vw - 32px) !important;
-    max-width: 360px;
-  }
-
-  /* ── Stat card font sizes ───────────────────────────────────── */
-  .stat-card-value,
-  .stat-value {
-    font-size: 1.5rem;
-  }
-
-  /* ── Section headers ────────────────────────────────────────── */
-  .section-header {
-    margin-bottom: 12px;
-  }
-
-  /* ── Button groups stack on mobile ─────────────────────────── */
-  .btn-group-mobile {
-    flex-direction: column;
-    width: 100%;
-  }
-  .btn-group-mobile .btn {
-    width: 100%;
-  }
-
-  /* ── Overflow containment ───────────────────────────────────── */
-  .app-shell {
-    overflow-x: hidden;
-  }
-  .main-content {
-    overflow-x: hidden;
-    width: 100%;
-  }
-  .page-body {
-    overflow-x: hidden;
-  }
-
-  /* ── Hero banners — compact + stack on mobile ───────────────── */
-  .page-body [style*="linear-gradient"] {
-    padding: 20px 18px !important;
-    border-radius: 16px !important;
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 14px !important;
-  }
-  .page-body [style*="linear-gradient"] h1 {
-    font-size: 1.25rem !important;
-    line-height: 1.3 !important;
-  }
-  .page-body [style*="linear-gradient"] p {
-    font-size: 0.82rem !important;
-  }
-  /* Hero banner icons — smaller */
-  .page-body [style*="linear-gradient"] [style*="width: 64px"] {
-    width: 48px !important;
-    height: 48px !important;
-  }
-  /* Action button groups inside hero — wrap */
-  .page-body [style*="linear-gradient"] > [style*="display: flex"] {
-    flex-wrap: wrap !important;
-    gap: 8px !important;
-  }
-
-  /* ── Inline 2-column grids — stack on mobile ────────────────── */
-  .page-body [style*="1fr 1fr"] {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* ── Stat card rows — 2 per row on mobile ───────────────────── */
-  .page-body [style*="flex-wrap"] > [style*="flex: 1"] {
-    flex: 1 1 calc(50% - 10px) !important;
-    min-width: calc(50% - 10px) !important;
-  }
-
-  /* ── Topbar — compact on mobile ─────────────────────────────── */
-  header[style*="padding: 16px 32px"] {
-    padding: 12px 16px !important;
-    height: auto !important;
-    min-height: 56px !important;
-  }
-
-  /* ── Profile page / form cards — reduce padding ─────────────── */
-  .page-body [style*="padding: 36px 40px"],
-  .page-body [style*="padding: 32px 36px"] {
-    padding: 20px 16px !important;
-  }
-  .page-body [style*="padding: 28px 32px"] {
-    padding: 16px !important;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   RESPONSIVE — SMALL PHONES (≤480px)
-═══════════════════════════════════════════════════════════════════ */
-@media (max-width: 480px) {
-  .stats-grid {
-    grid-template-columns: 1fr !important;
-    gap: 10px !important;
-  }
-
-  .page-body {
-    padding: 12px;
-  }
-
-  .page-title {
-    font-size: 1.2rem;
-  }
-
-  /* Hero banners on detail pages */
-  .page-hero {
-    padding: 18px !important;
-    border-radius: 14px !important;
-  }
-  .page-hero h1 {
-    font-size: 1.2rem !important;
-  }
-
-  /* Cards take full width */
-  .feature-card,
-  .stat-card {
-    padding: 16px;
-  }
-
-  /* Modal full screen on tiny phones */
+  /* â”€â”€ Modals â€” bottom-sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .modal-overlay {
     padding: 0;
     align-items: flex-end;
   }
   .modal {
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    max-height: 95vh;
+    max-width: 100%;
+    max-height: 94vh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   }
 
-  /* Login/signup full width inputs */
-  .split-login-right,
-  .split-login-container {
-    padding: 20px 16px !important;
+  /* â”€â”€ Auth pages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  .auth-right { padding: 28px 18px 40px; }
+  .auth-left { display: none !important; }
+
+  /* â”€â”€ Dashboard hero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  .dashboard-hero {
+    padding: 18px !important;
+    border-radius: 16px !important;
+  }
+  .dashboard-hero h1 { font-size: 1.25rem !important; }
+  .dashboard-hero-icon {
+    width: 48px !important;
+    height: 48px !important;
   }
 
-  /* Sidebar width shrinks on tiny phones */
-  .sidebar {
-    width: 85vw;
-    max-width: 280px;
+  /* â”€â”€ Stat card font sizes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  .stat-card-value, .stat-value { font-size: 1.45rem; }
+
+  /* â”€â”€ Section headers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  .section-header { margin-bottom: 10px; }
+
+  /* â”€â”€ Button groups â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  .btn-group-mobile {
+    flex-direction: column;
+    width: 100%;
+  }
+  .btn-group-mobile .btn { width: 100%; }
+
+  /* â”€â”€ Topbar right actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  .topbar-right-actions { gap: 14px !important; }
+  .topbar-user-profile-text { display: none !important; }
+
+  /* â”€â”€ Inline flex rows that need to wrap on mobile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* Flex containers with nowrap items that overflow */
+  [style*="white-space: nowrap"] {
+    white-space: normal !important;
   }
 
-  /* Topbar slimmer */
-  .topbar {
-    height: 60px;
-    padding: 0 12px;
+  /* â”€â”€ Filter bars â€” scroll horizontally â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* Allow filter dropdowns to scroll instead of overflow */
+  [style*="display: flex"][style*="flex-wrap"] {
+    flex-wrap: wrap !important;
   }
 
-  /* Stat cards — single column on tiny phones */
-  .page-body [style*="flex-wrap"] > [style*="flex: 1"] {
-    flex: 1 1 100% !important;
-    min-width: 100% !important;
+  /* â”€â”€ Page body inline-style min-widths â€” remove on mobile â”€â”€â”€â”€â”€ */
+  [style*="min-width: 900px"],
+  [style*="min-width: 800px"],
+  [style*="min-width: 700px"],
+  [style*="min-width: 600px"] {
+    min-width: 0 !important;
+    width: 100% !important;
   }
+}
 
-  /* Hero banners — even more compact */
-  .page-body [style*="linear-gradient"] {
-    padding: 16px 14px !important;
-    border-radius: 14px !important;
-  }
-  .page-body [style*="linear-gradient"] h1 {
-    font-size: 1.1rem !important;
-  }
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   RESPONSIVE â€” SMALL PHONES (â‰¤480px)
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+@media (max-width: 480px) {
+  .page-body { padding: 10px; }
 
-  /* Topbar compact via inline style override */
-  header[style*="padding: 16px 32px"],
-  header[style*="padding: 12px 16px"] {
-    padding: 10px 12px !important;
+  /* 4-col â†’ single column on tiny phones */
+  [style*="repeat(4, 1fr)"],
+  [style*="repeat(4,1fr)"],
+  .stats-grid {
+    grid-template-columns: 1fr !important;
     gap: 8px !important;
   }
+
+  .page-title { font-size: 1.15rem; }
+
+  /* Cards take full width */
+  .feature-card, .stat-card { padding: 14px; }
+
+  /* Modal full screen on tiny phones */
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-height: 96vh;
+  }
+
+  /* Sidebar width on tiny phones */
+  .sidebar { width: min(85vw, 280px) !important; }
+
+  /* Topbar slimmer */
+  .topbar { height: 58px; padding: 0 12px; }
+  .topbar-title { max-width: 110px; font-size: 0.88rem; }
+
+  /* Hero banners even more compact */
+  .page-body > div[style*="linear-gradient"],
+  .page-body > div[style*="gradient("] {
+    padding: 14px 12px !important;
+    border-radius: 14px !important;
+    gap: 12px !important;
+  }
+  .page-body > div[style*="linear-gradient"] h1 {
+    font-size: 1.05rem !important;
+  }
+
+  /* Auth panels */
+  .split-login-right,
+  .split-login-container { padding: 18px 14px !important; }
+
+  /* Even more compact padding for cards */
+  [style*="padding: 40px"],
+  [style*="padding: 36px"],
+  [style*="padding: 32px 36px"],
+  [style*="padding: 32px"] {
+    padding: 14px 10px !important;
+  }
 }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    TOUCH IMPROVEMENTS
-═══════════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 @media (hover: none) and (pointer: coarse) {
   /* Larger tap targets */
-  .nav-item {
-    padding-top: 12px;
-    padding-bottom: 12px;
-  }
-  .btn {
-    min-height: 44px;
-  }
-  .btn-sm {
-    min-height: 36px;
-    padding: 8px 14px;
-  }
-  /* Remove hover transforms that don't make sense on touch */
+  .nav-item { padding-top: 14px; padding-bottom: 14px; }
+  .btn { min-height: 44px; }
+  .btn-sm { min-height: 38px; padding: 8px 14px; }
+
+  /* Remove hover-only transforms on touch devices */
   .stat-card:hover,
-  .feature-card:hover {
-    transform: none;
-  }
+  .feature-card:hover { transform: none; }
+
+  /* Increase icon button tap area */
+  .btn-icon { padding: 10px; }
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   GLASSMORPHIC UTILITIES — Vroom Vision Design System
-═══════════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   GLASSMORPHIC UTILITIES â€” Vroom Vision Design System
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* Glass card base */
 .glass-card {
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(20px);
@@ -2044,7 +2048,6 @@ select.form-control option { background: #fff; }
   box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
-/* Neon glow accents for dark mode */
 [data-theme="blue"] .neon-border {
   border-color: rgba(59, 130, 246, 0.4);
   box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
@@ -2054,7 +2057,6 @@ select.form-control option { background: #fff; }
   text-shadow: 0 0 20px rgba(96, 165, 250, 0.4);
 }
 
-/* Enhanced stat card for dark mode */
 [data-theme="blue"] .stat-card {
   background: rgba(10, 22, 40, 0.8);
   border-color: rgba(59, 130, 246, 0.12);
@@ -2065,7 +2067,6 @@ select.form-control option { background: #fff; }
   box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 24px rgba(59, 130, 246, 0.1);
 }
 
-/* Enhanced table for dark mode */
 [data-theme="blue"] .table-wrapper,
 [data-theme="blue"] .users-table {
   background: rgba(10, 22, 40, 0.8);
@@ -2080,12 +2081,11 @@ select.form-control option { background: #fff; }
   background: rgba(59, 130, 246, 0.06);
 }
 
-/* Scrollbar dark mode electric blue */
+/* Scrollbar dark mode */
 [data-theme="blue"] ::-webkit-scrollbar-track { background: rgba(6, 11, 24, 0.8); }
 [data-theme="blue"] ::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.2); border-radius: 999px; }
 [data-theme="blue"] ::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.4); }
 
-/* Animated gradient shift */
 @keyframes gradientShift {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
@@ -2099,4 +2099,8 @@ select.form-control option { background: #fff; }
   0%,100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
 }
+
+
+
+
 
