@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import net.javaguids.ems_backend.enums.FuelTypes;
 import net.javaguids.ems_backend.enums.VehicleSatus;
+import net.javaguids.ems_backend.enums.VehicleType;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
@@ -64,6 +65,11 @@ public class Vehicle {
 
     @Column(name = "fuel_type")
     private FuelTypes fuelType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "vehicle_type", nullable = false, length = 50)
+    private VehicleType vehicleType = VehicleType.CAR;
+
 
     /** Optional — vehicle insurance expiry date, used for dashboard alerts */
     @Column(name = "insurance_expiry_date", nullable = true)

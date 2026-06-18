@@ -38,6 +38,59 @@ const StatBadge = ({ label, value, icon, colorDim, colorHex, D }) => (
   </div>
 )
 
+const getVehicleMilestones = (vehicle, services, intervals) => {
+  if (!vehicle || !intervals) return []
+  const vehicleIntervals = intervals.filter(i => i.vehicleType === vehicle.vehicleType)
+  
+  return vehicleIntervals.map(interval => {
+    // Find completed services for this vehicle and service type
+    const completed = services.filter(s =>
+      s.vehicleRegNumber === vehicle.registrationNo &&
+      s.serviceType === interval.serviceType &&
+      !s.deleted &&
+      s.serviceDate &&
+      new Date(s.serviceDate) <= new Date()
+    )
+    
+    let lastServiceMileage = 0
+    let lastRecord = null
+    if (completed.length > 0) {
+      completed.sort((a, b) => Number(b.currentMileageKm || 0) - Number(a.currentMileageKm || 0))
+      lastServiceMileage = Number(completed[0].currentMileageKm || 0)
+      lastRecord = completed[0]
+    }
+    
+    const nextDueMileage = lastServiceMileage + interval.intervalKm
+    const currentMileage = vehicle.currentMileageKm || 0
+    const remainingKm = nextDueMileage - currentMileage
+    
+    let status = 'OK'
+    if (remainingKm <= 0) {
+      status = 'OVERDUE'
+    } else if (remainingKm <= 200) {
+      status = 'DUE_SOON'
+    }
+    
+    return {
+      serviceType: interval.serviceType,
+      intervalKm: interval.intervalKm,
+      lastServiceMileage,
+      nextDueMileage,
+      remainingKm,
+      status,
+      record: lastRecord || {
+        vehicleRegNumber: vehicle.registrationNo,
+        serviceType: interval.serviceType,
+        currentMileageKm: 0,
+        nextServiceMileageKm: interval.intervalKm,
+        serviceDate: null,
+        nextServiceDue: null,
+        description: 'Initial service milestone'
+      }
+    }
+  })
+}
+
 const VehiclesPage = () => {
   const D = useD()
   const { theme } = useTheme()
@@ -87,6 +140,7 @@ const VehiclesPage = () => {
   const [serviceRecords, setServiceRecords] = useState([])
   const [drivers, setDrivers] = useState([])
   const [fuelStats, setFuelStats] = useState([])
+  const [intervals, setIntervals] = useState([])
 
   const [driverDetailsUser, setDriverDetailsUser] = useState(null)
   const [isDriverDetailsOpen, setIsDriverDetailsOpen] = useState(false)
@@ -369,7 +423,8 @@ const VehiclesPage = () => {
     currentMileageKm: '',
     insuranceExpiryDate: '',
     licenseExpiryDate: '',
-    fuelCapacity: ''
+    fuelCapacity: '',
+    vehicleType: 'CAR'
   })
   const [editFormData, setEditFormData] = useState({
     model: '',
@@ -383,7 +438,8 @@ const VehiclesPage = () => {
     currentMileageKm: '',
     insuranceExpiryDate: '',
     licenseExpiryDate: '',
-    fuelCapacity: ''
+    fuelCapacity: '',
+    vehicleType: 'CAR'
   })
 
   // Document upload file states
@@ -404,16 +460,18 @@ const VehiclesPage = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [vehicleRes, serviceRes, driverRes, fuelStatsRes] = await Promise.all([
+        const [vehicleRes, serviceRes, driverRes, fuelStatsRes, intervalsRes] = await Promise.all([
           vehicleAPI.getAllVehicles(),
           serviceAPI.getAllServices(),
           isAdmin || !isDriver ? userAPI.getAllDrivers().catch(() => ({ data: { data: [] } })) : Promise.resolve({ data: { data: [] } }),
-          fuelAPI.getVehicleStats().catch(() => ({ data: { data: [] } }))
+          fuelAPI.getVehicleStats().catch(() => ({ data: { data: [] } })),
+          serviceAPI.getAllIntervals().catch(() => ({ data: { data: [] } }))
         ])
         setVehicles(vehicleRes.data.data || [])
         setServiceRecords(serviceRes.data.data || [])
         setDrivers(driverRes.data?.data || [])
         setFuelStats(fuelStatsRes.data?.data || [])
+        setIntervals(intervalsRes.data?.data || [])
       } catch (err) {
         console.error('Error loading data:', err)
       } finally {
@@ -440,7 +498,8 @@ const VehiclesPage = () => {
       currentMileageKm: '',
       insuranceExpiryDate: '',
       licenseExpiryDate: '',
-      fuelCapacity: ''
+      fuelCapacity: '',
+      vehicleType: 'CAR'
     })
     setInsuranceFile(null)
     setLicenseFile(null)
@@ -515,7 +574,8 @@ const VehiclesPage = () => {
       insuranceExpiryDate: vehicle.insuranceExpiryDate || '',
       licenseExpiryDate: vehicle.licenseExpiryDate || '',
       fuelCapacity: vehicle.fuelCapacity || '',
-      status: vehicle.status || ''
+      status: vehicle.status || '',
+      vehicleType: vehicle.vehicleType || 'CAR'
     })
     setIsEditModalOpen(true)
   }
@@ -537,7 +597,8 @@ const VehiclesPage = () => {
       insuranceExpiryDate: '',
       licenseExpiryDate: '',
       fuelCapacity: '',
-      status: ''
+      status: '',
+      vehicleType: 'CAR'
     })
     setEditInsuranceFile(null)
     setEditLicenseFile(null)
@@ -570,7 +631,8 @@ const VehiclesPage = () => {
         fuelCapacity: editFormData.fuelCapacity ? Number(editFormData.fuelCapacity) : null,
         insuranceExpiryDate: editFormData.insuranceExpiryDate || null,
         licenseExpiryDate: editFormData.licenseExpiryDate || null,
-        status: editFormData.status
+        status: editFormData.status,
+        vehicleType: editFormData.vehicleType
       })
       
       const uploadPromises = []
@@ -676,18 +738,25 @@ const VehiclesPage = () => {
   }
 
   // ── Compute service due alerts per vehicle ──
-  // Find the most recent service record per vehicle (highest mileage = most recent)
   const vehicleAlerts = vehicles.reduce((acc, v) => {
-    const records = serviceRecords.filter(r => r.vehicleRegNumber === v.registrationNo)
-    if (records.length === 0) return acc
-    // Pick the record with a next-service target (highest service km)
-    const relevant = records
-      .filter(r => r.nextServiceMileageKm || r.nextServiceDue)
-      .sort((a, b) => Number(b.currentMileageKm || 0) - Number(a.currentMileageKm || 0))
-    if (relevant.length === 0) return acc
-    const record = relevant[0]
-    const level = getAlertLevel(record, v.currentMileageKm)
-    acc[v.registrationNo] = { record, level, vehicleKm: v.currentMileageKm }
+    if (v.isDeleted) return acc
+    const milestones = getVehicleMilestones(v, serviceRecords, intervals)
+    const alertMilestones = milestones.filter(m => m.status === 'OVERDUE' || m.status === 'DUE_SOON')
+    if (alertMilestones.length === 0) return acc
+
+    // Prioritize OVERDUE milestones over DUE_SOON, then sort by smallest remaining km (most urgent first)
+    alertMilestones.sort((a, b) => {
+      if (a.status === 'OVERDUE' && b.status !== 'OVERDUE') return -1
+      if (a.status !== 'OVERDUE' && b.status === 'OVERDUE') return 1
+      return a.remainingKm - b.remainingKm
+    })
+
+    const worstMilestone = alertMilestones[0]
+    acc[v.registrationNo] = {
+      record: worstMilestone.record,
+      level: worstMilestone.status,
+      vehicleKm: v.currentMileageKm || 0
+    }
     return acc
   }, {})
 
@@ -1502,6 +1571,16 @@ const VehiclesPage = () => {
                     </select>
                   </div>
                   <div>
+                    <label style={labelStyle}>Vehicle Type <span style={{ color: D.red }}>*</span></label>
+                    <select name="vehicleType" value={formData.vehicleType} onChange={handleChange} required style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
+                      <option value="" style={{ background: D.surfaceHi }}>Select Vehicle Type</option>
+                      <option value="CAR" style={{ background: D.surfaceHi }}>Car</option>
+                      <option value="VAN" style={{ background: D.surfaceHi }}>Van</option>
+                      <option value="LORRY" style={{ background: D.surfaceHi }}>Lorry</option>
+                      <option value="BUS" style={{ background: D.surfaceHi }}>Bus</option>
+                    </select>
+                  </div>
+                  <div>
                     <label style={labelStyle}>Current Mileage (km) <span style={{ color: D.red }}>*</span></label>
                     <input type="number" name="currentMileageKm" value={formData.currentMileageKm} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 15000" />
                   </div>
@@ -1657,6 +1736,16 @@ const VehiclesPage = () => {
                       <option value="DIESEL" style={{ background: D.surfaceHi }}>Diesel</option>
                       <option value="ELECTRIC" style={{ background: D.surfaceHi }}>Electric</option>
                       <option value="HYBRID" style={{ background: D.surfaceHi }}>Hybrid</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Vehicle Type</label>
+                    <select name="vehicleType" value={editFormData.vehicleType} onChange={handleEditChange} required style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
+                      <option value="" style={{ background: D.surfaceHi }}>Select Vehicle Type</option>
+                      <option value="CAR" style={{ background: D.surfaceHi }}>Car</option>
+                      <option value="VAN" style={{ background: D.surfaceHi }}>Van</option>
+                      <option value="LORRY" style={{ background: D.surfaceHi }}>Lorry</option>
+                      <option value="BUS" style={{ background: D.surfaceHi }}>Bus</option>
                     </select>
                   </div>
                   <div>

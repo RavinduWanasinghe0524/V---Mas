@@ -9,4 +9,5 @@ public interface NotificationService {
     List<NotificationDto> getAllNotifications();
     NotificationDto markAsRead(Long id);
     void markAllAsRead();
+    void resolveServiceAlerts(String vehicleRegNumber, String serviceType);
 }

@@ -52,4 +52,46 @@ public class NotificationServiceImpl implements NotificationService {
         unreadNotifications.forEach(n -> n.setIsRead(true));
         notificationRepository.saveAll(unreadNotifications);
     }
+
+    @Override
+    public void resolveServiceAlerts(String vehicleRegNumber, String serviceType) {
+        String target = "VEH-" + vehicleRegNumber;
+        List<Notification> notifications = notificationRepository.findByVehicleRegNumber(target);
+        List<Notification> directNotifications = notificationRepository.findByVehicleRegNumber(vehicleRegNumber);
+        
+        // Also look for service notifications created by the backend (SERVICE-REGNUMBER-SERVICETYPE)
+        String serviceTarget = "SERVICE-" + vehicleRegNumber + "-" + serviceType;
+        List<Notification> serviceNotifications = notificationRepository.findByVehicleRegNumber(serviceTarget);
+        
+        List<Notification> toUpdate = new java.util.ArrayList<>();
+        
+        for (Notification n : notifications) {
+            if (!n.getIsRead() && (n.getType().equals("SERVICE_DUE") || n.getType().equals("OVERDUE_SERVICE"))) {
+                if (n.getMessage().toUpperCase().contains(serviceType.toUpperCase()) || 
+                    n.getMessage().toUpperCase().contains(serviceType.replace("_", " ").toUpperCase())) {
+                    n.setIsRead(true);
+                    toUpdate.add(n);
+                }
+            }
+        }
+        for (Notification n : directNotifications) {
+            if (!n.getIsRead() && (n.getType().equals("SERVICE_DUE") || n.getType().equals("OVERDUE_SERVICE"))) {
+                if (n.getMessage().toUpperCase().contains(serviceType.toUpperCase()) || 
+                    n.getMessage().toUpperCase().contains(serviceType.replace("_", " ").toUpperCase())) {
+                    n.setIsRead(true);
+                    toUpdate.add(n);
+                }
+            }
+        }
+        for (Notification n : serviceNotifications) {
+            if (!n.getIsRead()) {
+                n.setIsRead(true);
+                toUpdate.add(n);
+            }
+        }
+        
+        if (!toUpdate.isEmpty()) {
+            notificationRepository.saveAll(toUpdate);
+        }
+    }
 }

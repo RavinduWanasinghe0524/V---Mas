@@ -23,6 +23,7 @@ public class VehicleMapper {
 
                 vehicle.getStatus(),
                 vehicle.getFuelType(),
+                vehicle.getVehicleType(),
                 vehicle.getInsuranceExpiryDate(),
                 vehicle.getLicenseExpiryDate(),
                 vehicle.getDriver() != null ? vehicle.getDriver().getId() : null,
@@ -51,6 +52,7 @@ public class VehicleMapper {
         vehicle.setEngineNo(dto.getEngineNumber());
         vehicle.setStatus(dto.getStatus());
         vehicle.setFuelType(dto.getFuelType());
+        vehicle.setVehicleType(dto.getVehicleType() != null ? dto.getVehicleType() : net.javaguids.ems_backend.enums.VehicleType.CAR);
         vehicle.setInsuranceExpiryDate(dto.getInsuranceExpiryDate());
         vehicle.setLicenseExpiryDate(dto.getLicenseExpiryDate());
         vehicle.setInsuranceDocumentPath(dto.getInsuranceDocumentPath());

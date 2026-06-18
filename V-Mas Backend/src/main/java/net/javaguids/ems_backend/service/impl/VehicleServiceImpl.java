@@ -2,12 +2,16 @@ package net.javaguids.ems_backend.service.impl;
 
 import lombok.AllArgsConstructor;
 import net.javaguids.ems_backend.dto.VehicleDto;
+import net.javaguids.ems_backend.dto.VehicleMileageUpdateDto;
 import net.javaguids.ems_backend.entity.Vehicle;
 import net.javaguids.ems_backend.entity.User;
+import net.javaguids.ems_backend.entity.ServiceRecord;
 import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.mapper.VehicleMapper;
 import net.javaguids.ems_backend.repository.VehicleRepository;
 import net.javaguids.ems_backend.repository.UserRepository;
+import net.javaguids.ems_backend.repository.ServiceIntervalRepository;
+import net.javaguids.ems_backend.repository.ServiceRecordRepository;
 import net.javaguids.ems_backend.service.VehicleService;
 import net.javaguids.ems_backend.service.NotificationService;
 import org.springframework.stereotype.Service;
@@ -31,6 +35,9 @@ public class VehicleServiceImpl implements VehicleService {
     private final VehicleRepository vehicleRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final ServiceIntervalRepository serviceIntervalRepository;
+    private final ServiceRecordRepository serviceRecordRepository;
+
 
     @Override
     @Transactional
@@ -91,6 +98,7 @@ public class VehicleServiceImpl implements VehicleService {
         vehicle.setModel(vehicleDto.getModel());
         vehicle.setYear(vehicleDto.getYear());
         if (vehicleDto.getFuelType() != null) vehicle.setFuelType(vehicleDto.getFuelType());
+        if (vehicleDto.getVehicleType() != null) vehicle.setVehicleType(vehicleDto.getVehicleType());
         vehicle.setCurrentMileageKm(vehicleDto.getCurrentMileageKm());
         vehicle.setChassisNo(vehicleDto.getChassisNumber());
         vehicle.setEngineNo(vehicleDto.getEngineNumber());
@@ -302,5 +310,65 @@ public class VehicleServiceImpl implements VehicleService {
         vehicle.setDeletedAt(null);
         Vehicle restored = vehicleRepository.save(vehicle);
         return VehicleMapper.mapToVehicleDto(restored);
+    }
+
+    @Override
+    @Transactional
+    public void updateBulkMileage(List<VehicleMileageUpdateDto> updates, String updatedBy) {
+        for (VehicleMileageUpdateDto update : updates) {
+            Vehicle vehicle = vehicleRepository.findById(update.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + update.getId()));
+
+            if (update.getCurrentMileageKm() != null) {
+                if (update.getCurrentMileageKm() < vehicle.getCurrentMileageKm()) {
+                    throw new RuntimeException("Updated mileage for vehicle " + vehicle.getRegistrationNo() + 
+                            " cannot be less than its current mileage (" + vehicle.getCurrentMileageKm() + " km).");
+                }
+                vehicle.setCurrentMileageKm(update.getCurrentMileageKm());
+                vehicle.setUpdatedBy(updatedBy);
+                vehicle.setUpdatedAt(LocalDateTime.now());
+                vehicleRepository.save(vehicle);
+
+                // Check service milestones
+                checkServiceMilestones(vehicle);
+            }
+        }
+    }
+
+    private void checkServiceMilestones(Vehicle vehicle) {
+        List<net.javaguids.ems_backend.entity.ServiceInterval> intervals =
+                serviceIntervalRepository.findByVehicleType(vehicle.getVehicleType());
+
+        for (net.javaguids.ems_backend.entity.ServiceInterval interval : intervals) {
+            List<ServiceRecord> lastRecords = serviceRecordRepository
+                    .findByVehicleRegNumberAndServiceTypeAndDeletedFalseOrderByCurrentMileageKmDesc(
+                            vehicle.getRegistrationNo(), interval.getServiceType());
+
+            int lastServiceMileage = 0;
+            if (!lastRecords.isEmpty()) {
+                lastServiceMileage = lastRecords.get(0).getCurrentMileageKm();
+            }
+
+            int nextDueMileage = lastServiceMileage + interval.getIntervalKm();
+            int currentMileage = vehicle.getCurrentMileageKm();
+
+            if (currentMileage >= nextDueMileage) {
+                String message = String.format("Vehicle %s has exceeded its service milestone for %s. Current: %d km, Due: %d km (exceeded by %d km).",
+                        vehicle.getRegistrationNo(), interval.getServiceType().name(), currentMileage, nextDueMileage, (currentMileage - nextDueMileage));
+                notificationService.createNotification(
+                        "SERVICE-" + vehicle.getRegistrationNo() + "-" + interval.getServiceType().name(),
+                        message,
+                        "ALERT"
+                );
+            } else if (currentMileage >= (nextDueMileage - 200)) {
+                String message = String.format("Vehicle %s is approaching its service milestone for %s. Current: %d km, Due: %d km (%d km remaining).",
+                        vehicle.getRegistrationNo(), interval.getServiceType().name(), currentMileage, nextDueMileage, (nextDueMileage - currentMileage));
+                notificationService.createNotification(
+                        "SERVICE-" + vehicle.getRegistrationNo() + "-" + interval.getServiceType().name(),
+                        message,
+                        "WARNING"
+                );
+            }
+        }
     }
 }

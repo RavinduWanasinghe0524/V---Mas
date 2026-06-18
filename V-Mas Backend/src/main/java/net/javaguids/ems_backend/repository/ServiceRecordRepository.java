@@ -16,6 +16,9 @@ public interface ServiceRecordRepository
     /** Returns all non-deleted records for a specific vehicle. */
     List<ServiceRecord> findByVehicleRegNumberAndDeletedFalse(String vehicleRegNumber);
 
+    List<ServiceRecord> findByVehicleRegNumberAndServiceTypeAndDeletedFalseOrderByCurrentMileageKmDesc(
+            String vehicleRegNumber, net.javaguids.ems_backend.enums.ServiceType serviceType);
+
     /** Returns the 5 most recent non-deleted records ordered by service date. */
     List<ServiceRecord> findTop5ByDeletedFalseOrderByServiceDateDesc();
 

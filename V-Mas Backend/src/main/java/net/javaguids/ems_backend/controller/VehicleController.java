@@ -37,6 +37,17 @@ public class VehicleController {
         return ApiResponseUtil.success("Vehicle created successfully", saved, HttpStatus.CREATED);
     }
 
+    // POST /api/vehicles/bulk-mileage — Bulk update vehicle mileages
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @PostMapping("/bulk-mileage")
+    public ResponseEntity<ApiResponse<Object>> updateBulkMileage(
+            @RequestBody List<net.javaguids.ems_backend.dto.VehicleMileageUpdateDto> updates,
+            @AuthenticationPrincipal UserDetails loggedUser) {
+        vehicleService.updateBulkMileage(updates, loggedUser.getUsername());
+        return ApiResponseUtil.success("Vehicle mileages updated successfully", null, HttpStatus.OK);
+    }
+
+
     // GET /api/vehicles — Get all vehicles
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER', 'DRIVER')")
     @GetMapping

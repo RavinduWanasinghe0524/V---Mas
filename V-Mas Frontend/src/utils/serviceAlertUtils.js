@@ -12,7 +12,7 @@
  */
 
 /** How many km before nextServiceDue we start alerting */
-const MILEAGE_ALERT_THRESHOLD = 100
+const MILEAGE_ALERT_THRESHOLD = 200
 /** How many days before nextServiceDue we start alerting */
 const DATE_ALERT_DAYS = 7
 
