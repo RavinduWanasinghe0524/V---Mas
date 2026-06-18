@@ -90,7 +90,8 @@ export const vehicleAPI = {
   },
   getDocumentUrl: (id, docType) => `${API_BASE_URL}/vehicles/${id}/document/${docType}`,
   getDeletedVehicles: () => api.get('/vehicles/deleted'),
-  restoreVehicle: (id) => api.patch(`/vehicles/${id}/restore`)
+  restoreVehicle: (id) => api.patch(`/vehicles/${id}/restore`),
+  updateBulkMileage: (payload) => api.post('/vehicles/bulk-mileage', payload)
 }
 
 export const fuelAPI = {
@@ -141,6 +142,9 @@ export const serviceAPI = {
   },
   getAttachmentBlob:    (id)             => api.get(`/services/${id}/attachment`, { responseType: 'blob' }),
   getServicesByVehicle: (regNo)          => api.get(`/services/vehicle/${encodeURIComponent(regNo)}`),
+  getAllIntervals:      ()               => api.get('/services/intervals'),
+  getIntervalsByVehicleType: (type)      => api.get(`/services/intervals/vehicle-type/${type}`),
+  updateIntervalsBulk:  (payload)        => api.put('/services/intervals', payload),
 }
 
 export const notificationAPI = {

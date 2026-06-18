@@ -101,8 +101,8 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
   const fetchData = async () => {
     if (!user) return
     try {
-      // 1. Admin notifications (backend)
-      if (user.role === 'ADMIN') {
+      // 1. Admin & Controller notifications (backend)
+      if (user.role === 'ADMIN' || user.role === 'CONTROLLER') {
         const res = await notificationAPI.getAll()
         const data = res.data.data || []
         setNotifications(data)
@@ -330,25 +330,56 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
 
                   {/* 3. Controller Log */}
                   {user.role === 'CONTROLLER' && (
-                    ctrlNotifs.length === 0 ? <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No recent activity log</div> :
                     <>
+                      {/* System Notifications from Backend */}
+                      {notifications.length > 0 && (
+                        <>
+                          <div style={{ padding: '8px 16px', background: isDark ? 'rgba(59,130,246,0.05)' : '#f8fafc', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#eee'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#3b82f6', textTransform: 'uppercase' }}>System Notifications</span>
+                          </div>
+                          {notifications.map(n => {
+                            const dest = n.link || getLinkFromType(n.type)
+                            return (
+                              <div key={n.id} onClick={() => handleAdminNotifClick(n)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)'), cursor: dest ? 'pointer' : (n.isRead ? 'default' : 'pointer'), transition: 'background 0.15s' }}
+                                onMouseEnter={e => { if (dest || !n.isRead) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
+                                onMouseLeave={e => { e.currentTarget.style.background = n.isRead ? 'transparent' : (isDark ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)') }}
+                              >
+                                <div style={{ background: n.isRead ? (isDark ? '#374151' : '#f3f4f6') : '#3b82f6', color: '#fff', borderRadius: '50%', padding: 6, display: 'flex' }}><Info size={14} /></div>
+                                <div style={{ flex: 1 }}>
+                                  <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#f3f4f6' : '#374151', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
+                                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{new Date(n.createdAt).toLocaleString()}</span>
+                                </div>
+                                {dest && <ChevronRight size={14} color="#94a3b8" style={{ flexShrink: 0, marginTop: 2 }} />}
+                              </div>
+                            )
+                          })}
+                        </>
+                      )}
+
+                      {/* Local Activity Log */}
                       <div style={{ padding: '8px 16px', background: isDark ? 'rgba(96, 165, 250,0.05)' : '#f8fafc', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#eee'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase' }}>Recent Activity</span>
-                        <button onClick={handleCtrlClearAll} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '0.65rem', cursor: 'pointer' }}>Clear All</button>
+                        {ctrlNotifs.length > 0 && (
+                          <button onClick={handleCtrlClearAll} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '0.65rem', cursor: 'pointer' }}>Clear All</button>
+                        )}
                       </div>
-                      {ctrlNotifs.map(n => (
-                        <div key={n.id} onClick={() => handleNotifClick(n, handleCtrlMarkRead)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(96, 165, 250,0.06)' : 'rgba(96, 165, 250,0.04)'), cursor: n.link ? 'pointer' : (n.isRead ? 'default' : 'pointer'), transition: 'background 0.15s' }}
-                          onMouseEnter={e => { if (n.link || !n.isRead) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
-                          onMouseLeave={e => { e.currentTarget.style.background = n.isRead ? 'transparent' : (isDark ? 'rgba(96, 165, 250,0.06)' : 'rgba(96, 165, 250,0.04)') }}
-                        >
-                          <div style={ctrlNotifIcon(n.type, isDark)}>{ctrlNotifIconEl(n.type)}</div>
-                          <div style={{ flex: 1 }}>
-                            <p style={{ margin: 0, fontSize: '0.82rem', color: isDark ? '#f3f4f6' : '#374151', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
-                            <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{new Date(n.createdAt).toLocaleString()}</span>
+                      {ctrlNotifs.length === 0 && notifications.length === 0 ? (
+                        <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No recent activity</div>
+                      ) : (
+                        ctrlNotifs.map(n => (
+                          <div key={n.id} onClick={() => handleNotifClick(n, handleCtrlMarkRead)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(96, 165, 250,0.06)' : 'rgba(96, 165, 250,0.04)'), cursor: n.link ? 'pointer' : (n.isRead ? 'default' : 'pointer'), transition: 'background 0.15s' }}
+                            onMouseEnter={e => { if (n.link || !n.isRead) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = n.isRead ? 'transparent' : (isDark ? 'rgba(96, 165, 250,0.06)' : 'rgba(96, 165, 250,0.04)') }}
+                          >
+                            <div style={ctrlNotifIcon(n.type, isDark)}>{ctrlNotifIconEl(n.type)}</div>
+                            <div style={{ flex: 1 }}>
+                              <p style={{ margin: 0, fontSize: '0.82rem', color: isDark ? '#f3f4f6' : '#374151', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
+                              <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{new Date(n.createdAt).toLocaleString()}</span>
+                            </div>
+                            {n.link && <ChevronRight size={14} color="#94a3b8" style={{ flexShrink: 0, marginTop: 2 }} />}
                           </div>
-                          {n.link && <ChevronRight size={14} color="#94a3b8" style={{ flexShrink: 0, marginTop: 2 }} />}
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </>
                   )}
 
