@@ -4,7 +4,7 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
-import { userAPI } from '../services/api'
+import { userAPI, fuelAPI, serviceAPI } from '../services/api'
 import { Users, Shield, Gamepad2, Car, CheckCircle, Ban, Wrench, Fuel, MapPin, BarChart3, UserCog, ClipboardList, Activity, AlertTriangle, FileText, ShieldAlert, Clock, TrendingUp, Settings2 } from 'lucide-react'
 
 const StatCard = ({ icon, label, value, colorDim, colorHex, change, onClick }) => (
@@ -147,33 +147,27 @@ const AdminDashboard = ({ stats, loading, navigate, isDark }) => {
 }
 
 /* ── Live Fleet Utilization + Status Breakdown ─────────────────── */
-const fleetHourlyData = [
-  { time: '06:00', active: 4 },
-  { time: '07:00', active: 7 },
-  { time: '08:00', active: 11 },
-  { time: '09:00', active: 14 },
-  { time: '10:00', active: 16 },
-  { time: '11:00', active: 17 },
-  { time: '12:00', active: 15 },
-  { time: '13:00', active: 16 },
-  { time: '14:00', active: 18 },
-  { time: '15:00', active: 19 },
-  { time: '16:00', active: 20 },
-  { time: '17:00', active: 19 },
-  { time: '18:00', active: 11 },
-  { time: '19:00', active: 7 },
-  { time: '20:00', active: 4 },
-]
 
-const LiveChartsSection = ({ isDark, navigate }) => {
+const LiveChartsSection = ({ isDark, navigate, chartData, statusData }) => {
   const A = useAccents(isDark)
   const [tooltip, setTooltip] = useState(null)
   const [animProgress, setAnimProgress] = useState(0)
-  const [fuelVehicle, setFuelVehicle] = useState('SG-ABC-2122')
-  const [fuelLiters, setFuelLiters] = useState('')
-  const [fuelCost, setFuelCost] = useState('')
-  const [fuelLogged, setFuelLogged] = useState(false)
   const svgRef = useRef(null)
+
+  const fleetHourlyData = (chartData && chartData.length > 0) ? chartData : [
+    { time: '06:00', active: 4 },
+    { time: '07:00', active: 7 },
+    { time: '08:00', active: 11 },
+    { time: '09:00', active: 14 },
+    { time: '10:00', active: 16 },
+    { time: '11:00', active: 17 },
+    { time: '12:00', active: 15 },
+    { time: '13:00', active: 16 },
+    { time: '14:00', active: 14 },
+    { time: '15:00', active: 12 },
+    { time: '16:00', active: 10 },
+    { time: '17:00', active: 6 },
+  ]
 
   useEffect(() => {
     let frame
@@ -193,9 +187,9 @@ const LiveChartsSection = ({ isDark, navigate }) => {
   const W = 520, H = 180, padL = 40, padR = 16, padT = 16, padB = 36
   const chartW = W - padL - padR
   const chartH = H - padT - padB
-  const maxVal = 22
+  const maxVal = Math.max(...fleetHourlyData.map(d => d.active), 22)
   const pts = fleetHourlyData.map((d, i) => ({
-    x: padL + (i / (fleetHourlyData.length - 1)) * chartW,
+    x: padL + (i / (fleetHourlyData.length - 1 || 1)) * chartW,
     y: padT + chartH - (d.active / maxVal) * chartH,
     ...d,
   }))
@@ -222,6 +216,7 @@ const LiveChartsSection = ({ isDark, navigate }) => {
 
   const linePath = buildPath(animProgress)
   const lastPt = (() => {
+    if (pts.length === 0) return { x: padL, y: padT + chartH }
     const cutIdx = Math.min(Math.floor(animProgress * (pts.length - 1)), pts.length - 2)
     const frac = animProgress * (pts.length - 1) - cutIdx
     const curr = pts[cutIdx], next = pts[Math.min(cutIdx + 1, pts.length - 1)]
@@ -232,7 +227,7 @@ const LiveChartsSection = ({ isDark, navigate }) => {
   const gridLines = [0, 5, 10, 15, 20].map(v => ({ y: padT + chartH - (v / maxVal) * chartH, label: v }))
 
   // Donut — 🟢 Green=Active  🟡 Yellow=Maintenance  🔵 Blue=Available
-  const donutData = [
+  const donutData = (statusData && statusData.length > 0) ? statusData : [
     { label: 'Active',      value: 18, color: '#22c55e' },
     { label: 'Maintenance', value: 4,  color: '#eab308' },
     { label: 'Available',   value: 2,  color: '#3b82f6' },
@@ -241,7 +236,7 @@ const LiveChartsSection = ({ isDark, navigate }) => {
   const cx = 110, cy = 110, R = 86, r = 56
   let angle = -Math.PI / 2
   const slices = donutData.map(d => {
-    const sweep = (d.value / total) * 2 * Math.PI * animProgress
+    const sweep = (d.value / (total || 1)) * 2 * Math.PI * animProgress
     const x1 = cx + R * Math.cos(angle), y1 = cy + R * Math.sin(angle)
     const x2 = cx + R * Math.cos(angle + sweep), y2 = cy + R * Math.sin(angle + sweep)
     const ix1 = cx + r * Math.cos(angle), iy1 = cy + r * Math.sin(angle)
@@ -262,18 +257,11 @@ const LiveChartsSection = ({ isDark, navigate }) => {
   }, [pts])
 
   const quickActions = [
-    { icon: <ClipboardList size={20} color="#fbbf24" />, bg: 'rgba(251,191,36,0.15)', border: 'rgba(251,191,36,0.3)', label: 'Add Service Record',    onClick: () => navigate('/service') },
+    { icon: <ClipboardList size={20} color="#fbbf24" />, bg: 'rgba(251,191,36,0.15)', border: 'rgba(251,191,36,0.3)', label: 'Add Service Record',    onClick: () => navigate('/service/add', { state: { fromOneClick: true } }) },
     { icon: <UserCog size={20} color="#34d399" />,       bg: 'rgba(52,211,153,0.15)',  border: 'rgba(52,211,153,0.3)',  label: 'Driver Check-in',       onClick: () => navigate('/users') },
-    { icon: <Car size={20} color="#3b82f6" />,           bg: 'rgba(59, 130, 246,0.15)', border: 'rgba(59, 130, 246,0.3)', label: 'Update Vehicle Status', onClick: () => navigate('/vehicles') },
-    { icon: <Fuel size={20} color="#38bdf8" />,          bg: 'rgba(56,189,248,0.15)',  border: 'rgba(56,189,248,0.3)',  label: 'Mileage Update',        onClick: () => navigate('/vehicles') },
+    { icon: <Car size={20} color="#3b82f6" />,           bg: 'rgba(59, 130, 246,0.15)', border: 'rgba(59, 130, 246,0.3)', label: 'Update Vehicle',       onClick: () => navigate('/vehicles', { state: { openAddVehicle: true, fromOneClick: true } }) },
+    { icon: <Fuel size={20} color="#38bdf8" />,          bg: 'rgba(56,189,248,0.15)',  border: 'rgba(56,189,248,0.3)',  label: 'Mileage Update',        onClick: () => navigate('/fuel-management', { state: { openAddFuelLog: true, fromOneClick: true } }) },
   ]
-
-  const inputStyle = {
-    width: '100%', padding: '10px 14px', borderRadius: 10,
-    background: 'var(--bg-body)', border: '1px solid var(--surface-border)',
-    color: 'var(--text-primary)', fontSize: '0.9rem', fontWeight: 600,
-    outline: 'none', boxSizing: 'border-box',
-  }
 
   return (
     <div className="dashboard-main-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gridTemplateRows: 'auto auto', gap: 20, marginBottom: 36 }}>
@@ -284,6 +272,7 @@ const LiveChartsSection = ({ isDark, navigate }) => {
         border: '1px solid var(--surface-border)',
         boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px',
         position: 'relative', overflow: 'hidden',
+        gridColumn: '1 / -1',
       }}>
         <div style={{ marginBottom: 18 }}>
           <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Live Fleet Utilization</div>
@@ -330,116 +319,7 @@ const LiveChartsSection = ({ isDark, navigate }) => {
         </svg>
       </div>
 
-      {/* ── Top-Right: Quick Fuel Entry ── */}
-      <div style={{
-        background: 'var(--surface)', borderRadius: 24,
-        border: '1px solid var(--surface-border)',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px',
-        display: 'flex', flexDirection: 'column', gap: 0,
-      }}>
-        <div style={{ marginBottom: 22 }}>
-          <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Quick Fuel Entry</div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Log usage in seconds</div>
-        </div>
-        {/* Vehicle selector */}
-        <div style={{ marginBottom: 18 }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Vehicle</div>
-          <select
-            value={fuelVehicle}
-            onChange={e => setFuelVehicle(e.target.value)}
-            style={{ ...inputStyle, appearance: 'auto' }}
-          >
-            {['SG-ABC-2122', 'WP-CAB-8841', 'CP-DEF-3390', 'WP-PQR-9034', 'NW-LMN-5521'].map(v => (
-              <option key={v} value={v}>{v}</option>
-            ))}
-          </select>
-        </div>
-        {/* Liters + Cost */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
-          <div>
-            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Liters</div>
-            <input
-              type="number" placeholder="0"
-              value={fuelLiters}
-              onChange={e => setFuelLiters(e.target.value)}
-              style={inputStyle}
-            />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Cost (LKR)</div>
-            <input
-              type="number" placeholder="0"
-              value={fuelCost}
-              onChange={e => setFuelCost(e.target.value)}
-              style={inputStyle}
-            />
-          </div>
-        </div>
-        {/* Log Button */}
-        <button
-          onClick={() => {
-            if (fuelLiters && fuelCost) {
-              setFuelLogged(true)
-              setTimeout(() => { setFuelLogged(false); setFuelLiters(''); setFuelCost('') }, 2000)
-            }
-            navigate('/fuel-management')
-          }}
-          style={{
-            padding: '13px', borderRadius: 14, border: 'none',
-            background: fuelLogged
-              ? 'linear-gradient(135deg,#22c55e,#16a34a)'
-              : 'linear-gradient(135deg,#3b82f6,#2563eb)',
-            color: '#fff', fontSize: '0.88rem', fontWeight: 700,
-            cursor: 'pointer', transition: 'all 0.3s',
-            boxShadow: fuelLogged ? '0 4px 16px rgba(34,197,94,0.4)' : '0 4px 16px rgba(59,130,246,0.4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          }}
-          onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
-          onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-        >
-          <Fuel size={16} />
-          {fuelLogged ? '✓ Logged!' : '+ Log Fuel Entry'}
-        </button>
-      </div>
-
-      {/* ── Bottom-Left: Status Breakdown ── */}
-      <div style={{
-        background: 'var(--surface)', borderRadius: 24,
-        border: '1px solid var(--surface-border)',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px',
-        display: 'flex', flexDirection: 'column',
-      }}>
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Status Breakdown</div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Current fleet split</div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 28, flex: 1 }}>
-          <svg viewBox="0 0 220 220" style={{ width: 190, height: 190, flexShrink: 0 }}>
-            {slices.map((s, i) => (
-              <path key={i} d={s.path} fill={s.color}
-                style={{ transition: 'opacity 0.2s', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.35))' }}
-                onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
-                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-              />
-            ))}
-            <text x={cx} y={cy - 8} fontSize="28" fontWeight="900" fill="var(--text-primary)" textAnchor="middle" fontFamily="'Plus Jakarta Sans',sans-serif">{total}</text>
-            <text x={cx} y={cy + 14} fontSize="12" fill="var(--text-muted)" textAnchor="middle" fontFamily="inherit">Total</text>
-          </svg>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {donutData.map((d, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 12, height: 12, borderRadius: 4, background: d.color, flexShrink: 0, boxShadow: `0 0 8px ${d.color}70` }} />
-                <div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>{d.label}</div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>{d.value}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Bottom-Right: One-click data entry ── */}
+      {/* ── Bottom-Left: One-click data entry ── */}
       <div style={{
         background: 'var(--surface)', borderRadius: 24,
         border: '1px solid var(--surface-border)',
@@ -471,6 +351,43 @@ const LiveChartsSection = ({ isDark, navigate }) => {
               <span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 300 }}>+</span>
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* ── Bottom-Right: Status Breakdown ── */}
+      <div style={{
+        background: 'var(--surface)', borderRadius: 24,
+        border: '1px solid var(--surface-border)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px',
+        display: 'flex', flexDirection: 'column',
+      }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Status Breakdown</div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Current fleet split</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 28, flex: 1 }}>
+          <svg viewBox="0 0 220 220" style={{ width: 150, height: 150, flexShrink: 0 }}>
+            {slices.map((s, i) => (
+              <path key={i} d={s.path} fill={s.color}
+                style={{ transition: 'opacity 0.2s', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.35))' }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+              />
+            ))}
+            <text x={cx} y={cy - 8} fontSize="28" fontWeight="900" fill="var(--text-primary)" textAnchor="middle" fontFamily="'Plus Jakarta Sans',sans-serif">{total}</text>
+            <text x={cx} y={cy + 14} fontSize="12" fill="var(--text-muted)" textAnchor="middle" fontFamily="inherit">Total</text>
+          </svg>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {donutData.map((d, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 12, height: 12, borderRadius: 4, background: d.color, flexShrink: 0, boxShadow: `0 0 8px ${d.color}70` }} />
+                <div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>{d.label}</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>{d.value}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -552,17 +469,22 @@ const ControllerSystemAlertsSection = ({ navigate }) => (
 )
 
 /* ── Recent Activity ─────────────────────────────────────────── */
-const recentActivities = [
-  { icon: <Fuel size={16} color="#38bdf8" />,      color: '#38bdf8', action: 'Fuel entry logged',       detail: 'SG-ABC-2122 · 42L added at LKR 14,280',         time: '2 min ago' },
-  { icon: <CheckCircle size={16} color="#34d399" />, color: '#34d399', action: 'Vehicle status updated',  detail: 'WP-CAB-8841 changed to Active',                  time: '18 min ago' },
-  { icon: <Wrench size={16} color="#fbbf24" />,    color: '#fbbf24', action: 'Service record added',    detail: 'CP-DEF-3390 · Oil change completed',              time: '1 hr ago' },
-  { icon: <UserCog size={16} color="#3b82f6" />,   color: '#3b82f6', action: 'Driver assigned',          detail: 'NW-LMN-5521 assigned to John Silva',             time: '2 hrs ago' },
-  { icon: <AlertTriangle size={16} color="#f87171" />, color: '#f87171', action: 'Alert raised',         detail: 'WP-PQR-9034 · Service overdue risk detected',     time: '3 hrs ago' },
-  { icon: <TrendingUp size={16} color="#34d399" />, color: '#34d399', action: 'Mileage updated',         detail: 'SG-ABC-2122 · Odometer updated to 48,320 km',    time: '4 hrs ago' },
-  { icon: <Settings2 size={16} color="#94a3b8" />, color: '#94a3b8', action: 'Vehicle profile edited',   detail: 'CP-DEF-3390 · Insurance details updated',         time: 'Yesterday' },
-]
+const formatTimeAgo = (date) => {
+  if (!date || isNaN(date.getTime())) return ''
+  const now = new Date()
+  const diffMs = now - date
+  const diffMins = Math.floor(diffMs / 60000)
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`
+  const diffHrs = Math.floor(diffMins / 60)
+  if (diffHrs < 24) return `${diffHrs} hr${diffHrs > 1 ? 's' : ''} ago`
+  const diffDays = Math.floor(diffHrs / 24)
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 7) return `${diffDays} days ago`
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+}
 
-const RecentActivitySection = ({ navigate }) => (
+const RecentActivitySection = ({ activities = [], navigate }) => (
   <div style={{ marginTop: 36 }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
       <h2 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text-primary)', fontWeight: 700 }}>Recent Activity</h2>
@@ -582,37 +504,43 @@ const RecentActivitySection = ({ navigate }) => (
       boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
       overflow: 'hidden',
     }}>
-      {recentActivities.map((a, i) => (
-        <div key={i} style={{
-          display: 'flex', alignItems: 'center', gap: 18,
-          padding: '16px 32px',
-          borderBottom: i < recentActivities.length - 1 ? '1px solid var(--surface-border)' : 'none',
-          transition: 'background 0.18s',
-          cursor: 'default',
-        }}
-          onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hi)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-        >
-          <div style={{
-            width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-            background: `${a.color}15`, border: `1px solid ${a.color}30`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>{a.icon}</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: '0.87rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>{a.action}</div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.detail}</div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-            <Clock size={12} color="var(--text-muted)" />
-            <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)', fontWeight: 600 }}>{a.time}</span>
-          </div>
+      {activities.length === 0 ? (
+        <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+          No recent activity found.
         </div>
-      ))}
+      ) : (
+        activities.map((a, i) => (
+          <div key={a.id || i} style={{
+            display: 'flex', alignItems: 'center', gap: 18,
+            padding: '16px 32px',
+            borderBottom: i < activities.length - 1 ? '1px solid var(--surface-border)' : 'none',
+            transition: 'background 0.18s',
+            cursor: 'default',
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hi)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <div style={{
+              width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+              background: `${a.color}15`, border: `1px solid ${a.color}30`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>{a.icon}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '0.87rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>{a.action}</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.detail}</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+              <Clock size={12} color="var(--text-muted)" />
+              <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)', fontWeight: 600 }}>{formatTimeAgo(a.timestamp)}</span>
+            </div>
+          </div>
+        ))
+      )}
     </div>
   </div>
 )
 
-const ControllerDashboard = ({ navigate, isDark }) => {
+const ControllerDashboard = ({ navigate, isDark, chartData, statusData }) => {
   const A = useAccents(isDark)
   return (
     <>
@@ -624,9 +552,7 @@ const ControllerDashboard = ({ navigate, isDark }) => {
         <StatCard icon={<Activity size={20} color={A.blue}/>} label="Available" value="2" colorDim={A.blueDim} colorHex={A.blue} change="Ready to assign" onClick={() => navigate('/vehicles')} />
       </div>
 
-      <ControllerSystemAlertsSection navigate={navigate} />
-
-      <LiveChartsSection isDark={isDark} navigate={navigate} />
+      <LiveChartsSection isDark={isDark} navigate={navigate} chartData={chartData} statusData={statusData} />
 
       <SectionHeader title="One-click data entry" />
       <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
@@ -634,7 +560,7 @@ const ControllerDashboard = ({ navigate, isDark }) => {
         <FeatureCard icon={<UserCog size={24}/>} title="Driver Assignment" desc="Assign and manage drivers to vehicles and routes." onClick={() => navigate('/users')} />
         <FeatureCard icon={<Wrench size={24}/>} title="Maintenance Schedule" desc="Schedule and track vehicle service appointments." onClick={() => navigate('/service')} />
         <FeatureCard icon={<Fuel size={24}/>} title="Fuel Management" desc="Record and track fuel consumption and costs." onClick={() => navigate('/fuel-management')} />
-        <FeatureCard icon={<AlertTriangle size={24}/>} title="Alerts & Incidents" desc="Monitor vehicle alerts and emergency incidents." onClick={() => navigate('/reports')} />
+        
       </div>
 
       <RecentActivitySection navigate={navigate} />
@@ -747,6 +673,8 @@ const DashboardPage = () => {
   const navigate = useNavigate()
   const isDark = theme === 'blue'
   const [stats, setStats] = useState({ totalUsers: 0, admins: 0, controllers: 0, drivers: 0, activeUsers: 0, inactiveUsers: 0 })
+  const [fleetChartData, setFleetChartData] = useState([]);
+  const [statusData, setStatusData] = useState([]);
   const [alerts, setAlerts] = useState([])
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -769,13 +697,20 @@ const DashboardPage = () => {
             })
           }
 
-          // Fetch alerts for Admin and Controller
+          // Fetch real-time chart data for live fleet utilization
           try {
-            const { alertAPI } = await import('../services/api')
-            const alertRes = await alertAPI.getDashboardAlerts()
-            setAlerts(alertRes.data.data.alerts || [])
+            const chartRes = await fuelAPI.getChartData();
+            setFleetChartData(chartRes.data.data || []);
           } catch (err) {
-            console.error('Error loading alerts:', err)
+            console.error('Error loading chart data:', err);
+          }
+
+          // Fetch real-time vehicle status breakdown data
+          try {
+            const statusRes = await fuelAPI.getVehicleStats();
+            setStatusData(statusRes.data.data || []);
+          } catch (err) {
+            console.error('Error loading status data:', err);
           }
         }
       } catch (err) {
@@ -850,7 +785,7 @@ const DashboardPage = () => {
 
           {/* Role-based content */}
           {user?.role === 'ADMIN' && <AdminDashboard stats={stats} loading={loading} navigate={navigate} isDark={isDark} />}
-          {user?.role === 'CONTROLLER' && <ControllerDashboard navigate={navigate} isDark={isDark} />}
+          {user?.role === 'CONTROLLER' && <ControllerDashboard navigate={navigate} isDark={isDark} chartData={fleetChartData} statusData={statusData} />}
           {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} />}
         </div>
       </div>
