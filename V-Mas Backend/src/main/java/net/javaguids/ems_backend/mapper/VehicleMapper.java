@@ -17,6 +17,7 @@ public class VehicleMapper {
                 vehicle.getModel(),
                 vehicle.getYear(),
                 vehicle.getCurrentMileageKm(),
+                vehicle.getInitialMileageKm(),
                 vehicle.getCreatedAt(),
                 vehicle.getUpdatedAt(),
                 vehicle.getUpdatedBy(),
@@ -48,6 +49,7 @@ public class VehicleMapper {
         vehicle.setModel(dto.getModel());
         vehicle.setYear(dto.getYear());
         vehicle.setCurrentMileageKm(dto.getCurrentMileageKm());
+        vehicle.setInitialMileageKm(dto.getInitialMileageKm() != null ? dto.getInitialMileageKm() : dto.getCurrentMileageKm());
         vehicle.setChassisNo(dto.getChassisNumber());
         vehicle.setEngineNo(dto.getEngineNumber());
         vehicle.setStatus(dto.getStatus());

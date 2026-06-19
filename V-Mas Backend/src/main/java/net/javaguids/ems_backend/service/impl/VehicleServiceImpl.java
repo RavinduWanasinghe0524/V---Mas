@@ -347,6 +347,8 @@ public class VehicleServiceImpl implements VehicleService {
             int lastServiceMileage = 0;
             if (!lastRecords.isEmpty()) {
                 lastServiceMileage = lastRecords.get(0).getCurrentMileageKm();
+            } else {
+                lastServiceMileage = vehicle.getInitialMileageKm() != null ? vehicle.getInitialMileageKm() : 0;
             }
 
             int nextDueMileage = lastServiceMileage + interval.getIntervalKm();

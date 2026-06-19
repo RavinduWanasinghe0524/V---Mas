@@ -867,7 +867,7 @@ const getVehicleMilestones = (vehicle, services, intervals) => {
       getStatus(s) === 'COMPLETED'
     )
     
-    let lastServiceMileage = 0
+    let lastServiceMileage = vehicle.initialMileageKm != null ? Number(vehicle.initialMileageKm) : Number(vehicle.currentMileageKm || 0)
     if (completed.length > 0) {
       completed.sort((a, b) => Number(b.currentMileageKm || 0) - Number(a.currentMileageKm || 0))
       lastServiceMileage = Number(completed[0].currentMileageKm || 0)
@@ -933,6 +933,7 @@ const ServicePage = () => {
   const [allVehicles, setAllVehicles] = useState([])
   const [allDrivers, setAllDrivers] = useState([])
   const [previousMileage, setPreviousMileage] = useState(null)
+  const [expandedVehicleId, setExpandedVehicleId] = useState(null)
 
   // ── Driver-specific lookup vehicle states ───────────────────────
   const [selectedDriverVehicle, setSelectedDriverVehicle] = useState(null)
@@ -964,6 +965,13 @@ const ServicePage = () => {
   // ── Audit history for detail modal ─────────────────────────────────────
   const [serviceHistory, setServiceHistory] = useState([])
   const [historyLoading, setHistoryLoading] = useState(false)
+  const [showAllEdits, setShowAllEdits] = useState(false)
+
+  useEffect(() => {
+    if (!detailModal.isOpen) {
+      setShowAllEdits(false)
+    }
+  }, [detailModal.isOpen])
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -2698,14 +2706,34 @@ const ServicePage = () => {
                         ))
                         .map(v => {
                           const milestones = getVehicleMilestones(v, services, intervals)
+                          const isExpanded = expandedVehicleId === v.id
+                          const overdueAlertsCount = milestones.filter(m => m.status === 'OVERDUE').length
+                          const dueSoonAlertsCount = milestones.filter(m => m.status === 'DUE_SOON').length
+
                           return (
                             <div
                               key={v.id}
+                              onClick={() => setExpandedVehicleId(isExpanded ? null : v.id)}
                               style={{
-                                background: D.surface, border: `1px solid ${D.border}`,
+                                background: D.surface, border: `1px solid ${isExpanded ? D.borderHi : D.border}`,
                                 borderRadius: 16, padding: '20px',
-                                boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-                                display: 'flex', flexDirection: 'column', gap: 16
+                                boxShadow: isExpanded ? '0 8px 32px rgba(0,0,0,0.15)' : '0 4px 16px rgba(0,0,0,0.06)',
+                                display: 'flex', flexDirection: 'column', gap: 16,
+                                cursor: 'pointer',
+                                transition: 'all 0.25s ease',
+                                transform: isExpanded ? 'translateY(-2px)' : 'translateY(0)'
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.borderColor = D.borderHi
+                                if (!isExpanded) {
+                                  e.currentTarget.style.transform = 'translateY(-1px)'
+                                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.09)'
+                                }
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.borderColor = isExpanded ? D.borderHi : D.border
+                                e.currentTarget.style.transform = isExpanded ? 'translateY(-2px)' : 'translateY(0)'
+                                e.currentTarget.style.boxShadow = isExpanded ? '0 8px 32px rgba(0,0,0,0.15)' : '0 4px 16px rgba(0,0,0,0.06)'
                               }}
                             >
                               {/* Vehicle details header */}
@@ -2736,96 +2764,120 @@ const ServicePage = () => {
                                 </div>
                               </div>
 
-                              <div style={{ height: 1, background: D.border }} />
+                              {/* Alert Summary and Expand indicators */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', borderTop: `1px solid ${D.border}`, paddingTop: 10 }}>
+                                {overdueAlertsCount > 0 && (
+                                  <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '3px 10px', borderRadius: 999, background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
+                                    {overdueAlertsCount} Overdue
+                                  </span>
+                                )}
+                                {dueSoonAlertsCount > 0 && (
+                                  <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '3px 10px', borderRadius: 999, background: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' }}>
+                                    {dueSoonAlertsCount} Due Soon
+                                  </span>
+                                )}
+                                {overdueAlertsCount === 0 && dueSoonAlertsCount === 0 && (
+                                  <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '3px 10px', borderRadius: 999, background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)' }}>
+                                    Healthy
+                                  </span>
+                                )}
+                                <span style={{ fontSize: '0.75rem', color: D.textSub, fontWeight: 700, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  {isExpanded ? 'Hide Details ▴' : 'View Details ▾'}
+                                </span>
+                              </div>
+
+                              {isExpanded && <div style={{ height: 1, background: D.border }} />}
 
                               {/* Milestones status list */}
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                                {milestones.length === 0 ? (
-                                  <div style={{ fontSize: '0.82rem', color: D.textFaint, fontStyle: 'italic', textAlign: 'center', padding: '10px 0' }}>
-                                    No service intervals configured for this vehicle type.
-                                  </div>
-                                ) : (
-                                  milestones.map(m => {
-                                    const isOverdue = m.status === 'OVERDUE'
-                                    const isDueSoon = m.status === 'DUE_SOON'
-                                    const statusConfig = isOverdue
-                                      ? { color: '#ef4444', label: 'Overdue', bg: 'rgba(239,68,68,0.1)' }
-                                      : isDueSoon
-                                        ? { color: '#fbbf24', label: 'Due Soon', bg: 'rgba(251,191,36,0.1)' }
-                                        : { color: '#10b981', label: 'Healthy', bg: 'rgba(16,185,129,0.1)' }
+                              {isExpanded && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }} onClick={e => e.stopPropagation()}>
+                                  {milestones.length === 0 ? (
+                                    <div style={{ fontSize: '0.82rem', color: D.textFaint, fontStyle: 'italic', textAlign: 'center', padding: '10px 0' }}>
+                                      No service intervals configured for this vehicle type.
+                                    </div>
+                                  ) : (
+                                    milestones.map(m => {
+                                      const isOverdue = m.status === 'OVERDUE'
+                                      const isDueSoon = m.status === 'DUE_SOON'
+                                      const statusConfig = isOverdue
+                                        ? { color: '#ef4444', label: 'Overdue', bg: 'rgba(239,68,68,0.1)' }
+                                        : isDueSoon
+                                          ? { color: '#fbbf24', label: 'Due Soon', bg: 'rgba(251,191,36,0.1)' }
+                                          : { color: '#10b981', label: 'Healthy', bg: 'rgba(16,185,129,0.1)' }
 
-                                    const driven = Math.max(0, (v.currentMileageKm || 0) - m.lastServiceMileage)
-                                    const progressPct = m.intervalKm > 0 ? Math.max(0, Math.min(100, (driven / m.intervalKm) * 100)) : 0
+                                      const driven = Math.max(0, (v.currentMileageKm || 0) - m.lastServiceMileage)
+                                      const progressPct = m.intervalKm > 0 ? Math.max(0, Math.min(100, (driven / m.intervalKm) * 100)) : 0
 
-                                    return (
-                                      <div key={m.serviceType} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.text }}>
-                                            {m.serviceType.replace(/_/g, ' ')}
-                                          </span>
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                            <span style={{
-                                              fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: 999,
-                                              background: statusConfig.bg, color: statusConfig.color, border: `1px solid ${statusConfig.color}25`
-                                            }}>
-                                              {statusConfig.label}
+                                      return (
+                                        <div key={m.serviceType} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.text }}>
+                                              {m.serviceType.replace(/_/g, ' ')}
                                             </span>
-                                            {(isOverdue || isDueSoon) && (
-                                              <button
-                                                onClick={() => openAddModal({ vehicleRegNumber: v.registrationNo, serviceType: m.serviceType })}
-                                                title={`Log completed ${m.serviceType.replace(/_/g, ' ')}`}
-                                                style={{
-                                                  background: 'rgba(99, 102, 241, 0.15)',
-                                                  border: '1px solid rgba(99, 102, 241, 0.3)',
-                                                  color: '#a5b4fc',
-                                                  borderRadius: 6,
-                                                  padding: '2px 6px',
-                                                  fontSize: '0.65rem',
-                                                  fontWeight: 700,
-                                                  cursor: 'pointer',
-                                                  display: 'inline-flex',
-                                                  alignItems: 'center',
-                                                  gap: 3,
-                                                  transition: 'all 0.2s ease',
-                                                }}
-                                                onMouseEnter={e => {
-                                                  e.currentTarget.style.background = '#4f46e5'
-                                                  e.currentTarget.style.color = '#fff'
-                                                }}
-                                                onMouseLeave={e => {
-                                                  e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'
-                                                  e.currentTarget.style.color = '#a5b4fc'
-                                                }}
-                                              >
-                                                <Wrench size={10} /> Log Service
-                                              </button>
-                                            )}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                              <span style={{
+                                                fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: 999,
+                                                background: statusConfig.bg, color: statusConfig.color, border: `1px solid ${statusConfig.color}25`
+                                              }}>
+                                                {statusConfig.label}
+                                              </span>
+                                              {(isOverdue || isDueSoon) && (
+                                                <button
+                                                  onClick={() => openAddModal({ vehicleRegNumber: v.registrationNo, serviceType: m.serviceType })}
+                                                  title={`Log completed ${m.serviceType.replace(/_/g, ' ')}`}
+                                                  style={{
+                                                    background: 'rgba(99, 102, 241, 0.15)',
+                                                    border: '1px solid rgba(99, 102, 241, 0.3)',
+                                                    color: '#a5b4fc',
+                                                    borderRadius: 6,
+                                                    padding: '2px 6px',
+                                                    fontSize: '0.65rem',
+                                                    fontWeight: 700,
+                                                    cursor: 'pointer',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: 3,
+                                                    transition: 'all 0.2s ease',
+                                                  }}
+                                                  onMouseEnter={e => {
+                                                    e.currentTarget.style.background = '#4f46e5'
+                                                    e.currentTarget.style.color = '#fff'
+                                                  }}
+                                                  onMouseLeave={e => {
+                                                    e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'
+                                                    e.currentTarget.style.color = '#a5b4fc'
+                                                  }}
+                                                >
+                                                  <Wrench size={10} /> Log Service
+                                                </button>
+                                              )}
+                                            </div>
+                                          </div>
+
+                                          {/* Progress bar */}
+                                          <div style={{ position: 'relative', height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden' }}>
+                                            <div style={{
+                                              width: `${progressPct}%`, height: '100%',
+                                              background: statusConfig.color, borderRadius: 999,
+                                              transition: 'width 0.4s ease'
+                                            }} />
+                                          </div>
+
+                                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: D.textSub }}>
+                                            <span>Last: {m.lastServiceMileage.toLocaleString()} km</span>
+                                            <span style={{ fontWeight: 600, color: statusConfig.color }}>
+                                              {m.remainingKm <= 0
+                                                ? `${Math.abs(m.remainingKm).toLocaleString()} km overdue`
+                                                : `${m.remainingKm.toLocaleString()} km remaining`}
+                                            </span>
+                                            <span>Due: {m.nextDueMileage.toLocaleString()} km</span>
                                           </div>
                                         </div>
-
-                                        {/* Progress bar */}
-                                        <div style={{ position: 'relative', height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden' }}>
-                                          <div style={{
-                                            width: `${progressPct}%`, height: '100%',
-                                            background: statusConfig.color, borderRadius: 999,
-                                            transition: 'width 0.4s ease'
-                                          }} />
-                                        </div>
-
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: D.textSub }}>
-                                          <span>Last: {m.lastServiceMileage.toLocaleString()} km</span>
-                                          <span style={{ fontWeight: 600, color: statusConfig.color }}>
-                                            {m.remainingKm <= 0
-                                              ? `${Math.abs(m.remainingKm).toLocaleString()} km overdue`
-                                              : `${m.remainingKm.toLocaleString()} km remaining`}
-                                          </span>
-                                          <span>Due: {m.nextDueMileage.toLocaleString()} km</span>
-                                        </div>
-                                      </div>
-                                    )
-                                  })
-                                )}
-                              </div>
+                                      )
+                                    })
+                                  )}
+                                </div>
+                              )}
                             </div>
                           )
                         })}
@@ -3665,6 +3717,52 @@ const ServicePage = () => {
                           )}
                         </div>
 
+                        {/* Vehicle Filter Dropdown */}
+                        <div style={{ position: 'relative', minWidth: 160 }}>
+                          <select
+                            value={vehicleFilter}
+                            onChange={e => setVehicleFilter(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '12px 28px 12px 14px',
+                              background: D.inputBg,
+                              border: `1px solid ${vehicleFilter !== 'ALL' ? 'rgba(99,102,241,0.4)' : D.inputBorder}`,
+                              borderRadius: 14,
+                              color: D.text,
+                              fontSize: '0.9rem',
+                              fontWeight: 700,
+                              outline: 'none',
+                              cursor: 'pointer',
+                              appearance: 'none',
+                              fontFamily: "'Outfit', sans-serif",
+                              boxSizing: 'border-box',
+                              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                            }}
+                            onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; e.target.style.background = D.surface }}
+                            onBlur={e => { e.target.style.borderColor = vehicleFilter !== 'ALL' ? 'rgba(99,102,241,0.4)' : D.inputBorder; e.target.style.background = D.inputBg }}
+                          >
+                            <option value="ALL" style={{ background: D.surfaceHi, color: D.text }}>All Vehicles</option>
+                            {allVehicles
+                              .filter(v => !v.isDeleted)
+                              .map(v => (
+                                <option key={v.id} value={v.registrationNo} style={{ background: D.surfaceHi, color: D.text }}>
+                                  {v.registrationNo}
+                                </option>
+                              ))}
+                          </select>
+                          <div style={{
+                            position: 'absolute',
+                            right: 12,
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            pointerEvents: 'none',
+                            color: D.textSub,
+                            fontSize: '0.8rem'
+                          }}>
+                            ▾
+                          </div>
+                        </div>
+
                         {/* View Switcher */}
                         <div style={{ display: 'flex', background: D.surfaceHi, border: `1px solid ${D.border}`, borderRadius: 10, padding: 2, gap: 2 }}>
                           <button
@@ -4367,6 +4465,7 @@ const ServicePage = () => {
         const sc = STATUS_CONFIG[status]
         const icon = SERVICE_TYPE_ICONS[r.serviceType] || <Wrench size={24} />
         const closeDetail = () => setDetailModal({ isOpen: false, record: null })
+        const visibleHistory = showAllEdits ? serviceHistory : serviceHistory.slice(0, 1)
         return (
           <div
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease', padding: '16px' }}
@@ -4574,50 +4673,75 @@ const ServicePage = () => {
                       </div>
                     </div>
                   ) : (
-                    // Render each edit from newest → oldest
-                    serviceHistory.map((entry, idx) => {
-                      let fields = []
-                      try { fields = JSON.parse(entry.changedFields || '[]') } catch (e) { /* ignore */ }
-                      return (
-                        <div key={entry.id} style={{ position: 'relative', marginBottom: idx < serviceHistory.length - 1 ? 14 : 4 }}>
-                          {/* Timeline dot */}
-                          <div style={{ position: 'absolute', left: -28, top: 6, width: 18, height: 18, borderRadius: '50%', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 3px ' + D.bg }}>
-                            <Edit2 size={8} color="#fff" />
-                          </div>
-
-                          <div style={{ background: D.surfaceHi, border: `1px solid ${D.border}`, borderRadius: 10, padding: '12px 16px', borderLeft: '3px solid #2563eb' }}>
-                            {/* Edit header */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Edited</span>
-                              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.text }}>by {entry.changedBy || '—'}</span>
-                              <span style={{ fontSize: '0.75rem', color: D.textSub, marginLeft: 'auto' }}>
-                                {entry.changedAt ? new Date(entry.changedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
-                              </span>
+                    // Render each edit from newest → oldest (limited by default)
+                    <>
+                      {visibleHistory.map((entry, idx) => {
+                        let fields = []
+                        try { fields = JSON.parse(entry.changedFields || '[]') } catch (e) { /* ignore */ }
+                        return (
+                          <div key={entry.id} style={{ position: 'relative', marginBottom: idx < visibleHistory.length - 1 ? 14 : 4 }}>
+                            {/* Timeline dot */}
+                            <div style={{ position: 'absolute', left: -28, top: 6, width: 18, height: 18, borderRadius: '50%', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 3px ' + D.bg }}>
+                              <Edit2 size={8} color="#fff" />
                             </div>
 
-                            {/* Field-level changes */}
-                            {fields.length > 0 ? (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                {fields.map((f, fi) => (
-                                  <div key={fi} style={{ display: 'grid', gridTemplateColumns: '140px 1fr 18px 1fr', alignItems: 'center', gap: 6, fontSize: '0.75rem' }}>
-                                    <span style={{ fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.65rem' }}>{f.field}</span>
-                                    <span style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444', padding: '2px 8px', borderRadius: 5, border: '1px solid rgba(239,68,68,0.15)', fontWeight: 600, textDecoration: 'line-through', textDecorationColor: 'rgba(239,68,68,0.4)' }}>
-                                      {f.from}
-                                    </span>
-                                    <span style={{ textAlign: 'center', color: D.textSub, fontWeight: 700 }}>→</span>
-                                    <span style={{ background: 'rgba(16,185,129,0.08)', color: '#10b981', padding: '2px 8px', borderRadius: 5, border: '1px solid rgba(16,185,129,0.15)', fontWeight: 600 }}>
-                                      {f.to}
-                                    </span>
-                                  </div>
-                                ))}
+                            <div style={{ background: D.surfaceHi, border: `1px solid ${D.border}`, borderRadius: 10, padding: '12px 16px', borderLeft: '3px solid #2563eb' }}>
+                              {/* Edit header */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Edited</span>
+                                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.text }}>by {entry.changedBy || '—'}</span>
+                                <span style={{ fontSize: '0.75rem', color: D.textSub, marginLeft: 'auto' }}>
+                                  {entry.changedAt ? new Date(entry.changedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                                </span>
                               </div>
-                            ) : (
-                              <span style={{ fontSize: '0.78rem', color: D.textSub, fontStyle: 'italic' }}>Details not available.</span>
-                            )}
+
+                              {/* Field-level changes */}
+                              {fields.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                  {fields.map((f, fi) => (
+                                    <div key={fi} style={{ display: 'grid', gridTemplateColumns: '140px 1fr 18px 1fr', alignItems: 'center', gap: 6, fontSize: '0.75rem' }}>
+                                      <span style={{ fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.65rem' }}>{f.field}</span>
+                                      <span style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444', padding: '2px 8px', borderRadius: 5, border: '1px solid rgba(239,68,68,0.15)', fontWeight: 600, textDecoration: 'line-through', textDecorationColor: 'rgba(239,68,68,0.4)' }}>
+                                        {f.from}
+                                      </span>
+                                      <span style={{ textAlign: 'center', color: D.textSub, fontWeight: 700 }}>→</span>
+                                      <span style={{ background: 'rgba(16,185,129,0.08)', color: '#10b981', padding: '2px 8px', borderRadius: 5, border: '1px solid rgba(16,185,129,0.15)', fontWeight: 600 }}>
+                                        {f.to}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span style={{ fontSize: '0.78rem', color: D.textSub, fontStyle: 'italic' }}>Details not available.</span>
+                              )}
+                            </div>
                           </div>
+                        )
+                      })}
+
+                      {serviceHistory.length > 1 && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12, marginBottom: 8 }}>
+                          <button
+                            onClick={() => setShowAllEdits(!showAllEdits)}
+                            style={{
+                              background: 'rgba(99, 102, 241, 0.1)',
+                              border: '1px solid rgba(99, 102, 241, 0.3)',
+                              color: '#a5b4fc',
+                              borderRadius: 8,
+                              padding: '6px 14px',
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)' }}
+                          >
+                            {showAllEdits ? 'Show Less ▴' : `Show all edits (${serviceHistory.length}) ▾`}
+                          </button>
                         </div>
-                      )
-                    })
+                      )}
+                    </>
                   )}
                 </div>
               </div>
