@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { userAPI, fuelAPI, serviceAPI, vehicleAPI, alertAPI, notificationAPI } from '../services/api'
 import * as notifService from '../services/notificationService'
-import { Users, Shield, Gamepad2, Car, CheckCircle, Ban, Wrench, Fuel, MapPin, BarChart3, UserCog, ClipboardList, Activity, AlertTriangle, FileText, ShieldAlert, Clock, TrendingUp, Settings2, Info } from 'lucide-react'
+import { Users, Shield, Gamepad2, Car, CheckCircle, Ban, Wrench, Fuel, MapPin, BarChart3, UserCog, ClipboardList, Activity, AlertTriangle, FileText, ShieldAlert, Clock, TrendingUp, Settings2, Info, Gauge } from 'lucide-react'
 
 const StatCard = ({ icon, label, value, colorDim, colorHex, change, onClick }) => (
   <div onClick={onClick} style={{
@@ -298,56 +298,116 @@ const FleetUtilizationChart = ({ isDark, chartData }) => {
     setTooltip(closest)
   }, [pts])
 
+  const step = pts.length > 15 ? 4 : (pts.length > 8 ? 2 : 1)
+  const visibleTicks = pts.filter((_, i) => {
+    if (i === 0 || i === pts.length - 1) return true
+    return i % step === 0 && (pts.length - 1 - i) >= step * 0.7
+  })
+
   return (
     <div style={{
       background: 'var(--surface)', borderRadius: 24,
       border: '1px solid var(--surface-border)',
       boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px',
       position: 'relative', overflow: 'hidden',
-    }}>
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Live Fleet Utilization</div>
-        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Active vehicles across the day</div>
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.35)'
+        e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.35), 0 0 20px rgba(99, 102, 241, 0.1)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = 'var(--surface-border)'
+        e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)'
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+        <div>
+          <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Live Fleet Utilization</div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Active vehicles across the day</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(34,197,94,0.1)', padding: '4px 10px', borderRadius: 20, border: '1px solid rgba(34,197,94,0.2)' }}>
+          <span className="live-pulse-dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+          <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Live Tracking</span>
+        </div>
       </div>
       <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
         style={{ width: '100%', height: 'auto', display: 'block', cursor: 'crosshair' }}
         onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
         <defs>
           <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2563eb" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="#2563eb" stopOpacity="0.01" />
+            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
+            <stop offset="50%" stopColor="#a855f7" stopOpacity="0.1" />
+            <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.00" />
           </linearGradient>
+          <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#3b82f6" />
+            <stop offset="50%" stopColor="#a855f7" />
+            <stop offset="100%" stopColor="#06b6d4" />
+          </linearGradient>
+          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
         </defs>
+
+        {/* Faint Vertical Grid Lines */}
+        {visibleTicks.map(p => (
+          <line key={p.time} x1={p.x} x2={p.x} y1={padT} y2={padT + chartH} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.15" />
+        ))}
+
+        {/* Horizontal Grid Lines */}
         {gridLines.map(gl => (
           <g key={gl.label}>
-            <line x1={padL} x2={W - padR} y1={gl.y} y2={gl.y} stroke="var(--border)" strokeWidth="1" strokeDasharray="4 4" />
-            <text x={padL - 6} y={gl.y + 4} fontSize="10" fill="var(--text-muted)" textAnchor="end" fontFamily="inherit">{gl.label}</text>
+            <line x1={padL} x2={W - padR} y1={gl.y} y2={gl.y} stroke="var(--border)" strokeWidth="0.75" strokeDasharray="4 4" opacity="0.25" />
+            <text x={padL - 8} y={gl.y + 4} fontSize="9" fill="var(--text-muted)" textAnchor="end" fontFamily="inherit">{gl.label}</text>
           </g>
         ))}
-        {pts.filter((_, i) => i % 2 === 0).map((p, i) => (
-          <text key={i} x={p.x} y={H - 4} fontSize="10" fill="var(--text-muted)" textAnchor="middle" fontFamily="inherit">{p.time}</text>
+
+        {/* X Axis Labels */}
+        {visibleTicks.map((p, i) => (
+          <text key={i} x={p.x} y={H - 4} fontSize="9" fill="var(--text-muted)" textAnchor="middle" fontFamily="inherit" fontWeight="600">{p.time}</text>
         ))}
+
+        {/* Area fill path */}
         {areaPath && <path d={areaPath} fill="url(#areaGrad)" />}
-        {linePath && <path d={linePath} fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
+
+        {/* Neon Glow stroke paths */}
+        {linePath && <path d={linePath} fill="none" stroke="url(#lineGrad)" strokeWidth="5" opacity="0.18" filter="url(#glow)" strokeLinecap="round" strokeLinejoin="round" />}
+        {linePath && <path d={linePath} fill="none" stroke="url(#lineGrad)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
+
+        {/* Animating pulsing end dot */}
         {animProgress > 0 && (
           <>
-            <circle cx={lastPt.x} cy={lastPt.y} r="6" fill="#2563eb" opacity="0.25">
-              <animate attributeName="r" values="5;10;5" dur="2s" repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0.25;0.05;0.25" dur="2s" repeatCount="indefinite" />
+            <circle cx={lastPt.x} cy={lastPt.y} r="7" fill="#06b6d4" opacity="0.3">
+              <animate attributeName="r" values="5;11;5" dur="2s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.3;0.05;0.3" dur="2s" repeatCount="indefinite" />
             </circle>
-            <circle cx={lastPt.x} cy={lastPt.y} r="4" fill="#2563eb" stroke="#fff" strokeWidth="2" />
+            <circle cx={lastPt.x} cy={lastPt.y} r="4" fill="#06b6d4" stroke="#fff" strokeWidth="2" />
           </>
         )}
+
+        {/* Interactive Hover Tooltip */}
         {tooltip && (
           <g>
-            <line x1={tooltip.x} x2={tooltip.x} y1={padT} y2={padT + chartH} stroke="#2563eb" strokeWidth="1" strokeDasharray="4 3" opacity="0.6" />
-            <rect x={tooltip.x - 58} y={tooltip.y - 32} width={116} height={28} rx={6} fill="rgba(15,20,40,0.92)" stroke="rgba(37, 99, 235,0.4)" strokeWidth="1" />
-            <text x={tooltip.x} y={tooltip.y - 19} fontSize="8" fill="#94a3b8" textAnchor="middle" fontFamily="inherit">{tooltip.time}</text>
-            <text x={tooltip.x} y={tooltip.y - 8} fontSize="8.5" fill="#fff" textAnchor="middle" fontWeight="700" fontFamily="inherit">Active vehicles : {tooltip.active}</text>
-            <circle cx={tooltip.x} cy={tooltip.y} r="4" fill="#2563eb" stroke="#fff" strokeWidth="1.5" />
+            <line x1={tooltip.x} x2={tooltip.x} y1={padT} y2={padT + chartH} stroke="#3b82f6" strokeWidth="1" strokeDasharray="4 3" opacity="0.6" />
+            <rect x={tooltip.x - 58} y={tooltip.y - 34} width={116} height={28} rx={6} fill="rgba(10,15,30,0.85)" stroke="url(#lineGrad)" strokeWidth="1.5" style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.5))' }} />
+            <text x={tooltip.x} y={tooltip.y - 22} fontSize="8" fill="#94a3b8" textAnchor="middle" fontFamily="inherit" fontWeight="600">{tooltip.time}</text>
+            <text x={tooltip.x} y={tooltip.y - 10} fontSize="8.5" fill="#fff" textAnchor="middle" fontWeight="800" fontFamily="inherit">Active : {tooltip.active} vehicles</text>
+            <circle cx={tooltip.x} cy={tooltip.y} r="4" fill="#06b6d4" stroke="#fff" strokeWidth="1.5" />
           </g>
         )}
       </svg>
+      <style>{`
+        @keyframes pulse-live {
+          0% { transform: scale(0.95); opacity: 0.6; }
+          50% { transform: scale(1.25); opacity: 1; }
+          100% { transform: scale(0.95); opacity: 0.6; }
+        }
+        .live-pulse-dot {
+          animation: pulse-live 2s infinite ease-in-out;
+        }
+      `}</style>
     </div>
   )
 }
@@ -434,6 +494,7 @@ const StatusBreakdown = ({ isDark, statusData, stats }) => {
 const QuickActionsPanel = ({ navigate }) => {
   const quickActions = [
     { icon: <Wrench size={18} color="#fbbf24" />, bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.25)', label: 'Add Service Record', onClick: () => navigate('/service/add', { state: { fromOneClick: true } }) },
+    { icon: <Gauge size={18} color="#a855f7" />, bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.25)', label: 'Daily Mileage Update', onClick: () => navigate('/service', { state: { activeTab: 'update' } }) },
     { icon: <UserCog size={18} color="#34d399" />, bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', label: 'Driver Check-in', onClick: () => navigate('/users') },
     { icon: <Car size={18} color="#3b82f6" />, bg: 'rgba(59, 130, 246,0.12)', border: 'rgba(59, 130, 246,0.25)', label: 'Register Vehicle', onClick: () => navigate('/vehicles', { state: { openAddVehicle: true, fromOneClick: true } }) },
     { icon: <Fuel size={18} color="#38bdf8" />, bg: 'rgba(56,189,248,0.12)', border: 'rgba(56,189,248,0.25)', label: 'Record Fuel Fill-up', onClick: () => navigate('/fuel-management', { state: { openAddFuelLog: true, fromOneClick: true } }) },
