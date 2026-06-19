@@ -1614,15 +1614,19 @@ const ServicePage = () => {
     try {
       if (isDriver) {
         // Driver loading path
-        const [statsRes, vehicleRes] = await Promise.all([
+        const [statsRes, vehicleRes, intervalsRes] = await Promise.all([
           serviceAPI.getServiceStats(),
-          vehicleAPI.getAllVehicles()
+          vehicleAPI.getAllVehicles(),
+          serviceAPI.getAllIntervals()
         ])
         
         const loadedVehicles = vehicleRes?.data.data || []
+        const loadedIntervals = intervalsRes?.data.data || []
         setStats(statsRes.data.data)
         setAllVehicles(loadedVehicles)
         setAllDrivers([user])
+        setIntervals(loadedIntervals)
+        setLocalIntervals(loadedIntervals)
         
         // Find default or currently selected vehicle
         const assigned = loadedVehicles.find(veh => String(veh.driverId) === String(user?.id))
@@ -1643,7 +1647,7 @@ const ServicePage = () => {
           // Compute alert records for this vehicle only
           const alerts = []
           if (!targetVehicle.isDeleted) {
-            const milestones = getVehicleMilestones(targetVehicle, loadedServices, [])
+            const milestones = getVehicleMilestones(targetVehicle, loadedServices, loadedIntervals)
             milestones.forEach(m => {
               if (m.status === 'OVERDUE' || m.status === 'DUE_SOON') {
                 const completed = loadedServices.filter(s =>
@@ -1795,20 +1799,40 @@ const ServicePage = () => {
   const handleSaveBulkMileage = async () => {
     const updates = []
     const validationErrors = {}
+    const decreasingUpdates = []
     let hasValidationError = false
 
     allVehicles.forEach(v => {
       const newVal = dailyMileages[v.id]
       const currentVal = v.currentMileageKm || 0
       if (newVal !== undefined && newVal !== currentVal) {
-        if (Number(newVal) < currentVal) {
-          validationErrors[v.id] = `Cannot be less than current (${currentVal} km)`
+        // Enforce boundary checks
+        const initialVal = v.initialMileageKm != null ? Number(v.initialMileageKm) : 0
+        const vehicleServices = services.filter(s =>
+          s.vehicleRegNumber === v.registrationNo &&
+          getStatus(s) === 'COMPLETED'
+        )
+        const maxServiceMileage = vehicleServices.length > 0
+          ? Math.max(...vehicleServices.map(s => Number(s.currentMileageKm || 0)))
+          : 0
+        const lowerLimit = Math.max(initialVal, maxServiceMileage)
+
+        if (Number(newVal) < lowerLimit) {
+          validationErrors[v.id] = `Cannot be less than limit (${lowerLimit} km)`
           hasValidationError = true
         } else {
           updates.push({
             id: v.id,
             currentMileageKm: Number(newVal)
           })
+
+          if (Number(newVal) < currentVal) {
+            decreasingUpdates.push({
+              reg: v.registrationNo,
+              from: currentVal,
+              to: Number(newVal)
+            })
+          }
         }
       }
     })
@@ -1822,6 +1846,14 @@ const ServicePage = () => {
     if (updates.length === 0) {
       showToast('No mileage updates to save.', 'info')
       return
+    }
+
+    if (decreasingUpdates.length > 0) {
+      const msg = decreasingUpdates.map(u => `• ${u.reg}: ${u.from.toLocaleString()} km → ${u.to.toLocaleString()} km`).join('\n')
+      const confirmed = window.confirm(
+        `You are decreasing the mileage for the following vehicle(s):\n\n${msg}\n\nAre you sure you want to proceed with this correction?`
+      )
+      if (!confirmed) return
     }
 
     setFormLoading(true)
@@ -2596,6 +2628,252 @@ const ServicePage = () => {
             </div>
           )}
 
+          {/* Service Alerts - Full Width */}
+          {alertRecords.length > 0 && (
+            <div style={{
+              background: D.surface,
+              border: `1px solid ${alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+              borderRadius: 20,
+              padding: '24px 28px',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+              animation: 'fadeSlideUp 0.4s ease 0.32s both',
+              marginBottom: 26,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
+                    Service Alerts
+                  </h3>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>Upcoming & overdue milestones</p>
+                </div>
+                <span style={{
+                  background: alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                  color: alertRecords.some(r => r._alertLevel === 'OVERDUE') ? '#f87171' : '#fbbf24',
+                  border: `1px solid ${alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  padding: '4px 12px',
+                  borderRadius: 999,
+                }}>
+                  {alertRecords.length} active
+                </span>
+              </div>
+
+              <div style={{
+                border: `1px solid ${alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
+                borderRadius: 16,
+                overflow: 'hidden',
+                background: D.bg,
+                maxHeight: 250,
+                overflowY: alertRecords.length > 3 ? 'auto' : 'visible',
+                flex: 1,
+              }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))',
+                  gap: 16,
+                  padding: '16px 8px',
+                }}>
+                  {alertRecords.map((r) => {
+                    const isOverdue = r._alertLevel === 'OVERDUE'
+                    const accentColor = isOverdue ? '#f87171' : '#fbbf24'
+                    const accentBg = isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'rgba(251, 191, 36, 0.1)'
+                    const accentBorder = isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'
+
+                    const mileage = computeMileageProgress(r, r._vehicleCurrentKm)
+                    const date = computeDateAlert(r)
+
+                    let progressPct = 0
+                    let remainingText = ''
+
+                    if (mileage) {
+                      progressPct = Math.min(mileage.pct, 100)
+                      remainingText = fmtKmRemaining(mileage.remaining)
+                    } else if (date) {
+                      progressPct = Math.max(0, Math.min(100, (30 - date.daysRemaining) / 30 * 100))
+                      remainingText = fmtDaysRemaining(date.daysRemaining)
+                    }
+
+                    return (
+                      <div
+                        key={r.id}
+                        className="svc-alert-card"
+                        style={{
+                          background: D.surfaceHi,
+                          border: `1px solid ${accentBorder}`,
+                          borderRadius: 16,
+                          padding: '20px',
+                          cursor: 'default',
+                          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 16,
+                          boxShadow: `0 4px 20px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`,
+                          position: 'relative',
+                          overflow: 'hidden'
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.borderColor = accentColor
+                          e.currentTarget.style.transform = 'translateY(-4px)'
+                          e.currentTarget.style.boxShadow = `0 12px 30px ${isOverdue ? 'rgba(239, 68, 68, 0.15)' : 'rgba(251, 191, 36, 0.15)'}`
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.borderColor = accentBorder
+                          e.currentTarget.style.transform = 'translateY(0)'
+                          e.currentTarget.style.boxShadow = `0 4px 20px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`
+                        }}
+                      >
+                        {/* Top Row: Vehicle Chip and Status Tag */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                          <div style={{
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            border: `1.5px solid ${D.borderHi}`,
+                            borderRadius: 10,
+                            padding: '4px 12px',
+                            fontSize: '0.82rem',
+                            fontWeight: 800,
+                            color: D.text,
+                            fontFamily: "'Outfit', monospace",
+                            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+                            letterSpacing: '0.03em'
+                          }}>
+                            {r.vehicleRegNumber}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{
+                              width: 8, height: 8, borderRadius: '50%',
+                              background: accentColor,
+                              boxShadow: `0 0 8px ${accentColor}`,
+                              animation: 'pulseBar 1.5s ease-in-out infinite'
+                            }} />
+                            <span style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 800,
+                              color: accentColor,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.08em'
+                            }}>
+                              {isOverdue ? 'URGENT' : 'UPCOMING'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Center: Service Task Info */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text }}>
+                            {r.serviceType?.replace(/_/g, ' ')}
+                          </h4>
+                          {r.description && r.description !== 'Initial service milestone.' && (
+                            <p style={{ margin: 0, fontSize: '0.78rem', color: D.textSub, fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                              {r.description}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Progress bar / remaining info */}
+                        {(mileage || date) && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '2px 0' }}>
+                            <div style={{ height: 6, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 999, overflow: 'hidden' }}>
+                              <div style={{
+                                width: `${progressPct}%`,
+                                height: '100%',
+                                background: `linear-gradient(90deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
+                                borderRadius: 999,
+                                transition: 'width 0.4s ease'
+                              }} />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: accentColor }}>
+                                {remainingText}
+                              </span>
+                              {mileage && date && (
+                                <span style={{ fontSize: '0.7rem', color: D.textSub, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Calendar size={11} /> {fmtDaysRemaining(date.daysRemaining)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Divider line */}
+                        <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+
+                        {/* Actions Row */}
+                        <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
+                          {!isDriver && (
+                            <button
+                              onClick={e => { e.stopPropagation(); openAddModal({ vehicleRegNumber: r.vehicleRegNumber, serviceType: r.serviceType }) }}
+                              style={{
+                                flex: 1,
+                                background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
+                                border: 'none',
+                                color: isOverdue ? '#fff' : '#000',
+                                borderRadius: 10,
+                                padding: '8px 14px',
+                                fontSize: '0.8rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                boxShadow: `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContainer: 'center',
+                                justifyContent: 'center',
+                                gap: 6
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.transform = 'translateY(-1px)'
+                                e.currentTarget.style.boxShadow = `0 6px 16px ${isOverdue ? 'rgba(239, 68, 68, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.transform = 'translateY(0)'
+                                e.currentTarget.style.boxShadow = `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`
+                              }}
+                            >
+                              <Wrench size={12} />
+                              Log Service
+                            </button>
+                          )}
+                          {!r._isPseudo && (
+                            <button
+                              onClick={e => { e.stopPropagation(); setDetailModal({ isOpen: true, record: r }) }}
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                border: `1px solid ${D.borderHi}`,
+                                color: D.text,
+                                borderRadius: 10,
+                                padding: '8px 14px',
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 6
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
+                              }}
+                            >
+                              <Eye size={12} />
+                              View Last
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Display tab calculation */}
           {(() => {
             const displayTab = isDriver ? 'history' : activeTab
@@ -3108,250 +3386,7 @@ const ServicePage = () => {
                 {/* ── Service History logs Tab ── */}
                 {displayTab === 'history' && (
                   <>
-                    {/* Service Alerts - Full Width */}
-                    {alertRecords.length > 0 && (
-                      <div style={{
-                        background: D.surface,
-                        border: `1px solid ${alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
-                        borderRadius: 20,
-                        padding: '24px 28px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
-                        animation: 'fadeSlideUp 0.4s ease 0.32s both',
-                        marginBottom: 26,
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                          <div>
-                            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
-                              Service Alerts
-                            </h3>
-                            <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>Upcoming & overdue</p>
-                          </div>
-                          <span style={{
-                            background: alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                            color: alertRecords.some(r => r._alertLevel === 'OVERDUE') ? '#f87171' : '#fbbf24',
-                            border: `1px solid ${alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
-                            fontSize: '0.75rem',
-                            fontWeight: 800,
-                            padding: '4px 12px',
-                            borderRadius: 999,
-                          }}>
-                            {alertRecords.length} active
-                          </span>
-                        </div>
-
-                        <div style={{
-                          border: `1px solid ${alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
-                          borderRadius: 16,
-                          overflow: 'hidden',
-                          background: D.bg,
-                          maxHeight: 250,
-                          overflowY: alertRecords.length > 3 ? 'auto' : 'visible',
-                          flex: 1,
-                        }}>
-                          <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))',
-                            gap: 16,
-                            padding: '16px 8px',
-                          }}>
-                            {alertRecords.map((r) => {
-                              const isOverdue = r._alertLevel === 'OVERDUE'
-                              const accentColor = isOverdue ? '#f87171' : '#fbbf24'
-                              const accentBg = isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'rgba(251, 191, 36, 0.1)'
-                              const accentBorder = isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'
-
-                              const mileage = computeMileageProgress(r, r._vehicleCurrentKm)
-                              const date = computeDateAlert(r)
-
-                              let progressPct = 0
-                              let remainingText = ''
-
-                              if (mileage) {
-                                progressPct = Math.min(mileage.pct, 100)
-                                remainingText = fmtKmRemaining(mileage.remaining)
-                              } else if (date) {
-                                progressPct = Math.max(0, Math.min(100, (30 - date.daysRemaining) / 30 * 100))
-                                remainingText = fmtDaysRemaining(date.daysRemaining)
-                              }
-
-                              return (
-                                <div
-                                  key={r.id}
-                                  className="svc-alert-card"
-                                  style={{
-                                    background: D.surfaceHi,
-                                    border: `1px solid ${accentBorder}`,
-                                    borderRadius: 16,
-                                    padding: '20px',
-                                    cursor: 'default',
-                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: 16,
-                                    boxShadow: `0 4px 20px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`,
-                                    position: 'relative',
-                                    overflow: 'hidden'
-                                  }}
-                                  onMouseEnter={e => {
-                                    e.currentTarget.style.borderColor = accentColor
-                                    e.currentTarget.style.transform = 'translateY(-4px)'
-                                    e.currentTarget.style.boxShadow = `0 12px 30px ${isOverdue ? 'rgba(239, 68, 68, 0.15)' : 'rgba(251, 191, 36, 0.15)'}`
-                                  }}
-                                  onMouseLeave={e => {
-                                    e.currentTarget.style.borderColor = accentBorder
-                                    e.currentTarget.style.transform = 'translateY(0)'
-                                    e.currentTarget.style.boxShadow = `0 4px 20px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`
-                                  }}
-                                >
-                                  {/* Top Row: Vehicle Chip and Status Tag */}
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                                    <div style={{
-                                      background: 'rgba(255, 255, 255, 0.04)',
-                                      border: `1.5px solid ${D.borderHi}`,
-                                      borderRadius: 10,
-                                      padding: '4px 12px',
-                                      fontSize: '0.82rem',
-                                      fontWeight: 800,
-                                      color: D.text,
-                                      fontFamily: "'Outfit', monospace",
-                                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
-                                      letterSpacing: '0.03em'
-                                    }}>
-                                      {r.vehicleRegNumber}
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                      <span style={{
-                                        width: 8, height: 8, borderRadius: '50%',
-                                        background: accentColor,
-                                        boxShadow: `0 0 8px ${accentColor}`,
-                                        animation: 'pulseBar 1.5s ease-in-out infinite'
-                                      }} />
-                                      <span style={{
-                                        fontSize: '0.68rem',
-                                        fontWeight: 800,
-                                        color: accentColor,
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '0.08em'
-                                      }}>
-                                        {isOverdue ? 'URGENT' : 'UPCOMING'}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {/* Center: Service Task Info */}
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                    <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text }}>
-                                      {r.serviceType?.replace(/_/g, ' ')}
-                                    </h4>
-                                    {r.description && r.description !== 'Initial service milestone.' && (
-                                      <p style={{ margin: 0, fontSize: '0.78rem', color: D.textSub, fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                        {r.description}
-                                      </p>
-                                    )}
-                                  </div>
-
-                                  {/* Progress bar / remaining info */}
-                                  {(mileage || date) && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '2px 0' }}>
-                                      <div style={{ height: 6, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 999, overflow: 'hidden' }}>
-                                        <div style={{
-                                          width: `${progressPct}%`,
-                                          height: '100%',
-                                          background: `linear-gradient(90deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
-                                          borderRadius: 999,
-                                          transition: 'width 0.4s ease'
-                                        }} />
-                                      </div>
-                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: accentColor }}>
-                                          {remainingText}
-                                        </span>
-                                        {mileage && date && (
-                                          <span style={{ fontSize: '0.7rem', color: D.textSub, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                            <Calendar size={11} /> {fmtDaysRemaining(date.daysRemaining)}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Divider line */}
-                                  <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
-
-                                  {/* Actions Row */}
-                                  <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
-                                    {!isDriver && (
-                                      <button
-                                        onClick={e => { e.stopPropagation(); openAddModal({ vehicleRegNumber: r.vehicleRegNumber, serviceType: r.serviceType }) }}
-                                        style={{
-                                          flex: 1,
-                                          background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
-                                          border: 'none',
-                                          color: isOverdue ? '#fff' : '#000',
-                                          borderRadius: 10,
-                                          padding: '8px 14px',
-                                          fontSize: '0.8rem',
-                                          fontWeight: 800,
-                                          cursor: 'pointer',
-                                          transition: 'all 0.2s',
-                                          boxShadow: `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`,
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          gap: 6
-                                        }}
-                                        onMouseEnter={e => {
-                                          e.currentTarget.style.transform = 'translateY(-1px)'
-                                          e.currentTarget.style.boxShadow = `0 6px 16px ${isOverdue ? 'rgba(239, 68, 68, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`
-                                        }}
-                                        onMouseLeave={e => {
-                                          e.currentTarget.style.transform = 'translateY(0)'
-                                          e.currentTarget.style.boxShadow = `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`
-                                        }}
-                                      >
-                                        <Wrench size={12} />
-                                        Log Service
-                                      </button>
-                                    )}
-                                    {!r._isPseudo && (
-                                      <button
-                                        onClick={e => { e.stopPropagation(); setDetailModal({ isOpen: true, record: r }) }}
-                                        style={{
-                                          background: 'rgba(255, 255, 255, 0.05)',
-                                          border: `1px solid ${D.borderHi}`,
-                                          color: D.text,
-                                          borderRadius: 10,
-                                          padding: '8px 14px',
-                                          fontSize: '0.8rem',
-                                          fontWeight: 700,
-                                          cursor: 'pointer',
-                                          transition: 'all 0.2s',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          gap: 6
-                                        }}
-                                        onMouseEnter={e => {
-                                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
-                                        }}
-                                        onMouseLeave={e => {
-                                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
-                                        }}
-                                      >
-                                        <Eye size={12} />
-                                        View Last
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    {/* Service Alerts strip moved to top */}
 
                     {/* Assigned Vehicle Compliance Documents (Driver only) */}
                     {isDriver && (

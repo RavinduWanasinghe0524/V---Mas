@@ -99,7 +99,24 @@ public class VehicleServiceImpl implements VehicleService {
         vehicle.setYear(vehicleDto.getYear());
         if (vehicleDto.getFuelType() != null) vehicle.setFuelType(vehicleDto.getFuelType());
         if (vehicleDto.getVehicleType() != null) vehicle.setVehicleType(vehicleDto.getVehicleType());
-        vehicle.setCurrentMileageKm(vehicleDto.getCurrentMileageKm());
+        if (vehicleDto.getCurrentMileageKm() != null) {
+            // Find all active completed service records to enforce a minimum boundary
+            List<ServiceRecord> records = serviceRecordRepository.findByVehicleRegNumberAndDeletedFalse(vehicle.getRegistrationNo());
+            int maxCompletedServiceMileage = records.stream()
+                    .filter(r -> r.getServiceDate() != null && !r.getServiceDate().isAfter(java.time.LocalDate.now()))
+                    .mapToInt(ServiceRecord::getCurrentMileageKm)
+                    .max()
+                    .orElse(0);
+
+            int initialMileage = vehicle.getInitialMileageKm() != null ? vehicle.getInitialMileageKm() : 0;
+            int lowerLimit = Math.max(initialMileage, maxCompletedServiceMileage);
+
+            if (vehicleDto.getCurrentMileageKm() < lowerLimit) {
+                throw new RuntimeException("Updated mileage for vehicle " + vehicle.getRegistrationNo() + 
+                        " cannot be less than the minimum required limit (" + lowerLimit + " km, based on initial mileage or completed service history).");
+            }
+            vehicle.setCurrentMileageKm(vehicleDto.getCurrentMileageKm());
+        }
         vehicle.setChassisNo(vehicleDto.getChassisNumber());
         vehicle.setEngineNo(vehicleDto.getEngineNumber());
         
@@ -320,9 +337,20 @@ public class VehicleServiceImpl implements VehicleService {
                     .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + update.getId()));
 
             if (update.getCurrentMileageKm() != null) {
-                if (update.getCurrentMileageKm() < vehicle.getCurrentMileageKm()) {
+                // Find all active completed service records to enforce a minimum boundary
+                List<ServiceRecord> records = serviceRecordRepository.findByVehicleRegNumberAndDeletedFalse(vehicle.getRegistrationNo());
+                int maxCompletedServiceMileage = records.stream()
+                        .filter(r -> r.getServiceDate() != null && !r.getServiceDate().isAfter(java.time.LocalDate.now()))
+                        .mapToInt(ServiceRecord::getCurrentMileageKm)
+                        .max()
+                        .orElse(0);
+
+                int initialMileage = vehicle.getInitialMileageKm() != null ? vehicle.getInitialMileageKm() : 0;
+                int lowerLimit = Math.max(initialMileage, maxCompletedServiceMileage);
+
+                if (update.getCurrentMileageKm() < lowerLimit) {
                     throw new RuntimeException("Updated mileage for vehicle " + vehicle.getRegistrationNo() + 
-                            " cannot be less than its current mileage (" + vehicle.getCurrentMileageKm() + " km).");
+                            " cannot be less than the minimum required limit (" + lowerLimit + " km, based on initial mileage or completed service history).");
                 }
                 vehicle.setCurrentMileageKm(update.getCurrentMileageKm());
                 vehicle.setUpdatedBy(updatedBy);

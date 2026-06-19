@@ -52,7 +52,7 @@ const getVehicleMilestones = (vehicle, services, intervals) => {
       new Date(s.serviceDate) <= new Date()
     )
     
-    let lastServiceMileage = 0
+    let lastServiceMileage = vehicle.initialMileageKm != null ? Number(vehicle.initialMileageKm) : Number(vehicle.currentMileageKm || 0)
     let lastRecord = null
     if (completed.length > 0) {
       completed.sort((a, b) => Number(b.currentMileageKm || 0) - Number(a.currentMileageKm || 0))

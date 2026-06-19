@@ -60,6 +60,8 @@ public class AlertServiceImpl {
                 int lastServiceMileage = 0;
                 if (!lastRecords.isEmpty()) {
                     lastServiceMileage = lastRecords.get(0).getCurrentMileageKm();
+                } else {
+                    lastServiceMileage = v.getInitialMileageKm() != null ? v.getInitialMileageKm() : 0;
                 }
 
                 int nextDueMileage = lastServiceMileage + interval.getIntervalKm();
