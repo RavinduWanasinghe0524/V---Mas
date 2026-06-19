@@ -1,6 +1,6 @@
-# VMAS – Vehicle Management & Authentication System
+# V-MAS – Vehicle Management & Authentication System
 
-A full-stack web application for managing vehicle fleets with role-based access control, real-time fuel tracking, service scheduling, and PDF reporting. Built with **Spring Boot 3** on the backend and **React (Vite)** on the frontend.
+A full-stack fleet management web application with role-based access control, real-time fuel tracking, service scheduling, PDF/Excel reporting, and a dark-mode-first UI. Built with **Spring Boot 3** on the backend and **React 19 + Vite 8** on the frontend.
 
 ---
 
@@ -15,10 +15,11 @@ A full-stack web application for managing vehicle fleets with role-based access 
   - [2. Backend (Spring Boot)](#2-backend-spring-boot)
   - [3. Frontend (React + Vite)](#3-frontend-react--vite)
 - [Configuration](#configuration)
-- [User Roles](#user-roles)
+- [User Roles & Navigation](#user-roles--navigation)
 - [Default Credentials](#default-credentials)
 - [API Endpoints](#api-endpoints)
 - [Project Structure](#project-structure)
+- [Deployment](#deployment)
 - [Testing](#testing)
 - [License](#license)
 
@@ -27,50 +28,65 @@ A full-stack web application for managing vehicle fleets with role-based access 
 ## Features
 
 ### 🔐 Authentication & Security
+- **Unified Auth Page** – Single `/login` and `/signup` route handled by `AuthPage.jsx` with animated tab switching
 - **JWT Authentication** – Stateless login/logout with 24-hour token expiration
-- **Role-Based Access Control** – ADMIN, CONTROLLER, and DRIVER roles with distinct permissions
-- **Profile Management** – Update profile details and upload a profile picture
+- **Account Approval Flow** – New registrations start as `PENDING`; Admin must approve before access is granted
+- **Role-Based Access Control** – ADMIN, CONTROLLER, and DRIVER roles with distinct permissions enforced on both frontend routes and backend endpoints
+- **Profile Management** – Update personal details and upload a profile picture
 
 ### 🚗 Vehicle Management
 - Register, view, update, and delete fleet vehicles
-- Track make, model, year, fuel type, registration number, and current mileage
-- Assign drivers to vehicles; view assignment history
-- Vehicle availability status tracking
+- Track make, model, year, fuel type, registration number, current mileage, and fuel tank capacity
+- Assign/unassign drivers to vehicles; view full assignment history
+- Vehicle availability status tracking (`AVAILABLE`, `ASSIGNED`, `UNDER_MAINTENANCE`)
+- Upload and download vehicle documents (insurance, license, etc.)
 
 ### ⛽ Fuel Logging & Analytics
-- **Drivers** log fuel fill-ups (liters, cost per liter, current mileage, date)
-- **Mileage validation** – Current mileage must be ≥ the previous recorded reading; auto pre-filled from last entry with live "km driven" indicator
-- **Controllers** manage all fleet fuel logs (add, edit, soft-delete)
+- **Drivers** log personal fuel fill-ups (litres, cost per litre, current mileage, date)
+- **Mileage validation** – Current mileage must be ≥ the previous recorded reading; auto pre-filled from last entry with a live "km driven" indicator
+- **Controllers/Admins** manage all fleet fuel logs (add, edit, soft-delete, restore)
 - Automatic fuel efficiency calculation (km/L) per entry using consecutive mileage readings
-- **Fuel Analysis Dashboard** – Monthly charts, per-vehicle statistics, cost trends, efficiency ratings (Excellent / Good / Average / Poor)
+- **Fuel Analysis Dashboard** – Monthly charts, per-vehicle statistics, cost trends, and efficiency ratings (Excellent / Good / Average / Poor)
 - Soft-delete audit trail for deleted fuel logs
 
 ### 🔧 Service Records
-- Schedule and track vehicle maintenance (oil change, tyre rotation, full service, etc.)
-- Upcoming service alerts (within the next 30 days)
+- Schedule and track vehicle maintenance (oil change, tyre rotation, full service, and more)
+- Service classification: Routine, Preventive, Corrective, Emergency
+- Upcoming service alerts (due within the next 30 days)
 - Service history per vehicle with mileage at time of service
+- Upload and download service bill/receipt attachments
+- Full edit audit trail per record
 - Filter by vehicle, service type, or date range
+- Soft-delete and restore deleted records
 
 ### 📊 Reports
-- Generate and download **PDF reports** covering:
+- Generate and download **PDF reports** (via `jsPDF + jspdf-autotable`) covering:
   - Fleet vehicle summary
   - Fuel log history
   - Service record history
   - Total costs and efficiency statistics
+- Generate and download **Excel (.xlsx) reports** (via `ExcelJS`) with:
+  - Branded cover blocks, colour-coded data tables, and KPI summary rows
+  - Available report types: Vehicle Summary, Fuel Consumption, Service & Maintenance, User Directory, Fuel Efficiency, Cost Analysis, Comprehensive Master Report
+  - Date-range filtering for fuel and service data
 
 ### 👥 User & Employee Management
-- Admin panel to create, update, activate/deactivate, and delete users
-- Employee directory management
+- Admin/Controller panel to create, update, activate/deactivate, and delete users
+- Approve or reject pending user registrations
+- Employee directory management (separate from system user accounts)
 
 ### 🔔 Notifications
 - System-wide notifications for key events (vehicle updates, fuel log changes, service records)
-- Real-time badge count and dismissible notification dropdown in the Topbar (Admin)
+- Real-time unread badge count in the Topbar
+- Dismissible notification dropdown; mark individual or all notifications as read
 
 ### 🎨 UI/UX
-- Dark-mode-first design with glassmorphism accents
-- Responsive sidebar navigation with role-aware menu items
+- **Dark-mode-first** design with glassmorphism accents and a deep navy/blue palette
+- Collapsible sidebar navigation (state persisted in `localStorage`) with role-aware menu items
+- Auto-collapse sidebar when clicking outside; icon-only mode with tooltip labels
 - Animated stat cards, hover effects, and toast notifications
-- Theme context with consistent design tokens across all pages
+- Lazy-loaded page components (via `React.lazy` + `Suspense`) with a branded loading screen
+- `ThemeContext` + `AuthContext` provide consistent design tokens and auth state across the app
 
 ---
 
@@ -79,7 +95,7 @@ A full-stack web application for managing vehicle fleets with role-based access 
 ### Backend
 | Technology | Version |
 |---|---|
-| Java | 17+ |
+| Java | 17+ (tested with Java 22) |
 | Spring Boot | 3.5.6 |
 | Spring Security + JWT (JJWT) | 0.11.5 |
 | Spring Data JPA / Hibernate | – |
@@ -93,11 +109,12 @@ A full-stack web application for managing vehicle fleets with role-based access 
 | Technology | Version |
 |---|---|
 | React | 19.x |
-| Vite | 6.x |
+| Vite | 8.x |
 | React Router DOM | 7.x |
 | Axios | 1.x |
-| Lucide React (icons) | – |
-| jsPDF + jspdf-autotable | – |
+| Lucide React (icons) | 1.x |
+| jsPDF + jspdf-autotable | 4.x / 5.x |
+| ExcelJS | 3.x |
 
 ---
 
@@ -106,13 +123,13 @@ A full-stack web application for managing vehicle fleets with role-based access 
 ```
 ┌──────────────────────────┐          ┌──────────────────────────┐
 │  React + Vite            │  HTTP/   │  Spring Boot REST API    │
-│  (port 5173 / 3000)      │◄────────►│  (port 8080)             │
+│  (port 3000 dev)         │◄────────►│  (port 8080)             │
 │                          │  JSON    │                          │
 │  • AuthContext           │          │  • JWT Security Filter   │
 │  • ThemeContext          │          │  • REST Controllers      │
 │  • React Router          │          │  • Service Layer         │
-│  • Axios (api service)   │          │  • JPA Repositories      │
-│  • jsPDF reports         │          │  • Flyway migrations     │
+│  • Axios (api.js)        │          │  • JPA Repositories      │
+│  • jsPDF + ExcelJS       │          │  • Flyway migrations     │
 └──────────────────────────┘          └──────────┬───────────────┘
                                                  │ JDBC
                                       ┌──────────▼───────────────┐
@@ -121,6 +138,11 @@ A full-stack web application for managing vehicle fleets with role-based access 
                                       └──────────────────────────┘
 ```
 
+**Production topology:**
+- Frontend hosted on **Vercel** (SPA rewrites via `vercel.json`)
+- Backend API proxied through **AWS CloudFront** → Elastic Beanstalk
+- Database on **AWS RDS MySQL** (ap-southeast-1, Singapore)
+
 ---
 
 ## Prerequisites
@@ -128,7 +150,7 @@ A full-stack web application for managing vehicle fleets with role-based access 
 - **Java 17+** (tested with Java 22)
 - **Maven 3.6+** (or use the included `mvnw` / `mvnw.cmd` wrapper)
 - **Node.js 18+** and **npm**
-- **MySQL 8.x** or **MariaDB 10.4+** running locally (XAMPP works fine)
+- **MySQL 8.x** or **MariaDB 10.4+** (only needed for local DB override; the backend defaults to AWS RDS)
 
 ---
 
@@ -136,9 +158,9 @@ A full-stack web application for managing vehicle fleets with role-based access 
 
 ### 1. Database Setup
 
-The backend connects to a **shared AWS RDS MySQL instance** by default — no local database setup is needed.
+The backend connects to a **shared AWS RDS MySQL instance** by default — no local database setup is required out of the box.
 
-> **Optional (local DB only):** If you want to run against a local MySQL/MariaDB instance, start MySQL first (XAMPP works), then run the setup script and set the override environment variables described in the [Configuration](#configuration) section.
+> **Optional (local DB only):** If you want to run against a local MySQL/MariaDB instance, start MySQL first (XAMPP works), run the setup script, then set the environment variable overrides described in [Configuration](#configuration).
 >
 > ```bash
 > mysql -u root < "V-Mas Backend/setup-database.sql"
@@ -167,12 +189,12 @@ cd "V-Mas Backend"
 ```
 
 The REST API will be available at **`http://localhost:8080`**.  
-Swagger UI (API docs): **`http://localhost:8080/swagger-ui/index.html`**
+Swagger UI (interactive API docs): **`http://localhost:8080/swagger-ui/index.html`**
 
 To build an executable JAR:
 
 ```bash
-./mvnw clean package
+./mvnw clean package -DskipTests
 java -jar target/vmas-backend-0.0.1-SNAPSHOT.jar
 ```
 
@@ -190,8 +212,8 @@ npm install
 npm run dev
 ```
 
-The application will be available at **`http://localhost:5173`**.  
-The Vite dev server proxies `/api` requests to `http://localhost:8080`.
+The app will be available at **`http://localhost:3000`** (port is set to `3000` in `vite.config.js`).  
+The Vite dev server proxies all `/api` requests to `http://localhost:8080`.
 
 To build for production:
 
@@ -206,7 +228,7 @@ npm run preview    # locally preview the production build
 
 ### Backend – `V-Mas Backend/src/main/resources/application.properties`
 
-The backend is pre-configured to connect to the **shared AWS RDS instance** (ap-southeast-1, Singapore) out of the box. No extra setup is needed after pulling from Git.
+The backend is pre-configured to connect to the shared AWS RDS instance out of the box. No extra setup is needed after cloning.
 
 ```properties
 # Database – defaults to AWS RDS; override with environment variables for a local DB
@@ -223,9 +245,9 @@ jwt.secret=5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437
 jwt.expiration=86400000
 ```
 
-> **Using a local database instead?** Set the following system environment variables on your machine before running the backend — they will override the AWS RDS defaults:
+> **Using a local database instead?** Set these environment variables before running the backend:
 > ```
-> SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/vmas_db?...
+> SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/vmas_db?serverTimezone=UTC&createDatabaseIfNotExist=true
 > SPRING_DATASOURCE_USERNAME=root
 > SPRING_DATASOURCE_PASSWORD=
 > ```
@@ -246,17 +268,19 @@ Default contents of `.env` for local development:
 VITE_API_BASE_URL=http://localhost:8080/api
 ```
 
-The Vite dev server also proxies `/api` to `http://localhost:8080` by default. Update `vite.config.js` if your backend runs on a different host/port.
+For production (Vercel), the `vercel.json` rewrite rule proxies `/api` to the CloudFront distribution, so no separate env var is needed in the deployed build.
 
 ---
 
-## User Roles
+## User Roles & Navigation
 
-| Role | Permissions |
-|---|---|
-| **ADMIN** | Full access – manage users, vehicles, service records, fuel logs, notifications |
-| **CONTROLLER** | Manage all fuel logs (add / edit / delete); view vehicles and analytics |
-| **DRIVER** | Add and view their own fuel logs; view their assigned vehicle |
+| Role | Sidebar Navigation | Permissions |
+|---|---|---|
+| **ADMIN** | Dashboard, Vehicles, Service, Users, Fuel Analysis, Reports, My Profile | Full access – manage all users, vehicles, service records, fuel logs, notifications, and reports |
+| **CONTROLLER** | Dashboard, Vehicles, Users, Fuel Management, Service, My Profile | Manage all fleet fuel logs (add / edit / soft-delete); view all vehicles and analytics |
+| **DRIVER** | Dashboard, My Vehicle, Fuel Log, Service History, My Profile | Add and view own fuel logs; view assigned vehicle and service history |
+
+> The sidebar is collapsible. When collapsed it shows icon-only navigation with hover tooltips. State is persisted to `localStorage`.
 
 ---
 
@@ -280,18 +304,16 @@ Created automatically by `setup-database.sql`:
 > ```
 > Authorization: Bearer <your_jwt_token>
 > ```
-> Base URL: `http://localhost:8080`
+> Base URL (local): `http://localhost:8080`
 
 ---
 
 ### 🔑 Authentication — `/api/auth`
 
-> No token required for `register` and `login`.
-
 | Method | Endpoint | Access | Description |
 |--------|----------|--------|-------------|
-| `POST` | `/api/auth/register` | Public | Register a new user (account starts as PENDING) |
-| `POST` | `/api/auth/login` | Public | Login and get JWT token |
+| `POST` | `/api/auth/register` | Public | Register a new user (account starts as `PENDING`) |
+| `POST` | `/api/auth/login` | Public | Login and receive a JWT token |
 | `POST` | `/api/auth/logout` | Authenticated | Logout (clears server-side session) |
 
 <details>
@@ -346,12 +368,12 @@ Created automatically by `setup-database.sql`:
 |--------|----------|--------|-------------|
 | `GET` | `/api/vehicles` | ALL | Get all vehicles |
 | `POST` | `/api/vehicles` | ADMIN, CONTROLLER | Create a new vehicle |
-| `GET` | `/api/vehicles/{id}` | ADMIN, CONTROLLER | Get vehicle by ID |
+| `GET` | `/api/vehicles/{id}` | ALL | Get vehicle by ID |
 | `PUT` | `/api/vehicles/{id}` | ADMIN, CONTROLLER | Update vehicle details |
 | `DELETE` | `/api/vehicles/{id}` | ADMIN, CONTROLLER | Delete a vehicle |
 | `PUT` | `/api/vehicles/{id}/assign/{driverId}` | ADMIN, CONTROLLER | Assign a driver to a vehicle |
-| `DELETE` | `/api/vehicles/{id}/assign` | ADMIN, CONTROLLER | Remove driver from a vehicle |
-| `POST` | `/api/vehicles/{id}/document/{docType}` | ADMIN, CONTROLLER | Upload a vehicle document (insurance, license, etc.) |
+| `DELETE` | `/api/vehicles/{id}/assign` | ADMIN, CONTROLLER | Remove driver assignment |
+| `POST` | `/api/vehicles/{id}/document/{docType}` | ADMIN, CONTROLLER | Upload a vehicle document |
 | `GET` | `/api/vehicles/{id}/document/{docType}` | ALL | Download/view a vehicle document |
 
 <details>
@@ -480,10 +502,10 @@ Created automatically by `setup-database.sql`:
 | `GET` | `/api/services` | ALL | Get all service records |
 | `GET` | `/api/services/{id}` | ALL | Get one service record by ID |
 | `PUT` | `/api/services/{id}` | ALL | Update a service record |
-| `DELETE` | `/api/services/{id}` | ADMIN, CONTROLLER | Delete a service record (soft-delete) |
-| `POST` | `/api/services/filter` | ALL | Filter records by vehicle, type, date range |
+| `DELETE` | `/api/services/{id}` | ADMIN, CONTROLLER | Soft-delete a service record |
+| `POST` | `/api/services/filter` | ALL | Filter records by vehicle, type, or date range |
 | `GET` | `/api/services/vehicle/{regNo}` | ALL | All services for a specific vehicle |
-| `GET` | `/api/services/stats` | ALL | Service statistics (Driver gets own vehicle only) |
+| `GET` | `/api/services/stats` | ALL | Service statistics (Driver sees own vehicle only) |
 | `GET` | `/api/services/upcoming` | ALL | Services due within 30 days |
 | `GET` | `/api/services/recent` | ALL | Last 5 service records |
 | `POST` | `/api/services/{id}/attachment` | ALL | Upload a bill/receipt file |
@@ -521,17 +543,6 @@ Created automatically by `setup-database.sql`:
     "vehicleRegNumber": "ABC-1234",
     "serviceDate": "2026-05-10"
   }
-}
-```
-
-**POST /api/services/filter**
-```json
-// Request Body
-{
-  "vehicleRegNumber": "ABC-1234",
-  "serviceType": "OIL_CHANGE",
-  "startDate": "2026-01-01",
-  "endDate": "2026-06-30"
 }
 ```
 
@@ -576,36 +587,6 @@ Created automatically by `setup-database.sql`:
 | `PATCH` | `/api/users/{id}/approve` | ADMIN, CONTROLLER | Approve a pending user |
 | `PATCH` | `/api/users/{id}/reject` | ADMIN, CONTROLLER | Reject a pending user |
 
-<details>
-<summary>📋 Request / Response Examples</summary>
-
-**GET /api/users/me**
-```json
-// Response (200 OK)
-{
-  "success": true,
-  "message": "Profile fetched successfully",
-  "data": {
-    "id": 3,
-    "userName": "john_driver",
-    "firstName": "John",
-    "lastName": "Smith",
-    "role": "DRIVER",
-    "accountStatus": "ACTIVE"
-  }
-}
-```
-
-**PUT /api/users/me/password**
-```json
-// Request Body
-{
-  "currentPassword": "oldpass123",
-  "newPassword": "newSecure456"
-}
-```
-</details>
-
 ---
 
 ### 🔔 Notifications — `/api/notifications`
@@ -618,35 +599,13 @@ Created automatically by `setup-database.sql`:
 | `PATCH` | `/api/notifications/{id}/read` | ALL | Mark one notification as read |
 | `PATCH` | `/api/notifications/read-all` | ALL | Mark all notifications as read |
 
-<details>
-<summary>📋 Request / Response Examples</summary>
-
-**GET /api/notifications/unread**
-```json
-// Response (200 OK)
-{
-  "success": true,
-  "message": "Unread notifications fetched successfully",
-  "data": [
-    {
-      "id": 7,
-      "message": "Vehicle ABC-1234 service is overdue",
-      "type": "SERVICE_ALERT",
-      "read": false,
-      "createdAt": "2026-06-01T08:30:00"
-    }
-  ]
-}
-```
-</details>
-
 ---
 
 ### 🚨 Alerts — `/api/alerts`
 
 | Method | Endpoint | Access | Description |
 |--------|----------|--------|-------------|
-| `GET` | `/api/alerts/dashboard` | ADMIN, CONTROLLER | Get service-due and document-expiry alerts for the dashboard |
+| `GET` | `/api/alerts/dashboard` | ADMIN, CONTROLLER | Service-due and document-expiry alerts for the dashboard |
 
 <details>
 <summary>📋 Response Example</summary>
@@ -697,7 +656,7 @@ Ready-to-import collections are included in `V-Mas Backend/`:
 **How to import:**
 1. Open Postman → **Import** → select the `.json` files above
 2. Set `baseUrl` = `http://localhost:8080` in the environment
-3. Run **POST /api/auth/login** first and copy the token into the `token` environment variable
+3. Run **POST /api/auth/login** first and copy the token into the `token` variable
 4. All other requests will use `Bearer {{token}}` automatically
 
 ---
@@ -708,7 +667,7 @@ Ready-to-import collections are included in `V-Mas Backend/`:
 V---Mas/
 ├── V-Mas Backend/
 │   ├── src/main/java/net/javaguids/ems_backend/
-│   │   ├── controller/          # REST controllers (Auth, Vehicle, Fuel, Service, User, Notification, Employee)
+│   │   ├── controller/          # REST controllers (Auth, Vehicle, Fuel, Service, User, Notification, Employee, Alert)
 │   │   ├── service/impl/        # Business logic implementations
 │   │   ├── repository/          # Spring Data JPA repositories
 │   │   ├── entity/              # JPA entities (User, Vehicle, FuelLog, ServiceRecord, Notification, Employee)
@@ -716,56 +675,124 @@ V---Mas/
 │   │   ├── mapper/              # Entity ↔ DTO mappers
 │   │   ├── security/            # JWT filter, utilities, UserDetailsService
 │   │   ├── config/              # SecurityConfig, CORS, OpenAPI config
-│   │   ├── enums/               # Role, AccountStatus, ServiceType
+│   │   ├── enums/               # Role, AccountStatus, ServiceType, ServiceClassification
 │   │   ├── exception/           # Global exception handler
-│   │   ├── util/                # Utility classes
-│   │   └── EmsBackendApplication.java
+│   │   └── util/                # Utility classes
 │   ├── src/main/resources/
 │   │   ├── application.properties
 │   │   └── db/migration/        # Flyway SQL migration scripts
 │   ├── setup-database.sql       # Initial DB + seed data
 │   ├── service-migration.sql
 │   ├── fix-*.sql                # Schema patch scripts
+│   ├── Dockerfile               # Multi-stage Docker build (Maven 3.9 → JRE 17 Alpine)
 │   ├── VMAS_Postman_Collection.json
 │   ├── Fuel_Analysis_Complete_Postman_Collection.json
 │   ├── Service_API_Postman_Collection.json
 │   ├── VMAS_Local_Environment.postman_environment.json
+│   ├── test-fuel-api-complete.ps1   # PowerShell fuel API smoke test
 │   ├── mvnw / mvnw.cmd
 │   └── pom.xml
 │
 ├── V-Mas Frontend/
 │   ├── src/
 │   │   ├── pages/
-│   │   │   ├── LoginPage.jsx          # Login screen
-│   │   │   ├── RegisterPage.jsx       # New user registration
+│   │   │   ├── AuthPage.jsx           # Unified login + sign-up screen (tab-based)
+│   │   │   ├── AuthPage.css           # Auth page styles
 │   │   │   ├── DashboardPage.jsx      # Role-based dashboard (Admin / Controller / Driver)
 │   │   │   ├── VehiclesPage.jsx       # Fleet vehicle management
 │   │   │   ├── FuelLogPage.jsx        # Driver fuel log (with mileage validation)
 │   │   │   ├── FuelManagementPage.jsx # Controller fleet fuel management
-│   │   │   ├── FuelAnalysisPage.jsx   # Analytics charts and stats
-│   │   │   ├── ServicePage.jsx        # Service record management
-│   │   │   ├── AddServicePage.jsx     # Create / edit service record
-│   │   │   ├── UsersPage.jsx          # User management (Admin)
+│   │   │   ├── FuelAnalysisPage.jsx   # Analytics charts and per-vehicle statistics
+│   │   │   ├── ServicePage.jsx        # Service record listing and management
+│   │   │   ├── AddServicePage.jsx     # Create / edit service record form
+│   │   │   ├── UsersPage.jsx          # User management and approvals (Admin/Controller)
 │   │   │   ├── ProfilePage.jsx        # User profile & settings
-│   │   │   ├── ReportsPage.jsx        # PDF report generation
+│   │   │   ├── ReportsPage.jsx        # PDF and Excel report generation
 │   │   │   └── LocationPage.jsx       # Vehicle location view
 │   │   ├── components/
-│   │   │   ├── Sidebar.jsx            # Role-aware navigation sidebar
+│   │   │   ├── Sidebar.jsx            # Collapsible, role-aware navigation sidebar
 │   │   │   ├── Topbar.jsx             # Header with notifications & user menu
+│   │   │   ├── Navbar.jsx             # Minimal top navigation bar
 │   │   │   └── PrivateRoute.jsx       # Auth guard for protected routes
 │   │   ├── context/
-│   │   │   ├── AuthContext.jsx        # JWT auth state & helpers
-│   │   │   └── ThemeContext.jsx       # Dark-mode design tokens
+│   │   │   ├── AuthContext.jsx        # Auth context definition
+│   │   │   ├── AuthProvider.jsx       # JWT auth state, login/logout helpers
+│   │   │   ├── ThemeContext.jsx       # Theme context definition
+│   │   │   └── ThemeProvider.jsx      # Dark-mode design token provider
 │   │   ├── services/
 │   │   │   └── api.js                 # Axios instance + all API service functions
-│   │   ├── App.jsx                    # Router & route definitions
-│   │   └── index.css                  # Global styles & design system
-│   ├── package.json
-│   └── vite.config.js
+│   │   ├── utils/
+│   │   │   ├── excelExport.js         # ExcelJS branded report generator (7 report types)
+│   │   │   ├── driverUtils.js         # Driver-related helper functions
+│   │   │   ├── fuelUtils.js           # Fuel calculation utilities
+│   │   │   └── serviceAlertUtils.js   # Service due-date alert utilities
+│   │   ├── assets/
+│   │   │   └── logo.png               # V-MAS brand logo
+│   │   ├── App.jsx                    # Router, lazy-loaded routes, page loader
+│   │   ├── App.css                    # App-level styles
+│   │   ├── index.css                  # Global design system (tokens, components, animations)
+│   │   └── main.jsx                   # React entry point
+│   ├── public/
+│   ├── .env.example                   # Environment variable template
+│   ├── vercel.json                    # Vercel SPA rewrites + API proxy to CloudFront
+│   ├── vite.config.js                 # Vite config (port 3000, /api proxy to :8080)
+│   ├── eslint.config.js
+│   └── package.json
 │
+├── V-MAS.postman_collection.json      # Root-level combined Postman collection
 ├── README.md
 └── LICENSE
 ```
+
+---
+
+## Deployment
+
+### Frontend – Vercel
+
+The frontend is deployed on **Vercel** using the configuration in `vercel.json`:
+
+```json
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://d3dqxbt72t73lz.cloudfront.net/api/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+```
+
+- All `/api` calls are proxied to the backend via **AWS CloudFront**
+- All other routes fall back to `index.html` for client-side routing
+
+**To deploy:**
+```bash
+cd "V-Mas Frontend"
+npm run build
+# Push to GitHub — Vercel auto-deploys from the connected repository
+```
+
+### Backend – Docker / AWS Elastic Beanstalk
+
+A multi-stage `Dockerfile` is included in `V-Mas Backend/`:
+
+```bash
+# Build the image
+docker build -t vmas-backend "V-Mas Backend/"
+
+# Run locally (uses AWS RDS by default)
+docker run -p 8080:8080 vmas-backend
+
+# Run with a local DB override
+docker run -p 8080:8080 \
+  -e SPRING_DATASOURCE_URL="jdbc:mysql://host.docker.internal:3306/vmas_db" \
+  -e SPRING_DATASOURCE_USERNAME="root" \
+  -e SPRING_DATASOURCE_PASSWORD="" \
+  vmas-backend
+```
+
+The Docker image is tuned for low-memory environments (e.g. Render free tier):
+- Base image: `eclipse-temurin:17-jre-alpine`
+- JVM flags: `-Xmx300m -Xms100m -XX:+UseContainerSupport -XX:MaxRAMPercentage=60`
 
 ---
 
@@ -773,14 +800,14 @@ V---Mas/
 
 ### Postman
 
-Import the included collections from `V-Mas Backend/` into Postman:
+Import the collections from `V-Mas Backend/` into Postman:
 
 1. **`VMAS_Postman_Collection.json`** – core auth, vehicle, user, and employee endpoints
 2. **`Fuel_Analysis_Complete_Postman_Collection.json`** – full fuel analysis endpoint suite
 3. **`Service_API_Postman_Collection.json`** – service record endpoints
 4. **`VMAS_Local_Environment.postman_environment.json`** – pre-configured base URL and auth token variables
 
-### PowerShell (Fuel API quick-test)
+### PowerShell (Fuel API Smoke Test)
 
 ```powershell
 cd "V-Mas Backend"
