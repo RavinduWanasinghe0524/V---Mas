@@ -1000,6 +1000,12 @@ const ServicePage = () => {
   }, [])
 
   useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab)
+    }
+  }, [location.state])
+
+  useEffect(() => {
     const handleOutsideClick = (e) => {
       if (driverVehicleSearchRef.current && !driverVehicleSearchRef.current.contains(e.target)) {
         setDriverVehicleDropdownVisible(false)

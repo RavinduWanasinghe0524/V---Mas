@@ -110,20 +110,16 @@ const FuelLogPage = () => {
         if (selectedVehicle?.fuelType) {
           updated.fuelType = selectedVehicle.fuelType.charAt(0).toUpperCase() + selectedVehicle.fuelType.slice(1).toLowerCase()
         }
-        // Check if driver has any previous fuel logs for this vehicle
+
+        // Connect baseline mileage with last fuel log and the live dynamic daily odometer reading
         const vehicleLogs = myVehicleLogs.filter(log => log.vehicleRegNumber === value)
-        if (vehicleLogs.length > 0) {
-          const lastMil = vehicleLogs[0].mileage
-          setPreviousMileage(lastMil)
-          updated.mileage = String(lastMil)
-          setMileageError('')
-        } else {
-          // No fuel logs — pre-fill from vehicle's registered current mileage
-          const vehicleKm = selectedVehicle?.currentMileageKm
-          setPreviousMileage(vehicleKm ?? null)
-          updated.mileage = vehicleKm != null ? String(vehicleKm) : ''
-          setMileageError('')
-        }
+        const lastLogMil = vehicleLogs.length > 0 ? Number(vehicleLogs[0].mileage) : 0
+        const vehicleMil = selectedVehicle?.currentMileageKm ? Number(selectedVehicle.currentMileageKm) : 0
+
+        const baselineMil = Math.max(lastLogMil, vehicleMil) || null
+        setPreviousMileage(baselineMil)
+        updated.mileage = baselineMil != null ? String(baselineMil) : ''
+        setMileageError('')
       }
       return updated
     })
