@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
-import { serviceAPI, vehicleAPI, notificationAPI, userAPI } from '../services/api'
+import api, { serviceAPI, vehicleAPI, notificationAPI, userAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import { addControllerNotification, addDriverNotification } from '../services/notificationService'
 import { computeMileageProgress, computeDateAlert, getAlertLevel, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
-import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle, Paperclip, User, Eye, Archive, Clock, Gauge, BellRing, MoreVertical, ShieldAlert, Wallet, Sparkles, LayoutGrid, List } from 'lucide-react'
+import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle, Paperclip, User, Eye, Archive, Clock, Gauge, BellRing, MoreVertical, ShieldAlert, Wallet, Sparkles, LayoutGrid, List, Download, IdCard, Shield, FileText } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
 
@@ -410,8 +410,8 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
   const sc = STATUS_CONFIG[status]
   const icon = SERVICE_TYPE_ICONS[record.serviceType] || <Wrench size={22} />
 
-  // Drivers may edit only records they personally created; Admin and Controller can edit all
-  const canEdit = !isDriver || record.createdBy === currentUsername
+  // Drivers cannot edit or delete records
+  const canEdit = !isDriver
   const canDelete = !isDriver
 
   return (
@@ -600,8 +600,8 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
 
-  // Drivers may edit only records they personally created; Admin and Controller can edit all
-  const canEdit = !isDriver || record.createdBy === currentUsername
+  // Drivers cannot edit or delete records
+  const canEdit = !isDriver
   const canDelete = !isDriver
 
   return (
@@ -905,6 +905,7 @@ const ServicePage = () => {
   const isDark = theme === 'blue'
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const isDriver = user?.role === 'DRIVER'
   const isAdmin = user?.role === 'ADMIN'
 
@@ -932,6 +933,12 @@ const ServicePage = () => {
   const [allVehicles, setAllVehicles] = useState([])
   const [allDrivers, setAllDrivers] = useState([])
   const [previousMileage, setPreviousMileage] = useState(null)
+
+  // ── Driver-specific lookup vehicle states ───────────────────────
+  const [selectedDriverVehicle, setSelectedDriverVehicle] = useState(null)
+  const [driverVehicleSearch, setDriverVehicleSearch] = useState('')
+  const [driverVehicleDropdownVisible, setDriverVehicleDropdownVisible] = useState(false)
+  const driverVehicleSearchRef = useRef(null)
 
   // ── Vehicle search dropdown state ───────────────────────────────
   const [vehicleSearch, setVehicleSearch] = useState('')
@@ -990,6 +997,16 @@ const ServicePage = () => {
       setLiveTime(new Date().toLocaleTimeString())
     }, 1000)
     return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (driverVehicleSearchRef.current && !driverVehicleSearchRef.current.contains(e.target)) {
+        setDriverVehicleDropdownVisible(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [])
 
   const handleExportPDF = () => {
@@ -1078,6 +1095,30 @@ const ServicePage = () => {
   const showToast = (msg, type) => {
     setToastMessage({ msg, type })
     setTimeout(() => setToastMessage(null), 3000)
+  }
+
+  const downloadDocument = async (id, docType, filename) => {
+    try {
+      const token = localStorage.getItem('token')
+      const res = await api.get(`/vehicles/${id}/document/${docType}`, {
+        responseType: 'blob',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const blob = new Blob([res.data], { type: res.headers['content-type'] })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', filename || `${docType}_document`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error("Failed to download document:", err)
+      showToast("Failed to download document. Please try again.", "error")
+    }
   }
 
   useEffect(() => {
@@ -1557,100 +1598,160 @@ const ServicePage = () => {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      // Fetch all vehicles and drivers for dropdown selection for all roles.
-      // For DRIVER role, userAPI.getAllDrivers() returns 403 Forbidden, so we resolve to null instead.
-      const requests = [
-        serviceAPI.getAllServices(),
-        serviceAPI.getServiceStats(),
-        vehicleAPI.getAllVehicles(),
-        !isDriver ? userAPI.getAllDrivers() : Promise.resolve(null),
-        !isDriver ? serviceAPI.getAllIntervals() : Promise.resolve(null)
-      ]
-      const [servRes, statsRes, vehicleRes, driversRes, intervalsRes] = await Promise.all(requests)
-      const loadedServices = servRes.data.data || []
-      const loadedVehicles = vehicleRes?.data.data || []
-      setServices(loadedServices)
-      setStats(statsRes.data.data)
-      if (vehicleRes) {
+      if (isDriver) {
+        // Driver loading path
+        const [statsRes, vehicleRes] = await Promise.all([
+          serviceAPI.getServiceStats(),
+          vehicleAPI.getAllVehicles()
+        ])
+        
+        const loadedVehicles = vehicleRes?.data.data || []
+        setStats(statsRes.data.data)
         setAllVehicles(loadedVehicles)
-        // Initialize daily mileages for update tab
-        const mileageMap = {}
-        loadedVehicles.forEach(v => {
-          mileageMap[v.id] = v.currentMileageKm || 0
-        })
-        setDailyMileages(mileageMap)
-      }
-      if (intervalsRes) {
-        const loadedIntervals = intervalsRes.data.data || []
-        setIntervals(loadedIntervals)
-        setLocalIntervals(loadedIntervals)
-      }
-      if (!isDriver && driversRes) {
-        setAllDrivers(driversRes.data.data || driversRes.data || [])
-      } else if (isDriver && user) {
         setAllDrivers([user])
-      }
-
-      // ── Compute alert records and fire notifications ──
-      const alerts = []
-      loadedVehicles.forEach(v => {
-        if (v.isDeleted) return
-        const milestones = getVehicleMilestones(v, loadedServices, intervalsRes?.data.data || [])
-        milestones.forEach(m => {
-          if (m.status === 'OVERDUE' || m.status === 'DUE_SOON') {
-            const completed = loadedServices.filter(s =>
-              s.vehicleRegNumber === v.registrationNo &&
-              s.serviceType === m.serviceType &&
-              getStatus(s) === 'COMPLETED'
-            )
-            let lastRecord = null
-            if (completed.length > 0) {
-              completed.sort((a, b) => Number(b.currentMileageKm || 0) - Number(a.currentMileageKm || 0))
-              lastRecord = completed[0]
-            }
-
-            const alertObj = {
-              id: lastRecord ? lastRecord.id : `pseudo-${v.registrationNo}-${m.serviceType}`,
-              vehicleRegNumber: v.registrationNo,
-              serviceType: m.serviceType,
-              _alertLevel: m.status,
-              _vehicleCurrentKm: v.currentMileageKm || 0,
-              currentMileageKm: lastRecord ? lastRecord.currentMileageKm : 0,
-              nextServiceMileageKm: m.nextDueMileage,
-              serviceDate: lastRecord ? lastRecord.serviceDate : null,
-              description: lastRecord ? lastRecord.description : 'Initial service milestone.',
-              _isPseudo: !lastRecord
-            }
-            alerts.push(alertObj)
-
-            // Fire backend notification once per record per session
-            const notifKey = lastRecord ? `record-${lastRecord.id}` : `pseudo-${v.registrationNo}-${m.serviceType}`
-            if (!notifiedRef.current.has(notifKey)) {
-              notifiedRef.current.add(notifKey)
-              let msg = `${m.status === 'OVERDUE' ? '🔴 OVERDUE' : '🟡 Due Soon'}: Vehicle ${v.registrationNo} — ${m.serviceType?.replace(/_/g, ' ')}.`
-              msg += ` ${m.remainingKm <= 0 ? `${Math.abs(m.remainingKm).toLocaleString()} km overdue` : `${m.remainingKm.toLocaleString()} km remaining`}.`
-              notificationAPI.create({
-                vehicleRegNumber: `VEH-${v.registrationNo}`,
-                message: msg,
-                type: m.status === 'OVERDUE' ? 'OVERDUE_SERVICE' : 'SERVICE_DUE'
-              }).catch(() => { }) // non-fatal
-
-              // Fire local events so immediate UI notification updates work for Controller and Driver
-              addControllerNotification(msg, m.status === 'OVERDUE' ? 'LOW_EFF' : 'SERVICE', '/service')
-              if (isDriver) {
-                addDriverNotification(msg, 'VEHICLE', '/service')
+        
+        // Find default or currently selected vehicle
+        const assigned = loadedVehicles.find(veh => String(veh.driverId) === String(user?.id))
+        const targetVehicle = selectedDriverVehicle || assigned
+        
+        if (targetVehicle) {
+          // If we resolved a vehicle, set it in state
+          if (!selectedDriverVehicle) {
+            setSelectedDriverVehicle(targetVehicle)
+            setDriverVehicleSearch(targetVehicle.registrationNo)
+          }
+          
+          // Fetch services specifically for this vehicle
+          const servRes = await serviceAPI.getServicesByVehicle(targetVehicle.registrationNo)
+          const loadedServices = servRes.data.data || []
+          setServices(loadedServices)
+          
+          // Compute alert records for this vehicle only
+          const alerts = []
+          if (!targetVehicle.isDeleted) {
+            const milestones = getVehicleMilestones(targetVehicle, loadedServices, [])
+            milestones.forEach(m => {
+              if (m.status === 'OVERDUE' || m.status === 'DUE_SOON') {
+                const completed = loadedServices.filter(s =>
+                  s.vehicleRegNumber === targetVehicle.registrationNo &&
+                  s.serviceType === m.serviceType &&
+                  getStatus(s) === 'COMPLETED'
+                )
+                let lastRecord = null
+                if (completed.length > 0) {
+                  completed.sort((a, b) => Number(b.currentMileageKm || 0) - Number(a.currentMileageKm || 0))
+                  lastRecord = completed[0]
+                }
+                const alertObj = {
+                  id: lastRecord ? lastRecord.id : `pseudo-${targetVehicle.registrationNo}-${m.serviceType}`,
+                  vehicleRegNumber: targetVehicle.registrationNo,
+                  serviceType: m.serviceType,
+                  _alertLevel: m.status,
+                  _vehicleCurrentKm: targetVehicle.currentMileageKm || 0,
+                  currentMileageKm: lastRecord ? lastRecord.currentMileageKm : 0,
+                  nextServiceMileageKm: m.nextDueMileage,
+                  serviceDate: lastRecord ? lastRecord.serviceDate : null,
+                  description: lastRecord ? lastRecord.description : 'Initial service milestone.',
+                  _isPseudo: !lastRecord
+                }
+                alerts.push(alertObj)
+              }
+            })
+          }
+          setAlertRecords(alerts)
+        } else {
+          setServices([])
+          setAlertRecords([])
+        }
+      } else {
+        // Admin / Controller loading path
+        const requests = [
+          serviceAPI.getAllServices(),
+          serviceAPI.getServiceStats(),
+          vehicleAPI.getAllVehicles(),
+          userAPI.getAllDrivers(),
+          serviceAPI.getAllIntervals()
+        ]
+        const [servRes, statsRes, vehicleRes, driversRes, intervalsRes] = await Promise.all(requests)
+        const loadedServices = servRes.data.data || []
+        const loadedVehicles = vehicleRes?.data.data || []
+        setServices(loadedServices)
+        setStats(statsRes.data.data)
+        if (vehicleRes) {
+          setAllVehicles(loadedVehicles)
+          const mileageMap = {}
+          loadedVehicles.forEach(v => {
+            mileageMap[v.id] = v.currentMileageKm || 0
+          })
+          setDailyMileages(mileageMap)
+        }
+        if (intervalsRes) {
+          const loadedIntervals = intervalsRes.data.data || []
+          setIntervals(loadedIntervals)
+          setLocalIntervals(loadedIntervals)
+        }
+        if (driversRes) {
+          setAllDrivers(driversRes.data.data || driversRes.data || [])
+        }
+        
+        // Compute alerts for all vehicles
+        const alerts = []
+        loadedVehicles.forEach(v => {
+          if (v.isDeleted) return
+          const milestones = getVehicleMilestones(v, loadedServices, intervalsRes?.data.data || [])
+          milestones.forEach(m => {
+            if (m.status === 'OVERDUE' || m.status === 'DUE_SOON') {
+              const completed = loadedServices.filter(s =>
+                s.vehicleRegNumber === v.registrationNo &&
+                s.serviceType === m.serviceType &&
+                getStatus(s) === 'COMPLETED'
+              )
+              let lastRecord = null
+              if (completed.length > 0) {
+                completed.sort((a, b) => Number(b.currentMileageKm || 0) - Number(a.currentMileageKm || 0))
+                lastRecord = completed[0]
+              }
+              const alertObj = {
+                id: lastRecord ? lastRecord.id : `pseudo-${v.registrationNo}-${m.serviceType}`,
+                vehicleRegNumber: v.registrationNo,
+                serviceType: m.serviceType,
+                _alertLevel: m.status,
+                _vehicleCurrentKm: v.currentMileageKm || 0,
+                currentMileageKm: lastRecord ? lastRecord.currentMileageKm : 0,
+                nextServiceMileageKm: m.nextDueMileage,
+                serviceDate: lastRecord ? lastRecord.serviceDate : null,
+                description: lastRecord ? lastRecord.description : 'Initial service milestone.',
+                _isPseudo: !lastRecord
+              }
+              alerts.push(alertObj)
+              
+              const notifKey = lastRecord ? `record-${lastRecord.id}` : `pseudo-${v.registrationNo}-${m.serviceType}`
+              if (!notifiedRef.current.has(notifKey)) {
+                notifiedRef.current.add(notifKey)
+                let msg = `${m.status === 'OVERDUE' ? '🔴 OVERDUE' : '🟡 Due Soon'}: Vehicle ${v.registrationNo} — ${m.serviceType?.replace(/_/g, ' ')}.`
+                msg += ` ${m.remainingKm <= 0 ? `${Math.abs(m.remainingKm).toLocaleString()} km overdue` : `${m.remainingKm.toLocaleString()} km remaining`}.`
+                notificationAPI.create({
+                  vehicleRegNumber: `VEH-${v.registrationNo}`,
+                  message: msg,
+                  type: m.status === 'OVERDUE' ? 'OVERDUE_SERVICE' : 'SERVICE_DUE'
+                }).catch(() => {})
+                
+                addControllerNotification(msg, m.status === 'OVERDUE' ? 'LOW_EFF' : 'SERVICE', '/service')
+                if (isDriver) {
+                  addDriverNotification(msg, 'VEHICLE', '/service')
+                }
               }
             }
-          }
+          })
         })
-      })
-      setAlertRecords(alerts)
+        setAlertRecords(alerts)
+      }
     } catch (err) {
       console.error('Error loading service data', err)
     } finally {
       setLoading(false)
     }
-  }, [isDriver])
+  }, [isDriver, selectedDriverVehicle, user])
 
   const loadDeletedData = useCallback(async () => {
     setDeletedLoading(true)
@@ -1665,6 +1766,13 @@ const ServicePage = () => {
   }, [])
 
   useEffect(() => { loadData() }, [loadData])
+
+  useEffect(() => {
+    if (!loading && allVehicles.length > 0 && location.state?.logServicePrefill) {
+      openAddModal(location.state.logServicePrefill)
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [loading, allVehicles, location.state, navigate, location.pathname])
 
   useEffect(() => {
     if (deletedDrawer) loadDeletedData()
@@ -1952,6 +2060,7 @@ const ServicePage = () => {
     }))
   }
 
+  const myVehicle = isDriver ? selectedDriverVehicle : allVehicles.find(v => String(v.driverId) === String(user?.id))
   const scheduled = services.filter(s => getStatus(s) === 'SCHEDULED').length
   const completed = completedServices.length
   const total = services.length
@@ -1959,6 +2068,9 @@ const ServicePage = () => {
 
   /* Filtered and sorted list */
   const filtered = services.filter(s => {
+    if (isDriver) {
+      if (s.vehicleRegNumber !== myVehicle?.registrationNo) return false
+    }
     if (filter === 'UPCOMING') {
       if (!alertRecords.some(r => r.id === s.id && r._alertLevel === 'DUE_SOON')) return false
     } else if (filter === 'OVERDUE') {
@@ -2208,8 +2320,106 @@ const ServicePage = () => {
             </div>
 
             {/* Right — CTA buttons */}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, zIndex: 2, flexShrink: 0 }}>
-              {!isAdmin && (
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, zIndex: 10, flexShrink: 0 }}>
+              {isDriver && (
+                <div ref={driverVehicleSearchRef} style={{ position: 'relative', width: 280 }}>
+                  <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
+                  <input
+                    type="text"
+                    placeholder="Search Vehicle (e.g. CAS-1020)..."
+                    value={driverVehicleSearch}
+                    onChange={e => {
+                      setDriverVehicleSearch(e.target.value)
+                      setDriverVehicleDropdownVisible(true)
+                    }}
+                    onFocus={() => setDriverVehicleDropdownVisible(true)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px 12px 40px',
+                      background: 'rgba(15, 23, 42, 0.6)',
+                      border: `1.5px solid ${driverVehicleSearch ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                      borderRadius: 14,
+                      color: D.text,
+                      fontSize: '0.88rem',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      transition: 'all 0.25s ease',
+                      boxShadow: driverVehicleSearch ? '0 0 16px rgba(99,102,241,0.2)' : 'none',
+                    }}
+                  />
+                  {driverVehicleSearch && (
+                    <X
+                      size={16}
+                      onClick={() => {
+                        setDriverVehicleSearch('')
+                        setSelectedDriverVehicle(null)
+                      }}
+                      style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, cursor: 'pointer' }}
+                    />
+                  )}
+                  {/* Autocomplete Dropdown List */}
+                  {driverVehicleDropdownVisible && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      left: 0,
+                      width: '100%',
+                      maxHeight: 250,
+                      overflowY: 'auto',
+                      background: D.surfaceHi,
+                      border: `1px solid ${D.borderHi}`,
+                      borderRadius: 12,
+                      boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                      zIndex: 999,
+                      scrollbarWidth: 'thin'
+                    }}>
+                      {(() => {
+                        const query = driverVehicleSearch.toLowerCase().trim()
+                        const filteredVehicles = allVehicles.filter(v =>
+                          !v.isDeleted && (
+                            v.registrationNo?.toLowerCase().includes(query) ||
+                            `${v.manufacturer || ''} ${v.model || ''}`.toLowerCase().includes(query)
+                          )
+                        )
+                        if (filteredVehicles.length === 0) {
+                          return (
+                            <div style={{ padding: '12px 16px', fontSize: '0.82rem', color: D.textFaint, textAlign: 'center' }}>
+                              No vehicles found
+                            </div>
+                          )
+                        }
+                        return filteredVehicles.map(v => (
+                          <div
+                            key={v.id}
+                            onClick={() => {
+                              setSelectedDriverVehicle(v)
+                              setDriverVehicleSearch(v.registrationNo)
+                              setDriverVehicleDropdownVisible(false)
+                            }}
+                            className="svc-row-hover"
+                            style={{
+                              padding: '10px 16px',
+                              fontSize: '0.85rem',
+                              color: selectedDriverVehicle?.id === v.id ? '#a5b4fc' : D.text,
+                              cursor: 'pointer',
+                              borderBottom: `1px solid ${D.border}`,
+                              background: selectedDriverVehicle?.id === v.id ? 'rgba(99,102,241,0.08)' : 'transparent',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 2
+                            }}
+                          >
+                            <span style={{ fontWeight: 800 }}>{v.registrationNo}</span>
+                            <span style={{ fontSize: '0.72rem', color: D.textSub }}>{v.manufacturer} {v.model} ({v.vehicleType || 'Unknown'})</span>
+                          </div>
+                        ))
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!isAdmin && !isDriver && (
                 <button
                   onClick={openScheduleModal}
                   style={{
@@ -2228,7 +2438,7 @@ const ServicePage = () => {
                   <Clock size={16} /> Schedule
                 </button>
               )}
-              {!isAdmin && (
+              {!isAdmin && !isDriver && (
                 <button
                   onClick={() => openAddModal()}
                   style={{
@@ -2253,122 +2463,124 @@ const ServicePage = () => {
           {/* ══════════════════════════════════════════════════════
               2. 5 KPI GLOWING METRIC TILES
           ══════════════════════════════════════════════════════ */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 26 }}>
-            {[
-              {
-                icon: <ClipboardList size={20} />,
-                label: 'Open Orders', value: openOrdersCount,
-                sub: 'Awaiting action',
-                iconBg: 'rgba(59,130,246,0.15)', iconColor: '#60a5fa',
-                glowColor: 'rgba(59,130,246,0.12)',
-              },
-              {
-                icon: <Calendar size={20} />,
-                label: 'Due This Week', value: dueThisWeekCount,
-                sub: 'Scheduled services',
-                iconBg: 'rgba(139,92,246,0.15)', iconColor: '#a78bfa',
-                glowColor: 'rgba(139,92,246,0.1)',
-              },
-              {
-                icon: <ShieldAlert size={20} />,
-                label: 'Overdue', value: overdueCount,
-                sub: 'Needs attention',
-                iconBg: 'rgba(239,68,68,0.15)', iconColor: '#f87171',
-                glowColor: 'rgba(239,68,68,0.1)',
-                urgent: overdueCount > 0,
-              },
-              {
-                icon: <Wallet size={20} />,
-                label: 'MTD Cost',
-                value: null,
-                displayValue: `LKR ${mtdCost >= 1000 ? (mtdCost / 1000).toFixed(1) + 'k' : mtdCost.toLocaleString()}`,
-                fullValue: `LKR ${mtdCost.toLocaleString()}`,
-                sub: 'Month to date',
-                iconBg: 'rgba(251,191,36,0.15)', iconColor: '#fbbf24',
-                glowColor: 'rgba(251,191,36,0.08)',
-                trend: costTrendPercent,
-              },
-              {
-                icon: <Clock size={20} />,
-                label: 'Avg Downtime',
-                value: null,
-                displayValue: `${avgDowntime} hrs`,
-                sub: 'Per completed service',
-                iconBg: 'rgba(45,212,191,0.15)', iconColor: '#2dd4bf',
-                glowColor: 'rgba(45,212,191,0.08)',
-                trend: downtimeTrendPercent,
-              },
-            ].map((card, i) => (
-              <div
-                key={i}
-                className="svc-kpi-card"
-                style={{
-                  background: D.surface,
-                  borderRadius: 16,
-                  padding: '20px 22px',
-                  overflow: 'hidden',
-                  border: `1px solid ${card.urgent ? 'rgba(239,68,68,0.22)' : D.border}`,
-                  boxShadow: card.urgent
-                    ? '0 4px 20px rgba(239,68,68,0.12)'
-                    : `0 4px 20px ${card.glowColor}`,
-                  position: 'relative',
-                  animation: `fadeSlideUp 0.4s ease ${i * 0.07}s both`,
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: 11,
-                    background: card.iconBg,
-                    border: `1px solid ${card.iconColor}22`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: card.iconColor,
-                  }}>
-                    {card.icon}
-                  </div>
-                  {card.trend !== undefined && card.trend !== 0 && (
-                    <div style={{
-                      fontSize: '0.62rem', fontWeight: 800,
-                      padding: '3px 8px', borderRadius: 6,
-                      background: card.trend < 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-                      color: card.trend < 0 ? '#10b981' : '#ef4444',
-                      border: `1px solid ${card.trend < 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
-                    }}>
-                      {card.trend < 0 ? '▼' : '▲'} {Math.abs(card.trend)}%
-                    </div>
-                  )}
-                  {card.urgent && (
-                    <div style={{
-                      fontSize: '0.58rem', fontWeight: 800,
-                      padding: '3px 8px', borderRadius: 6,
-                      background: 'rgba(239,68,68,0.14)', color: '#f87171',
-                      border: '1px solid rgba(239,68,68,0.28)',
-                      animation: 'pulseBar 1.8s ease-in-out infinite',
-                      letterSpacing: '0.05em',
-                    }}>
-                      URGENT
-                    </div>
-                  )}
-                </div>
-
-                <p style={{ margin: '0 0 6px', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                  {card.label}
-                </p>
-                <p
+          {!isDriver && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 26 }}>
+              {[
+                {
+                  icon: <ClipboardList size={20} />,
+                  label: 'Open Orders', value: openOrdersCount,
+                  sub: 'Awaiting action',
+                  iconBg: 'rgba(59,130,246,0.15)', iconColor: '#60a5fa',
+                  glowColor: 'rgba(59,130,246,0.12)',
+                },
+                {
+                  icon: <Calendar size={20} />,
+                  label: 'Due This Week', value: dueThisWeekCount,
+                  sub: 'Scheduled services',
+                  iconBg: 'rgba(139,92,246,0.15)', iconColor: '#a78bfa',
+                  glowColor: 'rgba(139,92,246,0.1)',
+                },
+                {
+                  icon: <ShieldAlert size={20} />,
+                  label: 'Overdue', value: overdueCount,
+                  sub: 'Needs attention',
+                  iconBg: 'rgba(239,68,68,0.15)', iconColor: '#f87171',
+                  glowColor: 'rgba(239,68,68,0.1)',
+                  urgent: overdueCount > 0,
+                },
+                {
+                  icon: <Wallet size={20} />,
+                  label: 'MTD Cost',
+                  value: null,
+                  displayValue: `LKR ${mtdCost >= 1000 ? (mtdCost / 1000).toFixed(1) + 'k' : mtdCost.toLocaleString()}`,
+                  fullValue: `LKR ${mtdCost.toLocaleString()}`,
+                  sub: 'Month to date',
+                  iconBg: 'rgba(251,191,36,0.15)', iconColor: '#fbbf24',
+                  glowColor: 'rgba(251,191,36,0.08)',
+                  trend: costTrendPercent,
+                },
+                {
+                  icon: <Clock size={20} />,
+                  label: 'Avg Downtime',
+                  value: null,
+                  displayValue: `${avgDowntime} hrs`,
+                  sub: 'Per completed service',
+                  iconBg: 'rgba(45,212,191,0.15)', iconColor: '#2dd4bf',
+                  glowColor: 'rgba(45,212,191,0.08)',
+                  trend: downtimeTrendPercent,
+                },
+              ].map((card, i) => (
+                <div
+                  key={i}
+                  className="svc-kpi-card"
                   style={{
-                    margin: '0 0 4px', fontFamily: "'Plus Jakarta Sans', 'Outfit', sans-serif",
-                    fontSize: '1.6rem',
-                    fontWeight: 900, color: card.urgent ? '#f87171' : D.text,
-                    lineHeight: 1.1,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    background: D.surface,
+                    borderRadius: 16,
+                    padding: '20px 22px',
+                    overflow: 'hidden',
+                    border: `1px solid ${card.urgent ? 'rgba(239,68,68,0.22)' : D.border}`,
+                    boxShadow: card.urgent
+                      ? '0 4px 20px rgba(239,68,68,0.12)'
+                      : `0 4px 20px ${card.glowColor}`,
+                    position: 'relative',
+                    animation: `fadeSlideUp 0.4s ease ${i * 0.07}s both`,
                   }}
-                  title={card.fullValue || card.displayValue || String(card.value)}
                 >
-                  {card.displayValue ?? card.value}
-                </p>
-                <p style={{ margin: 0, fontSize: '0.68rem', color: D.textFaint, fontWeight: 500 }}>{card.sub}</p>
-              </div>
-            ))}
-          </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 11,
+                      background: card.iconBg,
+                      border: `1px solid ${card.iconColor}22`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: card.iconColor,
+                    }}>
+                      {card.icon}
+                    </div>
+                    {card.trend !== undefined && card.trend !== 0 && (
+                      <div style={{
+                        fontSize: '0.62rem', fontWeight: 800,
+                        padding: '3px 8px', borderRadius: 6,
+                        background: card.trend < 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+                        color: card.trend < 0 ? '#10b981' : '#ef4444',
+                        border: `1px solid ${card.trend < 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                      }}>
+                        {card.trend < 0 ? '▼' : '▲'} {Math.abs(card.trend)}%
+                      </div>
+                    )}
+                    {card.urgent && (
+                      <div style={{
+                        fontSize: '0.58rem', fontWeight: 800,
+                        padding: '3px 8px', borderRadius: 6,
+                        background: 'rgba(239,68,68,0.14)', color: '#f87171',
+                        border: '1px solid rgba(239,68,68,0.28)',
+                        animation: 'pulseBar 1.8s ease-in-out infinite',
+                        letterSpacing: '0.05em',
+                      }}>
+                        URGENT
+                      </div>
+                    )}
+                  </div>
+
+                  <p style={{ margin: '0 0 6px', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    {card.label}
+                  </p>
+                  <p
+                    style={{
+                      margin: '0 0 4px', fontFamily: "'Plus Jakarta Sans', 'Outfit', sans-serif",
+                      fontSize: '1.6rem',
+                      fontWeight: 900, color: card.urgent ? '#f87171' : D.text,
+                      lineHeight: 1.1,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}
+                    title={card.fullValue || card.displayValue || String(card.value)}
+                  >
+                    {card.displayValue ?? card.value}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.68rem', color: D.textFaint, fontWeight: 500 }}>{card.sub}</p>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Display tab calculation */}
           {(() => {
@@ -2839,25 +3051,25 @@ const ServicePage = () => {
                 {displayTab === 'history' && (
                   <>
                     {/* Service Alerts - Full Width */}
-                    <div style={{
-                      background: D.surface,
-                      border: `1px solid ${alertRecords.length > 0 ? (alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)') : D.border}`,
-                      borderRadius: 20,
-                      padding: '24px 28px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
-                      animation: 'fadeSlideUp 0.4s ease 0.32s both',
-                      marginBottom: 26,
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                        <div>
-                          <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
-                            Service Alerts
-                          </h3>
-                          <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>Upcoming & overdue</p>
-                        </div>
-                        {alertRecords.length > 0 && (
+                    {alertRecords.length > 0 && (
+                      <div style={{
+                        background: D.surface,
+                        border: `1px solid ${alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                        borderRadius: 20,
+                        padding: '24px 28px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+                        animation: 'fadeSlideUp 0.4s ease 0.32s both',
+                        marginBottom: 26,
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                          <div>
+                            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
+                              Service Alerts
+                            </h3>
+                            <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>Upcoming & overdue</p>
+                          </div>
                           <span style={{
                             background: alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
                             color: alertRecords.some(r => r._alertLevel === 'OVERDUE') ? '#f87171' : '#fbbf24',
@@ -2869,36 +3081,22 @@ const ServicePage = () => {
                           }}>
                             {alertRecords.length} active
                           </span>
-                        )}
-                      </div>
+                        </div>
 
-                      <div style={{
-                        border: alertRecords.length > 0 ? `1px solid ${alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'}` : 'none',
-                        borderRadius: 16,
-                        overflow: 'hidden',
-                        background: D.bg,
-                        maxHeight: alertRecords.length === 0 ? 120 : 250,
-                        overflowY: alertRecords.length > 3 ? 'auto' : 'visible',
-                        flex: 1,
-                      }}>
-                        {alertRecords.length === 0 ? (
-                          <div style={{ padding: '32px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 120 }}>
-                            <div style={{
-                              width: 44, height: 44, borderRadius: '50%', margin: '0 auto 12px',
-                              background: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.2)',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>
-                              <CheckCircle size={20} color="#34d399" />
-                            </div>
-                            <h4 style={{ margin: '0 0 4px', fontSize: '0.85rem', fontWeight: 800, color: D.text }}>All vehicles healthy</h4>
-                            <p style={{ margin: 0, fontSize: '0.72rem', color: D.textSub }}>No upcoming or overdue service risks.</p>
-                          </div>
-                        ) : (
+                        <div style={{
+                          border: `1px solid ${alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
+                          borderRadius: 16,
+                          overflow: 'hidden',
+                          background: D.bg,
+                          maxHeight: 250,
+                          overflowY: alertRecords.length > 3 ? 'auto' : 'visible',
+                          flex: 1,
+                        }}>
                           <div style={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                            gap: 12,
-                            padding: 12,
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))',
+                            gap: 16,
+                            padding: '16px 8px',
                           }}>
                             {alertRecords.map((r) => {
                               const isOverdue = r._alertLevel === 'OVERDUE'
@@ -2906,111 +3104,484 @@ const ServicePage = () => {
                               const accentBg = isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'rgba(251, 191, 36, 0.1)'
                               const accentBorder = isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'
 
+                              const mileage = computeMileageProgress(r, r._vehicleCurrentKm)
+                              const date = computeDateAlert(r)
+
+                              let progressPct = 0
+                              let remainingText = ''
+
+                              if (mileage) {
+                                progressPct = Math.min(mileage.pct, 100)
+                                remainingText = fmtKmRemaining(mileage.remaining)
+                              } else if (date) {
+                                progressPct = Math.max(0, Math.min(100, (30 - date.daysRemaining) / 30 * 100))
+                                remainingText = fmtDaysRemaining(date.daysRemaining)
+                              }
+
                               return (
                                 <div
                                   key={r.id}
                                   className="svc-alert-card"
-                                  onClick={() => openAddModal({ vehicleRegNumber: r.vehicleRegNumber, serviceType: r.serviceType })}
                                   style={{
-                                    background: D.surface,
-                                    border: `1px solid ${D.border}`,
-                                    borderLeft: `4px solid ${accentColor}`,
-                                    borderRadius: 12,
-                                    padding: '14px 18px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s ease',
+                                    background: D.surfaceHi,
+                                    border: `1px solid ${accentBorder}`,
+                                    borderRadius: 16,
+                                    padding: '20px',
+                                    cursor: 'default',
+                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                     display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    gap: 12,
+                                    flexDirection: 'column',
+                                    gap: 16,
+                                    boxShadow: `0 4px 20px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`,
+                                    position: 'relative',
+                                    overflow: 'hidden'
                                   }}
                                   onMouseEnter={e => {
                                     e.currentTarget.style.borderColor = accentColor
-                                    e.currentTarget.style.transform = 'translateY(-2px)'
-                                    e.currentTarget.style.boxShadow = `0 4px 12px ${accentColor}12`
+                                    e.currentTarget.style.transform = 'translateY(-4px)'
+                                    e.currentTarget.style.boxShadow = `0 12px 30px ${isOverdue ? 'rgba(239, 68, 68, 0.15)' : 'rgba(251, 191, 36, 0.15)'}`
                                   }}
                                   onMouseLeave={e => {
-                                    e.currentTarget.style.borderColor = D.border
+                                    e.currentTarget.style.borderColor = accentBorder
                                     e.currentTarget.style.transform = 'translateY(0)'
-                                    e.currentTarget.style.boxShadow = 'none'
+                                    e.currentTarget.style.boxShadow = `0 4px 20px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`
                                   }}
                                 >
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+                                  {/* Top Row: Vehicle Chip and Status Tag */}
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                                     <div style={{
-                                      width: 36, height: 36, borderRadius: 8,
-                                      background: accentBg, border: `1px solid ${accentBorder}`,
-                                      color: accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                      flexShrink: 0,
+                                      background: 'rgba(255, 255, 255, 0.04)',
+                                      border: `1.5px solid ${D.borderHi}`,
+                                      borderRadius: 10,
+                                      padding: '4px 12px',
+                                      fontSize: '0.82rem',
+                                      fontWeight: 800,
+                                      color: D.text,
+                                      fontFamily: "'Outfit', monospace",
+                                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+                                      letterSpacing: '0.03em'
                                     }}>
-                                      <Wrench size={14} />
+                                      {r.vehicleRegNumber}
                                     </div>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
-                                        <span style={{ fontSize: '0.8rem', fontWeight: 800, color: D.text }}>
-                                          {isOverdue ? 'Overdue' : 'Due'}
-                                        </span>
-                                        <span style={{
-                                          fontSize: '0.55rem', fontWeight: 800, padding: '1px 6px',
-                                          borderRadius: 999, background: accentBg, color: accentColor,
-                                          border: `1px solid ${accentBorder}`,
-                                          textTransform: 'uppercase', letterSpacing: '0.04em',
-                                        }}>
-                                          {isOverdue ? 'URGENT' : 'UPCOMING'}
-                                        </span>
-                                      </div>
-                                      <p style={{ margin: 0, fontSize: '0.72rem', color: D.textSub, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                                        <strong style={{ color: accentColor }}>{r.vehicleRegNumber}</strong>
-                                        {' · '}{r.serviceType?.replace(/_/g, ' ')}
-                                      </p>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <span style={{
+                                        width: 8, height: 8, borderRadius: '50%',
+                                        background: accentColor,
+                                        boxShadow: `0 0 8px ${accentColor}`,
+                                        animation: 'pulseBar 1.5s ease-in-out infinite'
+                                      }} />
+                                      <span style={{
+                                        fontSize: '0.68rem',
+                                        fontWeight: 800,
+                                        color: accentColor,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.08em'
+                                      }}>
+                                        {isOverdue ? 'URGENT' : 'UPCOMING'}
+                                      </span>
                                     </div>
                                   </div>
 
-                                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                                    <button
-                                      onClick={e => { e.stopPropagation(); openAddModal({ vehicleRegNumber: r.vehicleRegNumber, serviceType: r.serviceType }) }}
-                                      style={{
-                                        background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
-                                        border: 'none',
-                                        color: '#fff',
-                                        borderRadius: 8,
-                                        padding: '5px 12px',
-                                        fontSize: '0.72rem',
-                                        fontWeight: 700,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.15s',
-                                        boxShadow: '0 2px 8px rgba(99,102,241,0.25)'
-                                      }}
-                                      onMouseEnter={e => { e.currentTarget.style.opacity = 0.9 }}
-                                      onMouseLeave={e => { e.currentTarget.style.opacity = 1 }}
-                                    >
-                                      Log Service
-                                    </button>
-                                    <button
-                                      onClick={e => { e.stopPropagation(); setDetailModal({ isOpen: true, record: r }) }}
-                                      style={{
-                                        background: 'rgba(255, 255, 255, 0.08)',
-                                        border: `1px solid ${D.borderHi}`,
-                                        color: D.text,
-                                        borderRadius: 8,
-                                        padding: '5px 12px',
-                                        fontSize: '0.72rem',
-                                        fontWeight: 700,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.15s',
-                                      }}
-                                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)' }}
-                                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)' }}
-                                    >
-                                      View Last
-                                    </button>
+                                  {/* Center: Service Task Info */}
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text }}>
+                                      {r.serviceType?.replace(/_/g, ' ')}
+                                    </h4>
+                                    {r.description && r.description !== 'Initial service milestone.' && (
+                                      <p style={{ margin: 0, fontSize: '0.78rem', color: D.textSub, fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                        {r.description}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {/* Progress bar / remaining info */}
+                                  {(mileage || date) && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '2px 0' }}>
+                                      <div style={{ height: 6, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 999, overflow: 'hidden' }}>
+                                        <div style={{
+                                          width: `${progressPct}%`,
+                                          height: '100%',
+                                          background: `linear-gradient(90deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
+                                          borderRadius: 999,
+                                          transition: 'width 0.4s ease'
+                                        }} />
+                                      </div>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: accentColor }}>
+                                          {remainingText}
+                                        </span>
+                                        {mileage && date && (
+                                          <span style={{ fontSize: '0.7rem', color: D.textSub, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                            <Calendar size={11} /> {fmtDaysRemaining(date.daysRemaining)}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Divider line */}
+                                  <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+
+                                  {/* Actions Row */}
+                                  <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
+                                    {!isDriver && (
+                                      <button
+                                        onClick={e => { e.stopPropagation(); openAddModal({ vehicleRegNumber: r.vehicleRegNumber, serviceType: r.serviceType }) }}
+                                        style={{
+                                          flex: 1,
+                                          background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
+                                          border: 'none',
+                                          color: isOverdue ? '#fff' : '#000',
+                                          borderRadius: 10,
+                                          padding: '8px 14px',
+                                          fontSize: '0.8rem',
+                                          fontWeight: 800,
+                                          cursor: 'pointer',
+                                          transition: 'all 0.2s',
+                                          boxShadow: `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          gap: 6
+                                        }}
+                                        onMouseEnter={e => {
+                                          e.currentTarget.style.transform = 'translateY(-1px)'
+                                          e.currentTarget.style.boxShadow = `0 6px 16px ${isOverdue ? 'rgba(239, 68, 68, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`
+                                        }}
+                                        onMouseLeave={e => {
+                                          e.currentTarget.style.transform = 'translateY(0)'
+                                          e.currentTarget.style.boxShadow = `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`
+                                        }}
+                                      >
+                                        <Wrench size={12} />
+                                        Log Service
+                                      </button>
+                                    )}
+                                    {!r._isPseudo && (
+                                      <button
+                                        onClick={e => { e.stopPropagation(); setDetailModal({ isOpen: true, record: r }) }}
+                                        style={{
+                                          background: 'rgba(255, 255, 255, 0.05)',
+                                          border: `1px solid ${D.borderHi}`,
+                                          color: D.text,
+                                          borderRadius: 10,
+                                          padding: '8px 14px',
+                                          fontSize: '0.8rem',
+                                          fontWeight: 700,
+                                          cursor: 'pointer',
+                                          transition: 'all 0.2s',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          gap: 6
+                                        }}
+                                        onMouseEnter={e => {
+                                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
+                                        }}
+                                        onMouseLeave={e => {
+                                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
+                                        }}
+                                      >
+                                        <Eye size={12} />
+                                        View Last
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               )
                             })}
                           </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Assigned Vehicle Compliance Documents (Driver only) */}
+                    {isDriver && (
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                        gap: 20,
+                        marginBottom: 26,
+                        animation: 'fadeSlideUp 0.4s ease 0.2s both'
+                      }}>
+                        {myVehicle ? (
+                          <>
+                            {/* Compliance Card */}
+                            <div style={{
+                              background: D.surface,
+                              border: `1px solid ${D.border}`,
+                              borderRadius: 20,
+                              padding: '24px 28px',
+                              boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 16
+                            }}>
+                              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
+                                Compliance & Expiries
+                              </h3>
+                              <p style={{ margin: '-10px 0 0', fontSize: '0.78rem', color: D.textSub }}>
+                                Assigned Vehicle: {myVehicle.manufacturer} {myVehicle.model} ({myVehicle.registrationNo})
+                              </p>
+
+                              {/* Insurance Card */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <div>
+                                    <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: D.text }}>Insurance Expiry</p>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: D.textSub }}>
+                                      {myVehicle.insuranceExpiryDate ? new Date(myVehicle.insuranceExpiryDate).toLocaleDateString() : 'Not Set'}
+                                    </p>
+                                  </div>
+                                  {myVehicle.insuranceExpiryDate ? (() => {
+                                    const diff = Math.ceil((new Date(myVehicle.insuranceExpiryDate) - new Date()) / (1000 * 60 * 60 * 24))
+                                    const isExpired = diff < 0
+                                    const isExpiring = diff <= 30
+                                    return (
+                                      <span style={{
+                                        background: isExpired ? 'rgba(239,68,68,0.15)' : isExpiring ? 'rgba(245,158,11,0.15)' : D.greenDim,
+                                        color: isExpired ? '#ef4444' : isExpiring ? '#f59e0b' : D.green,
+                                        border: `1px solid ${isExpired ? '#ef444450' : isExpiring ? '#f59e0b50' : D.green + '50'}`,
+                                        padding: '4px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800
+                                      }}>
+                                        {isExpired ? 'Expired' : `${diff} days left`}
+                                      </span>
+                                    )
+                                  })() : <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>}
+                                </div>
+                                {myVehicle.insuranceExpiryDate ? (() => {
+                                  const TOTAL_DAYS = 365
+                                  const diff = Math.ceil((new Date(myVehicle.insuranceExpiryDate) - new Date()) / (1000 * 60 * 60 * 24))
+                                  const safePct = Math.max(0, Math.min(100, (diff / TOTAL_DAYS) * 100))
+                                  const r = Math.round(239 - (239 - 16) * (safePct / 100))
+                                  const g = Math.round(68 + (185 - 68) * (safePct / 100))
+                                  const b = Math.round(68 + (129 - 68) * (safePct / 100))
+                                  const barColor = diff < 0 ? '#ef4444' : `rgb(${r},${g},${b})`
+                                  const displayPct = diff < 0 ? 100 : 100 - safePct
+                                  return (
+                                    <div>
+                                      <div style={{ height: 7, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)' }}>
+                                        <div style={{
+                                          width: `${Math.min(displayPct, 100)}%`,
+                                          height: '100%',
+                                          background: barColor,
+                                          borderRadius: 999,
+                                          transition: 'width 0.6s ease, background 0.6s ease',
+                                          boxShadow: `0 0 8px ${barColor}80`
+                                        }} />
+                                      </div>
+                                    </div>
+                                  )
+                                })() : null}
+                              </div>
+
+                              {/* License Card */}
+                              <div style={{ borderTop: `1px solid ${D.border}`, paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <div>
+                                    <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: D.text }}>License Expiry</p>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: D.textSub }}>
+                                      {myVehicle.licenseExpiryDate ? new Date(myVehicle.licenseExpiryDate).toLocaleDateString() : 'Not Set'}
+                                    </p>
+                                  </div>
+                                  {myVehicle.licenseExpiryDate ? (() => {
+                                    const diff = Math.ceil((new Date(myVehicle.licenseExpiryDate) - new Date()) / (1000 * 60 * 60 * 24))
+                                    const isExpired = diff < 0
+                                    const isExpiring = diff <= 30
+                                    return (
+                                      <span style={{
+                                        background: isExpired ? 'rgba(239,68,68,0.15)' : isExpiring ? 'rgba(245,158,11,0.15)' : D.greenDim,
+                                        color: isExpired ? '#ef4444' : isExpiring ? '#f59e0b' : D.green,
+                                        border: `1px solid ${isExpired ? '#ef444450' : isExpiring ? '#f59e0b50' : D.green + '50'}`,
+                                        padding: '4px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800
+                                      }}>
+                                        {isExpired ? 'Expired' : `${diff} days left`}
+                                      </span>
+                                    )
+                                  })() : <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>}
+                                </div>
+                                {myVehicle.licenseExpiryDate ? (() => {
+                                  const TOTAL_DAYS = 365
+                                  const diff = Math.ceil((new Date(myVehicle.licenseExpiryDate) - new Date()) / (1000 * 60 * 60 * 24))
+                                  const safePct = Math.max(0, Math.min(100, (diff / TOTAL_DAYS) * 100))
+                                  const r = Math.round(239 - (239 - 16) * (safePct / 100))
+                                  const g = Math.round(68 + (185 - 68) * (safePct / 100))
+                                  const b = Math.round(68 + (129 - 68) * (safePct / 100))
+                                  const barColor = diff < 0 ? '#ef4444' : `rgb(${r},${g},${b})`
+                                  const displayPct = diff < 0 ? 100 : 100 - safePct
+                                  return (
+                                    <div>
+                                      <div style={{ height: 7, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)' }}>
+                                        <div style={{
+                                          width: `${Math.min(displayPct, 100)}%`,
+                                          height: '100%',
+                                          background: barColor,
+                                          borderRadius: 999,
+                                          transition: 'width 0.6s ease, background 0.6s ease',
+                                          boxShadow: `0 0 8px ${barColor}80`
+                                        }} />
+                                      </div>
+                                    </div>
+                                  )
+                                })() : null}
+                              </div>
+                            </div>
+
+                            {/* Original Documents Card */}
+                            <div style={{
+                              background: D.surface,
+                              border: `1px solid ${D.border}`,
+                              borderRadius: 20,
+                              padding: '24px 28px',
+                              boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 16
+                            }}>
+                              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
+                                Original Documents & Papers
+                              </h3>
+                              <p style={{ margin: '-10px 0 0', fontSize: '0.78rem', color: D.textSub }}>
+                                Click to download original papers
+                              </p>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 10 }}>
+                                {/* Insurance Doc */}
+                                {(() => {
+                                  const path = myVehicle.insuranceDocumentPath
+                                  const originalFilename = path ? path.substring(path.lastIndexOf('_') + 1) : null
+                                  return (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: D.bg, padding: '12px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: D.text }}>Insurance Certificate</span>
+                                        {path ? (
+                                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: D.green, background: D.greenDim, padding: '2px 6px', borderRadius: 4 }}>Uploaded</span>
+                                        ) : (
+                                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: D.textSub }}>No File</span>
+                                        )}
+                                      </div>
+                                      {path && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                                          <button
+                                            onClick={() => downloadDocument(myVehicle.id, 'insurance', originalFilename)}
+                                            style={{
+                                              background: 'none', border: 'none', padding: 0, margin: 0,
+                                              color: D.blue, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer',
+                                              display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit',
+                                              textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '70%'
+                                            }}
+                                          >
+                                            <FileText size={13} /> {originalFilename}
+                                          </button>
+                                          <button
+                                            onClick={() => downloadDocument(myVehicle.id, 'insurance', originalFilename)}
+                                            style={{ background: D.indigoDim, color: D.indigo, border: 'none', padding: '4px 8px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                                          >
+                                            <Download size={11} /> Download
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })()}
+
+                                {/* License Doc */}
+                                {(() => {
+                                  const path = myVehicle.licenseDocumentPath
+                                  const originalFilename = path ? path.substring(path.lastIndexOf('_') + 1) : null
+                                  return (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: D.bg, padding: '12px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: D.text }}>License & Road Tax</span>
+                                        {path ? (
+                                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: D.green, background: D.greenDim, padding: '2px 6px', borderRadius: 4 }}>Uploaded</span>
+                                        ) : (
+                                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: D.textSub }}>No File</span>
+                                        )}
+                                      </div>
+                                      {path && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                                          <button
+                                            onClick={() => downloadDocument(myVehicle.id, 'license', originalFilename)}
+                                            style={{
+                                              background: 'none', border: 'none', padding: 0, margin: 0,
+                                              color: D.blue, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer',
+                                              display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit',
+                                              textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '70%'
+                                            }}
+                                          >
+                                            <FileText size={13} /> {originalFilename}
+                                          </button>
+                                          <button
+                                            onClick={() => downloadDocument(myVehicle.id, 'license', originalFilename)}
+                                            style={{ background: D.indigoDim, color: D.indigo, border: 'none', padding: '4px 8px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                                          >
+                                            <Download size={11} /> Download
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })()}
+
+                                {/* Registration Book Doc */}
+                                {(() => {
+                                  const path = myVehicle.registrationBookPath
+                                  const originalFilename = path ? path.substring(path.lastIndexOf('_') + 1) : null
+                                  return (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: D.bg, padding: '12px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: D.text }}>Registration Book (V5)</span>
+                                        {path ? (
+                                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: D.green, background: D.greenDim, padding: '2px 6px', borderRadius: 4 }}>Uploaded</span>
+                                        ) : (
+                                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: D.textSub }}>No File</span>
+                                        )}
+                                      </div>
+                                      {path && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                                          <button
+                                            onClick={() => downloadDocument(myVehicle.id, 'registration', originalFilename)}
+                                            style={{
+                                              background: 'none', border: 'none', padding: 0, margin: 0,
+                                              color: D.blue, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer',
+                                              display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit',
+                                              textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '70%'
+                                            }}
+                                          >
+                                            <FileText size={13} /> {originalFilename}
+                                          </button>
+                                          <button
+                                            onClick={() => downloadDocument(myVehicle.id, 'registration', originalFilename)}
+                                            style={{ background: D.indigoDim, color: D.indigo, border: 'none', padding: '4px 8px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                                          >
+                                            <Download size={11} /> Download
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })()}
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{
+                            gridColumn: '1 / -1',
+                            background: D.surface,
+                            border: `1px solid ${D.border}`,
+                            borderRadius: 20,
+                            padding: '24px 28px',
+                            boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+                            textAlign: 'center',
+                            color: D.textSub,
+                            fontSize: '0.9rem',
+                            fontWeight: 600
+                          }}>
+                            No vehicle is currently selected or assigned. Please use the search bar at the top of the page to find and select a vehicle.
+                          </div>
                         )}
                       </div>
-                    </div>
+                    )}
 
                     {/* MAIN WORK ORDERS DIRECTORY — Full Width */}
                     <div style={{
