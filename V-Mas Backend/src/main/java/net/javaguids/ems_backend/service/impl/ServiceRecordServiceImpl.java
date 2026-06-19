@@ -16,6 +16,7 @@ import net.javaguids.ems_backend.mapper.ServiceRecordMapper;
 import net.javaguids.ems_backend.repository.ServiceRecordAuditRepository;
 import net.javaguids.ems_backend.repository.ServiceRecordRepository;
 import net.javaguids.ems_backend.repository.VehicleRepository;
+import net.javaguids.ems_backend.repository.ServiceIntervalRepository;
 import net.javaguids.ems_backend.service.ServiceRecordService;
 import org.springframework.security.access.AccessDeniedException;
 import net.javaguids.ems_backend.service.NotificationService;
@@ -45,6 +46,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
     private final ServiceRecordAuditRepository auditRepository;
     private final VehicleRepository vehicleRepository;
     private final NotificationService notificationService;
+    private final ServiceIntervalRepository serviceIntervalRepository;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Value("${app.upload.dir:uploads/service-attachments}")
@@ -53,11 +55,13 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
     public ServiceRecordServiceImpl(ServiceRecordRepository serviceRecordRepository,
                                     ServiceRecordAuditRepository auditRepository,
                                     VehicleRepository vehicleRepository,
-                                    NotificationService notificationService) {
+                                    NotificationService notificationService,
+                                    ServiceIntervalRepository serviceIntervalRepository) {
         this.serviceRecordRepository = serviceRecordRepository;
         this.auditRepository = auditRepository;
         this.vehicleRepository = vehicleRepository;
         this.notificationService = notificationService;
+        this.serviceIntervalRepository = serviceIntervalRepository;
     }
 
     @Override
@@ -88,12 +92,24 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
 
         ServiceRecord record = ServiceRecordMapper.mapToServiceRecord(dto);
 
+        if (record.getNextServiceMileageKm() == null) {
+            serviceIntervalRepository.findByVehicleTypeAndServiceType(vehicle.getVehicleType(), record.getServiceType())
+                .ifPresent(interval -> {
+                    record.setNextServiceMileageKm(record.getCurrentMileageKm() + interval.getIntervalKm());
+                });
+        }
+
         // Auto-set the creator from the currently authenticated user
         if (currentUsername != null) {
             record.setCreatedBy(currentUsername);
         }
 
         ServiceRecord saved = serviceRecordRepository.save(java.util.Objects.requireNonNull(record));
+        try {
+            notificationService.resolveServiceAlerts(saved.getVehicleRegNumber(), saved.getServiceType().name());
+        } catch (Exception e) {
+            // non-blocking
+        }
         return ServiceRecordMapper.mapToServiceRecordDto(saved);
     }
 
@@ -199,7 +215,14 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
         record.setServiceCost(dto.getServiceCost());
         record.setTechnicianWorkshop(dto.getTechnicianWorkshop());
         record.setNextServiceDue(dto.getNextServiceDue());
-        record.setNextServiceMileageKm(dto.getNextServiceMileageKm());
+        if (dto.getNextServiceMileageKm() != null) {
+            record.setNextServiceMileageKm(dto.getNextServiceMileageKm());
+        } else {
+            serviceIntervalRepository.findByVehicleTypeAndServiceType(vehicle.getVehicleType(), record.getServiceType())
+                .ifPresent(interval -> {
+                    record.setNextServiceMileageKm(record.getCurrentMileageKm() + interval.getIntervalKm());
+                });
+        }
         record.setDescription(dto.getDescription());
         record.setPartsReplaced(dto.getPartsReplaced());
         if (dto.getServiceClassification() != null) {
@@ -248,6 +271,12 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
                 msgBuilder.toString(),
                 "SERVICE_UPDATE"
         );
+
+        try {
+            notificationService.resolveServiceAlerts(updated.getVehicleRegNumber(), updated.getServiceType().name());
+        } catch (Exception e) {
+            // non-blocking
+        }
 
         return ServiceRecordMapper.mapToServiceRecordDto(updated);
     }

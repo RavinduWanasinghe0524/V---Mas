@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
-import { serviceAPI, vehicleAPI, notificationAPI, userAPI } from '../services/api'
+import api, { serviceAPI, vehicleAPI, notificationAPI, userAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import { addControllerNotification, addDriverNotification } from '../services/notificationService'
 import { computeMileageProgress, computeDateAlert, getAlertLevel, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
-import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle, Paperclip, User, Eye, Archive, Clock, Gauge, BellRing, MoreVertical, ShieldAlert, Wallet, Sparkles, LayoutGrid, List } from 'lucide-react'
+import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle, Paperclip, User, Eye, Archive, Clock, Gauge, BellRing, MoreVertical, ShieldAlert, Wallet, Sparkles, LayoutGrid, List, Download, IdCard, Shield, FileText } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
 
@@ -410,8 +410,8 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
   const sc = STATUS_CONFIG[status]
   const icon = SERVICE_TYPE_ICONS[record.serviceType] || <Wrench size={22} />
 
-  // Drivers may edit only records they personally created; Admin and Controller can edit all
-  const canEdit = !isDriver || record.createdBy === currentUsername
+  // Drivers cannot edit or delete records
+  const canEdit = !isDriver
   const canDelete = !isDriver
 
   return (
@@ -600,8 +600,8 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
 
-  // Drivers may edit only records they personally created; Admin and Controller can edit all
-  const canEdit = !isDriver || record.createdBy === currentUsername
+  // Drivers cannot edit or delete records
+  const canEdit = !isDriver
   const canDelete = !isDriver
 
   return (
@@ -854,6 +854,47 @@ const ServiceCalendar = ({ services, onEdit, isDriver, getStatus, STATUS_CONFIG,
   )
 }
 
+/* ── Helper to calculate dynamic milestones for a vehicle ── */
+const getVehicleMilestones = (vehicle, services, intervals) => {
+  if (!vehicle || !intervals) return []
+  const vehicleIntervals = intervals.filter(i => i.vehicleType === vehicle.vehicleType)
+  
+  return vehicleIntervals.map(interval => {
+    // Find completed services for this vehicle and service type
+    const completed = services.filter(s =>
+      s.vehicleRegNumber === vehicle.registrationNo &&
+      s.serviceType === interval.serviceType &&
+      getStatus(s) === 'COMPLETED'
+    )
+    
+    let lastServiceMileage = 0
+    if (completed.length > 0) {
+      completed.sort((a, b) => Number(b.currentMileageKm || 0) - Number(a.currentMileageKm || 0))
+      lastServiceMileage = Number(completed[0].currentMileageKm || 0)
+    }
+    
+    const nextDueMileage = lastServiceMileage + interval.intervalKm
+    const currentMileage = vehicle.currentMileageKm || 0
+    const remainingKm = nextDueMileage - currentMileage
+    
+    let status = 'OK'
+    if (remainingKm <= 0) {
+      status = 'OVERDUE'
+    } else if (remainingKm <= 200) {
+      status = 'DUE_SOON'
+    }
+    
+    return {
+      serviceType: interval.serviceType,
+      intervalKm: interval.intervalKm,
+      lastServiceMileage,
+      nextDueMileage,
+      remainingKm,
+      status
+    }
+  })
+}
+
 
 /* ══════════════════════════════════════════════════════════════════
    MAIN PAGE
@@ -864,11 +905,18 @@ const ServicePage = () => {
   const isDark = theme === 'blue'
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const isDriver = user?.role === 'DRIVER'
   const isAdmin = user?.role === 'ADMIN'
 
   const [services, setServices] = useState([])
+  const [activeTab, setActiveTab] = useState('status')
+  const [intervals, setIntervals] = useState([])
+  const [dailyMileages, setDailyMileages] = useState({})
+  const [localIntervals, setLocalIntervals] = useState([])
   const [stats, setStats] = useState(null)
+  const [statusSearch, setStatusSearch] = useState('')
+  const [mileageSearch, setMileageSearch] = useState('')
   const [filter, setFilter] = useState('ALL')
   const [vehicleFilter, setVehicleFilter] = useState('ALL')
   const [vehicleDropdownOpen, setVehicleDropdownOpen] = useState(false)
@@ -885,6 +933,12 @@ const ServicePage = () => {
   const [allVehicles, setAllVehicles] = useState([])
   const [allDrivers, setAllDrivers] = useState([])
   const [previousMileage, setPreviousMileage] = useState(null)
+
+  // ── Driver-specific lookup vehicle states ───────────────────────
+  const [selectedDriverVehicle, setSelectedDriverVehicle] = useState(null)
+  const [driverVehicleSearch, setDriverVehicleSearch] = useState('')
+  const [driverVehicleDropdownVisible, setDriverVehicleDropdownVisible] = useState(false)
+  const driverVehicleSearchRef = useRef(null)
 
   // ── Vehicle search dropdown state ───────────────────────────────
   const [vehicleSearch, setVehicleSearch] = useState('')
@@ -943,6 +997,22 @@ const ServicePage = () => {
       setLiveTime(new Date().toLocaleTimeString())
     }, 1000)
     return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab)
+    }
+  }, [location.state])
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (driverVehicleSearchRef.current && !driverVehicleSearchRef.current.contains(e.target)) {
+        setDriverVehicleDropdownVisible(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [])
 
   const handleExportPDF = () => {
@@ -1033,6 +1103,30 @@ const ServicePage = () => {
     setTimeout(() => setToastMessage(null), 3000)
   }
 
+  const downloadDocument = async (id, docType, filename) => {
+    try {
+      const token = localStorage.getItem('token')
+      const res = await api.get(`/vehicles/${id}/document/${docType}`, {
+        responseType: 'blob',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const blob = new Blob([res.data], { type: res.headers['content-type'] })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', filename || `${docType}_document`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error("Failed to download document:", err)
+      showToast("Failed to download document. Please try again.", "error")
+    }
+  }
+
   useEffect(() => {
     if (isAddModalOpen || isEditModalOpen || isScheduleModalOpen || deleteModal.isOpen || detailModal.isOpen || deletedDrawer || attachmentViewer.isOpen) {
       document.body.style.overflow = 'hidden'
@@ -1044,7 +1138,7 @@ const ServicePage = () => {
 
   // Fetch audit history whenever detail modal opens for a record
   useEffect(() => {
-    if (detailModal.isOpen && detailModal.record?.id) {
+    if (detailModal.isOpen && detailModal.record?.id && typeof detailModal.record.id === 'number') {
       setServiceHistory([])
       setHistoryLoading(true)
       serviceAPI.getServiceHistory(detailModal.record.id)
@@ -1510,86 +1604,160 @@ const ServicePage = () => {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      // Fetch all vehicles and drivers for dropdown selection for all roles.
-      // For DRIVER role, userAPI.getAllDrivers() returns 403 Forbidden, so we resolve to null instead.
-      const requests = [
-        serviceAPI.getAllServices(),
-        serviceAPI.getServiceStats(),
-        vehicleAPI.getAllVehicles(),
-        !isDriver ? userAPI.getAllDrivers() : Promise.resolve(null)
-      ]
-      const [servRes, statsRes, vehicleRes, driversRes] = await Promise.all(requests)
-      const loadedServices = servRes.data.data || []
-      const loadedVehicles = vehicleRes?.data.data || []
-      setServices(loadedServices)
-      setStats(statsRes.data.data)
-      if (vehicleRes) setAllVehicles(loadedVehicles)
-      if (!isDriver && driversRes) {
-        setAllDrivers(driversRes.data.data || driversRes.data || [])
-      } else if (isDriver && user) {
+      if (isDriver) {
+        // Driver loading path
+        const [statsRes, vehicleRes] = await Promise.all([
+          serviceAPI.getServiceStats(),
+          vehicleAPI.getAllVehicles()
+        ])
+        
+        const loadedVehicles = vehicleRes?.data.data || []
+        setStats(statsRes.data.data)
+        setAllVehicles(loadedVehicles)
         setAllDrivers([user])
-      }
-
-      // ── Compute alert records and fire notifications ──
-      const vehicleKmMap = {}
-      loadedVehicles.forEach(v => { vehicleKmMap[v.registrationNo] = v.currentMileageKm })
-
-      // Find the LATEST record per vehicle + service type (based on chronological date / mileage / ID)
-      const latestServiceMap = {}
-      for (const s of loadedServices) {
-        const key = `${s.vehicleRegNumber}_${s.serviceType}`
-        const existing = latestServiceMap[key]
-        if (!existing) {
-          latestServiceMap[key] = s
+        
+        // Find default or currently selected vehicle
+        const assigned = loadedVehicles.find(veh => String(veh.driverId) === String(user?.id))
+        const targetVehicle = selectedDriverVehicle || assigned
+        
+        if (targetVehicle) {
+          // If we resolved a vehicle, set it in state
+          if (!selectedDriverVehicle) {
+            setSelectedDriverVehicle(targetVehicle)
+            setDriverVehicleSearch(targetVehicle.registrationNo)
+          }
+          
+          // Fetch services specifically for this vehicle
+          const servRes = await serviceAPI.getServicesByVehicle(targetVehicle.registrationNo)
+          const loadedServices = servRes.data.data || []
+          setServices(loadedServices)
+          
+          // Compute alert records for this vehicle only
+          const alerts = []
+          if (!targetVehicle.isDeleted) {
+            const milestones = getVehicleMilestones(targetVehicle, loadedServices, [])
+            milestones.forEach(m => {
+              if (m.status === 'OVERDUE' || m.status === 'DUE_SOON') {
+                const completed = loadedServices.filter(s =>
+                  s.vehicleRegNumber === targetVehicle.registrationNo &&
+                  s.serviceType === m.serviceType &&
+                  getStatus(s) === 'COMPLETED'
+                )
+                let lastRecord = null
+                if (completed.length > 0) {
+                  completed.sort((a, b) => Number(b.currentMileageKm || 0) - Number(a.currentMileageKm || 0))
+                  lastRecord = completed[0]
+                }
+                const alertObj = {
+                  id: lastRecord ? lastRecord.id : `pseudo-${targetVehicle.registrationNo}-${m.serviceType}`,
+                  vehicleRegNumber: targetVehicle.registrationNo,
+                  serviceType: m.serviceType,
+                  _alertLevel: m.status,
+                  _vehicleCurrentKm: targetVehicle.currentMileageKm || 0,
+                  currentMileageKm: lastRecord ? lastRecord.currentMileageKm : 0,
+                  nextServiceMileageKm: m.nextDueMileage,
+                  serviceDate: lastRecord ? lastRecord.serviceDate : null,
+                  description: lastRecord ? lastRecord.description : 'Initial service milestone.',
+                  _isPseudo: !lastRecord
+                }
+                alerts.push(alertObj)
+              }
+            })
+          }
+          setAlertRecords(alerts)
         } else {
-          const dateExisting = existing.serviceDate ? new Date(existing.serviceDate).getTime() : 0
-          const dateNew = s.serviceDate ? new Date(s.serviceDate).getTime() : 0
-
-          if (dateNew > dateExisting) {
-            latestServiceMap[key] = s
-          } else if (dateNew === dateExisting) {
-            const milExisting = Number(existing.currentMileageKm || 0)
-            const milNew = Number(s.currentMileageKm || 0)
-            if (milNew > milExisting) {
-              latestServiceMap[key] = s
-            } else if (milNew === milExisting) {
-              if (s.id && existing.id && s.id > existing.id) {
-                latestServiceMap[key] = s
+          setServices([])
+          setAlertRecords([])
+        }
+      } else {
+        // Admin / Controller loading path
+        const requests = [
+          serviceAPI.getAllServices(),
+          serviceAPI.getServiceStats(),
+          vehicleAPI.getAllVehicles(),
+          userAPI.getAllDrivers(),
+          serviceAPI.getAllIntervals()
+        ]
+        const [servRes, statsRes, vehicleRes, driversRes, intervalsRes] = await Promise.all(requests)
+        const loadedServices = servRes.data.data || []
+        const loadedVehicles = vehicleRes?.data.data || []
+        setServices(loadedServices)
+        setStats(statsRes.data.data)
+        if (vehicleRes) {
+          setAllVehicles(loadedVehicles)
+          const mileageMap = {}
+          loadedVehicles.forEach(v => {
+            mileageMap[v.id] = v.currentMileageKm || 0
+          })
+          setDailyMileages(mileageMap)
+        }
+        if (intervalsRes) {
+          const loadedIntervals = intervalsRes.data.data || []
+          setIntervals(loadedIntervals)
+          setLocalIntervals(loadedIntervals)
+        }
+        if (driversRes) {
+          setAllDrivers(driversRes.data.data || driversRes.data || [])
+        }
+        
+        // Compute alerts for all vehicles
+        const alerts = []
+        loadedVehicles.forEach(v => {
+          if (v.isDeleted) return
+          const milestones = getVehicleMilestones(v, loadedServices, intervalsRes?.data.data || [])
+          milestones.forEach(m => {
+            if (m.status === 'OVERDUE' || m.status === 'DUE_SOON') {
+              const completed = loadedServices.filter(s =>
+                s.vehicleRegNumber === v.registrationNo &&
+                s.serviceType === m.serviceType &&
+                getStatus(s) === 'COMPLETED'
+              )
+              let lastRecord = null
+              if (completed.length > 0) {
+                completed.sort((a, b) => Number(b.currentMileageKm || 0) - Number(a.currentMileageKm || 0))
+                lastRecord = completed[0]
+              }
+              const alertObj = {
+                id: lastRecord ? lastRecord.id : `pseudo-${v.registrationNo}-${m.serviceType}`,
+                vehicleRegNumber: v.registrationNo,
+                serviceType: m.serviceType,
+                _alertLevel: m.status,
+                _vehicleCurrentKm: v.currentMileageKm || 0,
+                currentMileageKm: lastRecord ? lastRecord.currentMileageKm : 0,
+                nextServiceMileageKm: m.nextDueMileage,
+                serviceDate: lastRecord ? lastRecord.serviceDate : null,
+                description: lastRecord ? lastRecord.description : 'Initial service milestone.',
+                _isPseudo: !lastRecord
+              }
+              alerts.push(alertObj)
+              
+              const notifKey = lastRecord ? `record-${lastRecord.id}` : `pseudo-${v.registrationNo}-${m.serviceType}`
+              if (!notifiedRef.current.has(notifKey)) {
+                notifiedRef.current.add(notifKey)
+                let msg = `${m.status === 'OVERDUE' ? '🔴 OVERDUE' : '🟡 Due Soon'}: Vehicle ${v.registrationNo} — ${m.serviceType?.replace(/_/g, ' ')}.`
+                msg += ` ${m.remainingKm <= 0 ? `${Math.abs(m.remainingKm).toLocaleString()} km overdue` : `${m.remainingKm.toLocaleString()} km remaining`}.`
+                notificationAPI.create({
+                  vehicleRegNumber: `VEH-${v.registrationNo}`,
+                  message: msg,
+                  type: m.status === 'OVERDUE' ? 'OVERDUE_SERVICE' : 'SERVICE_DUE'
+                }).catch(() => {})
+                
+                addControllerNotification(msg, m.status === 'OVERDUE' ? 'LOW_EFF' : 'SERVICE', '/service')
+                if (isDriver) {
+                  addDriverNotification(msg, 'VEHICLE', '/service')
+                }
               }
             }
-          }
-        }
+          })
+        })
+        setAlertRecords(alerts)
       }
-
-      const alerts = []
-      for (const record of Object.values(latestServiceMap)) {
-        const vehicleKm = vehicleKmMap[record.vehicleRegNumber]
-        const level = getAlertLevel(record, vehicleKm)
-        if (level === 'DUE_SOON' || level === 'OVERDUE') {
-          alerts.push({ ...record, _alertLevel: level, _vehicleCurrentKm: vehicleKm })
-          // Fire backend notification once per record per session
-          if (!notifiedRef.current.has(record.id)) {
-            notifiedRef.current.add(record.id)
-            const mileageInfo = computeMileageProgress(record, vehicleKm)
-            const dateInfo = computeDateAlert(record)
-            let msg = `${level === 'OVERDUE' ? '🔴 OVERDUE' : '🟡 Due Soon'}: Vehicle ${record.vehicleRegNumber} — ${record.serviceType?.replace(/_/g, ' ')}.`
-            if (mileageInfo) msg += ` ${fmtKmRemaining(mileageInfo.remaining)}.`
-            if (dateInfo) msg += ` ${fmtDaysRemaining(dateInfo.daysRemaining)}.`
-            notificationAPI.create({
-              vehicleRegNumber: `VEH-${record.vehicleRegNumber}`,
-              message: msg,
-              type: level === 'OVERDUE' ? 'OVERDUE_SERVICE' : 'SERVICE_DUE'
-            }).catch(() => { }) // non-fatal
-          }
-        }
-      }
-      setAlertRecords(alerts)
     } catch (err) {
       console.error('Error loading service data', err)
     } finally {
       setLoading(false)
     }
-  }, [isDriver])
+  }, [isDriver, selectedDriverVehicle, user])
 
   const loadDeletedData = useCallback(async () => {
     setDeletedLoading(true)
@@ -1605,10 +1773,97 @@ const ServicePage = () => {
 
   useEffect(() => { loadData() }, [loadData])
 
-  // Load deleted records when drawer opens
+  useEffect(() => {
+    if (!loading && allVehicles.length > 0 && location.state?.logServicePrefill) {
+      openAddModal(location.state.logServicePrefill)
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [loading, allVehicles, location.state, navigate, location.pathname])
+
   useEffect(() => {
     if (deletedDrawer) loadDeletedData()
   }, [deletedDrawer, loadDeletedData])
+
+  const handleSaveBulkMileage = async () => {
+    const updates = []
+    const validationErrors = {}
+    let hasValidationError = false
+
+    allVehicles.forEach(v => {
+      const newVal = dailyMileages[v.id]
+      const currentVal = v.currentMileageKm || 0
+      if (newVal !== undefined && newVal !== currentVal) {
+        if (Number(newVal) < currentVal) {
+          validationErrors[v.id] = `Cannot be less than current (${currentVal} km)`
+          hasValidationError = true
+        } else {
+          updates.push({
+            id: v.id,
+            currentMileageKm: Number(newVal)
+          })
+        }
+      }
+    })
+
+    if (hasValidationError) {
+      setErrors(validationErrors)
+      showToast('Please fix validation errors before saving.', 'error')
+      return
+    }
+
+    if (updates.length === 0) {
+      showToast('No mileage updates to save.', 'info')
+      return
+    }
+
+    setFormLoading(true)
+    try {
+      await vehicleAPI.updateBulkMileage(updates)
+      showToast('Bulk mileages updated successfully!', 'success')
+      loadData()
+    } catch (err) {
+      console.error(err)
+      showToast(err.response?.data?.message || 'Failed to update bulk mileages.', 'error')
+    } finally {
+      setFormLoading(false)
+    }
+  }
+
+  const handleSaveIntervals = async () => {
+    setFormLoading(true)
+    try {
+      await serviceAPI.updateIntervalsBulk(localIntervals)
+      showToast('Service intervals updated successfully!', 'success')
+      loadData()
+    } catch (err) {
+      console.error(err)
+      showToast('Failed to update service intervals.', 'error')
+    } finally {
+      setFormLoading(false)
+    }
+  }
+
+  const getIntervalValue = (vehicleType, serviceType) => {
+    const match = localIntervals.find(i => i.vehicleType === vehicleType && i.serviceType === serviceType)
+    return match ? (match.intervalKm || 0) : 0
+  }
+
+  const handleIntervalChange = (vehicleType, serviceType, newVal) => {
+    setLocalIntervals(prev => {
+      const exists = prev.some(i => i.vehicleType === vehicleType && i.serviceType === serviceType)
+      if (exists) {
+        return prev.map(item => {
+          if (item.vehicleType === vehicleType && item.serviceType === serviceType) {
+            return { ...item, intervalKm: Number(newVal) || 0 }
+          }
+          return item
+        })
+      } else {
+        return [...prev, { vehicleType, serviceType, intervalKm: Number(newVal) || 0 }]
+      }
+    })
+  }
+
 
   const restoreRecord = async (id) => {
     setRestoringId(id)
@@ -1811,6 +2066,7 @@ const ServicePage = () => {
     }))
   }
 
+  const myVehicle = isDriver ? selectedDriverVehicle : allVehicles.find(v => String(v.driverId) === String(user?.id))
   const scheduled = services.filter(s => getStatus(s) === 'SCHEDULED').length
   const completed = completedServices.length
   const total = services.length
@@ -1818,6 +2074,9 @@ const ServicePage = () => {
 
   /* Filtered and sorted list */
   const filtered = services.filter(s => {
+    if (isDriver) {
+      if (s.vehicleRegNumber !== myVehicle?.registrationNo) return false
+    }
     if (filter === 'UPCOMING') {
       if (!alertRecords.some(r => r.id === s.id && r._alertLevel === 'DUE_SOON')) return false
     } else if (filter === 'OVERDUE') {
@@ -2067,8 +2326,106 @@ const ServicePage = () => {
             </div>
 
             {/* Right — CTA buttons */}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, zIndex: 2, flexShrink: 0 }}>
-              {!isAdmin && (
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, zIndex: 10, flexShrink: 0 }}>
+              {isDriver && (
+                <div ref={driverVehicleSearchRef} style={{ position: 'relative', width: 280 }}>
+                  <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
+                  <input
+                    type="text"
+                    placeholder="Search Vehicle (e.g. CAS-1020)..."
+                    value={driverVehicleSearch}
+                    onChange={e => {
+                      setDriverVehicleSearch(e.target.value)
+                      setDriverVehicleDropdownVisible(true)
+                    }}
+                    onFocus={() => setDriverVehicleDropdownVisible(true)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px 12px 40px',
+                      background: 'rgba(15, 23, 42, 0.6)',
+                      border: `1.5px solid ${driverVehicleSearch ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                      borderRadius: 14,
+                      color: D.text,
+                      fontSize: '0.88rem',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      transition: 'all 0.25s ease',
+                      boxShadow: driverVehicleSearch ? '0 0 16px rgba(99,102,241,0.2)' : 'none',
+                    }}
+                  />
+                  {driverVehicleSearch && (
+                    <X
+                      size={16}
+                      onClick={() => {
+                        setDriverVehicleSearch('')
+                        setSelectedDriverVehicle(null)
+                      }}
+                      style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, cursor: 'pointer' }}
+                    />
+                  )}
+                  {/* Autocomplete Dropdown List */}
+                  {driverVehicleDropdownVisible && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      left: 0,
+                      width: '100%',
+                      maxHeight: 250,
+                      overflowY: 'auto',
+                      background: D.surfaceHi,
+                      border: `1px solid ${D.borderHi}`,
+                      borderRadius: 12,
+                      boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                      zIndex: 999,
+                      scrollbarWidth: 'thin'
+                    }}>
+                      {(() => {
+                        const query = driverVehicleSearch.toLowerCase().trim()
+                        const filteredVehicles = allVehicles.filter(v =>
+                          !v.isDeleted && (
+                            v.registrationNo?.toLowerCase().includes(query) ||
+                            `${v.manufacturer || ''} ${v.model || ''}`.toLowerCase().includes(query)
+                          )
+                        )
+                        if (filteredVehicles.length === 0) {
+                          return (
+                            <div style={{ padding: '12px 16px', fontSize: '0.82rem', color: D.textFaint, textAlign: 'center' }}>
+                              No vehicles found
+                            </div>
+                          )
+                        }
+                        return filteredVehicles.map(v => (
+                          <div
+                            key={v.id}
+                            onClick={() => {
+                              setSelectedDriverVehicle(v)
+                              setDriverVehicleSearch(v.registrationNo)
+                              setDriverVehicleDropdownVisible(false)
+                            }}
+                            className="svc-row-hover"
+                            style={{
+                              padding: '10px 16px',
+                              fontSize: '0.85rem',
+                              color: selectedDriverVehicle?.id === v.id ? '#a5b4fc' : D.text,
+                              cursor: 'pointer',
+                              borderBottom: `1px solid ${D.border}`,
+                              background: selectedDriverVehicle?.id === v.id ? 'rgba(99,102,241,0.08)' : 'transparent',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 2
+                            }}
+                          >
+                            <span style={{ fontWeight: 800 }}>{v.registrationNo}</span>
+                            <span style={{ fontSize: '0.72rem', color: D.textSub }}>{v.manufacturer} {v.model} ({v.vehicleType || 'Unknown'})</span>
+                          </div>
+                        ))
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!isAdmin && !isDriver && (
                 <button
                   onClick={openScheduleModal}
                   style={{
@@ -2087,7 +2444,7 @@ const ServicePage = () => {
                   <Clock size={16} /> Schedule
                 </button>
               )}
-              {!isAdmin && (
+              {!isAdmin && !isDriver && (
                 <button
                   onClick={() => openAddModal()}
                   style={{
@@ -2112,639 +2469,1490 @@ const ServicePage = () => {
           {/* ══════════════════════════════════════════════════════
               2. 5 KPI GLOWING METRIC TILES
           ══════════════════════════════════════════════════════ */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 26 }}>
-            {[
-              {
-                icon: <ClipboardList size={20} />,
-                label: 'Open Orders', value: openOrdersCount,
-                sub: 'Awaiting action',
-                iconBg: 'rgba(59,130,246,0.15)', iconColor: '#60a5fa',
-                glowColor: 'rgba(59,130,246,0.12)',
-              },
-              {
-                icon: <Calendar size={20} />,
-                label: 'Due This Week', value: dueThisWeekCount,
-                sub: 'Scheduled services',
-                iconBg: 'rgba(139,92,246,0.15)', iconColor: '#a78bfa',
-                glowColor: 'rgba(139,92,246,0.1)',
-              },
-              {
-                icon: <ShieldAlert size={20} />,
-                label: 'Overdue', value: overdueCount,
-                sub: 'Needs attention',
-                iconBg: 'rgba(239,68,68,0.15)', iconColor: '#f87171',
-                glowColor: 'rgba(239,68,68,0.1)',
-                urgent: overdueCount > 0,
-              },
-              {
-                icon: <Wallet size={20} />,
-                label: 'MTD Cost',
-                value: null,
-                displayValue: `LKR ${mtdCost >= 1000 ? (mtdCost / 1000).toFixed(1) + 'k' : mtdCost.toLocaleString()}`,
-                fullValue: `LKR ${mtdCost.toLocaleString()}`,
-                sub: 'Month to date',
-                iconBg: 'rgba(251,191,36,0.15)', iconColor: '#fbbf24',
-                glowColor: 'rgba(251,191,36,0.08)',
-                trend: costTrendPercent,
-              },
-              {
-                icon: <Clock size={20} />,
-                label: 'Avg Downtime',
-                value: null,
-                displayValue: `${avgDowntime} hrs`,
-                sub: 'Per completed service',
-                iconBg: 'rgba(45,212,191,0.15)', iconColor: '#2dd4bf',
-                glowColor: 'rgba(45,212,191,0.08)',
-                trend: downtimeTrendPercent,
-              },
-            ].map((card, i) => (
-              <div
-                key={i}
-                className="svc-kpi-card"
-                style={{
-                  background: D.surface,
-                  borderRadius: 16,
-                  padding: '20px 22px',
-                  overflow: 'hidden',
-                  border: `1px solid ${card.urgent ? 'rgba(239,68,68,0.22)' : D.border}`,
-                  boxShadow: card.urgent
-                    ? '0 4px 20px rgba(239,68,68,0.12)'
-                    : `0 4px 20px ${card.glowColor}`,
-                  position: 'relative',
-                  animation: `fadeSlideUp 0.4s ease ${i * 0.07}s both`,
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: 11,
-                    background: card.iconBg,
-                    border: `1px solid ${card.iconColor}22`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: card.iconColor,
-                  }}>
-                    {card.icon}
-                  </div>
-                  {card.trend !== undefined && card.trend !== 0 && (
-                    <div style={{
-                      fontSize: '0.62rem', fontWeight: 800,
-                      padding: '3px 8px', borderRadius: 6,
-                      background: card.trend < 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-                      color: card.trend < 0 ? '#10b981' : '#ef4444',
-                      border: `1px solid ${card.trend < 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
-                    }}>
-                      {card.trend < 0 ? '▼' : '▲'} {Math.abs(card.trend)}%
-                    </div>
-                  )}
-                  {card.urgent && (
-                    <div style={{
-                      fontSize: '0.58rem', fontWeight: 800,
-                      padding: '3px 8px', borderRadius: 6,
-                      background: 'rgba(239,68,68,0.14)', color: '#f87171',
-                      border: '1px solid rgba(239,68,68,0.28)',
-                      animation: 'pulseBar 1.8s ease-in-out infinite',
-                      letterSpacing: '0.05em',
-                    }}>
-                      URGENT
-                    </div>
-                  )}
-                </div>
-
-                <p style={{ margin: '0 0 6px', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                  {card.label}
-                </p>
-                <p
+          {!isDriver && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 26 }}>
+              {[
+                {
+                  icon: <ClipboardList size={20} />,
+                  label: 'Open Orders', value: openOrdersCount,
+                  sub: 'Awaiting action',
+                  iconBg: 'rgba(59,130,246,0.15)', iconColor: '#60a5fa',
+                  glowColor: 'rgba(59,130,246,0.12)',
+                },
+                {
+                  icon: <Calendar size={20} />,
+                  label: 'Due This Week', value: dueThisWeekCount,
+                  sub: 'Scheduled services',
+                  iconBg: 'rgba(139,92,246,0.15)', iconColor: '#a78bfa',
+                  glowColor: 'rgba(139,92,246,0.1)',
+                },
+                {
+                  icon: <ShieldAlert size={20} />,
+                  label: 'Overdue', value: overdueCount,
+                  sub: 'Needs attention',
+                  iconBg: 'rgba(239,68,68,0.15)', iconColor: '#f87171',
+                  glowColor: 'rgba(239,68,68,0.1)',
+                  urgent: overdueCount > 0,
+                },
+                {
+                  icon: <Wallet size={20} />,
+                  label: 'MTD Cost',
+                  value: null,
+                  displayValue: `LKR ${mtdCost >= 1000 ? (mtdCost / 1000).toFixed(1) + 'k' : mtdCost.toLocaleString()}`,
+                  fullValue: `LKR ${mtdCost.toLocaleString()}`,
+                  sub: 'Month to date',
+                  iconBg: 'rgba(251,191,36,0.15)', iconColor: '#fbbf24',
+                  glowColor: 'rgba(251,191,36,0.08)',
+                  trend: costTrendPercent,
+                },
+                {
+                  icon: <Clock size={20} />,
+                  label: 'Avg Downtime',
+                  value: null,
+                  displayValue: `${avgDowntime} hrs`,
+                  sub: 'Per completed service',
+                  iconBg: 'rgba(45,212,191,0.15)', iconColor: '#2dd4bf',
+                  glowColor: 'rgba(45,212,191,0.08)',
+                  trend: downtimeTrendPercent,
+                },
+              ].map((card, i) => (
+                <div
+                  key={i}
+                  className="svc-kpi-card"
                   style={{
-                    margin: '0 0 4px', fontFamily: "'Plus Jakarta Sans', 'Outfit', sans-serif",
-                    fontSize: '1.6rem',
-                    fontWeight: 900, color: card.urgent ? '#f87171' : D.text,
-                    lineHeight: 1.1,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    background: D.surface,
+                    borderRadius: 16,
+                    padding: '20px 22px',
+                    overflow: 'hidden',
+                    border: `1px solid ${card.urgent ? 'rgba(239,68,68,0.22)' : D.border}`,
+                    boxShadow: card.urgent
+                      ? '0 4px 20px rgba(239,68,68,0.12)'
+                      : `0 4px 20px ${card.glowColor}`,
+                    position: 'relative',
+                    animation: `fadeSlideUp 0.4s ease ${i * 0.07}s both`,
                   }}
-                  title={card.fullValue || card.displayValue || String(card.value)}
                 >
-                  {card.displayValue ?? card.value}
-                </p>
-                <p style={{ margin: 0, fontSize: '0.68rem', color: D.textFaint, fontWeight: 500 }}>{card.sub}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* ══════════════════════════════════════════════════════
-              4. ANALYTICS ROW — Alerts + Progress Graph + Donut
-          ══════════════════════════════════════════════════════ */}
-          {/* Service Alerts - Full Width */}
-          <div style={{
-            background: D.surface,
-            border: `1px solid ${alertRecords.length > 0 ? (alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)') : D.border}`,
-            borderRadius: 20,
-            padding: '24px 28px',
-            display: 'flex',
-            flexDirection: 'column',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
-            animation: 'fadeSlideUp 0.4s ease 0.32s both',
-            marginBottom: 26,
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
-                  Service Alerts
-                </h3>
-                <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>Upcoming & overdue</p>
-              </div>
-              {alertRecords.length > 0 && (
-                <span style={{
-                  background: alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                  color: alertRecords.some(r => r._alertLevel === 'OVERDUE') ? '#f87171' : '#fbbf24',
-                  border: `1px solid ${alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
-                  fontSize: '0.75rem',
-                  fontWeight: 800,
-                  padding: '4px 12px',
-                  borderRadius: 999,
-                }}>
-                  {alertRecords.length} active
-                </span>
-              )}
-            </div>
-
-            <div style={{
-              border: alertRecords.length > 0 ? `1px solid ${alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'}` : 'none',
-              borderRadius: 16,
-              overflow: 'hidden',
-              background: D.bg,
-              maxHeight: alertRecords.length === 0 ? 120 : 250,
-              overflowY: alertRecords.length > 3 ? 'auto' : 'visible',
-              flex: 1,
-            }}>
-              {alertRecords.length === 0 ? (
-                <div style={{ padding: '32px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 120 }}>
-                  <div style={{
-                    width: 44, height: 44, borderRadius: '50%', margin: '0 auto 12px',
-                    background: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.2)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <CheckCircle size={20} color="#34d399" />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 11,
+                      background: card.iconBg,
+                      border: `1px solid ${card.iconColor}22`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: card.iconColor,
+                    }}>
+                      {card.icon}
+                    </div>
+                    {card.trend !== undefined && card.trend !== 0 && (
+                      <div style={{
+                        fontSize: '0.62rem', fontWeight: 800,
+                        padding: '3px 8px', borderRadius: 6,
+                        background: card.trend < 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+                        color: card.trend < 0 ? '#10b981' : '#ef4444',
+                        border: `1px solid ${card.trend < 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                      }}>
+                        {card.trend < 0 ? '▼' : '▲'} {Math.abs(card.trend)}%
+                      </div>
+                    )}
+                    {card.urgent && (
+                      <div style={{
+                        fontSize: '0.58rem', fontWeight: 800,
+                        padding: '3px 8px', borderRadius: 6,
+                        background: 'rgba(239,68,68,0.14)', color: '#f87171',
+                        border: '1px solid rgba(239,68,68,0.28)',
+                        animation: 'pulseBar 1.8s ease-in-out infinite',
+                        letterSpacing: '0.05em',
+                      }}>
+                        URGENT
+                      </div>
+                    )}
                   </div>
-                  <h4 style={{ margin: '0 0 4px', fontSize: '0.85rem', fontWeight: 800, color: D.text }}>All vehicles healthy</h4>
-                  <p style={{ margin: 0, fontSize: '0.72rem', color: D.textSub }}>No upcoming or overdue service risks.</p>
-                </div>
-              ) : (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                  gap: 12,
-                  padding: 12,
-                }}>
-                  {alertRecords.map((r) => {
-                    const isOverdue = r._alertLevel === 'OVERDUE'
-                    const accentColor = isOverdue ? '#f87171' : '#fbbf24'
-                    const accentBg = isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'rgba(251, 191, 36, 0.1)'
-                    const accentBorder = isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'
 
-                    return (
-                      <div
-                        key={r.id}
-                        className="svc-alert-card"
-                        onClick={() => setDetailModal({ isOpen: true, record: r })}
+                  <p style={{ margin: '0 0 6px', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    {card.label}
+                  </p>
+                  <p
+                    style={{
+                      margin: '0 0 4px', fontFamily: "'Plus Jakarta Sans', 'Outfit', sans-serif",
+                      fontSize: '1.6rem',
+                      fontWeight: 900, color: card.urgent ? '#f87171' : D.text,
+                      lineHeight: 1.1,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}
+                    title={card.fullValue || card.displayValue || String(card.value)}
+                  >
+                    {card.displayValue ?? card.value}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.68rem', color: D.textFaint, fontWeight: 500 }}>{card.sub}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Display tab calculation */}
+          {(() => {
+            const displayTab = isDriver ? 'history' : activeTab
+            return (
+              <>
+                {/* Tabs Navigation (visible to non-drivers, e.g., admin & controller) */}
+                {!isDriver && (
+                  <div style={{
+                    display: 'flex',
+                    gap: 12,
+                    marginBottom: 26,
+                    borderBottom: `1px solid ${D.border}`,
+                    paddingBottom: 10,
+                    flexWrap: 'wrap'
+                  }}>
+                    {[
+                      { id: 'status', label: 'Active Status / Milestones', icon: <Gauge size={16} /> },
+                      { id: 'update', label: 'Daily Mileage Update', icon: <Gauge size={16} /> },
+                      { id: 'intervals', label: 'Intervals Settings', icon: <Settings size={16} /> },
+                      { id: 'history', label: 'Service History Logs', icon: <ClipboardList size={16} /> }
+                    ].map(tab => {
+                      const isActive = displayTab === tab.id
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '10px 20px',
+                            borderRadius: 12,
+                            fontSize: '0.9rem',
+                            fontWeight: isActive ? 800 : 600,
+                            background: isActive ? 'rgba(99,102,241,0.15)' : 'transparent',
+                            color: isActive ? '#a5b4fc' : D.textSub,
+                            border: isActive ? '1px solid rgba(99,102,241,0.3)' : '1px solid transparent',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={e => {
+                            if (!isActive) {
+                              e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
+                              e.currentTarget.style.color = D.text
+                            }
+                          }}
+                          onMouseLeave={e => {
+                            if (!isActive) {
+                              e.currentTarget.style.background = 'transparent'
+                              e.currentTarget.style.color = D.textSub
+                            }
+                          }}
+                        >
+                          {tab.icon}
+                          {tab.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* ── Active Status / Milestones Tab ── */}
+                {displayTab === 'status' && (
+                  <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                    {/* Header zone with search box */}
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      flexWrap: 'wrap', gap: 14, marginBottom: 20,
+                      background: D.surface, border: `1px solid ${D.border}`,
+                      padding: '18px 24px', borderRadius: 16,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+                    }}>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
+                          Active Status & Milestones
+                        </h3>
+                        <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: D.textSub }}>
+                          Track vehicle mileage service health relative to category thresholds (Warning limit: 200 km)
+                        </p>
+                      </div>
+                      <div style={{ position: 'relative', width: 300 }}>
+                        <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: D.textSub, opacity: 0.8 }} />
+                        <input
+                          type="text"
+                          placeholder="Search vehicle reg or model..."
+                          value={statusSearch}
+                          onChange={e => setStatusSearch(e.target.value)}
+                          style={{
+                            width: '100%', padding: '10px 12px 10px 36px',
+                            background: D.inputBg, border: `1px solid ${statusSearch ? 'rgba(99,102,241,0.4)' : D.inputBorder}`,
+                            borderRadius: 10, color: D.text, fontSize: '0.85rem', outline: 'none',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                        {statusSearch && (
+                          <X size={16} onClick={() => setStatusSearch('')}
+                            style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: D.textSub, cursor: 'pointer' }} />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Grid of vehicle cards */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: 20 }}>
+                      {allVehicles
+                        .filter(v => !v.isDeleted && (
+                          (v.registrationNo || '').toLowerCase().includes(statusSearch.toLowerCase()) ||
+                          `${v.manufacturer || ''} ${v.model || ''}`.toLowerCase().includes(statusSearch.toLowerCase())
+                        ))
+                        .map(v => {
+                          const milestones = getVehicleMilestones(v, services, intervals)
+                          return (
+                            <div
+                              key={v.id}
+                              style={{
+                                background: D.surface, border: `1px solid ${D.border}`,
+                                borderRadius: 16, padding: '20px',
+                                boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                                display: 'flex', flexDirection: 'column', gap: 16
+                              }}
+                            >
+                              {/* Vehicle details header */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ fontWeight: 800, fontSize: '1.1rem', color: D.text }}>
+                                      {v.registrationNo}
+                                    </span>
+                                    <span style={{
+                                      padding: '2px 8px', borderRadius: 999, fontSize: '0.65rem', fontWeight: 800,
+                                      background: D.indigoDim, color: D.indigo, border: `1px solid ${D.borderHi}`
+                                    }}>
+                                      {v.vehicleType || 'Unknown'}
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: '0.82rem', color: D.textSub, marginTop: 4 }}>
+                                    {v.manufacturer} {v.model}
+                                  </div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                  <div style={{ fontSize: '0.75rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase' }}>
+                                    Current Mileage
+                                  </div>
+                                  <div style={{ fontSize: '1.05rem', fontWeight: 900, color: D.text, marginTop: 2 }}>
+                                    {(v.currentMileageKm || 0).toLocaleString()} km
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div style={{ height: 1, background: D.border }} />
+
+                              {/* Milestones status list */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                {milestones.length === 0 ? (
+                                  <div style={{ fontSize: '0.82rem', color: D.textFaint, fontStyle: 'italic', textAlign: 'center', padding: '10px 0' }}>
+                                    No service intervals configured for this vehicle type.
+                                  </div>
+                                ) : (
+                                  milestones.map(m => {
+                                    const isOverdue = m.status === 'OVERDUE'
+                                    const isDueSoon = m.status === 'DUE_SOON'
+                                    const statusConfig = isOverdue
+                                      ? { color: '#ef4444', label: 'Overdue', bg: 'rgba(239,68,68,0.1)' }
+                                      : isDueSoon
+                                        ? { color: '#fbbf24', label: 'Due Soon', bg: 'rgba(251,191,36,0.1)' }
+                                        : { color: '#10b981', label: 'Healthy', bg: 'rgba(16,185,129,0.1)' }
+
+                                    const driven = Math.max(0, (v.currentMileageKm || 0) - m.lastServiceMileage)
+                                    const progressPct = m.intervalKm > 0 ? Math.max(0, Math.min(100, (driven / m.intervalKm) * 100)) : 0
+
+                                    return (
+                                      <div key={m.serviceType} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.text }}>
+                                            {m.serviceType.replace(/_/g, ' ')}
+                                          </span>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <span style={{
+                                              fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: 999,
+                                              background: statusConfig.bg, color: statusConfig.color, border: `1px solid ${statusConfig.color}25`
+                                            }}>
+                                              {statusConfig.label}
+                                            </span>
+                                            {(isOverdue || isDueSoon) && (
+                                              <button
+                                                onClick={() => openAddModal({ vehicleRegNumber: v.registrationNo, serviceType: m.serviceType })}
+                                                title={`Log completed ${m.serviceType.replace(/_/g, ' ')}`}
+                                                style={{
+                                                  background: 'rgba(99, 102, 241, 0.15)',
+                                                  border: '1px solid rgba(99, 102, 241, 0.3)',
+                                                  color: '#a5b4fc',
+                                                  borderRadius: 6,
+                                                  padding: '2px 6px',
+                                                  fontSize: '0.65rem',
+                                                  fontWeight: 700,
+                                                  cursor: 'pointer',
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  gap: 3,
+                                                  transition: 'all 0.2s ease',
+                                                }}
+                                                onMouseEnter={e => {
+                                                  e.currentTarget.style.background = '#4f46e5'
+                                                  e.currentTarget.style.color = '#fff'
+                                                }}
+                                                onMouseLeave={e => {
+                                                  e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)'
+                                                  e.currentTarget.style.color = '#a5b4fc'
+                                                }}
+                                              >
+                                                <Wrench size={10} /> Log Service
+                                              </button>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        {/* Progress bar */}
+                                        <div style={{ position: 'relative', height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden' }}>
+                                          <div style={{
+                                            width: `${progressPct}%`, height: '100%',
+                                            background: statusConfig.color, borderRadius: 999,
+                                            transition: 'width 0.4s ease'
+                                          }} />
+                                        </div>
+
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: D.textSub }}>
+                                          <span>Last: {m.lastServiceMileage.toLocaleString()} km</span>
+                                          <span style={{ fontWeight: 600, color: statusConfig.color }}>
+                                            {m.remainingKm <= 0
+                                              ? `${Math.abs(m.remainingKm).toLocaleString()} km overdue`
+                                              : `${m.remainingKm.toLocaleString()} km remaining`}
+                                          </span>
+                                          <span>Due: {m.nextDueMileage.toLocaleString()} km</span>
+                                        </div>
+                                      </div>
+                                    )
+                                  })
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Daily Mileage Update Tab ── */}
+                {displayTab === 'update' && (
+                  <div style={{ animation: 'fadeIn 0.3s ease', background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.12)' }}>
+                    {/* Header and Bulk Save Actions */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14, padding: '22px 26px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }}>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
+                          Daily Mileage Update
+                        </h3>
+                        <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: D.textSub }}>
+                          Enter the evening odometer readings for all active fleet vehicles in one place
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                        {/* Search box */}
+                        <div style={{ position: 'relative', width: 220 }}>
+                          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: D.textSub, opacity: 0.8 }} />
+                          <input
+                            type="text"
+                            placeholder="Search vehicle..."
+                            value={mileageSearch}
+                            onChange={e => setMileageSearch(e.target.value)}
+                            style={{
+                              width: '100%', padding: '8px 10px 8px 30px',
+                              background: D.inputBg, border: `1px solid ${mileageSearch ? 'rgba(99,102,241,0.4)' : D.inputBorder}`,
+                              borderRadius: 8, color: D.text, fontSize: '0.8rem', outline: 'none',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                          {mileageSearch && (
+                            <X size={14} onClick={() => setMileageSearch('')}
+                              style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: D.textSub, cursor: 'pointer' }} />
+                          )}
+                        </div>
+                        <button
+                          onClick={handleSaveBulkMileage}
+                          disabled={formLoading}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '10px 20px', borderRadius: 12,
+                            background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+                            color: '#fff', fontSize: '0.88rem', fontWeight: 800,
+                            border: 'none', cursor: formLoading ? 'not-allowed' : 'pointer',
+                            boxShadow: '0 4px 14px rgba(99,102,241,0.35)',
+                            opacity: formLoading ? 0.7 : 1
+                          }}
+                        >
+                          {formLoading ? (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                          ) : (
+                            <CheckCircle size={15} />
+                          )}
+                          Save Evening Mileages
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Table zones */}
+                    <div style={{ overflowX: 'auto', scrollbarWidth: 'thin' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead>
+                          <tr style={{ background: D.surfaceHi, borderBottom: `1px solid ${D.border}` }}>
+                            {['Vehicle Reg Number', 'Model / Type', 'Driver Assignee', 'Current Mileage (km)', 'New Mileage Entry (km)'].map(h => (
+                              <th key={h} style={{ padding: '16px 26px', fontSize: '0.82rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                {h}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {allVehicles
+                            .filter(v => !v.isDeleted && (
+                              (v.registrationNo || '').toLowerCase().includes(mileageSearch.toLowerCase()) ||
+                              `${v.manufacturer || ''} ${v.model || ''}`.toLowerCase().includes(mileageSearch.toLowerCase())
+                            ))
+                            .map(v => {
+                              const currentVal = v.currentMileageKm || 0
+                              const entryVal = dailyMileages[v.id] !== undefined ? dailyMileages[v.id] : currentVal
+                              const hasError = errors[v.id]
+                              const isChanged = Number(entryVal) !== currentVal
+
+                              return (
+                                <tr key={v.id} style={{ borderBottom: `1px solid ${D.border}`, background: isChanged ? 'rgba(99,102,241,0.02)' : 'transparent' }}>
+                                  <td style={{ padding: '16px 26px', fontSize: '0.92rem', fontWeight: 800, color: D.text }}>
+                                    {v.registrationNo}
+                                  </td>
+                                  <td style={{ padding: '16px 26px', fontSize: '0.85rem', color: D.textSub }}>
+                                    <span style={{ fontWeight: 600, color: D.text }}>{v.manufacturer} {v.model}</span>
+                                    <span style={{ display: 'block', fontSize: '0.75rem', color: D.textFaint, marginTop: 2 }}>{v.vehicleType || '—'}</span>
+                                  </td>
+                                  <td style={{ padding: '16px 26px', fontSize: '0.85rem', color: D.textSub, fontWeight: 500 }}>
+                                    {v.driverName || 'Unassigned'}
+                                  </td>
+                                  <td style={{ padding: '16px 26px', fontSize: '0.92rem', fontWeight: 800, color: D.text }}>
+                                    {currentVal.toLocaleString()} km
+                                  </td>
+                                  <td style={{ padding: '16px 26px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: 200 }}>
+                                      <input
+                                        type="number"
+                                        value={entryVal === 0 ? '' : entryVal}
+                                        placeholder={currentVal.toString()}
+                                        onChange={e => {
+                                          const val = e.target.value === '' ? 0 : Number(e.target.value)
+                                          setDailyMileages(prev => ({ ...prev, [v.id]: val }))
+                                          if (val >= currentVal && errors[v.id]) {
+                                            setErrors(prev => ({ ...prev, [v.id]: undefined }))
+                                          }
+                                        }}
+                                        style={{
+                                          width: '100%', padding: '8px 12px',
+                                          background: D.inputBg, border: `1px solid ${hasError ? '#ef4444' : isChanged ? 'rgba(99,102,241,0.6)' : D.inputBorder}`,
+                                          borderRadius: 8, color: D.text, fontSize: '0.9rem', outline: 'none',
+                                          boxShadow: isChanged ? '0 0 8px rgba(99,102,241,0.1)' : 'none'
+                                        }}
+                                      />
+                                      {hasError && (
+                                        <span style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 600 }}>
+                                          {hasError}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Intervals Settings Tab ── */}
+                {displayTab === 'intervals' && (
+                  <div style={{ animation: 'fadeIn 0.3s ease', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    {/* Header and save actions */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14, background: D.surface, border: `1px solid ${D.border}`, padding: '18px 24px', borderRadius: 16, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
+                          Service Intervals Configuration
+                        </h3>
+                        <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: D.textSub }}>
+                          Configure default mileage interval thresholds (km) per service type for each vehicle type category
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleSaveIntervals}
+                        disabled={formLoading}
                         style={{
-                          background: D.surface,
-                          border: `1px solid ${D.border}`,
-                          borderLeft: `4px solid ${accentColor}`,
-                          borderRadius: 12,
-                          padding: '14px 18px',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: 12,
-                        }}
-                        onMouseEnter={e => {
-                          e.currentTarget.style.borderColor = accentColor
-                          e.currentTarget.style.transform = 'translateY(-2px)'
-                          e.currentTarget.style.boxShadow = `0 4px 12px ${accentColor}12`
-                        }}
-                        onMouseLeave={e => {
-                          e.currentTarget.style.borderColor = D.border
-                          e.currentTarget.style.transform = 'translateY(0)'
-                          e.currentTarget.style.boxShadow = 'none'
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          padding: '10px 20px', borderRadius: 12,
+                          background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+                          color: '#fff', fontSize: '0.88rem', fontWeight: 800,
+                          border: 'none', cursor: formLoading ? 'not-allowed' : 'pointer',
+                          boxShadow: '0 4px 14px rgba(99,102,241,0.35)',
+                          opacity: formLoading ? 0.7 : 1
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-                          <div style={{
-                            width: 36, height: 36, borderRadius: 8,
-                            background: accentBg, border: `1px solid ${accentBorder}`,
-                            color: accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            flexShrink: 0,
+                        {formLoading ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                        ) : (
+                          <CheckCircle size={15} />
+                        )}
+                        Save Configuration
+                      </button>
+                    </div>
+
+                    {/* Grid of 4 categories: CAR, VAN, LORRY, BUS */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
+                      {['CAR', 'VAN', 'LORRY', 'BUS'].map(vType => (
+                        <div
+                          key={vType}
+                          style={{
+                            background: D.surface, border: `1px solid ${D.border}`,
+                            borderRadius: 16, padding: '20px',
+                            boxShadow: '0 4px 16px rgba(0,0,0,0.05)',
+                            display: 'flex', flexDirection: 'column', gap: 16
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Car size={18} color="#a5b4fc" />
+                            <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
+                              {vType} Category
+                            </h4>
+                          </div>
+
+                          <div style={{ height: 1, background: D.border }} />
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            {SERVICE_TYPES.map(sType => {
+                              const val = getIntervalValue(vType, sType.value)
+                              return (
+                                <div key={sType.value} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: D.textSub }}>
+                                    {sType.label}
+                                  </label>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <input
+                                      type="number"
+                                      value={val === 0 ? '' : val}
+                                      placeholder="0"
+                                      onChange={e => handleIntervalChange(vType, sType.value, e.target.value)}
+                                      style={{
+                                        flex: 1, padding: '8px 10px',
+                                        background: D.inputBg, border: `1px solid ${D.inputBorder}`,
+                                        borderRadius: 8, color: D.text, fontSize: '0.85rem', outline: 'none'
+                                      }}
+                                    />
+                                    <span style={{ fontSize: '0.78rem', color: D.textFaint, fontWeight: 600 }}>km</span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Service History logs Tab ── */}
+                {displayTab === 'history' && (
+                  <>
+                    {/* Service Alerts - Full Width */}
+                    {alertRecords.length > 0 && (
+                      <div style={{
+                        background: D.surface,
+                        border: `1px solid ${alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                        borderRadius: 20,
+                        padding: '24px 28px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+                        animation: 'fadeSlideUp 0.4s ease 0.32s both',
+                        marginBottom: 26,
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                          <div>
+                            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
+                              Service Alerts
+                            </h3>
+                            <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: D.textSub }}>Upcoming & overdue</p>
+                          </div>
+                          <span style={{
+                            background: alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                            color: alertRecords.some(r => r._alertLevel === 'OVERDUE') ? '#f87171' : '#fbbf24',
+                            border: `1px solid ${alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                            fontSize: '0.75rem',
+                            fontWeight: 800,
+                            padding: '4px 12px',
+                            borderRadius: 999,
                           }}>
-                            <Wrench size={14} />
+                            {alertRecords.length} active
+                          </span>
+                        </div>
+
+                        <div style={{
+                          border: `1px solid ${alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
+                          borderRadius: 16,
+                          overflow: 'hidden',
+                          background: D.bg,
+                          maxHeight: 250,
+                          overflowY: alertRecords.length > 3 ? 'auto' : 'visible',
+                          flex: 1,
+                        }}>
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))',
+                            gap: 16,
+                            padding: '16px 8px',
+                          }}>
+                            {alertRecords.map((r) => {
+                              const isOverdue = r._alertLevel === 'OVERDUE'
+                              const accentColor = isOverdue ? '#f87171' : '#fbbf24'
+                              const accentBg = isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'rgba(251, 191, 36, 0.1)'
+                              const accentBorder = isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'
+
+                              const mileage = computeMileageProgress(r, r._vehicleCurrentKm)
+                              const date = computeDateAlert(r)
+
+                              let progressPct = 0
+                              let remainingText = ''
+
+                              if (mileage) {
+                                progressPct = Math.min(mileage.pct, 100)
+                                remainingText = fmtKmRemaining(mileage.remaining)
+                              } else if (date) {
+                                progressPct = Math.max(0, Math.min(100, (30 - date.daysRemaining) / 30 * 100))
+                                remainingText = fmtDaysRemaining(date.daysRemaining)
+                              }
+
+                              return (
+                                <div
+                                  key={r.id}
+                                  className="svc-alert-card"
+                                  style={{
+                                    background: D.surfaceHi,
+                                    border: `1px solid ${accentBorder}`,
+                                    borderRadius: 16,
+                                    padding: '20px',
+                                    cursor: 'default',
+                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 16,
+                                    boxShadow: `0 4px 20px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`,
+                                    position: 'relative',
+                                    overflow: 'hidden'
+                                  }}
+                                  onMouseEnter={e => {
+                                    e.currentTarget.style.borderColor = accentColor
+                                    e.currentTarget.style.transform = 'translateY(-4px)'
+                                    e.currentTarget.style.boxShadow = `0 12px 30px ${isOverdue ? 'rgba(239, 68, 68, 0.15)' : 'rgba(251, 191, 36, 0.15)'}`
+                                  }}
+                                  onMouseLeave={e => {
+                                    e.currentTarget.style.borderColor = accentBorder
+                                    e.currentTarget.style.transform = 'translateY(0)'
+                                    e.currentTarget.style.boxShadow = `0 4px 20px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`
+                                  }}
+                                >
+                                  {/* Top Row: Vehicle Chip and Status Tag */}
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                                    <div style={{
+                                      background: 'rgba(255, 255, 255, 0.04)',
+                                      border: `1.5px solid ${D.borderHi}`,
+                                      borderRadius: 10,
+                                      padding: '4px 12px',
+                                      fontSize: '0.82rem',
+                                      fontWeight: 800,
+                                      color: D.text,
+                                      fontFamily: "'Outfit', monospace",
+                                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+                                      letterSpacing: '0.03em'
+                                    }}>
+                                      {r.vehicleRegNumber}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <span style={{
+                                        width: 8, height: 8, borderRadius: '50%',
+                                        background: accentColor,
+                                        boxShadow: `0 0 8px ${accentColor}`,
+                                        animation: 'pulseBar 1.5s ease-in-out infinite'
+                                      }} />
+                                      <span style={{
+                                        fontSize: '0.68rem',
+                                        fontWeight: 800,
+                                        color: accentColor,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.08em'
+                                      }}>
+                                        {isOverdue ? 'URGENT' : 'UPCOMING'}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Center: Service Task Info */}
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text }}>
+                                      {r.serviceType?.replace(/_/g, ' ')}
+                                    </h4>
+                                    {r.description && r.description !== 'Initial service milestone.' && (
+                                      <p style={{ margin: 0, fontSize: '0.78rem', color: D.textSub, fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                        {r.description}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {/* Progress bar / remaining info */}
+                                  {(mileage || date) && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '2px 0' }}>
+                                      <div style={{ height: 6, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 999, overflow: 'hidden' }}>
+                                        <div style={{
+                                          width: `${progressPct}%`,
+                                          height: '100%',
+                                          background: `linear-gradient(90deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
+                                          borderRadius: 999,
+                                          transition: 'width 0.4s ease'
+                                        }} />
+                                      </div>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: accentColor }}>
+                                          {remainingText}
+                                        </span>
+                                        {mileage && date && (
+                                          <span style={{ fontSize: '0.7rem', color: D.textSub, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                            <Calendar size={11} /> {fmtDaysRemaining(date.daysRemaining)}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Divider line */}
+                                  <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+
+                                  {/* Actions Row */}
+                                  <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
+                                    {!isDriver && (
+                                      <button
+                                        onClick={e => { e.stopPropagation(); openAddModal({ vehicleRegNumber: r.vehicleRegNumber, serviceType: r.serviceType }) }}
+                                        style={{
+                                          flex: 1,
+                                          background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
+                                          border: 'none',
+                                          color: isOverdue ? '#fff' : '#000',
+                                          borderRadius: 10,
+                                          padding: '8px 14px',
+                                          fontSize: '0.8rem',
+                                          fontWeight: 800,
+                                          cursor: 'pointer',
+                                          transition: 'all 0.2s',
+                                          boxShadow: `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          gap: 6
+                                        }}
+                                        onMouseEnter={e => {
+                                          e.currentTarget.style.transform = 'translateY(-1px)'
+                                          e.currentTarget.style.boxShadow = `0 6px 16px ${isOverdue ? 'rgba(239, 68, 68, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`
+                                        }}
+                                        onMouseLeave={e => {
+                                          e.currentTarget.style.transform = 'translateY(0)'
+                                          e.currentTarget.style.boxShadow = `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`
+                                        }}
+                                      >
+                                        <Wrench size={12} />
+                                        Log Service
+                                      </button>
+                                    )}
+                                    {!r._isPseudo && (
+                                      <button
+                                        onClick={e => { e.stopPropagation(); setDetailModal({ isOpen: true, record: r }) }}
+                                        style={{
+                                          background: 'rgba(255, 255, 255, 0.05)',
+                                          border: `1px solid ${D.borderHi}`,
+                                          color: D.text,
+                                          borderRadius: 10,
+                                          padding: '8px 14px',
+                                          fontSize: '0.8rem',
+                                          fontWeight: 700,
+                                          cursor: 'pointer',
+                                          transition: 'all 0.2s',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          gap: 6
+                                        }}
+                                        onMouseEnter={e => {
+                                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
+                                        }}
+                                        onMouseLeave={e => {
+                                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
+                                        }}
+                                      >
+                                        <Eye size={12} />
+                                        View Last
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            })}
                           </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: D.text }}>
-                                {isOverdue ? 'Overdue' : 'Due'}
-                              </span>
-                              <span style={{
-                                fontSize: '0.55rem', fontWeight: 800, padding: '1px 6px',
-                                borderRadius: 999, background: accentBg, color: accentColor,
-                                border: `1px solid ${accentBorder}`,
-                                textTransform: 'uppercase', letterSpacing: '0.04em',
-                              }}>
-                                {isOverdue ? 'URGENT' : 'UPCOMING'}
-                              </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Assigned Vehicle Compliance Documents (Driver only) */}
+                    {isDriver && (
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                        gap: 20,
+                        marginBottom: 26,
+                        animation: 'fadeSlideUp 0.4s ease 0.2s both'
+                      }}>
+                        {myVehicle ? (
+                          <>
+                            {/* Compliance Card */}
+                            <div style={{
+                              background: D.surface,
+                              border: `1px solid ${D.border}`,
+                              borderRadius: 20,
+                              padding: '24px 28px',
+                              boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 16
+                            }}>
+                              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
+                                Compliance & Expiries
+                              </h3>
+                              <p style={{ margin: '-10px 0 0', fontSize: '0.78rem', color: D.textSub }}>
+                                Assigned Vehicle: {myVehicle.manufacturer} {myVehicle.model} ({myVehicle.registrationNo})
+                              </p>
+
+                              {/* Insurance Card */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <div>
+                                    <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: D.text }}>Insurance Expiry</p>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: D.textSub }}>
+                                      {myVehicle.insuranceExpiryDate ? new Date(myVehicle.insuranceExpiryDate).toLocaleDateString() : 'Not Set'}
+                                    </p>
+                                  </div>
+                                  {myVehicle.insuranceExpiryDate ? (() => {
+                                    const diff = Math.ceil((new Date(myVehicle.insuranceExpiryDate) - new Date()) / (1000 * 60 * 60 * 24))
+                                    const isExpired = diff < 0
+                                    const isExpiring = diff <= 30
+                                    return (
+                                      <span style={{
+                                        background: isExpired ? 'rgba(239,68,68,0.15)' : isExpiring ? 'rgba(245,158,11,0.15)' : D.greenDim,
+                                        color: isExpired ? '#ef4444' : isExpiring ? '#f59e0b' : D.green,
+                                        border: `1px solid ${isExpired ? '#ef444450' : isExpiring ? '#f59e0b50' : D.green + '50'}`,
+                                        padding: '4px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800
+                                      }}>
+                                        {isExpired ? 'Expired' : `${diff} days left`}
+                                      </span>
+                                    )
+                                  })() : <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>}
+                                </div>
+                                {myVehicle.insuranceExpiryDate ? (() => {
+                                  const TOTAL_DAYS = 365
+                                  const diff = Math.ceil((new Date(myVehicle.insuranceExpiryDate) - new Date()) / (1000 * 60 * 60 * 24))
+                                  const safePct = Math.max(0, Math.min(100, (diff / TOTAL_DAYS) * 100))
+                                  const r = Math.round(239 - (239 - 16) * (safePct / 100))
+                                  const g = Math.round(68 + (185 - 68) * (safePct / 100))
+                                  const b = Math.round(68 + (129 - 68) * (safePct / 100))
+                                  const barColor = diff < 0 ? '#ef4444' : `rgb(${r},${g},${b})`
+                                  const displayPct = diff < 0 ? 100 : 100 - safePct
+                                  return (
+                                    <div>
+                                      <div style={{ height: 7, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)' }}>
+                                        <div style={{
+                                          width: `${Math.min(displayPct, 100)}%`,
+                                          height: '100%',
+                                          background: barColor,
+                                          borderRadius: 999,
+                                          transition: 'width 0.6s ease, background 0.6s ease',
+                                          boxShadow: `0 0 8px ${barColor}80`
+                                        }} />
+                                      </div>
+                                    </div>
+                                  )
+                                })() : null}
+                              </div>
+
+                              {/* License Card */}
+                              <div style={{ borderTop: `1px solid ${D.border}`, paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <div>
+                                    <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, color: D.text }}>License Expiry</p>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: D.textSub }}>
+                                      {myVehicle.licenseExpiryDate ? new Date(myVehicle.licenseExpiryDate).toLocaleDateString() : 'Not Set'}
+                                    </p>
+                                  </div>
+                                  {myVehicle.licenseExpiryDate ? (() => {
+                                    const diff = Math.ceil((new Date(myVehicle.licenseExpiryDate) - new Date()) / (1000 * 60 * 60 * 24))
+                                    const isExpired = diff < 0
+                                    const isExpiring = diff <= 30
+                                    return (
+                                      <span style={{
+                                        background: isExpired ? 'rgba(239,68,68,0.15)' : isExpiring ? 'rgba(245,158,11,0.15)' : D.greenDim,
+                                        color: isExpired ? '#ef4444' : isExpiring ? '#f59e0b' : D.green,
+                                        border: `1px solid ${isExpired ? '#ef444450' : isExpiring ? '#f59e0b50' : D.green + '50'}`,
+                                        padding: '4px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800
+                                      }}>
+                                        {isExpired ? 'Expired' : `${diff} days left`}
+                                      </span>
+                                    )
+                                  })() : <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>}
+                                </div>
+                                {myVehicle.licenseExpiryDate ? (() => {
+                                  const TOTAL_DAYS = 365
+                                  const diff = Math.ceil((new Date(myVehicle.licenseExpiryDate) - new Date()) / (1000 * 60 * 60 * 24))
+                                  const safePct = Math.max(0, Math.min(100, (diff / TOTAL_DAYS) * 100))
+                                  const r = Math.round(239 - (239 - 16) * (safePct / 100))
+                                  const g = Math.round(68 + (185 - 68) * (safePct / 100))
+                                  const b = Math.round(68 + (129 - 68) * (safePct / 100))
+                                  const barColor = diff < 0 ? '#ef4444' : `rgb(${r},${g},${b})`
+                                  const displayPct = diff < 0 ? 100 : 100 - safePct
+                                  return (
+                                    <div>
+                                      <div style={{ height: 7, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)' }}>
+                                        <div style={{
+                                          width: `${Math.min(displayPct, 100)}%`,
+                                          height: '100%',
+                                          background: barColor,
+                                          borderRadius: 999,
+                                          transition: 'width 0.6s ease, background 0.6s ease',
+                                          boxShadow: `0 0 8px ${barColor}80`
+                                        }} />
+                                      </div>
+                                    </div>
+                                  )
+                                })() : null}
+                              </div>
                             </div>
-                            <p style={{ margin: 0, fontSize: '0.72rem', color: D.textSub, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                              <strong style={{ color: accentColor }}>{r.vehicleRegNumber}</strong>
-                              {' · '}{r.serviceType?.replace(/_/g, ' ')}
-                            </p>
+
+                            {/* Original Documents Card */}
+                            <div style={{
+                              background: D.surface,
+                              border: `1px solid ${D.border}`,
+                              borderRadius: 20,
+                              padding: '24px 28px',
+                              boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 16
+                            }}>
+                              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
+                                Original Documents & Papers
+                              </h3>
+                              <p style={{ margin: '-10px 0 0', fontSize: '0.78rem', color: D.textSub }}>
+                                Click to download original papers
+                              </p>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 10 }}>
+                                {/* Insurance Doc */}
+                                {(() => {
+                                  const path = myVehicle.insuranceDocumentPath
+                                  const originalFilename = path ? path.substring(path.lastIndexOf('_') + 1) : null
+                                  return (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: D.bg, padding: '12px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: D.text }}>Insurance Certificate</span>
+                                        {path ? (
+                                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: D.green, background: D.greenDim, padding: '2px 6px', borderRadius: 4 }}>Uploaded</span>
+                                        ) : (
+                                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: D.textSub }}>No File</span>
+                                        )}
+                                      </div>
+                                      {path && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                                          <button
+                                            onClick={() => downloadDocument(myVehicle.id, 'insurance', originalFilename)}
+                                            style={{
+                                              background: 'none', border: 'none', padding: 0, margin: 0,
+                                              color: D.blue, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer',
+                                              display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit',
+                                              textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '70%'
+                                            }}
+                                          >
+                                            <FileText size={13} /> {originalFilename}
+                                          </button>
+                                          <button
+                                            onClick={() => downloadDocument(myVehicle.id, 'insurance', originalFilename)}
+                                            style={{ background: D.indigoDim, color: D.indigo, border: 'none', padding: '4px 8px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                                          >
+                                            <Download size={11} /> Download
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })()}
+
+                                {/* License Doc */}
+                                {(() => {
+                                  const path = myVehicle.licenseDocumentPath
+                                  const originalFilename = path ? path.substring(path.lastIndexOf('_') + 1) : null
+                                  return (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: D.bg, padding: '12px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: D.text }}>License & Road Tax</span>
+                                        {path ? (
+                                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: D.green, background: D.greenDim, padding: '2px 6px', borderRadius: 4 }}>Uploaded</span>
+                                        ) : (
+                                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: D.textSub }}>No File</span>
+                                        )}
+                                      </div>
+                                      {path && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                                          <button
+                                            onClick={() => downloadDocument(myVehicle.id, 'license', originalFilename)}
+                                            style={{
+                                              background: 'none', border: 'none', padding: 0, margin: 0,
+                                              color: D.blue, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer',
+                                              display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit',
+                                              textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '70%'
+                                            }}
+                                          >
+                                            <FileText size={13} /> {originalFilename}
+                                          </button>
+                                          <button
+                                            onClick={() => downloadDocument(myVehicle.id, 'license', originalFilename)}
+                                            style={{ background: D.indigoDim, color: D.indigo, border: 'none', padding: '4px 8px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                                          >
+                                            <Download size={11} /> Download
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })()}
+
+                                {/* Registration Book Doc */}
+                                {(() => {
+                                  const path = myVehicle.registrationBookPath
+                                  const originalFilename = path ? path.substring(path.lastIndexOf('_') + 1) : null
+                                  return (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: D.bg, padding: '12px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: D.text }}>Registration Book (V5)</span>
+                                        {path ? (
+                                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: D.green, background: D.greenDim, padding: '2px 6px', borderRadius: 4 }}>Uploaded</span>
+                                        ) : (
+                                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: D.textSub }}>No File</span>
+                                        )}
+                                      </div>
+                                      {path && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                                          <button
+                                            onClick={() => downloadDocument(myVehicle.id, 'registration', originalFilename)}
+                                            style={{
+                                              background: 'none', border: 'none', padding: 0, margin: 0,
+                                              color: D.blue, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer',
+                                              display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit',
+                                              textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '70%'
+                                            }}
+                                          >
+                                            <FileText size={13} /> {originalFilename}
+                                          </button>
+                                          <button
+                                            onClick={() => downloadDocument(myVehicle.id, 'registration', originalFilename)}
+                                            style={{ background: D.indigoDim, color: D.indigo, border: 'none', padding: '4px 8px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                                          >
+                                            <Download size={11} /> Download
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })()}
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{
+                            gridColumn: '1 / -1',
+                            background: D.surface,
+                            border: `1px solid ${D.border}`,
+                            borderRadius: 20,
+                            padding: '24px 28px',
+                            boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+                            textAlign: 'center',
+                            color: D.textSub,
+                            fontSize: '0.9rem',
+                            fontWeight: 600
+                          }}>
+                            No vehicle is currently selected or assigned. Please use the search bar at the top of the page to find and select a vehicle.
                           </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* MAIN WORK ORDERS DIRECTORY — Full Width */}
+                    <div style={{
+                      background: D.surface, border: `1px solid ${D.border}`,
+                      borderRadius: 20, overflow: 'hidden',
+                      boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+                      animation: 'fadeSlideUp 0.4s ease 0.44s both',
+                    }}>
+                      {/* Table header zone */}
+                      <div style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                        flexWrap: 'wrap', gap: 14,
+                        padding: '22px 26px 18px',
+                        borderBottom: `1px solid ${D.border}`,
+                        background: D.surfaceHi,
+                      }}>
+                        <div>
+                          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>Work Orders</h3>
+                          <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: D.textSub }}>Filter, track and export service records</p>
+                        </div>
+
+                        {/* Status pill filters */}
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {[
+                            { val: 'ALL', label: 'All', color: '#6366f1' },
+                            { val: 'Open', label: 'Open', color: '#3b82f6' },
+                            { val: 'In Progress', label: 'In Progress', color: '#fbbf24' },
+                            { val: 'Overdue', label: 'Overdue', color: '#ef4444' },
+                            { val: 'Completed', label: 'Done', color: '#10b981' },
+                          ].map(t => {
+                            const isSel = filter === t.val
+                            return (
+                              <button
+                                key={t.val}
+                                onClick={() => setFilter(t.val)}
+                                style={{
+                                  padding: '7px 18px', borderRadius: 999,
+                                  fontSize: '0.85rem', fontWeight: 800,
+                                  background: isSel ? `${t.color}1f` : 'transparent',
+                                  color: isSel ? t.color : D.textSub,
+                                  border: isSel ? `1.5px solid ${t.color}50` : `1.5px solid ${D.border}`,
+                                  cursor: 'pointer', transition: 'all 0.18s ease',
+                                  boxShadow: isSel ? `0 0 10px ${t.color}1f` : 'none',
+                                }}
+                              >
+                                {t.label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Search + Export */}
+                       <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '14px 26px', borderBottom: `1px solid ${D.border}` }}>
+                        <div style={{ position: 'relative', flex: 1 }}>
+                          <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, opacity: 0.8 }} />
+                          <input
+                            type="text"
+                            id="service-search"
+                            placeholder="Search vehicle, task, garage, date, cost…"
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            style={{
+                              width: '100%', padding: '12px 36px 12px 38px',
+                              background: D.inputBg, border: `1px solid ${search ? 'rgba(99,102,241,0.4)' : D.inputBorder}`,
+                              borderRadius: 14, color: D.text, fontSize: '0.95rem', outline: 'none',
+                              boxSizing: 'border-box', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                            }}
+                            onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; e.target.style.boxShadow = '0 0 0 4px rgba(99,102,241,0.08)'; e.target.style.background = D.surface }}
+                            onBlur={e => { e.target.style.borderColor = search ? 'rgba(99,102,241,0.4)' : D.inputBorder; e.target.style.boxShadow = 'none'; e.target.style.background = D.inputBg }}
+                          />
+                          {search && (
+                            <X size={16} onClick={() => setSearch('')}
+                              style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, cursor: 'pointer' }} />
+                          )}
+                        </div>
+
+                        {/* View Switcher */}
+                        <div style={{ display: 'flex', background: D.surfaceHi, border: `1px solid ${D.border}`, borderRadius: 10, padding: 2, gap: 2 }}>
+                          <button
+                            onClick={() => setViewMode('grid')}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              padding: '6px 12px', borderRadius: 8,
+                              background: viewMode === 'grid' ? 'rgba(99,102,241,0.15)' : 'transparent',
+                              border: 'none',
+                              color: viewMode === 'grid' ? '#a5b4fc' : D.textSub,
+                              cursor: 'pointer', transition: 'all 0.15s',
+                            }}
+                            title="Card View"
+                          >
+                            <LayoutGrid size={15} />
+                          </button>
+                          <button
+                            onClick={() => setViewMode('table')}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              padding: '6px 12px', borderRadius: 8,
+                              background: viewMode === 'table' ? 'rgba(99,102,241,0.15)' : 'transparent',
+                              border: 'none',
+                              color: viewMode === 'table' ? '#a5b4fc' : D.textSub,
+                              cursor: 'pointer', transition: 'all 0.15s',
+                            }}
+                            title="Table View"
+                          >
+                            <List size={15} />
+                          </button>
                         </div>
 
                         <button
-                          onClick={e => { e.stopPropagation(); setDetailModal({ isOpen: true, record: r }) }}
+                          onClick={handleExportPDF}
                           style={{
-                            background: 'rgba(255, 255, 255, 0.08)',
-                            border: `1px solid ${D.borderHi}`,
-                            color: D.text,
-                            borderRadius: 8,
-                            padding: '5px 12px',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s',
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '10px 18px', borderRadius: 12,
+                            background: D.surfaceHi, border: `1px solid ${D.border}`,
+                            color: D.text, fontSize: '0.88rem', fontWeight: 800,
+                            cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
                           }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)' }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.1)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.28)'; e.currentTarget.style.color = '#a5b4fc' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}
                         >
-                          View
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                          Export PDF
                         </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* ══════════════════════════════════════════════════════
-              5. MAIN WORK ORDERS DIRECTORY — Full Width
-          ══════════════════════════════════════════════════════ */}
-          <div style={{
-            background: D.surface, border: `1px solid ${D.border}`,
-            borderRadius: 20, overflow: 'hidden',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
-            animation: 'fadeSlideUp 0.4s ease 0.44s both',
-          }}>
-            {/* Table header zone */}
-            <div style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-              flexWrap: 'wrap', gap: 14,
-              padding: '22px 26px 18px',
-              borderBottom: `1px solid ${D.border}`,
-              background: D.surfaceHi,
-            }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>Work Orders</h3>
-                <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: D.textSub }}>Filter, track and export service records</p>
-              </div>
-
-              {/* Status pill filters */}
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {[
-                  { val: 'ALL', label: 'All', color: '#6366f1' },
-                  { val: 'Open', label: 'Open', color: '#3b82f6' },
-                  { val: 'In Progress', label: 'In Progress', color: '#fbbf24' },
-                  { val: 'Overdue', label: 'Overdue', color: '#ef4444' },
-                  { val: 'Completed', label: 'Done', color: '#10b981' },
-                ].map(t => {
-                  const isSel = filter === t.val
-                  return (
-                    <button
-                      key={t.val}
-                      onClick={() => setFilter(t.val)}
-                      style={{
-                        padding: '7px 18px', borderRadius: 999,
-                        fontSize: '0.85rem', fontWeight: 800,
-                        background: isSel ? `${t.color}1f` : 'transparent',
-                        color: isSel ? t.color : D.textSub,
-                        border: isSel ? `1.5px solid ${t.color}50` : `1.5px solid ${D.border}`,
-                        cursor: 'pointer', transition: 'all 0.18s ease',
-                        boxShadow: isSel ? `0 0 10px ${t.color}1f` : 'none',
-                      }}
-                    >
-                      {t.label}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Search + Export */}
-             <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '14px 26px', borderBottom: `1px solid ${D.border}` }}>
-              <div style={{ position: 'relative', flex: 1 }}>
-                <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, opacity: 0.8 }} />
-                <input
-                  type="text"
-                  id="service-search"
-                  placeholder="Search vehicle, task, garage, date, cost…"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  style={{
-                    width: '100%', padding: '12px 36px 12px 38px',
-                    background: D.inputBg, border: `1px solid ${search ? 'rgba(99,102,241,0.4)' : D.inputBorder}`,
-                    borderRadius: 14, color: D.text, fontSize: '0.95rem', outline: 'none',
-                    boxSizing: 'border-box', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  }}
-                  onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; e.target.style.boxShadow = '0 0 0 4px rgba(99,102,241,0.08)'; e.target.style.background = D.surface }}
-                  onBlur={e => { e.target.style.borderColor = search ? 'rgba(99,102,241,0.4)' : D.inputBorder; e.target.style.boxShadow = 'none'; e.target.style.background = D.inputBg }}
-                />
-                {search && (
-                  <X size={16} onClick={() => setSearch('')}
-                    style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, cursor: 'pointer' }} />
-                )}
-              </div>
-
-              {/* View Switcher */}
-              <div style={{ display: 'flex', background: D.surfaceHi, border: `1px solid ${D.border}`, borderRadius: 10, padding: 2, gap: 2 }}>
-                <button
-                  onClick={() => setViewMode('grid')}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    padding: '6px 12px', borderRadius: 8,
-                    background: viewMode === 'grid' ? 'rgba(99,102,241,0.15)' : 'transparent',
-                    border: 'none',
-                    color: viewMode === 'grid' ? '#a5b4fc' : D.textSub,
-                    cursor: 'pointer', transition: 'all 0.15s',
-                  }}
-                  title="Card View"
-                >
-                  <LayoutGrid size={15} />
-                </button>
-                <button
-                  onClick={() => setViewMode('table')}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    padding: '6px 12px', borderRadius: 8,
-                    background: viewMode === 'table' ? 'rgba(99,102,241,0.15)' : 'transparent',
-                    border: 'none',
-                    color: viewMode === 'table' ? '#a5b4fc' : D.textSub,
-                    cursor: 'pointer', transition: 'all 0.15s',
-                  }}
-                  title="Table View"
-                >
-                  <List size={15} />
-                </button>
-              </div>
-
-              <button
-                onClick={handleExportPDF}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  padding: '10px 18px', borderRadius: 12,
-                  background: D.surfaceHi, border: `1px solid ${D.border}`,
-                  color: D.text, fontSize: '0.88rem', fontWeight: 800,
-                  cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.1)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.28)'; e.currentTarget.style.color = '#a5b4fc' }}
-                onMouseLeave={e => { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-                Export PDF
-              </button>
-
-              {!isDriver && (
-                <button
-                  onClick={() => setDeletedDrawer(true)}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '10px 18px', borderRadius: 12,
-                    background: D.surfaceHi, border: `1px solid ${D.border}`,
-                    color: D.textSub, fontSize: '0.88rem', fontWeight: 800,
-                    cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.28)'; e.currentTarget.style.color = '#f87171' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.textSub }}
-                >
-                  <Archive size={15} />
-                  Deleted Records
-                </button>
-              )}
-            </div>
-
-            {/* Conditionally Render Table or Card Grid based on viewMode */}
-            {viewMode === 'grid' ? (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-                gap: 20,
-                padding: '24px 26px',
-                background: D.bg,
-              }}>
-                {loading ? (
-                  [1, 2, 3, 4].map(i => (
-                    <div key={i} style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 12, height: 260, animation: 'pulse 1.5s infinite' }} />
-                  ))
-                ) : filtered.length === 0 ? (
-                  <div style={{ padding: '56px 20px', textAlign: 'center', width: '100%', gridColumn: '1 / -1' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 48, height: 48, borderRadius: 14, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <ClipboardList size={22} color={D.textSub} />
-                      </div>
-                      <p style={{ margin: 0, fontSize: '0.95rem', color: D.textSub, fontWeight: 600 }}>No matching work orders</p>
-                      <p style={{ margin: 0, fontSize: '0.8rem', color: D.textFaint }}>Try adjusting your search or filter.</p>
-                    </div>
-                  </div>
-                ) : (
-                  filtered.map((s, index) => {
-                    const vc = allVehicles.find(v => v.registrationNo === s.vehicleRegNumber)
-                    const vehicleCurrentKm = vc ? vc.currentMileageKm : 0
-                    const isLatest = checkIsLatest(s, services)
-                    return (
-                      <ServiceGridCard
-                        key={s.id}
-                        record={s}
-                        index={index}
-                        isDriver={isDriver}
-                        isAdmin={isAdmin}
-                        currentUsername={user?.userName}
-                        vehicleCurrentKm={vehicleCurrentKm}
-                        isLatest={isLatest}
-                        onEdit={openEditModal}
-                        onDelete={confirmDelete}
-                        onView={(rec) => setDetailModal({ isOpen: true, record: rec })}
-                        onViewAttachment={handleViewAttachment}
-                        D={D}
-                      />
-                    )
-                  })
-                )}
-              </div>
-            ) : (
-              <div style={{ overflowX: 'auto', scrollbarWidth: 'thin' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ background: D.surfaceHi, borderBottom: `1px solid ${D.border}` }}>
-                      {['Work Order', 'Vehicle', 'Task', 'Garage', 'Due Date', 'Cost', 'Status', 'Docs'].map(h => (
-                        <th key={h} style={{
-                          padding: '16px 26px', fontSize: '0.85rem', fontWeight: 800,
-                          color: D.textSub, letterSpacing: '0.07em', textTransform: 'uppercase',
-                          whiteSpace: 'nowrap',
-                        }}>
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      [1, 2, 3, 4].map(i => (
-                        <tr key={i} style={{ borderBottom: `1px solid ${D.border}` }}>
-                          <td colSpan="8" style={{ padding: '20px 26px' }}>
-                            <div style={{ height: 16, background: D.surfaceHi, borderRadius: 4, animation: 'pulse 1.5s infinite' }} />
-                          </td>
-                        </tr>
-                      ))
-                    ) : filtered.length === 0 ? (
-                      <tr>
-                        <td colSpan="8" style={{ padding: '56px 20px', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                            <div style={{ width: 48, height: 48, borderRadius: 14, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <ClipboardList size={22} color={D.textSub} />
-                            </div>
-                            <p style={{ margin: 0, fontSize: '0.95rem', color: D.textSub, fontWeight: 600 }}>No matching work orders</p>
-                            <p style={{ margin: 0, fontSize: '0.8rem', color: D.textFaint }}>Try adjusting your search or filter.</p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      filtered.map((s, rowIdx) => {
-                        const status = getTableStatus(s)
-                        const stConfig = {
-                          Overdue: { color: '#f87171', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.25)', dot: '#ef4444' },
-                          'In Progress': { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.25)', dot: '#fbbf24' },
-                          Open: { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)', border: 'rgba(96,165,250,0.25)', dot: '#3b82f6' },
-                          Completed: { color: '#34d399', bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', dot: '#10b981' },
-                        }[status] || { color: D.textSub, bg: 'rgba(255,255,255,0.05)', border: D.border, dot: D.textSub }
-
-                        const vc = allVehicles.find(v => v.registrationNo === s.vehicleRegNumber)
-                        const vehicleLabel = vc && (vc.manufacturer || vc.model)
-                          ? `${vc.manufacturer || ''} ${vc.model || ''}`.trim()
-                          : null
-
-                        return (
-                          <tr
-                            key={s.id}
-                            className="svc-row-hover"
-                            onClick={() => setDetailModal({ isOpen: true, record: s })}
+                        {!isDriver && (
+                          <button
+                            onClick={() => setDeletedDrawer(true)}
                             style={{
-                              borderBottom: `1px solid ${D.border}`,
-                              cursor: 'pointer',
-                              transition: 'background 0.15s ease',
-                              animation: `fadeUp 0.3s ease ${rowIdx * 0.03}s both`,
+                              display: 'inline-flex', alignItems: 'center', gap: 6,
+                              padding: '10px 18px', borderRadius: 12,
+                              background: D.surfaceHi, border: `1px solid ${D.border}`,
+                              color: D.textSub, fontSize: '0.88rem', fontWeight: 800,
+                              cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
                             }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.28)'; e.currentTarget.style.color = '#f87171' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.textSub }}
                           >
-                            <td style={{ padding: '20px 26px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: stConfig.dot, boxShadow: `0 0 5px ${stConfig.dot}`, flexShrink: 0 }} />
-                                <span style={{ fontSize: '0.92rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>WO-{s.id}</span>
-                              </div>
-                            </td>
+                            <Archive size={15} />
+                            Deleted Records
+                          </button>
+                        )}
+                      </div>
 
-                            <td style={{ padding: '20px 26px' }}>
-                              <div>
-                                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: D.text }}>{s.vehicleRegNumber}</div>
-                                {vehicleLabel && <div style={{ fontSize: '0.8rem', color: D.textSub, marginTop: 2 }}>{vehicleLabel}</div>}
-                              </div>
-                            </td>
-
-                            <td style={{ padding: '20px 26px', maxWidth: 170 }}>
-                              <div>
-                                <div style={{ fontSize: '0.92rem', fontWeight: 700, color: D.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 155 }}>
-                                  {s.serviceType?.replace(/_/g, ' ')}
+                      {/* Conditionally Render Table or Card Grid based on viewMode */}
+                      {viewMode === 'grid' ? (
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                          gap: 20,
+                          padding: '24px 26px',
+                          background: D.bg,
+                        }}>
+                          {loading ? (
+                            [1, 2, 3, 4].map(i => (
+                              <div key={i} style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 12, height: 260, animation: 'pulse 1.5s infinite' }} />
+                            ))
+                          ) : filtered.length === 0 ? (
+                            <div style={{ padding: '56px 20px', textAlign: 'center', width: '100%', gridColumn: '1 / -1' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                                <div style={{ width: 48, height: 48, borderRadius: 14, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <ClipboardList size={22} color={D.textSub} />
                                 </div>
-                                {s.serviceTypeDetail && (
-                                  <div style={{ fontSize: '0.8rem', color: D.textSub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 155 }}>
-                                    {s.serviceTypeDetail}
-                                  </div>
-                                )}
+                                <p style={{ margin: 0, fontSize: '0.95rem', color: D.textSub, fontWeight: 600 }}>No matching work orders</p>
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: D.textFaint }}>Try adjusting your search or filter.</p>
                               </div>
-                            </td>
-
-                            <td style={{ padding: '20px 26px', maxWidth: 130 }}>
-                              <span style={{ fontSize: '0.88rem', color: D.textSub, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>
-                                {s.technicianWorkshop || '—'}
-                              </span>
-                            </td>
-
-                            <td style={{ padding: '20px 26px', fontSize: '0.88rem', color: D.textSub, fontWeight: 600, whiteSpace: 'nowrap' }}>
-                              {s.serviceDate ? s.serviceDate.substring(0, 10) : '—'}
-                            </td>
-
-                            <td style={{ padding: '20px 26px', fontSize: '0.92rem', fontWeight: 800, color: D.text, whiteSpace: 'nowrap' }}>
-                              LKR {Number(s.serviceCost || 0).toLocaleString()}
-                            </td>
-
-                            <td style={{ padding: '20px 26px' }}>
-                              <span style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 5,
-                                fontSize: '0.78rem', fontWeight: 800,
-                                padding: '4px 10px', borderRadius: 999,
-                                background: stConfig.bg, color: stConfig.color,
-                                border: `1px solid ${stConfig.border}`,
-                                whiteSpace: 'nowrap',
-                              }}>
-                                <span style={{ width: 5, height: 5, borderRadius: '50%', background: stConfig.dot, flexShrink: 0 }} />
-                                {status}
-                              </span>
-                            </td>
-
-                            <td style={{ padding: '20px 26px' }} onClick={e => e.stopPropagation()}>
-                              {s.attachmentPath ? (
-                                <button
-                                  onClick={() => handleViewAttachment(s)}
-                                  style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                                    padding: '6px 12px',
-                                    background: 'rgba(52,211,153,0.1)', color: '#34d399',
-                                    border: '1px solid rgba(52,211,153,0.22)',
-                                    borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
-                                    cursor: 'pointer', transition: 'all 0.15s',
-                                  }}
-                                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(52,211,153,0.22)' }}
-                                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(52,211,153,0.1)' }}
-                                >
-                                  <Paperclip size={12} /> View
-                                </button>
+                            </div>
+                          ) : (
+                            filtered.map((s, index) => {
+                              const vc = allVehicles.find(v => v.registrationNo === s.vehicleRegNumber)
+                              const vehicleCurrentKm = vc ? vc.currentMileageKm : 0
+                              const isLatest = checkIsLatest(s, services)
+                              return (
+                                <ServiceGridCard
+                                  key={s.id}
+                                  record={s}
+                                  index={index}
+                                  isDriver={isDriver}
+                                  isAdmin={isAdmin}
+                                  currentUsername={user?.userName}
+                                  vehicleCurrentKm={vehicleCurrentKm}
+                                  isLatest={isLatest}
+                                  onEdit={openEditModal}
+                                  onDelete={confirmDelete}
+                                  onView={(rec) => setDetailModal({ isOpen: true, record: rec })}
+                                  onViewAttachment={handleViewAttachment}
+                                  D={D}
+                                />
+                              )
+                            })
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ overflowX: 'auto', scrollbarWidth: 'thin' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead>
+                              <tr style={{ background: D.surfaceHi, borderBottom: `1px solid ${D.border}` }}>
+                                {['Work Order', 'Vehicle', 'Task', 'Garage', 'Due Date', 'Cost', 'Status', 'Docs'].map(h => (
+                                  <th key={h} style={{
+                                    padding: '16px 26px', fontSize: '0.85rem', fontWeight: 800,
+                                    color: D.textSub, letterSpacing: '0.07em', textTransform: 'uppercase',
+                                    whiteSpace: 'nowrap',
+                                  }}>
+                                    {h}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {loading ? (
+                                [1, 2, 3, 4].map(i => (
+                                  <tr key={i} style={{ borderBottom: `1px solid ${D.border}` }}>
+                                    <td colSpan="8" style={{ padding: '20px 26px' }}>
+                                      <div style={{ height: 16, background: D.surfaceHi, borderRadius: 4, animation: 'pulse 1.5s infinite' }} />
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : filtered.length === 0 ? (
+                                <tr>
+                                  <td colSpan="8" style={{ padding: '56px 20px', textAlign: 'center' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                                      <div style={{ width: 48, height: 48, borderRadius: 14, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <ClipboardList size={22} color={D.textSub} />
+                                      </div>
+                                      <p style={{ margin: 0, fontSize: '0.95rem', color: D.textSub, fontWeight: 600 }}>No matching work orders</p>
+                                      <p style={{ margin: 0, fontSize: '0.8rem', color: D.textFaint }}>Try adjusting your search or filter.</p>
+                                    </div>
+                                  </td>
+                                </tr>
                               ) : (
-                                !isDriver && !isAdmin ? (
-                                  <button
-                                    onClick={() => openEditModal(s.id)}
-                                    style={{
-                                      display: 'inline-flex', alignItems: 'center', gap: 4,
-                                      padding: '6px 12px',
-                                      background: D.surfaceHi, border: `1px solid ${D.border}`,
-                                      color: D.textSub, borderRadius: 8,
-                                      fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
-                                      transition: 'all 0.15s',
-                                    }}
-                                    onMouseEnter={e => { e.currentTarget.style.color = D.text; e.currentTarget.style.borderColor = D.borderHi }}
-                                    onMouseLeave={e => { e.currentTarget.style.color = D.textSub; e.currentTarget.style.borderColor = D.border }}
-                                  >
-                                    <Paperclip size={12} /> Attach
-                                  </button>
-                                ) : (
-                                  <span style={{ fontSize: '0.82rem', color: D.textFaint }}>—</span>
-                                )
+                                filtered.map((s, rowIdx) => {
+                                  const status = getTableStatus(s)
+                                  const stConfig = {
+                                    Overdue: { color: '#f87171', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.25)', dot: '#ef4444' },
+                                    'In Progress': { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.25)', dot: '#fbbf24' },
+                                    Open: { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)', border: 'rgba(96,165,250,0.25)', dot: '#3b82f6' },
+                                    Completed: { color: '#34d399', bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', dot: '#10b981' },
+                                  }[status] || { color: D.textSub, bg: 'rgba(255,255,255,0.05)', border: D.border, dot: D.textSub }
+
+                                  const vc = allVehicles.find(v => v.registrationNo === s.vehicleRegNumber)
+                                  const vehicleLabel = vc && (vc.manufacturer || vc.model)
+                                    ? `${vc.manufacturer || ''} ${vc.model || ''}`.trim()
+                                    : null
+
+                                  return (
+                                    <tr
+                                      key={s.id}
+                                      className="svc-row-hover"
+                                      onClick={() => setDetailModal({ isOpen: true, record: s })}
+                                      style={{
+                                        borderBottom: `1px solid ${D.border}`,
+                                        cursor: 'pointer',
+                                        transition: 'background 0.15s ease',
+                                        animation: `fadeUp 0.3s ease ${rowIdx * 0.03}s both`,
+                                      }}
+                                    >
+                                      <td style={{ padding: '20px 26px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: stConfig.dot, boxShadow: `0 0 5px ${stConfig.dot}`, flexShrink: 0 }} />
+                                          <span style={{ fontSize: '0.92rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>WO-{s.id}</span>
+                                        </div>
+                                      </td>
+
+                                      <td style={{ padding: '20px 26px' }}>
+                                        <div>
+                                          <div style={{ fontSize: '0.92rem', fontWeight: 800, color: D.text }}>{s.vehicleRegNumber}</div>
+                                          {vehicleLabel && <div style={{ fontSize: '0.8rem', color: D.textSub, marginTop: 2 }}>{vehicleLabel}</div>}
+                                        </div>
+                                      </td>
+
+                                      <td style={{ padding: '20px 26px', maxWidth: 170 }}>
+                                        <div>
+                                          <div style={{ fontSize: '0.92rem', fontWeight: 700, color: D.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 155 }}>
+                                            {s.serviceType?.replace(/_/g, ' ')}
+                                          </div>
+                                          {s.serviceTypeDetail && (
+                                            <div style={{ fontSize: '0.8rem', color: D.textSub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 155 }}>
+                                              {s.serviceTypeDetail}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </td>
+
+                                      <td style={{ padding: '20px 26px', maxWidth: 130 }}>
+                                        <span style={{ fontSize: '0.88rem', color: D.textSub, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>
+                                          {s.technicianWorkshop || '—'}
+                                        </span>
+                                      </td>
+
+                                      <td style={{ padding: '20px 26px', fontSize: '0.88rem', color: D.textSub, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                        {s.serviceDate ? s.serviceDate.substring(0, 10) : '—'}
+                                      </td>
+
+                                      <td style={{ padding: '20px 26px', fontSize: '0.92rem', fontWeight: 800, color: D.text, whiteSpace: 'nowrap' }}>
+                                        LKR {Number(s.serviceCost || 0).toLocaleString()}
+                                      </td>
+
+                                      <td style={{ padding: '20px 26px' }}>
+                                        <span style={{
+                                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                                          fontSize: '0.78rem', fontWeight: 800,
+                                          padding: '4px 10px', borderRadius: 999,
+                                          background: stConfig.bg, color: stConfig.color,
+                                          border: `1px solid ${stConfig.border}`,
+                                          whiteSpace: 'nowrap',
+                                        }}>
+                                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: stConfig.dot, flexShrink: 0 }} />
+                                          {status}
+                                        </span>
+                                      </td>
+
+                                      <td style={{ padding: '20px 26px' }} onClick={e => e.stopPropagation()}>
+                                        {s.attachmentPath ? (
+                                          <button
+                                            onClick={() => handleViewAttachment(s)}
+                                            style={{
+                                              display: 'inline-flex', alignItems: 'center', gap: 5,
+                                              padding: '6px 12px',
+                                              background: 'rgba(52,211,153,0.1)', color: '#34d399',
+                                              border: '1px solid rgba(52,211,153,0.22)',
+                                              borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
+                                              cursor: 'pointer', transition: 'all 0.15s',
+                                            }}
+                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(52,211,153,0.22)' }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(52,211,153,0.1)' }}
+                                          >
+                                            <Paperclip size={12} /> View
+                                          </button>
+                                        ) : (
+                                          !isDriver && !isAdmin ? (
+                                            <button
+                                              onClick={() => openEditModal(s.id)}
+                                              style={{
+                                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                                padding: '6px 12px',
+                                                background: D.surfaceHi, border: `1px solid ${D.border}`,
+                                                color: D.textSub, borderRadius: 8,
+                                                fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
+                                                transition: 'all 0.15s',
+                                              }}
+                                              onMouseEnter={e => { e.currentTarget.style.color = D.text; e.currentTarget.style.borderColor = D.borderHi }}
+                                              onMouseLeave={e => { e.currentTarget.style.color = D.textSub; e.currentTarget.style.borderColor = D.border }}
+                                            >
+                                              <Paperclip size={12} /> Attach
+                                            </button>
+                                          ) : (
+                                            <span style={{ fontSize: '0.82rem', color: D.textFaint }}>—</span>
+                                          )
+                                        )}
+                                      </td>
+                                    </tr>
+                                  )
+                                })
                               )}
-                            </td>
-                          </tr>
-                        )
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </>
+            )
+          })()}
+
 
         </div>{/* end page-body */}
       </div>{/* end main-content */}
@@ -3416,32 +4624,40 @@ const ServicePage = () => {
 
               {/* Footer */}
               <div style={{ padding: '16px 28px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 10, background: D.surfaceHi, flexShrink: 0 }}>
-                {/* Controller & Admin: show Edit + Delete */}
-                {!isDriver && (
-                  <>
-                    <button
-                      onClick={() => { closeDetail(); openEditModal(r.id) }}
-                      style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
-                    >
-                      <Edit2 size={15} /> Edit Record
-                    </button>
-                    <button
-                      onClick={() => { closeDetail(); confirmDelete(r.id) }}
-                      style={{ flex: 0.6, padding: '10px 0', borderRadius: 10, border: `1px solid rgba(239,68,68,0.3)`, background: D.redDim, color: D.red, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
-                    >
-                      <Trash2 size={15} /> Delete
-                    </button>
-                  </>
-                )}
-                {/* Driver: only show Edit if they created this record */}
-                {isDriver && r.createdBy === user?.userName && (
-                  <button
-                    onClick={() => { closeDetail(); openEditModal(r.id) }}
-                    style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
-                  >
-                    <Edit2 size={15} /> Edit Record
-                  </button>
-                )}
+                 {/* Controller & Admin: show Edit + Delete */}
+                 {!isDriver && !r._isPseudo && (
+                   <>
+                     <button
+                       onClick={() => { closeDetail(); openEditModal(r.id) }}
+                       style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
+                     >
+                       <Edit2 size={15} /> Edit Record
+                     </button>
+                     <button
+                       onClick={() => { closeDetail(); confirmDelete(r.id) }}
+                       style={{ flex: 0.6, padding: '10px 0', borderRadius: 10, border: `1px solid rgba(239,68,68,0.3)`, background: D.redDim, color: D.red, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
+                     >
+                       <Trash2 size={15} /> Delete
+                     </button>
+                   </>
+                 )}
+                 {/* Driver: only show Edit if they created this record */}
+                 {isDriver && !r._isPseudo && r.createdBy === user?.userName && (
+                   <button
+                     onClick={() => { closeDetail(); openEditModal(r.id) }}
+                     style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
+                   >
+                     <Edit2 size={15} /> Edit Record
+                   </button>
+                 )}
+                 {r._isPseudo && (
+                   <button
+                     onClick={() => { closeDetail(); openAddModal({ vehicleRegNumber: r.vehicleRegNumber, serviceType: r.serviceType }) }}
+                     style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
+                   >
+                     <Wrench size={15} /> Log Completed Service
+                   </button>
+                 )}
                 <button
                   onClick={closeDetail}
                   style={{ flex: 0.5, padding: '10px 0', borderRadius: 10, border: `1px solid ${D.border}`, background: 'transparent', color: D.textSub, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700 }}
@@ -3495,7 +4711,7 @@ const ServicePage = () => {
                       onChange={e => {
                         setVehicleSearch(e.target.value)
                         setVehicleDropdownVisible(true)
-                        const match = allVehicles.find(v => v.registrationNo.toLowerCase() === e.target.value.toLowerCase())
+                        const match = allVehicles.find(v => (v.registrationNo || '').toLowerCase() === e.target.value.toLowerCase())
                         if (!match) {
                           setFormData(prev => ({ ...prev, vehicleRegNumber: '' }))
                           setPreviousMileage(null)
@@ -3529,8 +4745,8 @@ const ServicePage = () => {
                       {(() => {
                         const q = vehicleSearch.toLowerCase()
                         const opts = allVehicles.filter(v =>
-                          v.registrationNo.toLowerCase().includes(q) ||
-                          `${v.manufacturer} ${v.model}`.toLowerCase().includes(q)
+                          (v.registrationNo || '').toLowerCase().includes(q) ||
+                          `${v.manufacturer || ''} ${v.model || ''}`.toLowerCase().includes(q)
                         )
                         if (opts.length === 0) return (
                           <div style={{ padding: '12px 16px', fontSize: '0.82rem', color: D.textSub, textAlign: 'center' }}>No vehicles found</div>
@@ -3775,7 +4991,7 @@ const ServicePage = () => {
                       onChange={e => {
                         setScheduleVehicleSearch(e.target.value)
                         setScheduleVehicleDropdownVisible(true)
-                        const match = allVehicles.find(v => v.registrationNo.toLowerCase() === e.target.value.toLowerCase())
+                        const match = allVehicles.find(v => (v.registrationNo || '').toLowerCase() === e.target.value.toLowerCase())
                         if (match) {
                           setScheduleFormData(prev => ({ ...prev, vehicleRegNumber: match.registrationNo }))
                           if (scheduleErrors.vehicleRegNumber) setScheduleErrors(prev => ({ ...prev, vehicleRegNumber: undefined }))
@@ -3809,8 +5025,8 @@ const ServicePage = () => {
                       {(() => {
                         const q = scheduleVehicleSearch.toLowerCase()
                         const opts = allVehicles.filter(v =>
-                          v.registrationNo.toLowerCase().includes(q) ||
-                          `${v.manufacturer} ${v.model}`.toLowerCase().includes(q)
+                          (v.registrationNo || '').toLowerCase().includes(q) ||
+                          `${v.manufacturer || ''} ${v.model || ''}`.toLowerCase().includes(q)
                         )
                         if (opts.length === 0) return (
                           <div style={{ padding: '12px 16px', fontSize: '0.82rem', color: D.textSub, textAlign: 'center' }}>No vehicles found</div>
@@ -4016,7 +5232,7 @@ const ServicePage = () => {
                       onChange={e => {
                         setEditVehicleSearch(e.target.value)
                         setEditVehicleDropdownVisible(true)
-                        const match = allVehicles.find(v => v.registrationNo.toLowerCase() === e.target.value.toLowerCase())
+                        const match = allVehicles.find(v => (v.registrationNo || '').toLowerCase() === e.target.value.toLowerCase())
                         if (match) {
                           handleVehicleSelect({ target: { value: match.registrationNo } }, true)
                         } else {
@@ -4050,8 +5266,8 @@ const ServicePage = () => {
                       {(() => {
                         const q = editVehicleSearch.toLowerCase()
                         const opts = allVehicles.filter(v =>
-                          v.registrationNo.toLowerCase().includes(q) ||
-                          `${v.manufacturer} ${v.model}`.toLowerCase().includes(q)
+                          (v.registrationNo || '').toLowerCase().includes(q) ||
+                          `${v.manufacturer || ''} ${v.model || ''}`.toLowerCase().includes(q)
                         )
                         if (opts.length === 0) return (
                           <div style={{ padding: '12px 16px', fontSize: '0.82rem', color: D.textSub, textAlign: 'center' }}>No vehicles found</div>

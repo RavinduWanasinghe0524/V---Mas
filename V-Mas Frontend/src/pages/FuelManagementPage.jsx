@@ -220,7 +220,11 @@ const FuelManagementPage = () => {
       : undefined
 
     const lastLog = allLogs.find(l => !l.isDeleted && l.vehicleRegNumber === regNo)
-    const lastMil = lastLog ? lastLog.mileage : null
+    const lastLogMil = lastLog ? Number(lastLog.mileage) : 0
+    const vehicleMil = selected?.currentMileageKm ? Number(selected.currentMileageKm) : 0
+    
+    // Previous mileage baseline is the maximum of the last fuel log and the live vehicle odometer
+    const lastMil = Math.max(lastLogMil, vehicleMil) || null
     setPreviousMileage(lastMil)
     setMileageError('') // reset any stale validation error when switching vehicles
 

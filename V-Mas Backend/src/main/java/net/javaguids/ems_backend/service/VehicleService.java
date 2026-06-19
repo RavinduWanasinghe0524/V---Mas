@@ -26,4 +26,7 @@ public interface VehicleService {
     List<VehicleDto> getDeletedVehicles();
 
     VehicleDto restoreVehicle(Long id);
+
+    void updateBulkMileage(List<net.javaguids.ems_backend.dto.VehicleMileageUpdateDto> updates, String updatedBy);
+
 }
