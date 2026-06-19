@@ -4,8 +4,9 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
-import { userAPI, fuelAPI, serviceAPI } from '../services/api'
-import { Users, Shield, Gamepad2, Car, CheckCircle, Ban, Wrench, Fuel, MapPin, BarChart3, UserCog, ClipboardList, Activity, AlertTriangle, FileText, ShieldAlert, Clock, TrendingUp, Settings2 } from 'lucide-react'
+import { userAPI, fuelAPI, serviceAPI, vehicleAPI, alertAPI, notificationAPI } from '../services/api'
+import * as notifService from '../services/notificationService'
+import { Users, Shield, Gamepad2, Car, CheckCircle, Ban, Wrench, Fuel, MapPin, BarChart3, UserCog, ClipboardList, Activity, AlertTriangle, FileText, ShieldAlert, Clock, TrendingUp, Settings2, Info } from 'lucide-react'
 
 const StatCard = ({ icon, label, value, colorDim, colorHex, change, onClick }) => (
   <div onClick={onClick} style={{
@@ -148,8 +149,71 @@ const AdminDashboard = ({ stats, loading, navigate, isDark }) => {
 
 /* ── Live Fleet Utilization + Status Breakdown ─────────────────── */
 
-const LiveChartsSection = ({ isDark, navigate, chartData, statusData }) => {
-  const A = useAccents(isDark)
+/* ── Mapped activities from system alerts/notifications ── */
+const mapNotificationToActivity = (n) => {
+  let color = '#3b82f6'
+  let icon = <Info size={16} color="#3b82f6" />
+  let action = 'System Update'
+  
+  const typeUpper = (n.type || '').toUpperCase()
+  if (typeUpper.startsWith('FUEL')) {
+    color = '#38bdf8'
+    icon = <Fuel size={16} color="#38bdf8" />
+    if (typeUpper === 'FUEL_ADD') action = 'Fuel Log Added'
+    else if (typeUpper === 'FUEL_EDIT') action = 'Fuel Log Updated'
+    else if (typeUpper === 'FUEL_DELETE') action = 'Fuel Log Deleted'
+    else if (typeUpper === 'FUEL_RESTORE') action = 'Fuel Log Restored'
+    else if (typeUpper === 'FUEL_LOW_EFF' || typeUpper === 'LOW_EFFICIENCY' || typeUpper === 'LOW_EFF') {
+      color = '#ef4444'
+      icon = <AlertTriangle size={16} color="#ef4444" />
+      action = 'Low Fuel Efficiency Alert'
+    } else action = 'Fuel Management Update'
+  } else if (typeUpper.startsWith('SERVICE') || typeUpper.startsWith('OVERDUE') || typeUpper === 'WARNING') {
+    color = '#fbbf24'
+    icon = <Wrench size={16} color="#fbbf24" />
+    if (typeUpper === 'SERVICE_DUE') action = 'Service Due'
+    else if (typeUpper === 'OVERDUE_SERVICE') {
+      color = '#ef4444'
+      icon = <AlertTriangle size={16} color="#ef4444" />
+      action = 'Service Overdue'
+    } else {
+      action = 'Maintenance Update'
+    }
+  } else if (typeUpper.startsWith('USER')) {
+    color = '#10b981'
+    icon = <Users size={16} color="#10b981" />
+    if (typeUpper === 'USER_APPROVAL') action = 'User Account Approved'
+    else if (typeUpper === 'USER_REJECTION') {
+      color = '#ef4444'
+      action = 'User Account Rejected'
+    } else {
+      action = 'User Profile Updated'
+    }
+  } else if (typeUpper === 'ASSIGN') {
+    color = '#a855f7'
+    icon = <Car size={16} color="#a855f7" />
+    action = 'Driver Assigned'
+  } else if (typeUpper === 'UNASSIGN') {
+    color = '#64748b'
+    icon = <Car size={16} color="#64748b" />
+    action = 'Driver Unassigned'
+  } else if (typeUpper === 'VEHICLE' || typeUpper === 'UPDATE') {
+    color = '#2563eb'
+    icon = <Car size={16} color="#2563eb" />
+    action = 'Vehicle Updated'
+  }
+
+  return {
+    id: n.id,
+    color,
+    icon,
+    action,
+    detail: n.message,
+    timestamp: new Date(n.createdAt)
+  }
+}
+
+const FleetUtilizationChart = ({ isDark, chartData }) => {
   const [tooltip, setTooltip] = useState(null)
   const [animProgress, setAnimProgress] = useState(0)
   const svgRef = useRef(null)
@@ -181,9 +245,8 @@ const LiveChartsSection = ({ isDark, navigate, chartData, statusData }) => {
     }
     frame = requestAnimationFrame(animate)
     return () => cancelAnimationFrame(frame)
-  }, [])
+  }, [chartData])
 
-  // Chart dimensions
   const W = 520, H = 180, padL = 40, padR = 16, padT = 16, padB = 36
   const chartW = W - padL - padR
   const chartH = H - padT - padB
@@ -226,13 +289,93 @@ const LiveChartsSection = ({ isDark, navigate, chartData, statusData }) => {
   const areaPath = linePath ? linePath + ` L ${lastPt.x} ${padT + chartH} L ${padL} ${padT + chartH} Z` : ''
   const gridLines = [0, 5, 10, 15, 20].map(v => ({ y: padT + chartH - (v / maxVal) * chartH, label: v }))
 
-  // Donut — 🟢 Green=Active  🟡 Yellow=Maintenance  🔵 Blue=Available
-  const donutData = (statusData && statusData.length > 0) ? statusData : [
-    { label: 'Active',      value: 18, color: '#22c55e' },
-    { label: 'Maintenance', value: 4,  color: '#eab308' },
-    { label: 'Available',   value: 2,  color: '#3b82f6' },
+  const handleMouseMove = useCallback((e) => {
+    const rect = svgRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const mx = e.clientX - rect.left
+    let closest = null, minDist = 30
+    pts.forEach(p => { const dist = Math.abs(p.x - mx); if (dist < minDist) { minDist = dist; closest = p } })
+    setTooltip(closest)
+  }, [pts])
+
+  return (
+    <div style={{
+      background: 'var(--surface)', borderRadius: 24,
+      border: '1px solid var(--surface-border)',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px',
+      position: 'relative', overflow: 'hidden',
+    }}>
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Live Fleet Utilization</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Active vehicles across the day</div>
+      </div>
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
+        style={{ width: '100%', height: 'auto', display: 'block', cursor: 'crosshair' }}
+        onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
+        <defs>
+          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#2563eb" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#2563eb" stopOpacity="0.01" />
+          </linearGradient>
+        </defs>
+        {gridLines.map(gl => (
+          <g key={gl.label}>
+            <line x1={padL} x2={W - padR} y1={gl.y} y2={gl.y} stroke="var(--border)" strokeWidth="1" strokeDasharray="4 4" />
+            <text x={padL - 6} y={gl.y + 4} fontSize="10" fill="var(--text-muted)" textAnchor="end" fontFamily="inherit">{gl.label}</text>
+          </g>
+        ))}
+        {pts.filter((_, i) => i % 2 === 0).map((p, i) => (
+          <text key={i} x={p.x} y={H - 4} fontSize="10" fill="var(--text-muted)" textAnchor="middle" fontFamily="inherit">{p.time}</text>
+        ))}
+        {areaPath && <path d={areaPath} fill="url(#areaGrad)" />}
+        {linePath && <path d={linePath} fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
+        {animProgress > 0 && (
+          <>
+            <circle cx={lastPt.x} cy={lastPt.y} r="6" fill="#2563eb" opacity="0.25">
+              <animate attributeName="r" values="5;10;5" dur="2s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.25;0.05;0.25" dur="2s" repeatCount="indefinite" />
+            </circle>
+            <circle cx={lastPt.x} cy={lastPt.y} r="4" fill="#2563eb" stroke="#fff" strokeWidth="2" />
+          </>
+        )}
+        {tooltip && (
+          <g>
+            <line x1={tooltip.x} x2={tooltip.x} y1={padT} y2={padT + chartH} stroke="#2563eb" strokeWidth="1" strokeDasharray="4 3" opacity="0.6" />
+            <rect x={tooltip.x - 58} y={tooltip.y - 32} width={116} height={28} rx={6} fill="rgba(15,20,40,0.92)" stroke="rgba(37, 99, 235,0.4)" strokeWidth="1" />
+            <text x={tooltip.x} y={tooltip.y - 19} fontSize="8" fill="#94a3b8" textAnchor="middle" fontFamily="inherit">{tooltip.time}</text>
+            <text x={tooltip.x} y={tooltip.y - 8} fontSize="8.5" fill="#fff" textAnchor="middle" fontWeight="700" fontFamily="inherit">Active vehicles : {tooltip.active}</text>
+            <circle cx={tooltip.x} cy={tooltip.y} r="4" fill="#2563eb" stroke="#fff" strokeWidth="1.5" />
+          </g>
+        )}
+      </svg>
+    </div>
+  )
+}
+
+const StatusBreakdown = ({ isDark, statusData, stats }) => {
+  const [animProgress, setAnimProgress] = useState(0)
+
+  useEffect(() => {
+    let frame
+    let start = null
+    const duration = 1200
+    const animate = (ts) => {
+      if (!start) start = ts
+      const p = Math.min((ts - start) / duration, 1)
+      setAnimProgress(p)
+      if (p < 1) frame = requestAnimationFrame(animate)
+    }
+    frame = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(frame)
+  }, [statusData])
+
+  const donutData = [
+    { label: 'Active',      value: stats.active || 0, color: '#34d399' },
+    { label: 'Maintenance', value: stats.maintenance || 0,  color: '#fbbf24' },
+    { label: 'Available',   value: stats.available || 0,  color: '#3b82f6' },
   ]
   const total = donutData.reduce((s, d) => s + d.value, 0)
+  
   const cx = 110, cy = 110, R = 86, r = 56
   let angle = -Math.PI / 2
   const slices = donutData.map(d => {
@@ -244,229 +387,96 @@ const LiveChartsSection = ({ isDark, navigate, chartData, statusData }) => {
     const large = sweep > Math.PI ? 1 : 0
     const path = `M ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${r} ${r} 0 ${large} 0 ${ix1} ${iy1} Z`
     angle += sweep
-    return { ...d, path }
+    return { ...d, path, sweep }
   })
 
-  const handleMouseMove = useCallback((e) => {
-    const rect = svgRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const mx = e.clientX - rect.left
-    let closest = null, minDist = 30
-    pts.forEach(p => { const dist = Math.abs(p.x - mx); if (dist < minDist) { minDist = dist; closest = p } })
-    setTooltip(closest)
-  }, [pts])
-
-  const quickActions = [
-    { icon: <ClipboardList size={20} color="#fbbf24" />, bg: 'rgba(251,191,36,0.15)', border: 'rgba(251,191,36,0.3)', label: 'Add Service Record',    onClick: () => navigate('/service/add', { state: { fromOneClick: true } }) },
-    { icon: <UserCog size={20} color="#34d399" />,       bg: 'rgba(52,211,153,0.15)',  border: 'rgba(52,211,153,0.3)',  label: 'Driver Check-in',       onClick: () => navigate('/users') },
-    { icon: <Car size={20} color="#3b82f6" />,           bg: 'rgba(59, 130, 246,0.15)', border: 'rgba(59, 130, 246,0.3)', label: 'Update Vehicle',       onClick: () => navigate('/vehicles', { state: { openAddVehicle: true, fromOneClick: true } }) },
-    { icon: <Fuel size={20} color="#38bdf8" />,          bg: 'rgba(56,189,248,0.15)',  border: 'rgba(56,189,248,0.3)',  label: 'Mileage Update',        onClick: () => navigate('/fuel-management', { state: { openAddFuelLog: true, fromOneClick: true } }) },
-  ]
-
   return (
-    <div className="dashboard-main-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gridTemplateRows: 'auto auto', gap: 20, marginBottom: 36 }}>
-
-      {/* ── Top-Left: Live Fleet Utilization ── */}
-      <div style={{
-        background: 'var(--surface)', borderRadius: 24,
-        border: '1px solid var(--surface-border)',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px',
-        position: 'relative', overflow: 'hidden',
-        gridColumn: '1 / -1',
-      }}>
-        <div style={{ marginBottom: 18 }}>
-          <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Live Fleet Utilization</div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Active vehicles across the day</div>
-        </div>
-        <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
-          style={{ width: '100%', height: 'auto', display: 'block', cursor: 'crosshair' }}
-          onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
-          <defs>
-            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2563eb" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#2563eb" stopOpacity="0.01" />
-            </linearGradient>
-          </defs>
-          {gridLines.map(gl => (
-            <g key={gl.label}>
-              <line x1={padL} x2={W - padR} y1={gl.y} y2={gl.y} stroke="var(--border)" strokeWidth="1" strokeDasharray="4 4" />
-              <text x={padL - 6} y={gl.y + 4} fontSize="10" fill="var(--text-muted)" textAnchor="end" fontFamily="inherit">{gl.label}</text>
-            </g>
-          ))}
-          {pts.filter((_, i) => i % 2 === 0).map((p, i) => (
-            <text key={i} x={p.x} y={H - 4} fontSize="10" fill="var(--text-muted)" textAnchor="middle" fontFamily="inherit">{p.time}</text>
-          ))}
-          {areaPath && <path d={areaPath} fill="url(#areaGrad)" />}
-          {linePath && <path d={linePath} fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
-          {animProgress > 0 && (
-            <>
-              <circle cx={lastPt.x} cy={lastPt.y} r="6" fill="#2563eb" opacity="0.25">
-                <animate attributeName="r" values="5;10;5" dur="2s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.25;0.05;0.25" dur="2s" repeatCount="indefinite" />
-              </circle>
-              <circle cx={lastPt.x} cy={lastPt.y} r="4" fill="#2563eb" stroke="#fff" strokeWidth="2" />
-            </>
-          )}
-          {tooltip && (
-            <g>
-              <line x1={tooltip.x} x2={tooltip.x} y1={padT} y2={padT + chartH} stroke="#2563eb" strokeWidth="1" strokeDasharray="4 3" opacity="0.6" />
-              <rect x={tooltip.x - 58} y={tooltip.y - 32} width={116} height={28} rx={6} fill="rgba(15,20,40,0.92)" stroke="rgba(37, 99, 235,0.4)" strokeWidth="1" />
-              <text x={tooltip.x} y={tooltip.y - 19} fontSize="8" fill="#94a3b8" textAnchor="middle" fontFamily="inherit">{tooltip.time}</text>
-              <text x={tooltip.x} y={tooltip.y - 8} fontSize="8.5" fill="#fff" textAnchor="middle" fontWeight="700" fontFamily="inherit">Active vehicles : {tooltip.active}</text>
-              <circle cx={tooltip.x} cy={tooltip.y} r="4" fill="#2563eb" stroke="#fff" strokeWidth="1.5" />
-            </g>
-          )}
-        </svg>
+    <div style={{
+      background: 'var(--surface)', borderRadius: 24,
+      border: '1px solid var(--surface-border)',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px',
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Status Breakdown</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Current fleet split</div>
       </div>
-
-      {/* ── Bottom-Left: One-click data entry ── */}
-      <div style={{
-        background: 'var(--surface)', borderRadius: 24,
-        border: '1px solid var(--surface-border)',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px',
-        display: 'flex', flexDirection: 'column',
-      }}>
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>One-click data entry</div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Quick actions</div>
-        </div>
-        <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, flex: 1 }}>
-          {quickActions.map((qa, i) => (
-            <button key={i} onClick={qa.onClick} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '14px 16px', borderRadius: 14,
-              background: qa.bg, border: `1px solid ${qa.border}`,
-              cursor: 'pointer', transition: 'all 0.2s',
-              textAlign: 'left',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 8px 20px ${qa.border}` }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
-            >
-              <div style={{
-                width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-                background: 'rgba(0,0,0,0.15)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>{qa.icon}</div>
-              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>{qa.label}</span>
-              <span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 300 }}>+</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Bottom-Right: Status Breakdown ── */}
-      <div style={{
-        background: 'var(--surface)', borderRadius: 24,
-        border: '1px solid var(--surface-border)',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px',
-        display: 'flex', flexDirection: 'column',
-      }}>
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Status Breakdown</div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Current fleet split</div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 28, flex: 1 }}>
-          <svg viewBox="0 0 220 220" style={{ width: 150, height: 150, flexShrink: 0 }}>
-            {slices.map((s, i) => (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, flex: 1 }}>
+        <svg viewBox="0 0 220 220" style={{ width: 140, height: 140, flexShrink: 0 }}>
+          {slices.map((s, i) => (
+            s.sweep > 0 && (
               <path key={i} d={s.path} fill={s.color}
                 style={{ transition: 'opacity 0.2s', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.35))' }}
                 onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
                 onMouseLeave={e => e.currentTarget.style.opacity = '1'}
               />
-            ))}
-            <text x={cx} y={cy - 8} fontSize="28" fontWeight="900" fill="var(--text-primary)" textAnchor="middle" fontFamily="'Plus Jakarta Sans',sans-serif">{total}</text>
-            <text x={cx} y={cy + 14} fontSize="12" fill="var(--text-muted)" textAnchor="middle" fontFamily="inherit">Total</text>
-          </svg>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {donutData.map((d, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 12, height: 12, borderRadius: 4, background: d.color, flexShrink: 0, boxShadow: `0 0 8px ${d.color}70` }} />
-                <div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>{d.label}</div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>{d.value}</div>
-                </div>
+            )
+          ))}
+          <text x={cx} y={cy - 6} fontSize="28" fontWeight="900" fill="var(--text-primary)" textAnchor="middle" fontFamily="'Plus Jakarta Sans',sans-serif">{total}</text>
+          <text x={cx} y={cy + 14} fontSize="11" fill="var(--text-muted)" textAnchor="middle" fontWeight="700" fontFamily="inherit" textTransform="uppercase" letterSpacing="0.05em">Total</text>
+        </svg>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', width: '100%', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+          {donutData.map((d, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: d.color, flexShrink: 0, boxShadow: `0 0 8px ${d.color}70` }} />
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700 }}>{d.label}</span>
               </div>
-            ))}
-          </div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>{d.value}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
   )
 }
 
-/* ── Controller System Alerts ────────────────────────────────── */
-const controllerAlerts = [
-  { type: 'service', severity: 'UPCOMING', title: 'Service Due Soon',    vehicle: 'SG-ABC-2122', msg: 'Service due in 6 days on 2026-06-12',         color: '#fbbf24', bg: 'rgba(251,191,36,0.10)',  border: 'rgba(251,191,36,0.35)', icon: <Wrench size={18} color="#fbbf24" /> },
-  { type: 'license', severity: 'URGENT',   title: 'License Expiring',    vehicle: 'WP-CAB-8841', msg: 'Driver license expires in 9 days',              color: '#f87171', bg: 'rgba(248,113,113,0.10)', border: 'rgba(248,113,113,0.35)', icon: <FileText size={18} color="#f87171" /> },
-  { type: 'insure',  severity: 'URGENT',   title: 'Insurance Expiring',  vehicle: 'CP-DEF-3390', msg: 'Insurance lapses in 4 days',                    color: '#f87171', bg: 'rgba(248,113,113,0.10)', border: 'rgba(248,113,113,0.35)', icon: <ShieldAlert size={18} color="#f87171" /> },
-  { type: 'service', severity: 'URGENT',   title: 'Service Overdue Risk',vehicle: 'WP-PQR-9034', msg: 'Only 60 km remaining to next service',           color: '#f87171', bg: 'rgba(248,113,113,0.10)', border: 'rgba(248,113,113,0.35)', icon: <Wrench size={18} color="#f87171" /> },
-  { type: 'license', severity: 'UPCOMING', title: 'License Renewal',     vehicle: 'NW-LMN-5521', msg: 'Renewal recommended within 24 days',            color: '#fbbf24', bg: 'rgba(251,191,36,0.10)',  border: 'rgba(251,191,36,0.35)', icon: <FileText size={18} color="#fbbf24" /> },
-]
+const QuickActionsPanel = ({ navigate }) => {
+  const quickActions = [
+    { icon: <Wrench size={18} color="#fbbf24" />, bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.25)', label: 'Add Service Record', onClick: () => navigate('/service/add', { state: { fromOneClick: true } }) },
+    { icon: <UserCog size={18} color="#34d399" />, bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', label: 'Driver Check-in', onClick: () => navigate('/users') },
+    { icon: <Car size={18} color="#3b82f6" />, bg: 'rgba(59, 130, 246,0.12)', border: 'rgba(59, 130, 246,0.25)', label: 'Register Vehicle', onClick: () => navigate('/vehicles', { state: { openAddVehicle: true, fromOneClick: true } }) },
+    { icon: <Fuel size={18} color="#38bdf8" />, bg: 'rgba(56,189,248,0.12)', border: 'rgba(56,189,248,0.25)', label: 'Record Fuel Fill-up', onClick: () => navigate('/fuel-management', { state: { openAddFuelLog: true, fromOneClick: true } }) },
+  ]
 
-const ControllerSystemAlertsSection = ({ navigate }) => (
-  <div style={{ marginBottom: 36 }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20, marginTop: 10 }}>
-      <h2 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text-primary)', fontWeight: 700 }}>System Alerts</h2>
-      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>Urgent and upcoming</span>
-      <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-      <span style={{
-        background: 'rgba(248,113,113,0.15)', color: '#f87171',
-        padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700,
-        border: '1px solid rgba(248,113,113,0.3)',
-      }}>{controllerAlerts.filter(a => a.severity === 'URGENT').length} Urgent</span>
+  return (
+    <div style={{
+      background: 'var(--surface)', borderRadius: 24,
+      border: '1px solid var(--surface-border)',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px',
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Quick Commands</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>One-click fleet entries</div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {quickActions.map((qa, i) => (
+          <button key={i} onClick={qa.onClick} style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '12px 14px', borderRadius: 14,
+            background: qa.bg, border: `1px solid ${qa.border}`,
+            cursor: 'pointer', transition: 'all 0.2s',
+            textAlign: 'left',
+            outline: 'none',
+            fontFamily: 'inherit',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.boxShadow = `0 4px 12px ${qa.border}` }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.boxShadow = 'none' }}
+          >
+            <div style={{
+              width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+              background: 'rgba(0,0,0,0.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>{qa.icon}</div>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>{qa.label}</span>
+            <span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 300 }}>→</span>
+          </button>
+        ))}
+      </div>
     </div>
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {controllerAlerts.map((alert, i) => (
-        <div key={i} style={{
-          display: 'flex', alignItems: 'center', gap: 18,
-          padding: '16px 28px',
-          borderRadius: 14,
-          background: alert.bg,
-          border: `1px solid ${alert.border}`,
-          borderLeft: `3px solid ${alert.color}`,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
-          transition: 'all 0.2s',
-          cursor: 'pointer',
-        }}
-          onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.boxShadow = `0 4px 20px ${alert.color}20` }}
-          onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.2)' }}
-        >
-          <div style={{
-            width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-            background: `${alert.color}18`, border: `1px solid ${alert.color}35`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>{alert.icon}</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>{alert.title}</span>
-              <span style={{
-                fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6,
-                background: alert.severity === 'URGENT' ? 'rgba(248,113,113,0.22)' : 'rgba(251,191,36,0.22)',
-                color: alert.color, border: `1px solid ${alert.color}40`,
-                textTransform: 'uppercase', letterSpacing: '0.06em',
-              }}>{alert.severity}</span>
-            </div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-              <span style={{ color: alert.color, fontWeight: 700 }}>{alert.vehicle}</span>
-              {' · '}{alert.msg}
-            </div>
-          </div>
-          <button
-            onClick={() => alert.type === 'service' ? navigate('/service') : navigate('/vehicles')}
-            style={{
-              padding: '7px 20px', borderRadius: 9,
-              border: `1px solid ${alert.color}40`, background: `${alert.color}14`,
-              color: alert.color, fontSize: '0.78rem', fontWeight: 700,
-              cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = `${alert.color}28` }}
-            onMouseLeave={e => { e.currentTarget.style.background = `${alert.color}14` }}
-          >View</button>
-        </div>
-      ))}
-    </div>
-  </div>
-)
+  )
+}
 
 /* ── Recent Activity ─────────────────────────────────────────── */
 const formatTimeAgo = (date) => {
@@ -485,9 +495,9 @@ const formatTimeAgo = (date) => {
 }
 
 const RecentActivitySection = ({ activities = [], navigate }) => (
-  <div style={{ marginTop: 36 }}>
+  <div style={{ marginTop: 10 }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
-      <h2 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text-primary)', fontWeight: 700 }}>Recent Activity</h2>
+      <h2 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text-primary)', fontWeight: 700 }}>Recent Fleet Activity</h2>
       <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
       <button
         onClick={() => navigate('/reports')}
@@ -495,25 +505,27 @@ const RecentActivitySection = ({ activities = [], navigate }) => (
           padding: '6px 14px', borderRadius: 8, border: '1px solid var(--surface-border)',
           background: 'var(--surface)', color: 'var(--text-muted)',
           fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+          outline: 'none',
+          fontFamily: 'inherit',
         }}
       >View all →</button>
     </div>
     <div style={{
-      background: 'var(--surface)', borderRadius: 20,
+      background: 'var(--surface)', borderRadius: 24,
       border: '1px solid var(--surface-border)',
-      boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.25)',
       overflow: 'hidden',
     }}>
       {activities.length === 0 ? (
-        <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+        <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
           No recent activity found.
         </div>
       ) : (
         activities.map((a, i) => (
           <div key={a.id || i} style={{
             display: 'flex', alignItems: 'center', gap: 18,
-            padding: '16px 32px',
-            borderBottom: i < activities.length - 1 ? '1px solid var(--surface-border)' : 'none',
+            padding: '16px 28px',
+            borderBottom: i < activities.length - 1 ? '1px solid var(--border)' : 'none',
             transition: 'background 0.18s',
             cursor: 'default',
           }}
@@ -526,7 +538,7 @@ const RecentActivitySection = ({ activities = [], navigate }) => (
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>{a.icon}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '0.87rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>{a.action}</div>
+              <div style={{ fontSize: '0.87rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{a.action}</div>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.detail}</div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
@@ -540,30 +552,38 @@ const RecentActivitySection = ({ activities = [], navigate }) => (
   </div>
 )
 
-const ControllerDashboard = ({ navigate, isDark, chartData, statusData }) => {
-  const A = useAccents(isDark)
+const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, activities }) => {
   return (
     <>
       <SectionHeader title="Fleet Overview" />
-      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
-        <StatCard icon={<Car size={20} color={A.purple}/>} label="Total Vehicles" value="24" colorDim={A.purpleDim} colorHex={A.purple} change="Under your management" onClick={() => navigate('/vehicles')} />
-        <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Active" value="18" colorDim={A.greenDim} colorHex={A.green} change="Currently in use" onClick={() => navigate('/vehicles')} />
-        <StatCard icon={<Wrench size={20} color={A.gold}/>} label="Maintenance" value="4" colorDim={A.goldDim} colorHex={A.gold} change="Being serviced" onClick={() => navigate('/service')} />
-        <StatCard icon={<Activity size={20} color={A.blue}/>} label="Available" value="2" colorDim={A.blueDim} colorHex={A.blue} change="Ready to assign" onClick={() => navigate('/vehicles')} />
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 32 }}>
+        <StatCard icon={<Car size={20} color="var(--primary)"/>} label="Total Vehicles" value={stats.total} colorDim="var(--primary-muted)" colorHex="var(--primary)" change="Under fleet management" onClick={() => navigate('/vehicles')} />
+        <StatCard icon={<CheckCircle size={20} color="var(--success)"/>} label="Active" value={stats.active} colorDim="var(--success-bg)" colorHex="var(--success)" change="Currently active" onClick={() => navigate('/vehicles')} />
+        <StatCard icon={<Wrench size={20} color="var(--warning)"/>} label="In Service" value={stats.maintenance} colorDim="var(--warning-bg)" colorHex="var(--warning)" change="Under maintenance" onClick={() => navigate('/service')} />
+        <StatCard icon={<Activity size={20} color="var(--info)"/>} label="Available" value={stats.available} colorDim="var(--info-bg)" colorHex="var(--info)" change="Ready to assign" onClick={() => navigate('/vehicles')} />
       </div>
 
-      <LiveChartsSection isDark={isDark} navigate={navigate} chartData={chartData} statusData={statusData} />
+      <div className="dashboard-columns-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start', marginBottom: 36 }}>
+        {/* Left Column: Utilization & Activity */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <FleetUtilizationChart isDark={isDark} chartData={chartData} />
+          <RecentActivitySection activities={activities} navigate={navigate} />
+        </div>
 
-      <SectionHeader title="One-click data entry" />
-      <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
-        <FeatureCard icon={<Car size={24}/>} title="Vehicle Management" desc="Monitor, track, and manage all fleet vehicles." onClick={() => navigate('/vehicles')} />
-        <FeatureCard icon={<UserCog size={24}/>} title="Driver Assignment" desc="Assign and manage drivers to vehicles and routes." onClick={() => navigate('/users')} />
-        <FeatureCard icon={<Wrench size={24}/>} title="Maintenance Schedule" desc="Schedule and track vehicle service appointments." onClick={() => navigate('/service')} />
-        <FeatureCard icon={<Fuel size={24}/>} title="Fuel Management" desc="Record and track fuel consumption and costs." onClick={() => navigate('/fuel-management')} />
-        
+        {/* Right Column: Breakdown & Quick Actions */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <StatusBreakdown isDark={isDark} statusData={statusData} stats={stats} />
+          <QuickActionsPanel navigate={navigate} />
+        </div>
       </div>
 
-      <RecentActivitySection navigate={navigate} />
+      <style>{`
+        @media (max-width: 1024px) {
+          .dashboard-columns-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </>
   )
 }
@@ -673,9 +693,11 @@ const DashboardPage = () => {
   const navigate = useNavigate()
   const isDark = theme === 'blue'
   const [stats, setStats] = useState({ totalUsers: 0, admins: 0, controllers: 0, drivers: 0, activeUsers: 0, inactiveUsers: 0 })
-  const [fleetChartData, setFleetChartData] = useState([]);
-  const [statusData, setStatusData] = useState([]);
+  const [controllerStats, setControllerStats] = useState({ total: 0, active: 0, maintenance: 0, available: 0 })
+  const [fleetChartData, setFleetChartData] = useState([])
+  const [statusData, setStatusData] = useState([])
   const [alerts, setAlerts] = useState([])
+  const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -683,34 +705,76 @@ const DashboardPage = () => {
     const loadDashboardData = async () => {
       try {
         if (isAdmin || user?.role === 'CONTROLLER') {
+          // Fetch alerts for Admin and Controller
+          try {
+            const alertRes = await alertAPI.getDashboardAlerts()
+            const alertList = alertRes.data.data?.alerts || (Array.isArray(alertRes.data.data) ? alertRes.data.data : [])
+            setAlerts(alertList)
+          } catch (err) {
+            console.error('Error loading dashboard alerts:', err)
+          }
+
           // Fetch stats for Admin
           if (isAdmin) {
-            const response = await userAPI.getAllUsers()
-            const users = response.data.data || []
-            setStats({
-              totalUsers: users.length,
-              admins: users.filter(u => u.role === 'ADMIN').length,
-              controllers: users.filter(u => u.role === 'CONTROLLER').length,
-              drivers: users.filter(u => u.role === 'DRIVER').length,
-              activeUsers: users.filter(u => u.accountStatus === 'ACTIVE').length,
-              inactiveUsers: users.filter(u => u.accountStatus === 'INACTIVE').length,
-            })
+            try {
+              const response = await userAPI.getAllUsers()
+              const users = response.data.data || []
+              setStats({
+                totalUsers: users.length,
+                admins: users.filter(u => u.role === 'ADMIN').length,
+                controllers: users.filter(u => u.role === 'CONTROLLER').length,
+                drivers: users.filter(u => u.role === 'DRIVER').length,
+                activeUsers: users.filter(u => u.accountStatus === 'ACTIVE').length,
+                inactiveUsers: users.filter(u => u.accountStatus === 'INACTIVE').length,
+              })
+            } catch (err) {
+              console.error('Error loading admin user stats:', err)
+            }
+          }
+
+          // Fetch data for Controller
+          if (user?.role === 'CONTROLLER') {
+            try {
+              // 1. Fetch vehicles for stats calculation
+              const response = await vehicleAPI.getAllVehicles()
+              const vehicles = response.data.data || []
+              setControllerStats({
+                total: vehicles.length,
+                active: vehicles.filter(v => v.status === 'ACTIVE').length,
+                maintenance: vehicles.filter(v => v.status === 'SERVICE').length,
+                available: vehicles.filter(v => v.status === 'AVAILABLE').length,
+              })
+
+              // 2. Fetch notifications & merge with local notifications for activities
+              const notifsRes = await notificationAPI.getAll()
+              const backendNotifs = notifsRes.data.data || []
+              const localNotifs = notifService.getControllerNotifications() || []
+              
+              const merged = [...backendNotifs, ...localNotifs]
+              merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+              
+              const top10 = merged.slice(0, 10)
+              const mappedActivities = top10.map(mapNotificationToActivity)
+              setActivities(mappedActivities)
+            } catch (err) {
+              console.error('Error fetching controller dashboard data:', err)
+            }
           }
 
           // Fetch real-time chart data for live fleet utilization
           try {
-            const chartRes = await fuelAPI.getChartData();
-            setFleetChartData(chartRes.data.data || []);
+            const chartRes = await fuelAPI.getChartData()
+            setFleetChartData(chartRes.data.data || [])
           } catch (err) {
-            console.error('Error loading chart data:', err);
+            console.error('Error loading chart data:', err)
           }
 
           // Fetch real-time vehicle status breakdown data
           try {
-            const statusRes = await fuelAPI.getVehicleStats();
-            setStatusData(statusRes.data.data || []);
+            const statusRes = await fuelAPI.getVehicleStats()
+            setStatusData(statusRes.data.data || [])
           } catch (err) {
-            console.error('Error loading status data:', err);
+            console.error('Error loading status data:', err)
           }
         }
       } catch (err) {
@@ -785,7 +849,7 @@ const DashboardPage = () => {
 
           {/* Role-based content */}
           {user?.role === 'ADMIN' && <AdminDashboard stats={stats} loading={loading} navigate={navigate} isDark={isDark} />}
-          {user?.role === 'CONTROLLER' && <ControllerDashboard navigate={navigate} isDark={isDark} chartData={fleetChartData} statusData={statusData} />}
+          {user?.role === 'CONTROLLER' && <ControllerDashboard navigate={navigate} isDark={isDark} chartData={fleetChartData} statusData={statusData} stats={controllerStats} activities={activities} />}
           {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} />}
         </div>
       </div>
