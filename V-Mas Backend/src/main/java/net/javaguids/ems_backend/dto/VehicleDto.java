@@ -40,6 +40,7 @@ public class VehicleDto {
     private String insuranceDocumentPath;
     private String licenseDocumentPath;
     private String registrationBookPath;
+    private String vehicleImage;
 
     private boolean deleted;
     private String deletedBy;

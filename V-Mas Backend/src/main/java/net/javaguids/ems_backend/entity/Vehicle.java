@@ -95,6 +95,9 @@ public class Vehicle {
     @Column(name = "registration_book_path", length = 500, nullable = true)
     private String registrationBookPath;
 
+    @Column(name = "vehicle_image", columnDefinition = "LONGTEXT", nullable = true)
+    private String vehicleImage;
+
     // ── Soft-delete fields ────────────────────────────────────────────────
 
     /** True when the record has been soft-deleted (not physically removed). */

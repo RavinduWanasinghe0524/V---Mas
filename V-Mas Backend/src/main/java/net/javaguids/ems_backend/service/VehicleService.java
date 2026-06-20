@@ -19,7 +19,7 @@ public interface VehicleService {
 
     VehicleDto unassignDriver(Long vehicleId);
 
-    VehicleDto uploadDocument(Long id, String docType, org.springframework.web.multipart.MultipartFile file);
+    VehicleDto uploadDocument(Long id, String docType, org.springframework.web.multipart.MultipartFile file, String expiryDateStr);
 
     org.springframework.core.io.Resource getDocument(Long id, String docType);
 

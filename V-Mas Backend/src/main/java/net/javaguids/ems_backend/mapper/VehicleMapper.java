@@ -32,6 +32,7 @@ public class VehicleMapper {
                 vehicle.getInsuranceDocumentPath(),
                 vehicle.getLicenseDocumentPath(),
                 vehicle.getRegistrationBookPath(),
+                vehicle.getVehicleImage(),
                 vehicle.isDeleted(),
                 vehicle.getDeletedBy(),
                 vehicle.getDeletedAt()
@@ -60,6 +61,7 @@ public class VehicleMapper {
         vehicle.setInsuranceDocumentPath(dto.getInsuranceDocumentPath());
         vehicle.setLicenseDocumentPath(dto.getLicenseDocumentPath());
         vehicle.setRegistrationBookPath(dto.getRegistrationBookPath());
+        vehicle.setVehicleImage(dto.getVehicleImage());
         vehicle.setDeleted(dto.isDeleted());
         vehicle.setDeletedBy(dto.getDeletedBy());
         vehicle.setDeletedAt(dto.getDeletedAt());

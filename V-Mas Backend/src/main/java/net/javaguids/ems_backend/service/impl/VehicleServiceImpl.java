@@ -128,6 +128,7 @@ public class VehicleServiceImpl implements VehicleService {
         if (vehicleDto.getInsuranceDocumentPath() != null) vehicle.setInsuranceDocumentPath(vehicleDto.getInsuranceDocumentPath());
         if (vehicleDto.getLicenseDocumentPath() != null) vehicle.setLicenseDocumentPath(vehicleDto.getLicenseDocumentPath());
         if (vehicleDto.getRegistrationBookPath() != null) vehicle.setRegistrationBookPath(vehicleDto.getRegistrationBookPath());
+        if (vehicleDto.getVehicleImage() != null) vehicle.setVehicleImage(vehicleDto.getVehicleImage());
         
         // Status update
         if (vehicleDto.getStatus() != null) {
@@ -230,7 +231,7 @@ public class VehicleServiceImpl implements VehicleService {
 
     @Override
     @Transactional
-    public VehicleDto uploadDocument(Long id, String docType, MultipartFile file) {
+    public VehicleDto uploadDocument(Long id, String docType, MultipartFile file, String expiryDateStr) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
 
@@ -250,8 +251,14 @@ public class VehicleServiceImpl implements VehicleService {
             // Set document path based on type
             if ("insurance".equalsIgnoreCase(docType)) {
                 vehicle.setInsuranceDocumentPath(savedPath);
+                if (expiryDateStr != null && !expiryDateStr.isEmpty()) {
+                    vehicle.setInsuranceExpiryDate(java.time.LocalDate.parse(expiryDateStr));
+                }
             } else if ("license".equalsIgnoreCase(docType)) {
                 vehicle.setLicenseDocumentPath(savedPath);
+                if (expiryDateStr != null && !expiryDateStr.isEmpty()) {
+                    vehicle.setLicenseExpiryDate(java.time.LocalDate.parse(expiryDateStr));
+                }
             } else if ("registration".equalsIgnoreCase(docType)) {
                 vehicle.setRegistrationBookPath(savedPath);
             } else {
