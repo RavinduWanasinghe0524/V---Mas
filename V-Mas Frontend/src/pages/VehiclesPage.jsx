@@ -52,7 +52,7 @@ const getVehicleMilestones = (vehicle, services, intervals) => {
       new Date(s.serviceDate) <= new Date()
     )
     
-    let lastServiceMileage = 0
+    let lastServiceMileage = vehicle.initialMileageKm != null ? Number(vehicle.initialMileageKm) : Number(vehicle.currentMileageKm || 0)
     let lastRecord = null
     if (completed.length > 0) {
       completed.sort((a, b) => Number(b.currentMileageKm || 0) - Number(a.currentMileageKm || 0))
@@ -121,11 +121,12 @@ const VehiclesPage = () => {
   useEffect(() => {
     localStorage.setItem('vmas_vehicles_view_mode', viewMode)
   }, [viewMode])
-  const { user, isAdmin, isDriver } = useAuth()
+  const { user, isAdmin, isController, isDriver } = useAuth()
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [pendingUpload, setPendingUpload] = useState(null)
   const [editingVehicle, setEditingVehicle] = useState(null)
   const [deletingVehicle, setDeletingVehicle] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -311,11 +312,29 @@ const VehiclesPage = () => {
     }
   }
 
-  const handleDocumentUpload = async (vehicleId, docType, file) => {
+  const viewDocumentOnline = async (id, docType) => {
+    try {
+      const token = localStorage.getItem('token')
+      const res = await api.get(`/vehicles/${id}/document/${docType}`, {
+        responseType: 'blob',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const blob = new Blob([res.data], { type: res.headers['content-type'] })
+      const url = window.URL.createObjectURL(blob)
+      window.open(url, '_blank')
+    } catch (err) {
+      console.error("Failed to view document online:", err)
+      alert("Failed to view document. Please try again.")
+    }
+  }
+
+  const handleDocumentUpload = async (vehicleId, docType, file, expiryDate) => {
     if (!file) return
     setUploadingDoc({ type: docType, loading: true })
     try {
-      const res = await vehicleAPI.uploadDocument(vehicleId, docType, file)
+      const res = await vehicleAPI.uploadDocument(vehicleId, docType, file, expiryDate)
       setVehicles(prev => prev.map(v => v.id === vehicleId ? res.data.data : v))
       setSelectedProfileVehicle(res.data.data)
     } catch (err) {
@@ -324,6 +343,30 @@ const VehiclesPage = () => {
     } finally {
       setUploadingDoc({ type: '', loading: false })
     }
+  }
+
+  const onProfileFileSelect = (vehicleId, docType, file) => {
+    if (!file) return
+    if (docType === 'registration') {
+      handleDocumentUpload(vehicleId, docType, file)
+      return
+    }
+    const nextYear = new Date()
+    nextYear.setFullYear(nextYear.getFullYear() + 1)
+    const defaultExpiry = nextYear.toISOString().split('T')[0]
+    setPendingUpload({
+      vehicleId,
+      docType,
+      file,
+      expiryDate: defaultExpiry
+    })
+  }
+
+  const confirmPendingUpload = async () => {
+    if (!pendingUpload) return
+    const { vehicleId, docType, file, expiryDate } = pendingUpload
+    setPendingUpload(null)
+    await handleDocumentUpload(vehicleId, docType, file, expiryDate)
   }
 
   const renderDocBlock = (docType, label, path) => {
@@ -346,24 +389,41 @@ const VehiclesPage = () => {
 
         {path ? (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 4 }}>
-            <button
-              onClick={() => downloadDocument(selectedProfileVehicle.id, docType, originalFilename)}
-              style={{
-                background: 'none', border: 'none', padding: 0, margin: 0,
-                color: D.blue, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit',
-                textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '70%'
-              }}
-              title="Download File"
-            >
-              <FileText size={12} style={{ flexShrink: 0 }} />
-              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{originalFilename}</span>
-            </button>
-            {!isDriver && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden', maxWidth: '70%' }}>
+              <button
+                onClick={() => viewDocumentOnline(selectedProfileVehicle.id, docType)}
+                style={{
+                  background: 'none', border: 'none', padding: 0, margin: 0,
+                  color: D.blue, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit',
+                  textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap'
+                }}
+                title="View File Online"
+              >
+                <FileText size={12} style={{ flexShrink: 0 }} />
+                <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{originalFilename}</span>
+              </button>
+              {isController && (
+                <button
+                  onClick={() => downloadDocument(selectedProfileVehicle.id, docType, originalFilename)}
+                  style={{
+                    background: 'none', border: 'none', padding: 0, margin: 0,
+                    color: D.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center',
+                    transition: 'color 0.15s'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.color = D.blue}
+                  onMouseLeave={e => e.currentTarget.style.color = D.textSub}
+                  title="Download File"
+                >
+                  <Download size={12} />
+                </button>
+              )}
+            </div>
+            {isController && (
               <label style={{ cursor: 'pointer', flexShrink: 0 }}>
                 <input
                   type="file"
-                  onChange={e => handleDocumentUpload(selectedProfileVehicle.id, docType, e.target.files[0])}
+                  onChange={e => onProfileFileSelect(selectedProfileVehicle.id, docType, e.target.files[0])}
                   style={{ display: 'none' }}
                   disabled={isUploading}
                 />
@@ -375,7 +435,7 @@ const VehiclesPage = () => {
           </div>
         ) : (
           <div>
-            {!isDriver ? (
+            {isController ? (
               <label style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 padding: '8px 10px', borderRadius: 8, border: `1px dashed ${D.border}`,
@@ -387,7 +447,7 @@ const VehiclesPage = () => {
               >
                 <input
                   type="file"
-                  onChange={e => handleDocumentUpload(selectedProfileVehicle.id, docType, e.target.files[0])}
+                  onChange={e => onProfileFileSelect(selectedProfileVehicle.id, docType, e.target.files[0])}
                   style={{ display: 'none' }}
                   disabled={isUploading}
                 />
@@ -430,7 +490,8 @@ const VehiclesPage = () => {
     insuranceExpiryDate: '',
     licenseExpiryDate: '',
     fuelCapacity: '',
-    vehicleType: 'CAR'
+    vehicleType: 'CAR',
+    vehicleImage: ''
   })
   const [editFormData, setEditFormData] = useState({
     model: '',
@@ -445,7 +506,8 @@ const VehiclesPage = () => {
     insuranceExpiryDate: '',
     licenseExpiryDate: '',
     fuelCapacity: '',
-    vehicleType: 'CAR'
+    vehicleType: 'CAR',
+    vehicleImage: ''
   })
 
   // Document upload file states
@@ -506,6 +568,42 @@ const VehiclesPage = () => {
     loadData()
   }, [isAdmin, isDriver, user])
 
+  const handleAddInsuranceFileChange = (file) => {
+    setInsuranceFile(file)
+    if (file) {
+      const nextYear = new Date()
+      nextYear.setFullYear(nextYear.getFullYear() + 1)
+      setFormData(prev => ({ ...prev, insuranceExpiryDate: nextYear.toISOString().split('T')[0] }))
+    }
+  }
+
+  const handleAddLicenseFileChange = (file) => {
+    setLicenseFile(file)
+    if (file) {
+      const nextYear = new Date()
+      nextYear.setFullYear(nextYear.getFullYear() + 1)
+      setFormData(prev => ({ ...prev, licenseExpiryDate: nextYear.toISOString().split('T')[0] }))
+    }
+  }
+
+  const handleEditInsuranceFileChange = (file) => {
+    setEditInsuranceFile(file)
+    if (file) {
+      const nextYear = new Date()
+      nextYear.setFullYear(nextYear.getFullYear() + 1)
+      setEditFormData(prev => ({ ...prev, insuranceExpiryDate: nextYear.toISOString().split('T')[0] }))
+    }
+  }
+
+  const handleEditLicenseFileChange = (file) => {
+    setEditLicenseFile(file)
+    if (file) {
+      const nextYear = new Date()
+      nextYear.setFullYear(nextYear.getFullYear() + 1)
+      setEditFormData(prev => ({ ...prev, licenseExpiryDate: nextYear.toISOString().split('T')[0] }))
+    }
+  }
+
   const openModal = () => setIsModalOpen(true)
 
   const closeModal = () => {
@@ -524,7 +622,8 @@ const VehiclesPage = () => {
       insuranceExpiryDate: '',
       licenseExpiryDate: '',
       fuelCapacity: '',
-      vehicleType: 'CAR'
+      vehicleType: 'CAR',
+      vehicleImage: ''
     })
     setInsuranceFile(null)
     setLicenseFile(null)
@@ -556,10 +655,10 @@ const VehiclesPage = () => {
       const uploadPromises = []
       if (saved?.id) {
         if (insuranceFile) {
-          uploadPromises.push(vehicleAPI.uploadDocument(saved.id, 'insurance', insuranceFile))
+          uploadPromises.push(vehicleAPI.uploadDocument(saved.id, 'insurance', insuranceFile, formData.insuranceExpiryDate))
         }
         if (licenseFile) {
-          uploadPromises.push(vehicleAPI.uploadDocument(saved.id, 'license', licenseFile))
+          uploadPromises.push(vehicleAPI.uploadDocument(saved.id, 'license', licenseFile, formData.licenseExpiryDate))
         }
         if (driverId) {
           uploadPromises.push(vehicleAPI.assignDriver(saved.id, driverId))
@@ -584,6 +683,21 @@ const VehiclesPage = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
+  const handleVehicleImageChange = (e, isEdit = false) => {
+    const file = e.target.files[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        if (isEdit) {
+          setEditFormData(prev => ({ ...prev, vehicleImage: reader.result }))
+        } else {
+          setFormData(prev => ({ ...prev, vehicleImage: reader.result }))
+        }
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   const openEditModal = (vehicle) => {
     setEditingVehicle(vehicle)
     setEditFormData({
@@ -600,7 +714,8 @@ const VehiclesPage = () => {
       licenseExpiryDate: vehicle.licenseExpiryDate || '',
       fuelCapacity: vehicle.fuelCapacity || '',
       status: vehicle.status || '',
-      vehicleType: vehicle.vehicleType || 'CAR'
+      vehicleType: vehicle.vehicleType || 'CAR',
+      vehicleImage: vehicle.vehicleImage || ''
     })
     setIsEditModalOpen(true)
   }
@@ -623,7 +738,8 @@ const VehiclesPage = () => {
       licenseExpiryDate: '',
       fuelCapacity: '',
       status: '',
-      vehicleType: 'CAR'
+      vehicleType: 'CAR',
+      vehicleImage: ''
     })
     setEditInsuranceFile(null)
     setEditLicenseFile(null)
@@ -657,15 +773,16 @@ const VehiclesPage = () => {
         insuranceExpiryDate: editFormData.insuranceExpiryDate || null,
         licenseExpiryDate: editFormData.licenseExpiryDate || null,
         status: editFormData.status,
-        vehicleType: editFormData.vehicleType
+        vehicleType: editFormData.vehicleType,
+        vehicleImage: editFormData.vehicleImage
       })
       
       const uploadPromises = []
       if (editInsuranceFile) {
-        uploadPromises.push(vehicleAPI.uploadDocument(editingVehicle.id, 'insurance', editInsuranceFile))
+        uploadPromises.push(vehicleAPI.uploadDocument(editingVehicle.id, 'insurance', editInsuranceFile, editFormData.insuranceExpiryDate))
       }
       if (editLicenseFile) {
-        uploadPromises.push(vehicleAPI.uploadDocument(editingVehicle.id, 'license', editLicenseFile))
+        uploadPromises.push(vehicleAPI.uploadDocument(editingVehicle.id, 'license', editLicenseFile, editFormData.licenseExpiryDate))
       }
       // Assign / re-assign driver if changed
       if (editFormData.driverId) {
@@ -1406,13 +1523,22 @@ const VehiclesPage = () => {
                               onMouseLeave={e => { e.currentTarget.style.background = D.surface }}
                             >
                               <td style={{ padding: '14px 20px', fontWeight: 700, borderLeft: rowAlertBorder }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  <span style={{ color: D.blue, textDecoration: 'underline' }}>{v.registrationNo ?? 'N/A'}</span>
-                                  {(isInsExpired || isLicExpired) ? (
-                                    <AlertCircle size={13} style={{ color: D.red }} title={isInsExpired ? "Insurance Expired" : "License Expired"} />
-                                  ) : (isInsAlert || isLicAlert) ? (
-                                    <AlertTriangle size={13} style={{ color: D.orange }} title={isInsAlert ? "Insurance Expiring Soon" : "License Expiring Soon"} />
-                                  ) : null}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                  {v.vehicleImage ? (
+                                    <img src={v.vehicleImage} alt={v.registrationNo} style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover', border: `1px solid ${D.border}` }} />
+                                  ) : (
+                                    <div style={{ width: 32, height: 32, borderRadius: 6, background: D.indigoDim, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${D.border}`, color: D.indigo }}>
+                                      <Car size={14} />
+                                    </div>
+                                  )}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ color: D.blue, textDecoration: 'underline' }}>{v.registrationNo ?? 'N/A'}</span>
+                                    {(isInsExpired || isLicExpired) ? (
+                                      <AlertCircle size={13} style={{ color: D.red }} title={isInsExpired ? "Insurance Expired" : "License Expired"} />
+                                    ) : (isInsAlert || isLicAlert) ? (
+                                      <AlertTriangle size={13} style={{ color: D.orange }} title={isInsAlert ? "Insurance Expiring Soon" : "License Expiring Soon"} />
+                                    ) : null}
+                                  </div>
                                 </div>
                               </td>
                               <td style={{ padding: '14px 20px', color: D.text, fontWeight: 600 }}>
@@ -1608,9 +1734,13 @@ const VehiclesPage = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                               {/* Avatar */}
                               <div style={{ flexShrink: 0 }}>
-                                <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, #38bdf8, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1rem', fontWeight: 800, border: `2px solid ${D.border}` }}>
-                                  {initials}
-                                </div>
+                                {v.vehicleImage ? (
+                                  <img src={v.vehicleImage} alt={v.registrationNo} style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${D.border}` }} />
+                                ) : (
+                                  <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, #38bdf8, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1rem', fontWeight: 800, border: `2px solid ${D.border}` }}>
+                                    {initials}
+                                  </div>
+                                )}
                               </div>
                               {/* Name and Subtitle */}
                               <div>
@@ -1834,7 +1964,7 @@ const VehiclesPage = () => {
         {/* ── Add Modal ──────────────────────────────────────────────── */}
         {isModalOpen && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={closeModal}>
-            <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+            <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
               <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
                   <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
@@ -1848,8 +1978,36 @@ const VehiclesPage = () => {
                 <button onClick={closeModal} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
               </div>
 
-              <form onSubmit={handleSubmit} style={{ padding: '36px' }}>
+              <form onSubmit={handleSubmit} style={{ padding: '36px', overflowY: 'auto', flex: 1, scrollbarWidth: 'thin' }}>
                 <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 32 }}>
+                  <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 20, background: D.surfaceHi, padding: '16px 20px', borderRadius: 20, border: `1px solid ${D.border}`, marginBottom: 8 }}>
+                    <div style={{ position: 'relative', width: 80, height: 80, borderRadius: 16, overflow: 'hidden', background: D.bg, border: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {formData.vehicleImage ? (
+                        <img src={formData.vehicleImage} alt="Vehicle Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <Car size={32} style={{ color: D.textSub, opacity: 0.5 }} />
+                      )}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <span style={labelStyle}>Vehicle Image</span>
+                      <p style={{ margin: '0 0 10px', fontSize: '0.75rem', color: D.textSub }}>Upload a photo of this vehicle (PNG, JPG).</p>
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, background: D.blueDim, color: D.blue, border: `1px solid ${D.blue}30`, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = D.blue; e.currentTarget.style.color = '#fff' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = D.blueDim; e.currentTarget.style.color = D.blue }}
+                      >
+                        <Upload size={12} /> {formData.vehicleImage ? 'Change Photo' : 'Upload Photo'}
+                        <input type="file" accept="image/*" onChange={e => handleVehicleImageChange(e, false)} style={{ display: 'none' }} />
+                      </label>
+                      {formData.vehicleImage && (
+                        <button type="button" onClick={() => setFormData(prev => ({ ...prev, vehicleImage: '' }))} style={{ marginLeft: 10, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <div>
                     <label style={labelStyle}>Manufacturer <span style={{ color: D.red }}>*</span></label>
                     <input type="text" name="manufacturer" value={formData.manufacturer} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. Toyota" />
@@ -1925,61 +2083,65 @@ const VehiclesPage = () => {
                     <input type="date" name="licenseExpiryDate" value={formData.licenseExpiryDate} onChange={handleChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                   </div>
 
-                  <div style={{ gridColumn: '1 / -1', borderTop: `1px solid ${D.border}`, paddingTop: 16, marginTop: 8 }}>
-                    <h4 style={{ margin: '0 0 8px', fontSize: '0.8rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Documents & Attachments</h4>
-                  </div>
-                  
-                  <div>
-                    <label style={labelStyle}>Insurance Document</label>
-                    <div style={{
-                      position: 'relative', display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '10px 14px', borderRadius: 8, border: `1px dashed ${D.border}`,
-                      background: D.inputBg, cursor: 'pointer', transition: 'all 0.2s'
-                    }}
-                      onMouseEnter={e => e.currentTarget.style.borderColor = D.blue}
-                      onMouseLeave={e => e.currentTarget.style.borderColor = D.border}
-                    >
-                      <input
-                        type="file"
-                        accept="image/*,application/pdf"
-                        onChange={e => setInsuranceFile(e.target.files[0])}
-                        style={{
-                          position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                          opacity: 0, cursor: 'pointer'
+                  {isController && (
+                    <>
+                      <div style={{ gridColumn: '1 / -1', borderTop: `1px solid ${D.border}`, paddingTop: 16, marginTop: 8 }}>
+                        <h4 style={{ margin: '0 0 8px', fontSize: '0.8rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Documents & Attachments</h4>
+                      </div>
+                      
+                      <div>
+                        <label style={labelStyle}>Insurance Document</label>
+                        <div style={{
+                          position: 'relative', display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '10px 14px', borderRadius: 8, border: `1px dashed ${D.border}`,
+                          background: D.inputBg, cursor: 'pointer', transition: 'all 0.2s'
                         }}
-                      />
-                      <Upload size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                      <span style={{ fontSize: '0.8rem', color: insuranceFile ? D.text : D.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '85%' }}>
-                        {insuranceFile ? insuranceFile.name : 'Upload Insurance (Image / PDF)'}
-                      </span>
-                    </div>
-                  </div>
+                          onMouseEnter={e => e.currentTarget.style.borderColor = D.blue}
+                          onMouseLeave={e => e.currentTarget.style.borderColor = D.border}
+                        >
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            onChange={e => handleAddInsuranceFileChange(e.target.files[0])}
+                            style={{
+                              position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                              opacity: 0, cursor: 'pointer'
+                            }}
+                          />
+                          <Upload size={14} style={{ color: D.textSub, flexShrink: 0 }} />
+                          <span style={{ fontSize: '0.8rem', color: insuranceFile ? D.text : D.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '85%' }}>
+                            {insuranceFile ? insuranceFile.name : 'Upload Insurance (Image / PDF)'}
+                          </span>
+                        </div>
+                      </div>
 
-                  <div>
-                    <label style={labelStyle}>License Document</label>
-                    <div style={{
-                      position: 'relative', display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '10px 14px', borderRadius: 8, border: `1px dashed ${D.border}`,
-                      background: D.inputBg, cursor: 'pointer', transition: 'all 0.2s'
-                    }}
-                      onMouseEnter={e => e.currentTarget.style.borderColor = D.blue}
-                      onMouseLeave={e => e.currentTarget.style.borderColor = D.border}
-                    >
-                      <input
-                        type="file"
-                        accept="image/*,application/pdf"
-                        onChange={e => setLicenseFile(e.target.files[0])}
-                        style={{
-                          position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                          opacity: 0, cursor: 'pointer'
+                      <div>
+                        <label style={labelStyle}>License Document</label>
+                        <div style={{
+                          position: 'relative', display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '10px 14px', borderRadius: 8, border: `1px dashed ${D.border}`,
+                          background: D.inputBg, cursor: 'pointer', transition: 'all 0.2s'
                         }}
-                      />
-                      <Upload size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                      <span style={{ fontSize: '0.8rem', color: licenseFile ? D.text : D.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '85%' }}>
-                        {licenseFile ? licenseFile.name : 'Upload License (Image / PDF)'}
-                      </span>
-                    </div>
-                  </div>
+                          onMouseEnter={e => e.currentTarget.style.borderColor = D.blue}
+                          onMouseLeave={e => e.currentTarget.style.borderColor = D.border}
+                        >
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            onChange={e => handleAddLicenseFileChange(e.target.files[0])}
+                            style={{
+                              position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                              opacity: 0, cursor: 'pointer'
+                            }}
+                          />
+                          <Upload size={14} style={{ color: D.textSub, flexShrink: 0 }} />
+                          <span style={{ fontSize: '0.8rem', color: licenseFile ? D.text : D.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '85%' }}>
+                            {licenseFile ? licenseFile.name : 'Upload License (Image / PDF)'}
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
                 {addError && (
                   <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 8, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', color: D.red, fontSize: '0.83rem', fontWeight: 600 }}>
@@ -2002,7 +2164,7 @@ const VehiclesPage = () => {
         {/* ── Edit Modal ─────────────────────────────────────────────── */}
         {isEditModalOpen && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={closeEditModal}>
-            <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+            <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
               <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
                   <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
@@ -2016,8 +2178,36 @@ const VehiclesPage = () => {
                 <button onClick={closeEditModal} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
               </div>
 
-              <form onSubmit={handleEditSubmit} style={{ padding: '36px' }}>
+              <form onSubmit={handleEditSubmit} style={{ padding: '36px', overflowY: 'auto', flex: 1, scrollbarWidth: 'thin' }}>
                 <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 32 }}>
+                  <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 20, background: D.surfaceHi, padding: '16px 20px', borderRadius: 20, border: `1px solid ${D.border}`, marginBottom: 8 }}>
+                    <div style={{ position: 'relative', width: 80, height: 80, borderRadius: 16, overflow: 'hidden', background: D.bg, border: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {editFormData.vehicleImage ? (
+                        <img src={editFormData.vehicleImage} alt="Vehicle Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <Car size={32} style={{ color: D.textSub, opacity: 0.5 }} />
+                      )}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <span style={labelStyle}>Vehicle Image</span>
+                      <p style={{ margin: '0 0 10px', fontSize: '0.75rem', color: D.textSub }}>Upload a photo of this vehicle (PNG, JPG).</p>
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, background: D.blueDim, color: D.blue, border: `1px solid ${D.blue}30`, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = D.blue; e.currentTarget.style.color = '#fff' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = D.blueDim; e.currentTarget.style.color = D.blue }}
+                      >
+                        <Upload size={12} /> {editFormData.vehicleImage ? 'Change Photo' : 'Upload Photo'}
+                        <input type="file" accept="image/*" onChange={e => handleVehicleImageChange(e, true)} style={{ display: 'none' }} />
+                      </label>
+                      {editFormData.vehicleImage && (
+                        <button type="button" onClick={() => setEditFormData(prev => ({ ...prev, vehicleImage: '' }))} style={{ marginLeft: 10, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <div>
                     <label style={labelStyle}>Manufacturer</label>
                     <input type="text" name="manufacturer" value={editFormData.manufacturer} onChange={handleEditChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
@@ -2110,132 +2300,182 @@ const VehiclesPage = () => {
                   <div>
                     <label style={labelStyle}>Insurance Document</label>
                     {editingVehicle?.insuranceDocumentPath && !editInsuranceFile ? (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', gap: 10, padding: '10px 14px', borderRadius: 8, border: `1px solid ${D.border}`, background: D.surfaceHi }}>
-                        <button
-                          type="button"
-                          onClick={() => downloadDocument(editingVehicle.id, 'insurance', editingVehicle.insuranceDocumentPath.substring(editingVehicle.insuranceDocumentPath.lastIndexOf('_') + 1))}
-                          style={{
-                            background: 'none', border: 'none', padding: 0, margin: 0,
-                            color: D.blue, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit',
-                            textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '70%'
-                          }}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', gap: 10, padding: '10px 14px', borderRadius: 8, border: `1px solid ${D.border}`, background: D.surfaceHi, width: '100%' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden', maxWidth: '70%' }}>
+                          <button
+                            type="button"
+                            onClick={() => viewDocumentOnline(editingVehicle.id, 'insurance')}
+                            style={{
+                              background: 'none', border: 'none', padding: 0, margin: 0,
+                              color: D.blue, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit',
+                              textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap'
+                            }}
+                            title="View File Online"
+                          >
+                            <FileText size={14} style={{ flexShrink: 0 }} />
+                            <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                              {editingVehicle.insuranceDocumentPath.substring(editingVehicle.insuranceDocumentPath.lastIndexOf('_') + 1)}
+                            </span>
+                          </button>
+                          {isController && (
+                            <button
+                              type="button"
+                              onClick={() => downloadDocument(editingVehicle.id, 'insurance', editingVehicle.insuranceDocumentPath.substring(editingVehicle.insuranceDocumentPath.lastIndexOf('_') + 1))}
+                              style={{
+                                background: 'none', border: 'none', padding: 0, margin: 0,
+                                color: D.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center',
+                                transition: 'color 0.15s'
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.color = D.blue}
+                              onMouseLeave={e => e.currentTarget.style.color = D.textSub}
+                              title="Download File"
+                            >
+                              <Download size={14} />
+                            </button>
+                          )}
+                        </div>
+                        {isController && (
+                          <label style={{ cursor: 'pointer', marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+                            <input
+                              type="file"
+                              accept="image/*,application/pdf"
+                              onChange={e => handleEditInsuranceFileChange(e.target.files[0])}
+                              style={{ display: 'none' }}
+                            />
+                            <span style={{ color: D.textSub, fontSize: '0.75rem', fontWeight: 700, textDecoration: 'underline' }}>
+                              Replace
+                            </span>
+                          </label>
+                        )}
+                      </div>
+                    ) : (
+                      isController ? (
+                        <div style={{
+                          position: 'relative', display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '10px 14px', borderRadius: 8, border: `1px dashed ${D.border}`,
+                          background: D.inputBg, cursor: 'pointer', transition: 'all 0.2s'
+                        }}
+                          onMouseEnter={e => e.currentTarget.style.borderColor = D.blue}
+                          onMouseLeave={e => e.currentTarget.style.borderColor = D.border}
                         >
-                          <FileText size={14} style={{ flexShrink: 0 }} />
-                          <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                            {editingVehicle.insuranceDocumentPath.substring(editingVehicle.insuranceDocumentPath.lastIndexOf('_') + 1)}
-                          </span>
-                        </button>
-                        <label style={{ cursor: 'pointer', marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
                           <input
                             type="file"
                             accept="image/*,application/pdf"
-                            onChange={e => setEditInsuranceFile(e.target.files[0])}
-                            style={{ display: 'none' }}
+                            onChange={e => handleEditInsuranceFileChange(e.target.files[0])}
+                            style={{
+                              position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                              opacity: 0, cursor: 'pointer'
+                            }}
                           />
-                          <span style={{ color: D.textSub, fontSize: '0.75rem', fontWeight: 700, textDecoration: 'underline' }}>
-                            Replace
+                          <Upload size={14} style={{ color: D.textSub, flexShrink: 0 }} />
+                          <span style={{ fontSize: '0.8rem', color: editInsuranceFile ? D.text : D.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '85%' }}>
+                            {editInsuranceFile ? editInsuranceFile.name : 'Upload Insurance (Image / PDF)'}
                           </span>
-                        </label>
-                      </div>
-                    ) : (
-                      <div style={{
-                        position: 'relative', display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '10px 14px', borderRadius: 8, border: `1px dashed ${D.border}`,
-                        background: D.inputBg, cursor: 'pointer', transition: 'all 0.2s'
-                      }}
-                        onMouseEnter={e => e.currentTarget.style.borderColor = D.blue}
-                        onMouseLeave={e => e.currentTarget.style.borderColor = D.border}
-                      >
-                        <input
-                          type="file"
-                          accept="image/*,application/pdf"
-                          onChange={e => setEditInsuranceFile(e.target.files[0])}
-                          style={{
-                            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                            opacity: 0, cursor: 'pointer'
-                          }}
-                        />
-                        <Upload size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                        <span style={{ fontSize: '0.8rem', color: editInsuranceFile ? D.text : D.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '85%' }}>
-                          {editInsuranceFile ? editInsuranceFile.name : 'Upload Insurance (Image / PDF)'}
-                        </span>
-                        {editInsuranceFile && (
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setEditInsuranceFile(null); }}
-                            style={{ position: 'absolute', right: 10, background: 'none', border: 'none', color: D.red, cursor: 'pointer', zIndex: 10 }}
-                          >
-                            <X size={14} />
-                          </button>
-                        )}
-                      </div>
+                          {editInsuranceFile && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setEditInsuranceFile(null); }}
+                              style={{ position: 'absolute', right: 10, background: 'none', border: 'none', color: D.red, cursor: 'pointer', zIndex: 10 }}
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.8rem', color: D.textFaint, fontStyle: 'italic', display: 'block', marginTop: 4 }}>No document uploaded.</span>
+                      )
                     )}
                   </div>
 
                   <div>
                     <label style={labelStyle}>License Document</label>
                     {editingVehicle?.licenseDocumentPath && !editLicenseFile ? (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', gap: 10, padding: '10px 14px', borderRadius: 8, border: `1px solid ${D.border}`, background: D.surfaceHi }}>
-                        <button
-                          type="button"
-                          onClick={() => downloadDocument(editingVehicle.id, 'license', editingVehicle.licenseDocumentPath.substring(editingVehicle.licenseDocumentPath.lastIndexOf('_') + 1))}
-                          style={{
-                            background: 'none', border: 'none', padding: 0, margin: 0,
-                            color: D.blue, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit',
-                            textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '70%'
-                          }}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', gap: 10, padding: '10px 14px', borderRadius: 8, border: `1px solid ${D.border}`, background: D.surfaceHi, width: '100%' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden', maxWidth: '70%' }}>
+                          <button
+                            type="button"
+                            onClick={() => viewDocumentOnline(editingVehicle.id, 'license')}
+                            style={{
+                              background: 'none', border: 'none', padding: 0, margin: 0,
+                              color: D.blue, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit',
+                              textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap'
+                            }}
+                            title="View File Online"
+                          >
+                            <FileText size={14} style={{ flexShrink: 0 }} />
+                            <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                              {editingVehicle.licenseDocumentPath.substring(editingVehicle.licenseDocumentPath.lastIndexOf('_') + 1)}
+                            </span>
+                          </button>
+                          {isController && (
+                            <button
+                              type="button"
+                              onClick={() => downloadDocument(editingVehicle.id, 'license', editingVehicle.licenseDocumentPath.substring(editingVehicle.licenseDocumentPath.lastIndexOf('_') + 1))}
+                              style={{
+                                background: 'none', border: 'none', padding: 0, margin: 0,
+                                color: D.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center',
+                                transition: 'color 0.15s'
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.color = D.blue}
+                              onMouseLeave={e => e.currentTarget.style.color = D.textSub}
+                              title="Download File"
+                            >
+                              <Download size={14} />
+                            </button>
+                          )}
+                        </div>
+                        {isController && (
+                          <label style={{ cursor: 'pointer', marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+                            <input
+                              type="file"
+                              accept="image/*,application/pdf"
+                              onChange={e => handleEditLicenseFileChange(e.target.files[0])}
+                              style={{ display: 'none' }}
+                            />
+                            <span style={{ color: D.textSub, fontSize: '0.75rem', fontWeight: 700, textDecoration: 'underline' }}>
+                              Replace
+                            </span>
+                          </label>
+                        )}
+                      </div>
+                    ) : (
+                      isController ? (
+                        <div style={{
+                          position: 'relative', display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '10px 14px', borderRadius: 8, border: `1px dashed ${D.border}`,
+                          background: D.inputBg, cursor: 'pointer', transition: 'all 0.2s'
+                        }}
+                          onMouseEnter={e => e.currentTarget.style.borderColor = D.blue}
+                          onMouseLeave={e => e.currentTarget.style.borderColor = D.border}
                         >
-                          <FileText size={14} style={{ flexShrink: 0 }} />
-                          <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                            {editingVehicle.licenseDocumentPath.substring(editingVehicle.licenseDocumentPath.lastIndexOf('_') + 1)}
-                          </span>
-                        </button>
-                        <label style={{ cursor: 'pointer', marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
                           <input
                             type="file"
                             accept="image/*,application/pdf"
-                            onChange={e => setEditLicenseFile(e.target.files[0])}
-                            style={{ display: 'none' }}
+                            onChange={e => handleEditLicenseFileChange(e.target.files[0])}
+                            style={{
+                              position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                              opacity: 0, cursor: 'pointer'
+                            }}
                           />
-                          <span style={{ color: D.textSub, fontSize: '0.75rem', fontWeight: 700, textDecoration: 'underline' }}>
-                            Replace
+                          <Upload size={14} style={{ color: D.textSub, flexShrink: 0 }} />
+                          <span style={{ fontSize: '0.8rem', color: editLicenseFile ? D.text : D.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '85%' }}>
+                            {editLicenseFile ? editLicenseFile.name : 'Upload License (Image / PDF)'}
                           </span>
-                        </label>
-                      </div>
-                    ) : (
-                      <div style={{
-                        position: 'relative', display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '10px 14px', borderRadius: 8, border: `1px dashed ${D.border}`,
-                        background: D.inputBg, cursor: 'pointer', transition: 'all 0.2s'
-                      }}
-                        onMouseEnter={e => e.currentTarget.style.borderColor = D.blue}
-                        onMouseLeave={e => e.currentTarget.style.borderColor = D.border}
-                      >
-                        <input
-                          type="file"
-                          accept="image/*,application/pdf"
-                          onChange={e => setEditLicenseFile(e.target.files[0])}
-                          style={{
-                            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                            opacity: 0, cursor: 'pointer'
-                          }}
-                        />
-                        <Upload size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                        <span style={{ fontSize: '0.8rem', color: editLicenseFile ? D.text : D.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '85%' }}>
-                          {editLicenseFile ? editLicenseFile.name : 'Upload License (Image / PDF)'}
-                        </span>
-                        {editLicenseFile && (
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setEditLicenseFile(null); }}
-                            style={{ position: 'absolute', right: 10, background: 'none', border: 'none', color: D.red, cursor: 'pointer', zIndex: 10 }}
-                          >
-                            <X size={14} />
-                          </button>
-                        )}
-                      </div>
+                          {editLicenseFile && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setEditLicenseFile(null); }}
+                              style={{ position: 'absolute', right: 10, background: 'none', border: 'none', color: D.red, cursor: 'pointer', zIndex: 10 }}
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.8rem', color: D.textFaint, fontStyle: 'italic', display: 'block', marginTop: 4 }}>No document uploaded.</span>
+                      )
                     )}
                   </div>
                 </div>
@@ -2253,6 +2493,61 @@ const VehiclesPage = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* ── Document Upload Expiry Confirmation Modal ─────────────── */}
+        {pendingUpload && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1400, animation: 'fadeIn 0.25s ease' }}>
+            <div style={{ background: D.surface, borderRadius: 28, padding: 32, width: '90%', maxWidth: 440, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+              <div style={{ width: 64, height: 64, borderRadius: 20, background: D.blueDim || 'rgba(37,99,235,0.1)', color: D.blue, border: `1px solid ${D.blue}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                <Calendar size={28} />
+              </div>
+              <h3 style={{ margin: '0 0 8px', fontWeight: 900, color: D.text, fontSize: '1.25rem', fontFamily: "'Plus Jakarta Sans',sans-serif", textAlign: 'center', letterSpacing: '-0.01em' }}>
+                Set Document Expiry Date
+              </h3>
+              <p style={{ margin: '0 0 24px', color: D.textSub, fontSize: '0.88rem', textAlign: 'center', lineHeight: 1.5 }}>
+                Configure the expiry date for the uploaded <strong style={{ textTransform: 'capitalize' }}>{pendingUpload.docType}</strong> document.
+              </p>
+              
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ padding: '10px 14px', borderRadius: 10, background: D.surfaceHi, border: `1px solid ${D.border}`, marginBottom: 16 }}>
+                  <div style={{ fontSize: '0.75rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>File Selected</div>
+                  <div style={{ fontSize: '0.85rem', color: D.text, fontWeight: 600, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{pendingUpload.file.name}</div>
+                </div>
+
+                <label style={labelStyle}>Expiry Date</label>
+                <input
+                  type="date"
+                  value={pendingUpload.expiryDate}
+                  onChange={e => setPendingUpload(prev => ({ ...prev, expiryDate: e.target.value }))}
+                  style={inputStyle}
+                  onFocus={onFocus}
+                  onBlur={onBlur}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button
+                  type="button"
+                  onClick={() => setPendingUpload(null)}
+                  style={{ flex: 0.4, padding: '12px 20px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmPendingUpload}
+                  style={{ flex: 1, padding: '12px 20px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 8px 24px rgba(37,99,235,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(37,99,235,0.4)' }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(37,99,235,0.3)' }}
+                >
+                  <Upload size={16} /> Confirm & Upload
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -2608,21 +2903,25 @@ const VehiclesPage = () => {
             {/* Header section */}
             <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#fff' }}>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                <div style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 14,
-                  background: 'rgba(255,255,255,0.12)',
-                  color: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.5rem',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  flexShrink: 0
-                }}>
-                  <Car size={26} />
-                </div>
+                {selectedProfileVehicle.vehicleImage ? (
+                  <img src={selectedProfileVehicle.vehicleImage} alt={selectedProfileVehicle.registrationNo} style={{ width: 52, height: 52, borderRadius: 14, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0 }} />
+                ) : (
+                  <div style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 14,
+                    background: 'rgba(255,255,255,0.12)',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.5rem',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    flexShrink: 0
+                  }}>
+                    <Car size={26} />
+                  </div>
+                )}
                 <div>
                   <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.35rem', color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>
                     {selectedProfileVehicle.registrationNo}

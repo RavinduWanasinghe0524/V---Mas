@@ -22,6 +22,7 @@ public class VehicleDto {
     private String model;
     private Integer year;
     private Integer currentMileageKm;
+    private Integer initialMileageKm;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String updatedBy;
@@ -39,6 +40,7 @@ public class VehicleDto {
     private String insuranceDocumentPath;
     private String licenseDocumentPath;
     private String registrationBookPath;
+    private String vehicleImage;
 
     private boolean deleted;
     private String deletedBy;

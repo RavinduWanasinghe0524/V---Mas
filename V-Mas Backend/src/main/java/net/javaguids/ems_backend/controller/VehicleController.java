@@ -123,8 +123,9 @@ public class VehicleController {
     public ResponseEntity<ApiResponse<VehicleDto>> uploadDocument(
             @PathVariable Long id,
             @PathVariable String docType,
-            @RequestParam("file") MultipartFile file) {
-        VehicleDto updated = vehicleService.uploadDocument(id, docType, file);
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "expiryDate", required = false) String expiryDate) {
+        VehicleDto updated = vehicleService.uploadDocument(id, docType, file, expiryDate);
         return ApiResponseUtil.success("Document uploaded successfully", updated, HttpStatus.OK);
     }
 
