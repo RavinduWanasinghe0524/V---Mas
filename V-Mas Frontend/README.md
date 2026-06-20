@@ -78,7 +78,7 @@ To ensure secure HTTPS communication, prevent CORS issues, and route traffic eff
    ```bash
    npm run dev
    ```
-   *The local app will run at `http://localhost:5173`.*
+   *The local app will run at `http://localhost:3000`.*
 
 4. **API Configuration:**
    * In local development, the Vite dev server proxies API requests to the backend.
