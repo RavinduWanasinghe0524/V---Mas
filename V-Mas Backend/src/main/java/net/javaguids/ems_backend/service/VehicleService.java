@@ -15,9 +15,6 @@ public interface VehicleService {
 
     void deleteVehicle(Long id);
 
-    VehicleDto assignDriver(Long vehicleId, Long driverId);
-
-    VehicleDto unassignDriver(Long vehicleId);
 
     VehicleDto uploadDocument(Long id, String docType, org.springframework.web.multipart.MultipartFile file, String expiryDateStr);
 

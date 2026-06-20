@@ -27,8 +27,6 @@ public class VehicleMapper {
                 vehicle.getVehicleType(),
                 vehicle.getInsuranceExpiryDate(),
                 vehicle.getLicenseExpiryDate(),
-                vehicle.getDriver() != null ? vehicle.getDriver().getId() : null,
-                vehicle.getDriver() != null ? vehicle.getDriver().getUserName() : null,
                 vehicle.getInsuranceDocumentPath(),
                 vehicle.getLicenseDocumentPath(),
                 vehicle.getRegistrationBookPath(),

@@ -34,8 +34,6 @@ public class VehicleDto {
     private java.time.LocalDate insuranceExpiryDate;
     private java.time.LocalDate licenseExpiryDate;
 
-    private Long driverId;
-    private String driverUsername;
 
     private String insuranceDocumentPath;
     private String licenseDocumentPath;
