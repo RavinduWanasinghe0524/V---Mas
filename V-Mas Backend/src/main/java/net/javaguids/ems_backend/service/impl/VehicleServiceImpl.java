@@ -4,12 +4,10 @@ import lombok.AllArgsConstructor;
 import net.javaguids.ems_backend.dto.VehicleDto;
 import net.javaguids.ems_backend.dto.VehicleMileageUpdateDto;
 import net.javaguids.ems_backend.entity.Vehicle;
-import net.javaguids.ems_backend.entity.User;
 import net.javaguids.ems_backend.entity.ServiceRecord;
 import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.mapper.VehicleMapper;
 import net.javaguids.ems_backend.repository.VehicleRepository;
-import net.javaguids.ems_backend.repository.UserRepository;
 import net.javaguids.ems_backend.repository.ServiceIntervalRepository;
 import net.javaguids.ems_backend.repository.ServiceRecordRepository;
 import net.javaguids.ems_backend.service.VehicleService;
@@ -33,7 +31,6 @@ import java.util.stream.Collectors;
 public class VehicleServiceImpl implements VehicleService {
 
     private final VehicleRepository vehicleRepository;
-    private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final ServiceIntervalRepository serviceIntervalRepository;
     private final ServiceRecordRepository serviceRecordRepository;
@@ -46,20 +43,6 @@ public class VehicleServiceImpl implements VehicleService {
             throw new RuntimeException("Vehicle with registration number '" + vehicleDto.getRegistrationNo() + "' already exists.");
         }
         Vehicle vehicle = VehicleMapper.mapToVehicle(vehicleDto);
-        
-        // Resolve and set driver if driverId is supplied
-        if (vehicleDto.getDriverId() != null) {
-            User driver = userRepository.findById(vehicleDto.getDriverId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Driver not found with id: " + vehicleDto.getDriverId()));
-            
-            // Check and unassign driver from any other vehicle to preserve OneToOne constraint
-            vehicleRepository.findByAssignee(driver.getId()).ifPresent(v -> {
-                v.setDriver(null);
-                vehicleRepository.save(v);
-            });
-            
-            vehicle.setDriver(driver);
-        }
         
         Vehicle saved = vehicleRepository.save(java.util.Objects.requireNonNull(vehicle));
         return VehicleMapper.mapToVehicleDto(saved);
@@ -135,24 +118,6 @@ public class VehicleServiceImpl implements VehicleService {
             vehicle.setStatus(vehicleDto.getStatus());
         }
 
-        // Resolve and update driver if driverId is supplied
-        if (vehicleDto.getDriverId() != null) {
-            User driver = userRepository.findById(vehicleDto.getDriverId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Driver not found with id: " + vehicleDto.getDriverId()));
-            
-            // Check and unassign driver from any other vehicle to preserve OneToOne constraint
-            vehicleRepository.findByAssignee(driver.getId()).ifPresent(v -> {
-                if (!v.getId().equals(id)) {
-                    v.setDriver(null);
-                    vehicleRepository.save(v);
-                }
-            });
-            
-            vehicle.setDriver(driver);
-        } else {
-            vehicle.setDriver(null);
-        }
-
         vehicle.setUpdatedBy(updatedBy);
         vehicle.setUpdatedAt(LocalDateTime.now());
 
@@ -176,57 +141,6 @@ public class VehicleServiceImpl implements VehicleService {
         vehicle.setDeletedBy(auth != null && auth.isAuthenticated() ? auth.getName() : "unknown");
         vehicle.setDeletedAt(LocalDateTime.now());
         vehicleRepository.save(vehicle);
-    }
-
-    @Override
-    @Transactional
-    public VehicleDto assignDriver(Long vehicleId, Long driverId) {
-        Vehicle vehicle = vehicleRepository.findById(vehicleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + vehicleId));
-        
-        User driver = userRepository.findById(driverId)
-                .orElseThrow(() -> new ResourceNotFoundException("Driver not found with id: " + driverId));
-        
-        // Unassign driver from any other vehicle to preserve OneToOne constraint
-        vehicleRepository.findByAssignee(driverId).ifPresent(v -> {
-            if (!v.getId().equals(vehicleId)) {
-                v.setDriver(null);
-                vehicleRepository.save(v);
-            }
-        });
-        
-        vehicle.setDriver(driver);
-        Vehicle saved = vehicleRepository.save(vehicle);
-        
-        notificationService.createNotification(
-                "VEH-" + saved.getRegistrationNo(),
-                "Driver " + driver.getUserName() + " was assigned to vehicle " + saved.getRegistrationNo(),
-                "ASSIGN"
-        );
-        
-        return VehicleMapper.mapToVehicleDto(saved);
-    }
-
-    @Override
-    @Transactional
-    public VehicleDto unassignDriver(Long vehicleId) {
-        Vehicle vehicle = vehicleRepository.findById(vehicleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + vehicleId));
-        
-        User driver = vehicle.getDriver();
-        if (driver != null) {
-            vehicle.setDriver(null);
-            Vehicle saved = vehicleRepository.save(vehicle);
-            
-            notificationService.createNotification(
-                    "VEH-" + saved.getRegistrationNo(),
-                    "Driver " + driver.getUserName() + " was unassigned from vehicle " + saved.getRegistrationNo(),
-                    "UNASSIGN"
-            );
-            return VehicleMapper.mapToVehicleDto(saved);
-        }
-        
-        return VehicleMapper.mapToVehicleDto(vehicle);
     }
 
     @Override

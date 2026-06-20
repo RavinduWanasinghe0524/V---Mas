@@ -4,9 +4,8 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
-import api, { vehicleAPI, userAPI, serviceAPI, fuelAPI } from '../services/api'
+import api, { vehicleAPI, serviceAPI, fuelAPI } from '../services/api'
 import { getAlertLevel, computeMileageProgress, computeDateAlert, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
-import { getDriverMetrics } from '../utils/driverUtils'
 import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download, Phone, IdCard, Shield, Star, Zap, LayoutGrid, List, Archive, RotateCcw } from 'lucide-react'
 import { generateStyledExcel } from '../utils/excelExport'
 import { computeLogsEfficiency } from '../utils/fuelUtils'
@@ -139,13 +138,8 @@ const VehiclesPage = () => {
   const [editError, setEditError] = useState('')
   const [vehicles, setVehicles] = useState([])
   const [serviceRecords, setServiceRecords] = useState([])
-  const [drivers, setDrivers] = useState([])
   const [fuelStats, setFuelStats] = useState([])
   const [intervals, setIntervals] = useState([])
-
-  const [driverDetailsUser, setDriverDetailsUser] = useState(null)
-  const [isDriverDetailsOpen, setIsDriverDetailsOpen] = useState(false)
-  const [activeAssigningVehicleId, setActiveAssigningVehicleId] = useState(null)
 
   // ── Driver-specific lookup vehicle states ───────────────────────
   const [selectedDriverVehicle, setSelectedDriverVehicle] = useState(null)
@@ -212,39 +206,6 @@ const VehiclesPage = () => {
     setIsOdometerModalOpen(true)
   }
 
-  const handleInlineAssignDriver = async (vehicleId, driverId) => {
-    try {
-      await vehicleAPI.assignDriver(vehicleId, driverId)
-      const response = await vehicleAPI.getAllVehicles()
-      const updatedList = response.data.data || []
-      setVehicles(updatedList)
-
-      const updatedVeh = updatedList.find(v => v.id === vehicleId)
-      if (selectedProfileVehicle && selectedProfileVehicle.id === vehicleId && updatedVeh) {
-        setSelectedProfileVehicle(updatedVeh)
-      }
-    } catch (err) {
-      console.error("Failed to assign driver inline:", err)
-      alert(err.response?.data?.message || "Failed to assign driver.")
-    }
-  }
-
-  const handleInlineUnassignDriver = async (vehicleId) => {
-    try {
-      await vehicleAPI.unassignDriver(vehicleId)
-      const response = await vehicleAPI.getAllVehicles()
-      const updatedList = response.data.data || []
-      setVehicles(updatedList)
-
-      const updatedVeh = updatedList.find(v => v.id === vehicleId)
-      if (selectedProfileVehicle && selectedProfileVehicle.id === vehicleId && updatedVeh) {
-        setSelectedProfileVehicle(updatedVeh)
-      }
-    } catch (err) {
-      console.error("Failed to unassign driver inline:", err)
-      alert(err.response?.data?.message || "Failed to unassign driver.")
-    }
-  }
 
   // --- VEHICLE PROFILE STATE ---
   const [selectedProfileVehicle, setSelectedProfileVehicle] = useState(null)
@@ -485,7 +446,6 @@ const VehiclesPage = () => {
     manufacturer: '',
     year: '',
     fuelType: '',
-    driverId: '',
     currentMileageKm: '',
     insuranceExpiryDate: '',
     licenseExpiryDate: '',
@@ -501,7 +461,6 @@ const VehiclesPage = () => {
     manufacturer: '',
     year: '',
     fuelType: '',
-    driverId: '',
     currentMileageKm: '',
     insuranceExpiryDate: '',
     licenseExpiryDate: '',
@@ -538,27 +497,18 @@ const VehiclesPage = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [vehicleRes, serviceRes, driverRes, fuelStatsRes, intervalsRes] = await Promise.all([
+        const [vehicleRes, serviceRes, fuelStatsRes, intervalsRes] = await Promise.all([
           vehicleAPI.getAllVehicles(),
           serviceAPI.getAllServices(),
-          isAdmin || !isDriver ? userAPI.getAllDrivers().catch(() => ({ data: { data: [] } })) : Promise.resolve({ data: { data: [] } }),
           fuelAPI.getVehicleStats().catch(() => ({ data: { data: [] } })),
           serviceAPI.getAllIntervals().catch(() => ({ data: { data: [] } }))
         ])
         const loadedVehicles = vehicleRes.data.data || []
         setVehicles(loadedVehicles)
         setServiceRecords(serviceRes.data.data || [])
-        setDrivers(driverRes.data?.data || [])
         setFuelStats(fuelStatsRes.data?.data || [])
         setIntervals(intervalsRes.data?.data || [])
 
-        if (isDriver) {
-          const assigned = loadedVehicles.find(veh => String(veh.driverId) === String(user?.id))
-          if (assigned && !selectedDriverVehicle) {
-            setSelectedDriverVehicle(assigned)
-            setDriverVehicleSearch(assigned.registrationNo)
-          }
-        }
       } catch (err) {
         console.error('Error loading data:', err)
       } finally {
@@ -640,14 +590,13 @@ const VehiclesPage = () => {
     }
 
     try {
-      const { driverId, ...rest } = formData
       const vehiclePayload = {
-        ...rest,
-        year: rest.year ? Number(rest.year) : undefined,
-        currentMileageKm: rest.currentMileageKm ? Number(rest.currentMileageKm) : undefined,
-        fuelCapacity: rest.fuelCapacity ? Number(rest.fuelCapacity) : null,
-        insuranceExpiryDate: rest.insuranceExpiryDate || null,
-        licenseExpiryDate: rest.licenseExpiryDate || null,
+        ...formData,
+        year: formData.year ? Number(formData.year) : undefined,
+        currentMileageKm: formData.currentMileageKm ? Number(formData.currentMileageKm) : undefined,
+        fuelCapacity: formData.fuelCapacity ? Number(formData.fuelCapacity) : null,
+        insuranceExpiryDate: formData.insuranceExpiryDate || null,
+        licenseExpiryDate: formData.licenseExpiryDate || null,
       }
       const saveRes = await vehicleAPI.registerVehicle(vehiclePayload)
       const saved = saveRes.data.data
@@ -660,11 +609,7 @@ const VehiclesPage = () => {
         if (licenseFile) {
           uploadPromises.push(vehicleAPI.uploadDocument(saved.id, 'license', licenseFile, formData.licenseExpiryDate))
         }
-        if (driverId) {
-          uploadPromises.push(vehicleAPI.assignDriver(saved.id, driverId))
-        }
       }
-      
       if (uploadPromises.length > 0) {
         await Promise.all(uploadPromises)
       }
@@ -708,7 +653,6 @@ const VehiclesPage = () => {
       manufacturer: vehicle.manufacturer || '',
       year: vehicle.year || '',
       fuelType: vehicle.fuelType?.toUpperCase() || '',
-      driverId: vehicle.driverId || '',
       currentMileageKm: vehicle.currentMileageKm || '',
       insuranceExpiryDate: vehicle.insuranceExpiryDate || '',
       licenseExpiryDate: vehicle.licenseExpiryDate || '',
@@ -784,12 +728,6 @@ const VehiclesPage = () => {
       if (editLicenseFile) {
         uploadPromises.push(vehicleAPI.uploadDocument(editingVehicle.id, 'license', editLicenseFile, editFormData.licenseExpiryDate))
       }
-      // Assign / re-assign driver if changed
-      if (editFormData.driverId) {
-        uploadPromises.push(vehicleAPI.assignDriver(editingVehicle.id, editFormData.driverId))
-      } else {
-        uploadPromises.push(vehicleAPI.unassignDriver(editingVehicle.id))
-      }
       
       if (uploadPromises.length > 0) {
         await Promise.all(uploadPromises)
@@ -862,9 +800,6 @@ const VehiclesPage = () => {
 
 
   const filtered = vehicles.filter(v => {
-    if (isDriver) {
-      return selectedDriverVehicle && v.id === selectedDriverVehicle.id
-    }
     const matchSearch = v.reg?.toLowerCase().includes(search.toLowerCase()) ||
       v.make?.toLowerCase().includes(search.toLowerCase()) ||
       v.model?.toLowerCase().includes(search.toLowerCase()) ||
@@ -986,103 +921,7 @@ const VehiclesPage = () => {
                   </button>
                 </div>
               )}
-              {isDriver && (
-                <div ref={driverVehicleSearchRef} style={{ position: 'relative', width: 280, zIndex: 10 }}>
-                  <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#a5b4fc' }} />
-                  <input
-                    type="text"
-                    placeholder="Search Vehicle (e.g. CAS-1020)..."
-                    value={driverVehicleSearch}
-                    onChange={e => {
-                      setDriverVehicleSearch(e.target.value)
-                      setDriverVehicleDropdownVisible(true)
-                    }}
-                    onFocus={() => setDriverVehicleDropdownVisible(true)}
-                    style={{
-                      width: '100%',
-                      padding: '12px 14px 12px 40px',
-                      background: 'rgba(15, 23, 42, 0.6)',
-                      border: `1.5px solid ${driverVehicleSearch ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.15)'}`,
-                      borderRadius: 14,
-                      color: D.text,
-                      fontSize: '0.88rem',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                      transition: 'all 0.25s ease',
-                      boxShadow: driverVehicleSearch ? '0 0 16px rgba(99,102,241,0.2)' : 'none',
-                    }}
-                  />
-                  {driverVehicleSearch && (
-                    <X
-                      size={16}
-                      onClick={() => {
-                        setDriverVehicleSearch('')
-                        setSelectedDriverVehicle(null)
-                      }}
-                      style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: '#a5b4fc', cursor: 'pointer' }}
-                    />
-                  )}
-                  {driverVehicleDropdownVisible && (
-                    <div style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 8px)',
-                      left: 0,
-                      width: '100%',
-                      maxHeight: 250,
-                      overflowY: 'auto',
-                      background: D.surfaceHi,
-                      border: `1px solid ${D.borderHi}`,
-                      borderRadius: 12,
-                      boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                      zIndex: 999,
-                      scrollbarWidth: 'thin'
-                    }}>
-                      {(() => {
-                        const query = driverVehicleSearch.toLowerCase().trim()
-                        const filteredVehicles = vehicles.filter(v =>
-                          !v.isDeleted && (
-                            v.registrationNo?.toLowerCase().includes(query) ||
-                            `${v.manufacturer || ''} ${v.model || ''}`.toLowerCase().includes(query)
-                          )
-                        )
-                        if (filteredVehicles.length === 0) {
-                          return (
-                            <div style={{ padding: '12px 16px', fontSize: '0.82rem', color: D.textFaint, textAlign: 'center' }}>
-                              No vehicles found
-                            </div>
-                          )
-                        }
-                        return filteredVehicles.map(v => (
-                          <div
-                            key={v.id}
-                            onClick={() => {
-                              setSelectedDriverVehicle(v)
-                              setDriverVehicleSearch(v.registrationNo)
-                              setDriverVehicleDropdownVisible(false)
-                            }}
-                            className="svc-row-hover"
-                            style={{
-                              padding: '10px 16px',
-                              fontSize: '0.85rem',
-                              color: selectedDriverVehicle?.id === v.id ? '#a5b4fc' : D.text,
-                              cursor: 'pointer',
-                              borderBottom: `1px solid ${D.border}`,
-                              background: selectedDriverVehicle?.id === v.id ? 'rgba(99,102,241,0.08)' : 'transparent',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: 2,
-                              textAlign: 'left'
-                            }}
-                          >
-                            <span style={{ fontWeight: 800 }}>{v.registrationNo}</span>
-                            <span style={{ fontSize: '0.72rem', color: D.textSub }}>{v.manufacturer} {v.model} ({v.vehicleType || 'Unknown'})</span>
-                          </div>
-                        ))
-                      })()}
-                    </div>
-                  )}
-                </div>
-              )}
+
             </div>
 
             {/* Service Due Alert Strip */}
@@ -1333,18 +1172,15 @@ const VehiclesPage = () => {
             )}
 
             {/* Stats row */}
-            {!isDriver && (
-              <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
-                <StatBadge label="Total Vehicles" value={vehicles.length} icon={<Car size={24} />} colorDim={D.purpleDim} colorHex={D.purple} D={D} />
-                <StatBadge label="Active" value={counts.ACTIVE} icon={<CheckCircle size={24} />} colorDim={D.greenDim} colorHex={D.green} D={D} />
-                <StatBadge label="In Service" value={counts.SERVICE} icon={<Wrench size={24} />} colorDim={D.orangeDim} colorHex={D.orange} D={D} />
-                <StatBadge label="Available" value={counts.AVAILABLE} icon={<Circle size={24} />} colorDim={D.blueDim} colorHex={D.blue} D={D} />
-              </div>
-            )}
+            <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
+              <StatBadge label="Total Vehicles" value={vehicles.length} icon={<Car size={24} />} colorDim={D.purpleDim} colorHex={D.purple} D={D} />
+              <StatBadge label="Active" value={counts.ACTIVE} icon={<CheckCircle size={24} />} colorDim={D.greenDim} colorHex={D.green} D={D} />
+              <StatBadge label="In Service" value={counts.SERVICE} icon={<Wrench size={24} />} colorDim={D.orangeDim} colorHex={D.orange} D={D} />
+              <StatBadge label="Available" value={counts.AVAILABLE} icon={<Circle size={24} />} colorDim={D.blueDim} colorHex={D.blue} D={D} />
+            </div>
 
             {/* Toolbar & List Container */}
             <div style={{ background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 4px 24px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
-              {!isDriver && (
                 <div style={{ padding: '22px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, background: D.surfaceHi, flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, flexWrap: 'wrap' }}>
                     <div style={{ position: 'relative', minWidth: 200 }}>
@@ -1456,7 +1292,6 @@ const VehiclesPage = () => {
                     )}
                   </div>
                 </div>
-              )}
 
               {/* Data List */}
               <div style={{ padding: '24px 32px 40px' }}>
@@ -1483,7 +1318,6 @@ const VehiclesPage = () => {
                           <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Make / Model</th>
                           <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Status</th>
                           <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Odometer</th>
-                          <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Driver</th>
                           <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Fuel Type</th>
                           <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em', textAlign: 'right' }}>Actions</th>
                         </tr>
@@ -1491,7 +1325,6 @@ const VehiclesPage = () => {
                       <tbody>
                         {filtered.map((v, i) => {
                           const s = statusColors[v.status] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
-                          const driver = drivers.find(d => String(d.id) === String(v.driverId))
 
                           const today = new Date()
                           const insExpiry = v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate) : null
@@ -1571,75 +1404,9 @@ const VehiclesPage = () => {
                                   <Edit2 size={10} style={{ opacity: 0.6 }} />
                                 </div>
                               </td>
-                              <td style={{ padding: '14px 20px' }} onClick={e => e.stopPropagation()}>
-                                {driver ? (
-                                  <span
-                                    onClick={() => {
-                                      setDriverDetailsUser(driver);
-                                      setIsDriverDetailsOpen(true);
-                                    }}
-                                    style={{
-                                      color: D.blue,
-                                      cursor: 'pointer',
-                                      fontWeight: 800,
-                                      textDecoration: 'underline'
-                                    }}
-                                  >
-                                    {driver.userName}
-                                  </span>
-                                ) : !isDriver ? (
-                                  activeAssigningVehicleId === v.id ? (
-                                    <select
-                                      value=""
-                                      onChange={async (e) => {
-                                        const drvId = e.target.value;
-                                        if (drvId) {
-                                          await handleInlineAssignDriver(v.id, drvId);
-                                        }
-                                        setActiveAssigningVehicleId(null);
-                                      }}
-                                      onBlur={() => setActiveAssigningVehicleId(null)}
-                                      autoFocus
-                                      style={{
-                                        background: D.inputBg,
-                                        color: D.text,
-                                        border: `1px solid ${D.purple}`,
-                                        borderRadius: 8,
-                                        fontSize: '0.75rem',
-                                        padding: '2px 6px',
-                                        outline: 'none',
-                                        cursor: 'pointer'
-                                      }}
-                                    >
-                                      <option value="">Select Driver...</option>
-                                      {drivers
-                                        .filter(d => !vehicles.some(veh => String(veh.driverId) === String(d.id)))
-                                        .map(d => (
-                                          <option key={d.id} value={d.id}>{d.userName}</option>
-                                        ))
-                                      }
-                                    </select>
-                                  ) : (
-                                    <span
-                                      onClick={() => setActiveAssigningVehicleId(v.id)}
-                                      style={{
-                                        color: D.blue,
-                                        cursor: 'pointer',
-                                        fontWeight: 700,
-                                        fontSize: '0.75rem',
-                                        textDecoration: 'underline'
-                                      }}
-                                    >
-                                      Assign
-                                    </span>
-                                  )
-                                ) : (
-                                  <span style={{ color: D.textFaint, fontStyle: 'italic' }}>Unassigned</span>
-                                )}
-                              </td>
-                              <td style={{ padding: '14px 20px', fontWeight: 600, color: D.textSub }}>
-                                {v.fuelType ?? 'N/A'}
-                              </td>
+              <td style={{ padding: '14px 20px', fontWeight: 600, color: D.textSub }}>
+                {v.fuelType ?? 'N/A'}
+              </td>
                               <td style={{ padding: '14px 20px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                                 <div style={{ display: 'inline-flex', gap: 8 }}>
                                   <button
@@ -1703,7 +1470,6 @@ const VehiclesPage = () => {
                           : v.manufacturer.substring(0, 2).toUpperCase())
                         : 'V'
 
-                      const driver = drivers.find(d => String(d.id) === String(v.driverId))
 
                       const cardAlertClass = (isInsExpired || isLicExpired)
                         ? 'pulse-warning-red'
@@ -1821,90 +1587,6 @@ const VehiclesPage = () => {
 
                           {/* Details section */}
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }} onClick={e => e.stopPropagation()}>
-                              <User size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                              <span>Driver: </span>
-                              {driver ? (
-                                <span
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDriverDetailsUser(driver);
-                                    setIsDriverDetailsOpen(true);
-                                  }}
-                                  style={{
-                                    color: D.blue,
-                                    cursor: 'pointer',
-                                    fontWeight: 800,
-                                    textDecoration: 'underline',
-                                    transition: 'color 0.2s',
-                                  }}
-                                  onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'}
-                                  onMouseLeave={e => e.currentTarget.style.color = D.blue}
-                                >
-                                  {driver.userName}
-                                </span>
-                              ) : !isDriver ? (
-                                activeAssigningVehicleId === v.id ? (
-                                  <select
-                                    value=""
-                                    onChange={async (e) => {
-                                      const drvId = e.target.value;
-                                      if (drvId) {
-                                        await handleInlineAssignDriver(v.id, drvId);
-                                      }
-                                      setActiveAssigningVehicleId(null);
-                                    }}
-                                    onBlur={() => setActiveAssigningVehicleId(null)}
-                                    autoFocus
-                                    style={{
-                                      background: D.inputBg,
-                                      color: D.text,
-                                      border: `1px solid ${D.purple}`,
-                                      borderRadius: 8,
-                                      fontSize: '0.75rem',
-                                      padding: '2px 6px',
-                                      outline: 'none',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    <option value="">Select Driver...</option>
-                                    {drivers
-                                      .filter(d => !vehicles.some(veh => String(veh.driverId) === String(d.id)))
-                                      .map(d => (
-                                        <option key={d.id} value={d.id}>{d.userName}</option>
-                                      ))
-                                    }
-                                  </select>
-                                ) : (
-                                  <span
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setActiveAssigningVehicleId(v.id);
-                                    }}
-                                    style={{
-                                      color: D.blue,
-                                      cursor: 'pointer',
-                                      fontWeight: 800,
-                                      background: D.blueDim,
-                                      padding: '2px 8px',
-                                      borderRadius: 99,
-                                      fontSize: '0.72rem',
-                                      border: `1px solid ${D.blue}30`,
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: 4,
-                                      transition: 'all 0.2s',
-                                    }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = D.blue; e.currentTarget.style.color = '#fff'; }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = D.blueDim; e.currentTarget.style.color = D.blue; }}
-                                  >
-                                    + Assign Driver
-                                  </span>
-                                )
-                              ) : (
-                                <span style={{ color: D.textFaint, fontStyle: 'italic' }}>Unassigned</span>
-                              )}
-                            </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
                               <FileText size={14} style={{ color: D.textSub, flexShrink: 0 }} />
                               <span>Chassis: {v.chassisNumber || 'N/A'}</span>
@@ -2062,17 +1744,7 @@ const VehiclesPage = () => {
                     <input type="number" name="fuelCapacity" value={formData.fuelCapacity} onChange={handleChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 50" />
                   </div>
 
-                  <div>
-                    <label style={labelStyle}>Assign Driver</label>
-                    <select name="driverId" value={formData.driverId} onChange={handleChange} style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
-                      <option value="" style={{ background: D.surfaceHi }}>No Driver (Unassigned)</option>
-                      {drivers.map(d => (
-                        <option key={d.id} value={d.id} style={{ background: D.surfaceHi }}>
-                          {d.userName} ({d.fullName || d.email})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+
 
                   <div>
                     <label style={labelStyle}>Insurance Expiry</label>
@@ -2262,17 +1934,7 @@ const VehiclesPage = () => {
                     <input type="number" name="fuelCapacity" value={editFormData.fuelCapacity} onChange={handleEditChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 50" />
                   </div>
 
-                  <div>
-                    <label style={labelStyle}>Assign Driver</label>
-                    <select name="driverId" value={editFormData.driverId} onChange={handleEditChange} style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
-                      <option value="" style={{ background: D.surfaceHi }}>No Driver (Unassigned)</option>
-                      {drivers.map(d => (
-                        <option key={d.id} value={d.id} style={{ background: D.surfaceHi }}>
-                          {d.userName} ({d.fullName || d.email})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+
 
                   <div>
                     <label style={labelStyle}>Vehicle Status</label>
@@ -2998,33 +2660,7 @@ const VehiclesPage = () => {
                       },
                       { label: 'Tank Capacity', value: selectedProfileVehicle.fuelCapacity ? `${selectedProfileVehicle.fuelCapacity} Liters` : 'N/A', icon: <Fuel size={14} color={D.gold} /> },
                       { label: 'Chassis Number', value: selectedProfileVehicle.chassisNumber || 'N/A', icon: <Shield size={14} color={D.blue} /> },
-                      { label: 'Engine Number', value: selectedProfileVehicle.engineNumber || 'N/A', icon: <IdCard size={14} color={D.purple} /> },
-                      {
-                        label: 'Driver',
-                        value: (() => {
-                          const profileDriver = drivers.find(d => String(d.id) === String(selectedProfileVehicle.driverId))
-                          return profileDriver ? (
-                            <span
-                              onClick={() => {
-                                setDriverDetailsUser(profileDriver);
-                                setIsDriverDetailsOpen(true);
-                              }}
-                              style={{
-                                color: D.blue,
-                                cursor: 'pointer',
-                                fontWeight: 800,
-                                textDecoration: 'underline',
-                                transition: 'color 0.15s'
-                              }}
-                              onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'}
-                              onMouseLeave={e => e.currentTarget.style.color = D.blue}
-                            >
-                              {profileDriver.userName}
-                            </span>
-                          ) : 'Unassigned'
-                        })(),
-                        icon: <User size={14} color={D.blue} />
-                      }
+                      { label: 'Engine Number', value: selectedProfileVehicle.engineNumber || 'N/A', icon: <IdCard size={14} color={D.purple} /> }
                     ].map((item, idx) => (
                       <div key={idx} 
                         onClick={item.onClick}
@@ -3132,7 +2768,7 @@ const VehiclesPage = () => {
                         const g = Math.round(68 + (185 - 68) * (safePct / 100))
                         const b = Math.round(68 + (129 - 68) * (safePct / 100))
                         const barColor = diff < 0 ? '#ef4444' : `rgb(${r},${g},${b})`
-                        const displayPct = diff < 0 ? 100 : 100 - safePct
+                        const displayPct = diff < 0 ? 100 : safePct
                         return (
                           <div>
                             <div style={{ height: 7, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)' }}>
@@ -3191,7 +2827,7 @@ const VehiclesPage = () => {
                         const g = Math.round(68 + (185 - 68) * (safePct / 100))
                         const b = Math.round(68 + (129 - 68) * (safePct / 100))
                         const barColor = diff < 0 ? '#ef4444' : `rgb(${r},${g},${b})`
-                        const displayPct = diff < 0 ? 100 : 100 - safePct
+                        const displayPct = diff < 0 ? 100 : safePct
                         return (
                           <div>
                             <div style={{ height: 7, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)' }}>
@@ -3754,138 +3390,7 @@ const VehiclesPage = () => {
         </div>
       )}
 
-      {/* ── Driver Details Modal ── */}
-      {isDriverDetailsOpen && driverDetailsUser && (() => {
-        const metrics = getDriverMetrics(driverDetailsUser, vehicles)
-        const initials = driverDetailsUser.userName
-          ? driverDetailsUser.userName.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
-          : 'D'
 
-        let dutyStyles = {
-          bg: 'rgba(255,255,255,0.05)',
-          color: D.textSub,
-          border: `1px solid ${D.border}`
-        }
-        if (metrics.status === 'On Duty' || metrics.status === 'Active') {
-          dutyStyles = {
-            bg: 'rgba(52, 211, 153, 0.12)',
-            color: '#34d399',
-            border: '1px solid rgba(52, 211, 153, 0.25)'
-          }
-        } else if (metrics.status === 'On Leave' || metrics.status === 'Pending') {
-          dutyStyles = {
-            bg: 'rgba(251, 191, 36, 0.12)',
-            color: '#fbbf24',
-            border: '1px solid rgba(251, 191, 36, 0.25)'
-          }
-        } else if (metrics.status === 'Suspended' || metrics.status === 'Inactive') {
-          dutyStyles = {
-            bg: 'rgba(248, 113, 113, 0.12)',
-            color: '#f87171',
-            border: '1px solid rgba(248, 113, 113, 0.25)'
-          }
-        }
-
-        return (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, animation: 'fadeIn 0.25s ease' }} onClick={() => setIsDriverDetailsOpen(false)}>
-            <div style={{ background: D.surface, borderRadius: 32, width: '90%', maxWidth: 480, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-              {/* Header Banner */}
-              <div style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #172554 100%)', padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#fff' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  {driverDetailsUser.profilePicture ? (
-                    <img src={driverDetailsUser.profilePicture} alt={driverDetailsUser.userName} style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.2)' }} />
-                  ) : (
-                    <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.2rem', fontWeight: 800, border: '2px solid rgba(255,255,255,0.2)' }}>
-                      {initials}
-                    </div>
-                  )}
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{driverDetailsUser.userName}</h3>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600 }}>Driver Profile & Stats</p>
-                  </div>
-                </div>
-                <button onClick={() => setIsDriverDetailsOpen(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 8, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }}><X size={18} /></button>
-              </div>
-
-              {/* Content body */}
-              <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-                {/* Duty status row */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.82rem', color: D.textSub, fontWeight: 700 }}>Duty Status</span>
-                  <span style={{ padding: '4px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 800, background: dutyStyles.bg, color: dutyStyles.color, border: dutyStyles.border, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    {metrics.status}
-                  </span>
-                </div>
-
-                {/* Stats grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-                  {[
-                    { value: metrics.trips, label: 'Trips' },
-                    { value: `${metrics.rating}★`, label: 'Rating', color: '#fbbf24' },
-                    { value: metrics.safety, label: 'Safety', color: '#34d399' }
-                  ].map((st, idx) => (
-                    <div key={idx} style={{ background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)', border: `1px solid ${D.border}`, borderRadius: 16, padding: '14px 6px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.15rem', fontWeight: 900, color: st.color || D.text }}>{st.value}</div>
-                      <div style={{ fontSize: '0.65rem', fontWeight: 700, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{st.label}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Detailed Info */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: D.surfaceHi, padding: 18, borderRadius: 20, border: `1px solid ${D.border}` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
-                    <span style={{ color: D.textSub, width: 80, display: 'flex', alignItems: 'center', gap: 4 }}><Phone size={12} /> Phone:</span>
-                    <span>{metrics.phone}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
-                    <span style={{ color: D.textSub, width: 80, display: 'flex', alignItems: 'center', gap: 4 }}><IdCard size={12} /> License:</span>
-                    <span>{metrics.license}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
-                    <span style={{ color: D.textSub, width: 80, display: 'flex', alignItems: 'center', gap: 4 }}><Car size={12} /> Vehicle:</span>
-                    <span style={{ fontWeight: 800, color: metrics.assignedVehicleId ? D.blue : D.text }}>{metrics.vehicle}</span>
-                  </div>
-                </div>
-
-                {/* Quick Actions (only for Admin/Controller) */}
-                {!isDriver && (
-                  <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-                    {metrics.assignedVehicleId ? (
-                      <button
-                        onClick={async () => {
-                          if (window.confirm(`Unassign driver ${driverDetailsUser.userName} from vehicle ${metrics.vehicle}?`)) {
-                            await handleInlineUnassignDriver(metrics.assignedVehicleId)
-                            setIsDriverDetailsOpen(false)
-                          }
-                        }}
-                        style={{ flex: 1, padding: '12px', borderRadius: 12, border: `1px solid ${D.red}30`, background: D.redDim, color: D.red, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', fontFamily: 'inherit' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red; }}
-                      >
-                        Unassign Vehicle
-                      </button>
-                    ) : null}
-                    <button
-                      onClick={() => {
-                        setIsDriverDetailsOpen(false)
-                        if (metrics.assignedVehicleId) {
-                          const veh = vehicles.find(v => v.id === metrics.assignedVehicleId)
-                          if (veh) openEditModal(veh)
-                        }
-                      }}
-                      style={{ flex: 1, padding: '12px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', fontFamily: 'inherit' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                    >
-                      {metrics.assignedVehicleId ? 'Change Assignment' : 'Close'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )
-      })()}
 
         {/* ── Odometer Quick Update Modal ────────────────────────────── */}
         {isOdometerModalOpen && odometerVehicle && (

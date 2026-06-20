@@ -3450,7 +3450,7 @@ const ServicePage = () => {
                                   const g = Math.round(68 + (185 - 68) * (safePct / 100))
                                   const b = Math.round(68 + (129 - 68) * (safePct / 100))
                                   const barColor = diff < 0 ? '#ef4444' : `rgb(${r},${g},${b})`
-                                  const displayPct = diff < 0 ? 100 : 100 - safePct
+                                  const displayPct = diff < 0 ? 100 : safePct
                                   return (
                                     <div>
                                       <div style={{ height: 7, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)' }}>
@@ -3501,7 +3501,7 @@ const ServicePage = () => {
                                   const g = Math.round(68 + (185 - 68) * (safePct / 100))
                                   const b = Math.round(68 + (129 - 68) * (safePct / 100))
                                   const barColor = diff < 0 ? '#ef4444' : `rgb(${r},${g},${b})`
-                                  const displayPct = diff < 0 ? 100 : 100 - safePct
+                                  const displayPct = diff < 0 ? 100 : safePct
                                   return (
                                     <div>
                                       <div style={{ height: 7, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)' }}>
