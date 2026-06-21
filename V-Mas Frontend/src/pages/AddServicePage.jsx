@@ -195,11 +195,10 @@ const AddServicePage = () => {
           </button>
 
           {/* ── Main card — full width of page-body ─────────────────────────── */}
-          <div style={{
+          <div className="responsive-card" style={{
             background: D.surface,
             border: `1px solid ${D.border}`,
             borderRadius: 16,
-            padding: '36px 40px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
           }}>
 
@@ -243,7 +242,7 @@ const AddServicePage = () => {
               </div>
 
               {/* Row 1 — Vehicle + Service Type */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+              <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
                 <div>
                   <label style={fieldLabel}>Vehicle (License Plate) *</label>
                   <input
@@ -293,7 +292,7 @@ const AddServicePage = () => {
               )}
 
               {/* Row 2 — Date + Mileage */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+              <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
                 <div>
                   <label style={fieldLabel}>Service Date *</label>
                   <input
@@ -320,7 +319,7 @@ const AddServicePage = () => {
               </div>
 
               {/* Row 3 — Cost + Workshop */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+              <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
                 <div>
                   <label style={fieldLabel}>Service Cost (Rs.) *</label>
                   <input
@@ -354,7 +353,7 @@ const AddServicePage = () => {
               </div>
 
               {/* Row 4 — Next Service + Description */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 32 }}>
+              <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 32 }}>
                 <div>
                   <label style={fieldLabel}>Next Service Due <span style={{ fontWeight: 400, color: D.textFaint, textTransform: 'none' }}>(Optional)</span></label>
                   <input
@@ -378,7 +377,7 @@ const AddServicePage = () => {
               </div>
 
               {/* Action buttons */}
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', borderTop: `1px solid ${D.border}`, paddingTop: 24 }}>
+              <div className="responsive-btn-group" style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', borderTop: `1px solid ${D.border}`, paddingTop: 24 }}>
                 <button
                   type="button" onClick={() => navigate('/service')}
                   style={{

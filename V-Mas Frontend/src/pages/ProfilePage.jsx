@@ -451,9 +451,9 @@ const ProfilePage = () => {
             </div>
 
             {/* Right Settings Content Area */}
-            <div style={{
-              flex: 1, minWidth: 320, background: D.surface, borderRadius: 24,
-              border: `1px solid ${D.border}`, padding: '32px 36px',
+            <div className="responsive-card-settings" style={{
+              flex: 1, minWidth: 0, background: D.surface, borderRadius: 24,
+              border: `1px solid ${D.border}`,
               boxShadow: '0 4px 24px rgba(0,0,0,0.15)', position: 'relative'
             }}>
               
@@ -468,7 +468,7 @@ const ProfilePage = () => {
 
                   <form onSubmit={handleProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     {/* Avatar Upload Box */}
-                    <div style={{ padding: 20, background: D.surfaceHi, borderRadius: 16, border: `1px dashed ${D.border}`, display: 'flex', gap: 20, alignItems: 'center' }}>
+                    <div style={{ padding: 20, background: D.surfaceHi, borderRadius: 16, border: `1px dashed ${D.border}`, display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
                       <img
                         src={profileForm.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.userName || 'U')}&background=1e3a8a&color=fff&size=100&bold=true`}
                         alt="preview"
@@ -487,7 +487,7 @@ const ProfilePage = () => {
                       <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 24px' }}>
+                    <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 24px' }}>
                       <div>
                         <label style={labelStyle}>Full Name</label>
                         <input type="text" value={profileForm.fullName} onChange={e => setProfileForm(prev => ({ ...prev, fullName: e.target.value }))} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
@@ -523,7 +523,7 @@ const ProfilePage = () => {
                   {pwSuccess && <div style={{ padding: '12px 14px', borderRadius: 10, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><CheckCircle size={16} /> {pwSuccess}</div>}
 
                   <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 24px' }}>
+                    <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 24px' }}>
                       <div style={{ gridColumn: '1 / -1' }}>
                         <label style={labelStyle}>Current Password</label>
                         <div style={{ position: 'relative' }}>
@@ -701,7 +701,7 @@ const ProfilePage = () => {
                   <h3 style={{ margin: '0 0 8px', fontSize: '1.2rem', fontWeight: 800, color: D.text }}>Theme & Appearance</h3>
                   <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: D.textSub }}>Choose your default background view and colors.</p>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                  <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
                     {/* Dark mode card */}
                     <div
                       onClick={() => { if (theme !== 'blue') toggleTheme() }}

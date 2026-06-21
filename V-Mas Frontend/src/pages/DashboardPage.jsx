@@ -473,7 +473,7 @@ const StatusBreakdown = ({ isDark, statusData, stats }) => {
             )
           ))}
           <text x={cx} y={cy - 6} fontSize="28" fontWeight="900" fill="var(--text-primary)" textAnchor="middle" fontFamily="'Plus Jakarta Sans',sans-serif">{total}</text>
-          <text x={cx} y={cy + 14} fontSize="11" fill="var(--text-muted)" textAnchor="middle" fontWeight="700" fontFamily="inherit" textTransform="uppercase" letterSpacing="0.05em">Total</text>
+          <text x={cx} y={cy + 14} fontSize="11" fill="var(--text-muted)" textAnchor="middle" fontWeight="700" fontFamily="inherit" style={{ textTransform: 'uppercase' }} letterSpacing="0.05em">Total</text>
         </svg>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', width: '100%', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
           {donutData.map((d, i) => (
