@@ -7,8 +7,8 @@ import {
   Users, CheckCircle, ChevronDown, Clock, ArrowLeft, Mail, Sun, Moon
 } from 'lucide-react';
 import logo from '../assets/logo.png';
-import loginBg from '../assets/login-bg.jpg';
-import loginBgWhite from '../assets/Login bg image (White).png';
+import loginBg from '../assets/login-bg-opt.jpg';
+import loginBgWhite from '../assets/Login bg image (White)-opt.jpg';
 import './AuthPage.css';
 
 /* ─────────────────────────────────────────────────────
