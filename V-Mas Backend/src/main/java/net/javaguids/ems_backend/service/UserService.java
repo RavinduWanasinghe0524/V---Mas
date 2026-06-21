@@ -35,4 +35,8 @@ public interface UserService {
     UserDto approveUser(Long id);
 
     UserDto rejectUser(Long id);
+
+    List<UserDto> getDeletedUsers();
+
+    UserDto restoreUser(Long id);
 }

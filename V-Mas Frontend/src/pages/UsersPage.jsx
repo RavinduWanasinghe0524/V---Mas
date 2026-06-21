@@ -9,14 +9,14 @@
  * - Dynamic role badges and account status indicators.
  */
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import { userAPI, vehicleAPI } from '../services/api'
 import { getDriverMetrics } from '../utils/driverUtils'
-import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car } from 'lucide-react'
+import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car, BarChart2, Star, Activity, CheckCircle, RotateCcw, Archive, Trash2, User } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
@@ -90,6 +90,50 @@ const UsersPage = () => {
 
   const [vehicles, setVehicles] = useState([])
   const [activeAssigningDriverId, setActiveAssigningDriverId] = useState(null)
+
+  const [selectedProfileUser, setSelectedProfileUser] = useState(null)
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const openProfile = (user) => { setSelectedProfileUser(user); setIsProfileOpen(true); }
+  const closeProfile = () => { setSelectedProfileUser(null); setIsProfileOpen(false); }
+
+  const [deletedDrawer, setDeletedDrawer] = useState(false)
+  const [deletedUsers, setDeletedUsers] = useState([])
+  const [deletedLoading, setDeletedLoading] = useState(false)
+  const [restoringId, setRestoringId] = useState(null)
+  const [deletedDetail, setDeletedDetail] = useState(null)
+
+  const loadDeletedUsers = useCallback(async () => {
+    setDeletedLoading(true)
+    try {
+      const res = await userAPI.getDeletedUsers()
+      setDeletedUsers(res.data.data || [])
+    } catch (err) {
+      console.error('Error loading deleted users:', err)
+    } finally {
+      setDeletedLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (deletedDrawer) loadDeletedUsers()
+  }, [deletedDrawer, loadDeletedUsers])
+
+  const restoreUser = async (id) => {
+    setRestoringId(id)
+    try {
+      await userAPI.restoreUser(id)
+      setActionMsg('User has been restored successfully.')
+      setTimeout(() => setActionMsg(''), 4000)
+      if (isAdmin) loadUsers()
+      setDeletedUsers(prev => prev.filter(u => u.id !== id))
+      setDeletedDetail(null)
+    } catch (err) {
+      console.error('Error restoring user:', err)
+      alert(err.response?.data?.message || 'Failed to restore user.')
+    } finally {
+      setRestoringId(null)
+    }
+  }
 
   const loadVehicles = async () => {
     try {
@@ -558,6 +602,22 @@ const UsersPage = () => {
                     }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = D.text }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = D.textSub }}>
                       Export PDF
                     </button>
+                    {/* Deleted Users Button */}
+                    <button
+                      onClick={() => setDeletedDrawer(true)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '10px 16px', borderRadius: 12,
+                        background: 'rgba(255,255,255,0.03)', border: `1px solid ${D.border}`,
+                        color: D.textSub, fontSize: '0.8rem', fontWeight: 800,
+                        cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.28)'; e.currentTarget.style.color = '#f87171' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.textSub }}
+                    >
+                      <Archive size={14} />
+                      Deleted Users
+                    </button>
                     <button onClick={loadUsers} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 8, borderRadius: 8, transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'none'} title="Refresh users list">
                       <RefreshCw size={18} />
                     </button>
@@ -694,8 +754,10 @@ const UsersPage = () => {
                         return (
                           <div key={u.id} style={{
                             background: D.surface, border: `1px solid ${D.border}`, borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column', gap: 20,
-                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                            cursor: 'pointer'
                           }}
+                            onClick={() => openProfile(u)}
                             onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.2)' }}
                             onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)' }}>
 
@@ -822,17 +884,44 @@ const UsersPage = () => {
                             {/* Stats Cards Row */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                               {statsToShow.map((st, sidx) => {
-                                let valColor = D.text
-                                if (st.isRating) valColor = '#fbbf24'
-                                if (st.isSafety) valColor = '#34d399'
+                                let themeStyles = {}
+                                let stIcon = null
+                                
+                                if (sidx === 0) {
+                                  themeStyles = {
+                                    bg: isDark ? 'rgba(59, 130, 246, 0.04)' : 'rgba(59, 130, 246, 0.02)',
+                                    border: isDark ? '1px solid rgba(59, 130, 246, 0.15)' : '1px solid rgba(59, 130, 246, 0.1)',
+                                    color: D.blue
+                                  }
+                                  stIcon = u.role === 'DRIVER' ? <BarChart2 size={11} style={{ color: D.blue }} /> : <ShieldCheck size={11} style={{ color: D.blue }} />
+                                } else if (sidx === 1) {
+                                  themeStyles = {
+                                    bg: isDark ? 'rgba(245, 158, 11, 0.03)' : 'rgba(245, 158, 11, 0.02)',
+                                    border: isDark ? '1px solid rgba(245, 158, 11, 0.15)' : '1px solid rgba(245, 158, 11, 0.1)',
+                                    color: '#fbbf24'
+                                  }
+                                  stIcon = u.role === 'DRIVER' ? <Star size={11} style={{ color: '#fbbf24' }} /> : <Shield size={11} style={{ color: '#fbbf24' }} />
+                                } else {
+                                  themeStyles = {
+                                    bg: isDark ? 'rgba(16, 185, 129, 0.04)' : 'rgba(16, 185, 129, 0.02)',
+                                    border: isDark ? '1px solid rgba(16, 185, 129, 0.15)' : '1px solid rgba(16, 185, 129, 0.1)',
+                                    color: '#10b981'
+                                  }
+                                  stIcon = u.role === 'DRIVER' ? <Activity size={11} style={{ color: '#10b981' }} /> : <CheckCircle size={11} style={{ color: '#10b981' }} />
+                                }
 
                                 return (
                                   <div key={sidx} style={{
-                                    background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
-                                    border: `1px solid ${D.border}`, borderRadius: 16, padding: '14px 6px', textAlign: 'center'
+                                    background: themeStyles.bg,
+                                    border: themeStyles.border,
+                                    borderRadius: 16, padding: '14px 6px', textAlign: 'center',
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
                                   }}>
-                                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: valColor }}>{st.value}</div>
-                                    <div style={{ fontSize: '0.65rem', fontWeight: 700, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{st.label}</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                                      {stIcon}
+                                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: themeStyles.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{st.label}</span>
+                                    </div>
+                                    <div style={{ fontSize: '1.1rem', fontWeight: 900, color: st.isRating || st.isSafety ? themeStyles.color : D.text }}>{st.value}</div>
                                   </div>
                                 )
                               })}
@@ -864,24 +953,24 @@ const UsersPage = () => {
                               <div style={{ borderTop: `1px solid ${D.border}`, margin: '8px 0 0', paddingTop: '16px', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                                 {u.accountStatus === 'PENDING' && (
                                   <>
-                                    <button onClick={() => handleApprove(u.id, u.userName)} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: D.green, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.green}30` }}
+                                    <button onClick={(e) => { e.stopPropagation(); handleApprove(u.id, u.userName); }} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: D.green, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.green}30` }}
                                       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                                      <Check size={14} /> Approve
+                                        <Check size={14} /> Approve
                                     </button>
-                                    <button onClick={() => handleReject(u.id, u.userName)} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: D.red, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.red}30` }}
+                                    <button onClick={(e) => { e.stopPropagation(); handleReject(u.id, u.userName); }} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: D.red, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.red}30` }}
                                       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                                      <X size={14} /> Reject
+                                        <X size={14} /> Reject
                                     </button>
                                   </>
                                 )}
                                 {(!isController || u.role === 'DRIVER') && (
                                   <>
-                                    <button onClick={() => handleEdit(u)} style={{ padding: '8px 16px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
+                                    <button onClick={(e) => { e.stopPropagation(); handleEdit(u); }} style={{ padding: '8px 16px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
                                       onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.15)'; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.color = '#60a5fa' }}
                                       onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
                                       Edit
                                     </button>
-                                    <button onClick={() => handleDelete(u.id)} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
+                                    <button onClick={(e) => { e.stopPropagation(); handleDelete(u.id); }} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
                                       onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
                                       onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = D.red }}>
                                       Delete
@@ -903,6 +992,146 @@ const UsersPage = () => {
           </div>
         </div>
       </div>
+
+      {/* User Profile Details Modal Popup */}
+      {isProfileOpen && selectedProfileUser && (() => {
+        const u = selectedProfileUser
+        const metrics = getDriverMetrics(u, vehicles)
+        const initials = u.userName
+          ? u.userName.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
+          : 'U'
+          
+        let dutyStyles = {
+          bg: 'rgba(255,255,255,0.05)',
+          color: D.textSub,
+          border: `1px solid ${D.border}`
+        }
+        if (metrics.status === 'On Duty' || metrics.status === 'Active') {
+          dutyStyles = { bg: 'rgba(52, 211, 153, 0.12)', color: '#34d399', border: '1px solid rgba(52, 211, 153, 0.25)' }
+        } else if (metrics.status === 'On Leave' || metrics.status === 'Pending') {
+          dutyStyles = { bg: 'rgba(251, 191, 36, 0.12)', color: '#fbbf24', border: '1px solid rgba(251, 191, 36, 0.25)' }
+        } else if (metrics.status === 'Suspended' || metrics.status === 'Inactive') {
+          dutyStyles = { bg: 'rgba(248, 113, 113, 0.12)', color: '#f87171', border: '1px solid rgba(248, 113, 113, 0.25)' }
+        }
+
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.25s ease' }}>
+            {/* Backdrop */}
+            <div onClick={closeProfile} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)' }} />
+
+            {/* Modal Container */}
+            <div style={{
+              position: 'relative',
+              width: '92%',
+              maxWidth: 500,
+              background: D.surface,
+              borderRadius: 28,
+              boxShadow: '0 32px 100px rgba(0,0,0,0.6)',
+              border: `1px solid ${D.border}`,
+              display: 'flex',
+              flexDirection: 'column',
+              zIndex: 10,
+              animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+              overflow: 'hidden'
+            }} onClick={e => e.stopPropagation()}>
+              {/* Header */}
+              <div style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)', padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#fff' }}>
+                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                  {u.profilePicture ? (
+                    <img src={u.profilePicture} alt={u.userName} style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.2)', flexShrink: 0 }} onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`; }} />
+                  ) : (
+                    <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 800, border: '2px solid rgba(255,255,255,0.2)', flexShrink: 0 }}>
+                      {initials}
+                    </div>
+                  )}
+                  <div>
+                    <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.25rem', color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                      {u.userName}
+                    </h3>
+                    <p style={{ margin: '4px 0 0', color: '#93c5fd', fontSize: '0.85rem', fontWeight: 600 }}>
+                      {u.email}
+                    </p>
+                  </div>
+                </div>
+                <button onClick={closeProfile} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 8, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={20} /></button>
+              </div>
+
+              {/* Status and Role badges row */}
+              <div style={{ padding: '12px 32px', background: D.surface, display: 'flex', gap: 10, borderBottom: `1px solid ${D.border}` }}>
+                <RoleBadge role={u.role} D={D} />
+                <span style={{ background: dutyStyles.bg, color: dutyStyles.color, border: dutyStyles.border, padding: '4px 12px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  {metrics.status}
+                </span>
+              </div>
+
+              {/* Detail list */}
+              <div style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {u.role === 'DRIVER' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 8 }}>
+                    <div style={{ background: 'rgba(59, 130, 246, 0.04)', border: `1px solid rgba(59, 130, 246, 0.15)`, borderRadius: 16, padding: '14px 6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: D.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                        <BarChart2 size={12} /> {metrics.trips}
+                      </div>
+                      <div style={{ fontSize: '0.62rem', fontWeight: 800, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Trips</div>
+                    </div>
+                    <div style={{ background: 'rgba(251, 191, 36, 0.04)', border: `1px solid rgba(251, 191, 36, 0.15)`, borderRadius: 16, padding: '14px 6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                        <Star size={12} fill="#fbbf24" style={{ stroke: 'none' }} /> {metrics.rating}
+                      </div>
+                      <div style={{ fontSize: '0.62rem', fontWeight: 800, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rating</div>
+                    </div>
+                    <div style={{ background: 'rgba(16, 185, 129, 0.04)', border: `1px solid rgba(16, 185, 129, 0.15)`, borderRadius: 16, padding: '14px 6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                        <Activity size={12} /> {metrics.safety}
+                      </div>
+                      <div style={{ fontSize: '0.62rem', fontWeight: 800, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Safety</div>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>User ID</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>#{u.id}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>Account Status</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: u.accountStatus === 'ACTIVE' ? D.green : u.accountStatus === 'PENDING' ? D.gold : D.red }}>{u.accountStatus}</span>
+                  </div>
+
+                  {u.role === 'DRIVER' && (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>Assigned Vehicle</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: metrics.assignedVehicleId ? D.blue : D.textFaint }}>{metrics.vehicle}</span>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>License Number</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>{metrics.license}</span>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 4 }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>Phone Number</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>{metrics.phone}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer / Actions */}
+              <div style={{ borderTop: `1px solid ${D.border}`, padding: '18px 32px', background: D.surfaceHi, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+                <button onClick={closeProfile} style={{ padding: '10px 20px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── Modal ─────────────────────────────────────────────────── */}
       {showModal && (
@@ -1031,6 +1260,300 @@ const UsersPage = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* ── Deleted Users Drawer ─────────────────────────────────── */}
+      {deletedDrawer && (
+        <div
+          onClick={() => { setDeletedDrawer(false); setDeletedDetail(null) }}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(6px)', zIndex: 1200,
+            animation: 'fadeIn 0.18s ease',
+          }}
+        >
+          {/* Drawer panel */}
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'fixed', top: 0, right: 0, bottom: 0,
+              width: '100%', maxWidth: 700,
+              background: D.bg, display: 'flex', flexDirection: 'column',
+              boxShadow: '-20px 0 60px rgba(0,0,0,0.4)',
+              animation: 'slideInRight 0.28s cubic-bezier(0.22,1,0.36,1)',
+              borderLeft: `1px solid ${D.border}`,
+            }}
+          >
+            {/* Drawer Header */}
+            <div style={{
+              background: 'linear-gradient(135deg,#7f1d1d 0%,#991b1b 45%,#dc2626 100%)',
+              padding: '22px 28px', display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between', flexShrink: 0, gap: 16,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 12,
+                  background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+                }}>
+                  <Archive size={24} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#fff', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                    Deleted Users
+                  </h2>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)' }}>
+                    Soft-deleted users are preserved for audit logs and history
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setDeletedDrawer(false); setDeletedDetail(null) }}
+                style={{
+                  background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8, cursor: 'pointer', color: '#fff',
+                  padding: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Count badge */}
+            {!deletedLoading && (
+              <div style={{
+                padding: '14px 28px', background: D.surface,
+                borderBottom: `1px solid ${D.border}`,
+                display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
+              }}>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '4px 14px', borderRadius: 999,
+                  background: 'rgba(239,68,68,0.1)', color: '#ef4444',
+                  border: '1px solid rgba(239,68,68,0.2)',
+                  fontSize: '0.78rem', fontWeight: 700,
+                }}>
+                  <Trash2 size={12} />
+                  {deletedUsers.length} user{deletedUsers.length !== 1 ? 's' : ''} deleted
+                </span>
+                <span style={{ fontSize: '0.75rem', color: D.textSub }}>
+                  These user accounts are inactive and blocked from login
+                </span>
+              </div>
+            )}
+
+            {/* Content */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {deletedLoading ? (
+                [1, 2, 3].map(i => (
+                  <div key={i} style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 12, height: 90, animation: 'pulse 1.5s ease infinite' }} />
+                ))
+              ) : deletedUsers.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 20px', color: D.textSub }}>
+                  <div style={{ opacity: 0.4, display: 'flex', justifyContent: 'center', marginBottom: 14 }}><Archive size={44} /></div>
+                  <p style={{ fontSize: '0.95rem', fontWeight: 500 }}>No deleted users found.</p>
+                  <p style={{ fontSize: '0.8rem', marginTop: 4 }}>Soft-deleted accounts will be listed here.</p>
+                </div>
+              ) : deletedDetail ? (
+                /* ── Inner Detail View ───────────────────────────────── */
+                (() => {
+                  const u = deletedDetail
+                  return (
+                    <div style={{ animation: 'fadeIn 0.15s ease' }}>
+                      {/* Action row: Back + Restore */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                        <button
+                          onClick={() => setDeletedDetail(null)}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '8px 16px', borderRadius: 8,
+                            background: D.surface, border: `1px solid ${D.border}`,
+                            color: D.textSub, cursor: 'pointer', fontSize: '0.78rem',
+                            fontWeight: 600,
+                          }}
+                        >
+                          ← Back to list
+                        </button>
+
+                        {/* Restore button */}
+                        <button
+                          id={`restore-user-btn-${u.id}`}
+                          onClick={() => restoreUser(u.id)}
+                          disabled={restoringId === u.id}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 7,
+                            padding: '8px 20px', borderRadius: 8,
+                            background: restoringId === u.id ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.12)',
+                            color: '#10b981',
+                            border: '1px solid rgba(16,185,129,0.3)',
+                            cursor: restoringId === u.id ? 'not-allowed' : 'pointer',
+                            fontSize: '0.82rem', fontWeight: 700,
+                            transition: 'all 0.15s',
+                            opacity: restoringId === u.id ? 0.7 : 1,
+                          }}
+                          onMouseEnter={e => { if (restoringId !== u.id) { e.currentTarget.style.background = '#10b981'; e.currentTarget.style.color = '#fff' } }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.12)'; e.currentTarget.style.color = '#10b981' }}
+                        >
+                          {restoringId === u.id ? (
+                            <>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                              Restoring…
+                            </>
+                          ) : (
+                            <>
+                              <RotateCcw size={14} /> Restore Account
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* User header card */}
+                      <div style={{
+                        background: 'linear-gradient(135deg,rgba(127,29,29,0.15) 0%,rgba(239,68,68,0.08) 100%)',
+                        border: '1px solid rgba(239,68,68,0.2)',
+                        borderRadius: 14, padding: '20px 22px', marginBottom: 16,
+                        display: 'flex', alignItems: 'center', gap: 16,
+                      }}>
+                        <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=ef4444&color=fff&bold=true`} alt={u.userName} style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(239,68,68,0.25)' }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 800, fontSize: '1.05rem', color: D.text }}>
+                            {u.userName}
+                          </div>
+                          <div style={{ fontSize: '0.8rem', color: D.textSub, marginTop: 2 }}>
+                            {u.email}
+                          </div>
+                        </div>
+                        <span style={{
+                          padding: '4px 12px', borderRadius: 999, fontSize: '0.68rem', fontWeight: 700,
+                          background: 'rgba(239,68,68,0.12)', color: '#ef4444',
+                          border: '1px solid rgba(239,68,68,0.25)', letterSpacing: '0.05em',
+                          textTransform: 'uppercase', flexShrink: 0,
+                        }}>DELETED</span>
+                      </div>
+
+                      {/* Deletion info */}
+                      <div style={{
+                        background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+                        borderRadius: 12, padding: '16px 20px', marginBottom: 16,
+                      }}>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#ef4444', marginBottom: 10 }}>
+                          🗑 Deletion Information
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px' }}>
+                          <div>
+                            <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: D.textSub, marginBottom: 4 }}>Deleted By</div>
+                            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 5 }}>
+                              <User size={14} /> {u.deletedBy || '—'}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: D.textSub, marginBottom: 4 }}>Deleted At</div>
+                            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 5 }}>
+                              <Clock size={14} />
+                              {u.deletedAt ? new Date(u.deletedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Details */}
+                      <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+                        Account Profile <div style={{ flex: 1, height: 1, background: D.border }} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 20px', marginBottom: 16 }}>
+                        {[
+                          ['Username', u.userName],
+                          ['Email Address', u.email],
+                          ['Account Role', u.role],
+                          ['Original Status', u.accountStatus || 'ACTIVE'],
+                        ].map(([label, val]) => (
+                          <div key={label}>
+                            <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: D.textSub, marginBottom: 4 }}>{label}</div>
+                            <div style={{ fontSize: '0.88rem', fontWeight: 600, color: val ? D.text : D.textSub }}>{val || '—'}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()
+              ) : (
+                /* ── Deleted Users List ────────────────────────────── */
+                deletedUsers.map((u, i) => (
+                  <div
+                    key={u.id}
+                    onClick={() => setDeletedDetail(u)}
+                    style={{
+                      background: D.surface,
+                      border: '1px solid rgba(239,68,68,0.15)',
+                      borderRadius: 12,
+                      padding: '16px 20px',
+                      cursor: 'pointer',
+                      transition: 'all 0.18s ease',
+                      animation: `fadeUp 0.25s ease ${i * 0.04}s both`,
+                      display: 'flex', alignItems: 'flex-start', gap: 14,
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = D.surfaceHi
+                      e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)'
+                      e.currentTarget.style.transform = 'translateY(-1px)'
+                      e.currentTarget.style.boxShadow = '0 6px 24px rgba(239,68,68,0.1)'
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = D.surface
+                      e.currentTarget.style.borderColor = 'rgba(239,68,68,0.15)'
+                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.boxShadow = 'none'
+                    }}
+                  >
+                    <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=ef4444&color=fff&bold=true`} alt={u.userName} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(239,68,68,0.2)' }} />
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.9rem', color: D.text }}>
+                          {u.userName}
+                        </span>
+                        <span style={{
+                          fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.06em',
+                          textTransform: 'uppercase', padding: '2px 8px', borderRadius: 999,
+                          background: 'rgba(239,68,68,0.1)', color: '#ef4444',
+                          border: '1px solid rgba(239,68,68,0.2)',
+                        }}>{u.role}</span>
+                        <span style={{
+                          fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.06em',
+                          textTransform: 'uppercase', padding: '2px 8px', borderRadius: 999,
+                          background: 'rgba(239,68,68,0.08)', color: D.textSub,
+                          border: `1px solid ${D.border}`,
+                        }}>DELETED</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.75rem', color: D.textSub }}>
+                          {u.email}
+                        </span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: D.textSub }}>
+                          <User size={12} /> by {u.deletedBy || 'unknown'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={e => { e.stopPropagation(); restoreUser(u.id) }}
+                      disabled={restoringId === u.id}
+                      style={{
+                        background: 'none', padding: '6px 12px', borderRadius: 8,
+                        color: '#10b981', cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
+                        display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease',
+                        border: '1px solid rgba(16,185,129,0.2)'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.1)' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                    >
+                      {restoringId === u.id ? 'Restoring...' : 'Restore'}
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       )}

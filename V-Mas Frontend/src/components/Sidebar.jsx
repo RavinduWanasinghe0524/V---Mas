@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import {
   LayoutDashboard, Truck, Wrench, Users, Fuel,
-  BarChart2, User, ChevronLeft,
+  BarChart2, User, ChevronLeft, LogOut,
 } from 'lucide-react'
 
 const navItems = {
@@ -43,11 +43,17 @@ const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
   const isDark = theme === 'blue'
   const items = navItems[user?.role] || navItems.DRIVER
 
+  // ── Mobile detection ─────────────────────────────────────────────────────
+  const isMobile = isOpen  // On mobile the sidebar is always a drawer (isOpen controlled)
+
   // ── Collapse state — persisted to localStorage ──────────────────────────
   const [collapsed, setCollapsed] = useState(() =>
     localStorage.getItem('sidebar-collapsed') === 'true'
   )
   const sidebarRef = useRef(null)
+
+  // On mobile: sidebar drawer should never appear collapsed (always show labels)
+  const effectiveCollapsed = isMobile ? false : collapsed
 
   // Sync --sidebar-w CSS variable whenever collapsed changes
   useEffect(() => {
@@ -57,6 +63,17 @@ const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
     )
     localStorage.setItem('sidebar-collapsed', String(collapsed))
   }, [collapsed])
+
+  // When mobile drawer closes, restore desktop collapsed state variable
+  useEffect(() => {
+    if (!isOpen) {
+      // re-apply desktop sidebar width
+      document.documentElement.style.setProperty(
+        '--sidebar-w',
+        collapsed ? '76px' : '290px'
+      )
+    }
+  }, [isOpen, collapsed])
 
   // ── Collapse when clicking outside the sidebar ─────────────────────────
   const justExpanded = useRef(false)
@@ -218,7 +235,7 @@ const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
 
       <aside
         ref={sidebarRef}
-        className={`sidebar${isOpen ? ' sidebar-open' : ''}${collapsed ? ' sidebar-collapsed' : ''}`}
+        className={`sidebar${isOpen ? ' sidebar-open' : ''}${effectiveCollapsed ? ' sidebar-collapsed' : ''}`}
       >
 
         {/* Mobile close button */}
@@ -246,46 +263,55 @@ const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
         {/* ── Nav items ── */}
         <nav className="sidebar-nav">
           <div className="nav-section">
-            <div className="nav-section-label">Navigation</div>
+            {/* Always show label on mobile, hide on desktop when collapsed */}
+            <div className={`nav-section-label${effectiveCollapsed ? '' : ''}`}>Navigation</div>
             {items.map(renderItem)}
           </div>
         </nav>
 
         {/* ── Sign Out ── */}
         <div style={{
-          padding: collapsed ? '12px 8px 16px' : '20px 20px 24px',
+          padding: effectiveCollapsed ? '12px 8px 16px' : '20px 20px 24px',
           marginTop: 'auto',
           transition: 'padding 0.28s ease',
         }}>
-          <div style={{ height: 1, background: 'var(--border)', marginBottom: collapsed ? 12 : 20, transition: 'margin 0.28s ease' }} />
+          <div style={{ height: 1, background: 'var(--border)', marginBottom: effectiveCollapsed ? 12 : 20, transition: 'margin 0.28s ease' }} />
           <button
             onClick={handleLogout}
-            className="sidebar-logout-btn"
+            className={`sidebar-logout-btn${isMobile ? ' sidebar-logout-mobile' : ''}`}
             style={{
-              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              padding: '14px 18px', borderRadius: 12,
-              border: '1px solid rgba(239,68,68,0.2)',
-              background: 'rgba(239,68,68,0.08)',
-              color: isDark ? 'rgba(248,113,113,0.8)' : '#dc2626',
-              cursor: 'pointer', fontFamily: 'inherit', fontSize: '1rem', fontWeight: 600,
+              width: '100%', display: 'flex', alignItems: 'center',
+              justifyContent: effectiveCollapsed ? 'center' : 'flex-start',
+              gap: 10,
+              padding: isMobile ? '16px 20px' : effectiveCollapsed ? '12px' : '14px 18px',
+              borderRadius: 12,
+              border: isMobile
+                ? '1.5px solid rgba(239,68,68,0.5)'
+                : '1px solid rgba(239,68,68,0.2)',
+              background: isMobile
+                ? isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.08)'
+                : 'rgba(239,68,68,0.08)',
+              color: isDark ? '#f87171' : '#dc2626',
+              cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: isMobile ? '1.05rem' : '1rem',
+              fontWeight: 700,
+              letterSpacing: '0.01em',
               transition: 'all 0.2s ease',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(239,68,68,0.18)'
-              e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)'
-              e.currentTarget.style.color = isDark ? '#f87171' : '#b91c1c'
+              e.currentTarget.style.background = 'rgba(239,68,68,0.22)'
+              e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'
+              e.currentTarget.style.color = isDark ? '#fca5a5' : '#b91c1c'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(239,68,68,0.08)'
-              e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)'
-              e.currentTarget.style.color = isDark ? 'rgba(248,113,113,0.8)' : '#dc2626'
+              e.currentTarget.style.background = isMobile
+                ? isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.08)'
+                : 'rgba(239,68,68,0.08)'
+              e.currentTarget.style.borderColor = isMobile ? 'rgba(239,68,68,0.5)' : 'rgba(239,68,68,0.2)'
+              e.currentTarget.style.color = isDark ? '#f87171' : '#dc2626'
             }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
+            <LogOut size={isMobile ? 22 : 20} strokeWidth={2.2} />
             <span className="sidebar-logout-text">Sign Out</span>
           </button>
         </div>

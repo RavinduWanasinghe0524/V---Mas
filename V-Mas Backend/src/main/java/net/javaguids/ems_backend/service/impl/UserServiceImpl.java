@@ -100,14 +100,14 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserDto> getAllUsers() {
         return userRepository.findAll()
-                .stream().map(this::mapToDto).collect(Collectors.toList());
+                .stream().filter(u -> !u.isDeleted()).map(this::mapToDto).collect(Collectors.toList());
     }
 
     // ── GET PENDING USERS ────────────────────────────────────────────
     @Override
     public List<UserDto> getPendingUsers() {
         return userRepository.findByAccountStatus(AccountStatus.PENDING)
-                .stream().map(this::mapToDto).collect(Collectors.toList());
+                .stream().filter(u -> !u.isDeleted()).map(this::mapToDto).collect(Collectors.toList());
     }
 
     // ── GET USER BY ID ───────────────────────────────────────────────
@@ -169,7 +169,11 @@ public class UserServiceImpl implements UserService {
         Long requiredId = Objects.requireNonNull(id);
         User user = userRepository.findById(requiredId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
-        userRepository.delete(Objects.requireNonNull(user));
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        user.setDeleted(true);
+        user.setDeletedBy(auth != null && auth.isAuthenticated() ? auth.getName() : "unknown");
+        user.setDeletedAt(java.time.LocalDateTime.now());
+        userRepository.save(user);
     }
 
     // ── MY PROFILE ───────────────────────────────────────────────────
@@ -257,6 +261,33 @@ public class UserServiceImpl implements UserService {
                 user.getEmail(),
                 user.getRole(),
                 user.getAccountStatus(),
-                user.getProfilePicture());
+                user.getProfilePicture(),
+                user.isDeleted(),
+                user.getDeletedBy(),
+                user.getDeletedAt());
+    }
+
+    @Override
+    public List<UserDto> getDeletedUsers() {
+        return userRepository.findAll().stream()
+                .filter(User::isDeleted)
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public UserDto restoreUser(Long id) {
+        Long requiredId = Objects.requireNonNull(id);
+        User user = userRepository.findById(requiredId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        if (!user.isDeleted()) {
+            throw new RuntimeException("User is not deleted.");
+        }
+        user.setDeleted(false);
+        user.setDeletedBy(null);
+        user.setDeletedAt(null);
+        User restored = userRepository.save(user);
+        return mapToDto(restored);
     }
 }

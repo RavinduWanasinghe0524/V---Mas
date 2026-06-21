@@ -2506,127 +2506,7 @@ const ServicePage = () => {
             </div>
           </div>
 
-          {/* ══════════════════════════════════════════════════════
-              2. 5 KPI GLOWING METRIC TILES
-          ══════════════════════════════════════════════════════ */}
-          {!isDriver && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 26 }}>
-              {[
-                {
-                  icon: <ClipboardList size={20} />,
-                  label: 'Open Orders', value: openOrdersCount,
-                  sub: 'Awaiting action',
-                  iconBg: 'rgba(59,130,246,0.15)', iconColor: '#60a5fa',
-                  glowColor: 'rgba(59,130,246,0.12)',
-                },
-                {
-                  icon: <Calendar size={20} />,
-                  label: 'Due This Week', value: dueThisWeekCount,
-                  sub: 'Scheduled services',
-                  iconBg: 'rgba(139,92,246,0.15)', iconColor: '#a78bfa',
-                  glowColor: 'rgba(139,92,246,0.1)',
-                },
-                {
-                  icon: <ShieldAlert size={20} />,
-                  label: 'Overdue', value: overdueCount,
-                  sub: 'Needs attention',
-                  iconBg: 'rgba(239,68,68,0.15)', iconColor: '#f87171',
-                  glowColor: 'rgba(239,68,68,0.1)',
-                  urgent: overdueCount > 0,
-                },
-                {
-                  icon: <Wallet size={20} />,
-                  label: 'MTD Cost',
-                  value: null,
-                  displayValue: `LKR ${mtdCost >= 1000 ? (mtdCost / 1000).toFixed(1) + 'k' : mtdCost.toLocaleString()}`,
-                  fullValue: `LKR ${mtdCost.toLocaleString()}`,
-                  sub: 'Month to date',
-                  iconBg: 'rgba(251,191,36,0.15)', iconColor: '#fbbf24',
-                  glowColor: 'rgba(251,191,36,0.08)',
-                  trend: costTrendPercent,
-                },
-                {
-                  icon: <Clock size={20} />,
-                  label: 'Avg Downtime',
-                  value: null,
-                  displayValue: `${avgDowntime} hrs`,
-                  sub: 'Per completed service',
-                  iconBg: 'rgba(45,212,191,0.15)', iconColor: '#2dd4bf',
-                  glowColor: 'rgba(45,212,191,0.08)',
-                  trend: downtimeTrendPercent,
-                },
-              ].map((card, i) => (
-                <div
-                  key={i}
-                  className="svc-kpi-card"
-                  style={{
-                    background: D.surface,
-                    borderRadius: 16,
-                    padding: '20px 22px',
-                    overflow: 'hidden',
-                    border: `1px solid ${card.urgent ? 'rgba(239,68,68,0.22)' : D.border}`,
-                    boxShadow: card.urgent
-                      ? '0 4px 20px rgba(239,68,68,0.12)'
-                      : `0 4px 20px ${card.glowColor}`,
-                    position: 'relative',
-                    animation: `fadeSlideUp 0.4s ease ${i * 0.07}s both`,
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-                    <div style={{
-                      width: 40, height: 40, borderRadius: 11,
-                      background: card.iconBg,
-                      border: `1px solid ${card.iconColor}22`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: card.iconColor,
-                    }}>
-                      {card.icon}
-                    </div>
-                    {card.trend !== undefined && card.trend !== 0 && (
-                      <div style={{
-                        fontSize: '0.62rem', fontWeight: 800,
-                        padding: '3px 8px', borderRadius: 6,
-                        background: card.trend < 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-                        color: card.trend < 0 ? '#10b981' : '#ef4444',
-                        border: `1px solid ${card.trend < 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
-                      }}>
-                        {card.trend < 0 ? '▼' : '▲'} {Math.abs(card.trend)}%
-                      </div>
-                    )}
-                    {card.urgent && (
-                      <div style={{
-                        fontSize: '0.58rem', fontWeight: 800,
-                        padding: '3px 8px', borderRadius: 6,
-                        background: 'rgba(239,68,68,0.14)', color: '#f87171',
-                        border: '1px solid rgba(239,68,68,0.28)',
-                        animation: 'pulseBar 1.8s ease-in-out infinite',
-                        letterSpacing: '0.05em',
-                      }}>
-                        URGENT
-                      </div>
-                    )}
-                  </div>
 
-                  <p style={{ margin: '0 0 6px', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                    {card.label}
-                  </p>
-                  <p
-                    style={{
-                      margin: '0 0 4px', fontFamily: "'Plus Jakarta Sans', 'Outfit', sans-serif",
-                      fontSize: '1.6rem',
-                      fontWeight: 900, color: card.urgent ? '#f87171' : D.text,
-                      lineHeight: 1.1,
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}
-                    title={card.fullValue || card.displayValue || String(card.value)}
-                  >
-                    {card.displayValue ?? card.value}
-                  </p>
-                  <p style={{ margin: 0, fontSize: '0.68rem', color: D.textFaint, fontWeight: 500 }}>{card.sub}</p>
-                </div>
-              ))}
-            </div>
-          )}
 
           {/* Service Alerts - Full Width */}
           {alertRecords.length > 0 && (
@@ -3221,7 +3101,7 @@ const ServicePage = () => {
                     </div>
 
                     {/* Table zones */}
-                    <div style={{ overflowX: 'auto', scrollbarWidth: 'thin' }}>
+                    <div className="desktop-view-only" style={{ overflowX: 'auto', scrollbarWidth: 'thin' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
                           <tr style={{ background: D.surfaceHi, borderBottom: `1px solid ${D.border}` }}>
@@ -3291,6 +3171,99 @@ const ServicePage = () => {
                             })}
                         </tbody>
                       </table>
+                    </div>
+
+                    {/* Mobile Card list */}
+                    <div className="mobile-view-only" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      {allVehicles
+                        .filter(v => !v.isDeleted && (
+                          (v.registrationNo || '').toLowerCase().includes(mileageSearch.toLowerCase()) ||
+                          `${v.manufacturer || ''} ${v.model || ''}`.toLowerCase().includes(mileageSearch.toLowerCase())
+                        ))
+                        .map(v => {
+                          const currentVal = v.currentMileageKm || 0
+                          const entryVal = dailyMileages[v.id] !== undefined ? dailyMileages[v.id] : currentVal
+                          const hasError = errors[v.id]
+                          const isChanged = Number(entryVal) !== currentVal
+
+                          return (
+                            <div key={v.id} style={{
+                              background: D.surfaceHi,
+                              border: `1px solid ${hasError ? '#ef4444' : isChanged ? 'rgba(99,102,241,0.4)' : D.border}`,
+                              borderRadius: 16,
+                              padding: '16px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 12,
+                              boxShadow: isChanged ? '0 4px 12px rgba(99,102,241,0.08)' : 'none',
+                              transition: 'all 0.2s ease'
+                            }}>
+                              {/* Row 1: Reg Number + Type */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.95rem', fontWeight: 800, color: D.text }}>
+                                  {v.registrationNo}
+                                </span>
+                                <span style={{
+                                  fontSize: '0.7rem', fontWeight: 700,
+                                  color: D.textSub, background: D.inputBg,
+                                  padding: '4px 10px', borderRadius: 8,
+                                  border: `1px solid ${D.border}`,
+                                  textTransform: 'uppercase', letterSpacing: '0.04em'
+                                }}>
+                                  {v.vehicleType || 'Unknown'}
+                                </span>
+                              </div>
+
+                              {/* Row 2: Details & Assignee */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: D.textSub }}>
+                                <span>{v.manufacturer} {v.model}</span>
+                                <span style={{ fontWeight: 600, color: v.driverName ? D.text : D.textFaint }}>
+                                  Assignee: {v.driverName || 'Unassigned'}
+                                </span>
+                              </div>
+
+                              {/* Row 3: Current Mileage vs New Entry */}
+                              <div style={{
+                                borderTop: `1px solid ${D.border}`,
+                                paddingTop: 12,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 8
+                              }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem' }}>
+                                  <span style={{ color: D.textFaint, fontWeight: 500 }}>Current Mileage:</span>
+                                  <span style={{ fontWeight: 800, color: D.text }}>{currentVal.toLocaleString()} km</span>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  <input
+                                    type="number"
+                                    value={entryVal === 0 ? '' : entryVal}
+                                    placeholder={`New Mileage (min: ${currentVal})`}
+                                    onChange={e => {
+                                      const val = e.target.value === '' ? 0 : Number(e.target.value)
+                                      setDailyMileages(prev => ({ ...prev, [v.id]: val }))
+                                      if (val >= currentVal && errors[v.id]) {
+                                        setErrors(prev => ({ ...prev, [v.id]: undefined }))
+                                      }
+                                    }}
+                                    style={{
+                                      width: '100%', padding: '10px 12px',
+                                      background: D.inputBg, border: `1px solid ${hasError ? '#ef4444' : isChanged ? 'rgba(99,102,241,0.6)' : D.inputBorder}`,
+                                      borderRadius: 10, color: D.text, fontSize: '0.9rem', outline: 'none',
+                                      boxSizing: 'border-box'
+                                    }}
+                                  />
+                                  {hasError && (
+                                    <span style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 600, marginTop: 2 }}>
+                                      {hasError}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
                     </div>
                   </div>
                 )}

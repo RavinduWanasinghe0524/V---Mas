@@ -20,22 +20,109 @@ const onBlur = e => {
 }
 
 
-const StatBadge = ({ label, value, icon, colorDim, colorHex, D }) => (
-  <div style={{
-    background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: 'var(--shadow-sm)', overflow: 'hidden', padding: '28px', display: 'flex', alignItems: 'center', gap: 24,
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', cursor: 'default'
-  }}
-    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.borderColor = colorHex + '50'; e.currentTarget.style.boxShadow = `0 16px 32px ${colorHex}20` }}
-    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)' }}>
-    <div style={{ width: 60, height: 60, borderRadius: 18, background: colorDim, color: colorHex, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${colorHex}30`, flexShrink: 0 }}>
-      {icon}
+const StatBadge = ({ label, value, icon, colorDim, colorHex, D, total }) => {
+  const pct = total > 0 ? Math.round((value / total) * 100) : 0
+  return (
+    <div
+      style={{
+        background: D.surface,
+        borderRadius: 20,
+        border: `1px solid ${D.border}`,
+        overflow: 'hidden',
+        position: 'relative',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        cursor: 'default',
+        boxShadow: `0 4px 24px rgba(0,0,0,0.2)`,
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'translateY(-5px)'
+        e.currentTarget.style.borderColor = colorHex + '55'
+        e.currentTarget.style.boxShadow = `0 16px 40px ${colorHex}25, 0 4px 12px rgba(0,0,0,0.25)`
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = 'translateY(0)'
+        e.currentTarget.style.borderColor = D.border
+        e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.2)'
+      }}
+    >
+      {/* Top gradient accent bar */}
+      <div style={{
+        height: 3,
+        background: `linear-gradient(90deg, ${colorHex}00 0%, ${colorHex} 40%, ${colorHex}cc 100%)`,
+      }} />
+
+      {/* Card body: horizontal flex */}
+      <div style={{ padding: '22px 24px', display: 'flex', alignItems: 'center', gap: 20 }}>
+        {/* Left column: Glowing icon bubble */}
+        <div style={{
+          width: 52, height: 52, borderRadius: 16,
+          background: colorDim,
+          color: colorHex,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: `1px solid ${colorHex}30`,
+          boxShadow: `0 0 14px ${colorHex}18`,
+          flexShrink: 0,
+        }}>
+          {icon}
+        </div>
+
+        {/* Right column: Info & metrics */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+            <span style={{
+              fontSize: '0.72rem', fontWeight: 800,
+              color: D.textSub,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+            }}>
+              {label}
+            </span>
+            {/* Percentage pill */}
+            {total > 0 && (
+              <span style={{
+                fontSize: '0.68rem', fontWeight: 800,
+                color: colorHex,
+                background: colorDim,
+                border: `1px solid ${colorHex}25`,
+                padding: '2px 8px',
+                borderRadius: 999,
+                letterSpacing: '0.02em',
+              }}>
+                {pct}%
+              </span>
+            )}
+          </div>
+
+          {/* Big number */}
+          <div style={{
+            fontSize: '1.7rem', fontWeight: 900,
+            color: D.text,
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            lineHeight: 1.1,
+            letterSpacing: '-0.02em',
+            marginBottom: total > 0 ? 8 : 0,
+          }}>
+            {value}
+          </div>
+
+          {/* Progress bar */}
+          {total > 0 && (
+            <div style={{ height: 4, borderRadius: 999, background: `${colorHex}18`, overflow: 'hidden' }}>
+              <div style={{
+                width: `${pct}%`,
+                height: '100%',
+                borderRadius: 999,
+                background: `linear-gradient(90deg, ${colorHex}99, ${colorHex})`,
+                transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+              }} />
+            </div>
+          )}
+        </div>
+      </div>
     </div>
-    <div>
-      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{label}</div>
-      <div style={{ fontSize: '1.6rem', fontWeight: 900, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.1 }}>{value}</div>
-    </div>
-  </div>
-)
+  )
+}
+
 
 const getVehicleMilestones = (vehicle, services, intervals) => {
   if (!vehicle || !intervals) return []
@@ -1172,11 +1259,11 @@ const VehiclesPage = () => {
             )}
 
             {/* Stats row */}
-            <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
-              <StatBadge label="Total Vehicles" value={vehicles.length} icon={<Car size={24} />} colorDim={D.purpleDim} colorHex={D.purple} D={D} />
-              <StatBadge label="Active" value={counts.ACTIVE} icon={<CheckCircle size={24} />} colorDim={D.greenDim} colorHex={D.green} D={D} />
-              <StatBadge label="In Service" value={counts.SERVICE} icon={<Wrench size={24} />} colorDim={D.orangeDim} colorHex={D.orange} D={D} />
-              <StatBadge label="Available" value={counts.AVAILABLE} icon={<Circle size={24} />} colorDim={D.blueDim} colorHex={D.blue} D={D} />
+            <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, marginBottom: 36 }}>
+              <StatBadge label="Total Vehicles" value={vehicles.length} icon={<Car size={22} />} colorDim={D.purpleDim} colorHex={D.purple} D={D} total={0} />
+              <StatBadge label="Active" value={counts.ACTIVE} icon={<CheckCircle size={22} />} colorDim={D.greenDim} colorHex={D.green} D={D} total={vehicles.length} />
+              <StatBadge label="In Service" value={counts.SERVICE} icon={<Wrench size={22} />} colorDim={D.orangeDim} colorHex={D.orange} D={D} total={vehicles.length} />
+              <StatBadge label="Available" value={counts.AVAILABLE} icon={<Circle size={22} />} colorDim={D.blueDim} colorHex={D.blue} D={D} total={vehicles.length} />
             </div>
 
             {/* Toolbar & List Container */}
@@ -1549,39 +1636,54 @@ const VehiclesPage = () => {
                             <div 
                               onClick={(e) => { e.stopPropagation(); openOdometerModal(e, v); }}
                               style={{
-                                background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
-                                border: `1px solid ${D.border}`, borderRadius: 16, padding: '14px 6px', textAlign: 'center',
-                                position: 'relative', cursor: 'pointer', transition: 'all 0.2s ease'
+                                background: isDark ? 'rgba(168, 85, 247, 0.04)' : 'rgba(168, 85, 247, 0.02)',
+                                border: isDark ? '1px solid rgba(168, 85, 247, 0.15)' : '1px solid rgba(168, 85, 247, 0.1)',
+                                borderRadius: 16, padding: '14px 6px', textAlign: 'center',
+                                position: 'relative', cursor: 'pointer', transition: 'all 0.25s ease',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
                               }}
-                              onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.background = D.purpleDim; }}
-                              onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)'; }}
-                              title="Quick Update Mileage"
+                              onMouseEnter={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.background = 'rgba(168, 85, 247, 0.08)'; e.currentTarget.style.transform = 'scale(1.03)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.borderColor = isDark ? 'rgba(168, 85, 247, 0.15)' : 'rgba(168, 85, 247, 0.1)'; e.currentTarget.style.background = isDark ? 'rgba(168, 85, 247, 0.03)' : 'rgba(168, 85, 247, 0.02)'; e.currentTarget.style.transform = 'scale(1)'; }}
+                              title="Quick Update Odometer"
                             >
-                              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: D.text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                                {v.currentMileageKm ? v.currentMileageKm.toLocaleString() : '0'}
-                                <Edit2 size={10} style={{ opacity: 0.6 }} />
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                                <Gauge size={11} style={{ color: '#a855f7', opacity: 0.8 }} />
+                                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Mileage</span>
                               </div>
-                              <div style={{ fontSize: '0.65rem', fontWeight: 700, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mileage</div>
+                              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: D.text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                                {v.currentMileageKm ? v.currentMileageKm.toLocaleString() : '0'}
+                                <Edit2 size={10} style={{ opacity: 0.6, color: '#a855f7' }} />
+                              </div>
                             </div>
 
                             <div style={{
-                              background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
-                              border: `1px solid ${D.border}`, borderRadius: 16, padding: '14px 6px', textAlign: 'center'
+                              background: isDark ? 'rgba(245, 158, 11, 0.03)' : 'rgba(245, 158, 11, 0.02)',
+                              border: isDark ? '1px solid rgba(245, 158, 11, 0.15)' : '1px solid rgba(245, 158, 11, 0.1)',
+                              borderRadius: 16, padding: '14px 6px', textAlign: 'center',
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
                             }}>
-                              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: D.text }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                                <Fuel size={11} style={{ color: '#f59e0b', opacity: 0.8 }} />
+                                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Fuel</span>
+                              </div>
+                              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: D.text }}>
                                 {v.fuelType ?? 'N/A'}
                               </div>
-                              <div style={{ fontSize: '0.65rem', fontWeight: 700, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fuel</div>
                             </div>
 
                             <div style={{
-                              background: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
-                              border: `1px solid ${D.border}`, borderRadius: 16, padding: '14px 6px', textAlign: 'center'
+                              background: ac ? (ac.label === 'Overdue' ? 'rgba(239, 68, 68, 0.03)' : 'rgba(16, 185, 129, 0.03)') : 'rgba(16, 185, 129, 0.03)',
+                              border: `1px solid ${ac ? (ac.label === 'Overdue' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)') : 'rgba(16, 185, 129, 0.15)'}`,
+                              borderRadius: 16, padding: '14px 6px', textAlign: 'center',
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
                             }}>
-                              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: ac ? ac.color : D.text }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                                <Wrench size={11} style={{ color: ac ? ac.color : '#10b981', opacity: 0.8 }} />
+                                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: ac ? ac.color : '#10b981', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Service</span>
+                              </div>
+                              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: ac ? ac.color : D.text }}>
                                 {ac ? ac.label : 'OK'}
                               </div>
-                              <div style={{ fontSize: '0.65rem', fontWeight: 700, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Service</div>
                             </div>
                           </div>
 
