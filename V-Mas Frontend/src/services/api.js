@@ -55,7 +55,6 @@ export const userAPI = {
   getPendingUsers: ()        => api.get('/users/pending'),
   approveUser:    (id)       => api.patch(`/users/${id}/approve`),
   rejectUser:     (id)       => api.patch(`/users/${id}/reject`),
-  // ── Driver list (for assign-driver dropdown) ─────────────────────────
   getAllDrivers:   ()         => api.get('/users/drivers'),
 }
 
@@ -79,11 +78,12 @@ export const vehicleAPI = {
   updateVehicle:    (id, data)          => api.put(`/vehicles/${id}`, data),
   deleteVehicle:    (id)                => api.delete(`/vehicles/${id}`),
   registerVehicle:  (data)              => api.post('/vehicles', data),
-  assignDriver:     (id, driverId)      => api.put(`/vehicles/${id}/assign/${driverId}`),
-  unassignDriver:   (id)                => api.delete(`/vehicles/${id}/assign`),
-  uploadDocument: (id, docType, file) => {
+  uploadDocument: (id, docType, file, expiryDate) => {
     const form = new FormData()
     form.append('file', file)
+    if (expiryDate) {
+      form.append('expiryDate', expiryDate)
+    }
     return api.post(`/vehicles/${id}/document/${docType}`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })

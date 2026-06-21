@@ -99,32 +99,15 @@ public class VehicleController {
         return ApiResponseUtil.success("Vehicle restored successfully", restored, HttpStatus.OK);
     }
 
-    // PUT /api/vehicles/{id}/assign/{driverId} — Assign a driver to a vehicle
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
-    @PutMapping("/{id}/assign/{driverId}")
-    public ResponseEntity<ApiResponse<VehicleDto>> assignDriver(
-            @PathVariable Long id,
-            @PathVariable Long driverId) {
-        VehicleDto updated = vehicleService.assignDriver(id, driverId);
-        return ApiResponseUtil.success("Driver assigned successfully", updated, HttpStatus.OK);
-    }
-
-    // DELETE /api/vehicles/{id}/assign — Unassign the driver from a vehicle
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
-    @DeleteMapping("/{id}/assign")
-    public ResponseEntity<ApiResponse<VehicleDto>> unassignDriver(@PathVariable Long id) {
-        VehicleDto updated = vehicleService.unassignDriver(id);
-        return ApiResponseUtil.success("Driver unassigned successfully", updated, HttpStatus.OK);
-    }
-
     // POST /api/vehicles/{id}/document/{docType} — Upload document
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     @PostMapping(value = "/{id}/document/{docType}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<VehicleDto>> uploadDocument(
             @PathVariable Long id,
             @PathVariable String docType,
-            @RequestParam("file") MultipartFile file) {
-        VehicleDto updated = vehicleService.uploadDocument(id, docType, file);
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "expiryDate", required = false) String expiryDate) {
+        VehicleDto updated = vehicleService.uploadDocument(id, docType, file, expiryDate);
         return ApiResponseUtil.success("Document uploaded successfully", updated, HttpStatus.OK);
     }
 

@@ -46,6 +46,13 @@ public class Vehicle {
     @Column(name = "current_mileage_km")
     private Integer currentMileageKm;
 
+    @Column(name = "initial_mileage_km", nullable = true)
+    private Integer initialMileageKm;
+
+    public Integer getInitialMileageKm() {
+        return initialMileageKm != null ? initialMileageKm : (currentMileageKm != null ? currentMileageKm : 0);
+    }
+
     @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "driver_id", nullable = true)
     private User driver;
@@ -87,6 +94,9 @@ public class Vehicle {
 
     @Column(name = "registration_book_path", length = 500, nullable = true)
     private String registrationBookPath;
+
+    @Column(name = "vehicle_image", columnDefinition = "LONGTEXT", nullable = true)
+    private String vehicleImage;
 
     // ── Soft-delete fields ────────────────────────────────────────────────
 

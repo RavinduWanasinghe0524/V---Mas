@@ -37,6 +37,7 @@ V-Mas Frontend/dist/
 V-Mas Frontend/.vite/
 
 ### Uploaded Files ###
+uploads/
 V-Mas Backend/uploads/
 
 ### Secrets & Environment Variables (NEVER commit these!) ###
