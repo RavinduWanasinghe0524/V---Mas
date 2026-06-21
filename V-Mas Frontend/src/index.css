@@ -1,4 +1,4 @@
-﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    V-MAS Design System â€” Premium Theme Engine
    Stunning Light + Dark mode with depth, glow & glassmorphism
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
@@ -2099,6 +2099,39 @@ select.form-control option { background: #fff; }
   0%,100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
 }
+
+/* Responsive Form Cards & Groups */
+.responsive-card {
+  padding: 36px 40px;
+}
+.responsive-card-settings {
+  padding: 32px 36px;
+}
+.responsive-btn-group {
+  display: flex;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .responsive-card {
+    padding: 20px 16px !important;
+  }
+  .responsive-card-settings {
+    padding: 20px 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .responsive-btn-group {
+    flex-direction: column-reverse !important;
+    width: 100% !important;
+  }
+  .responsive-btn-group button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
 
 
 

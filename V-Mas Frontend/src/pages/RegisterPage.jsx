@@ -5,7 +5,7 @@ import {
   Eye, EyeOff, Mail, Lock, User, Truck, Users, Settings,
   Car, AlertCircle, CheckCircle, ChevronDown, Clock, ArrowLeft
 } from 'lucide-react';
-import bgImage from '../assets/login-bg.jpg';
+import bgImage from '../assets/login-bg-opt.jpg';
 import './RegisterPage.css';
 
 const RegisterPage = () => {

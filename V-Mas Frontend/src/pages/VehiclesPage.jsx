@@ -2521,7 +2521,7 @@ const VehiclesPage = () => {
                         onClick={e => { e.stopPropagation(); restoreVehicle(v.id) }}
                         disabled={restoringId === v.id}
                         style={{
-                          background: 'none', border: 'none', padding: '6px 12px', borderRadius: 8,
+                          background: 'none', padding: '6px 12px', borderRadius: 8,
                           color: '#10b981', cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
                           display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease',
                           border: '1px solid rgba(16,185,129,0.2)'
