@@ -18,4 +18,7 @@ public class UserDto {
     private Role role;
     private AccountStatus accountStatus;
     private String profilePicture;
+    private boolean deleted;
+    private String deletedBy;
+    private java.time.LocalDateTime deletedAt;
 }

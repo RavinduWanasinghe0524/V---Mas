@@ -400,11 +400,14 @@ const ProfilePage = () => {
           <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             
             {/* Left Sidebar Menu */}
-            <div style={{
-              width: '100%', maxWidth: 280, background: D.surface, borderRadius: 24,
-              border: `1px solid ${D.border}`, padding: '16px 12px', flexShrink: 0,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
-            }}>
+            <div
+              className="profile-settings-tabs"
+              style={{
+                width: '100%', maxWidth: 280, background: D.surface, borderRadius: 24,
+                border: `1px solid ${D.border}`, padding: '16px 12px', flexShrink: 0,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+              }}
+            >
               {[
                 { key: 'profile', label: 'Profile Settings', icon: <User size={18} /> },
                 { key: 'security', label: 'Security & Auth', icon: <Lock size={18} /> },

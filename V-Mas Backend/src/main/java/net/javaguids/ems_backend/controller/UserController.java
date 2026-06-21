@@ -193,6 +193,22 @@ public class UserController {
         return ApiResponseUtil.success("User deleted successfully", null, HttpStatus.OK);
     }
 
+    @GetMapping("/deleted")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    public ResponseEntity<ApiResponse<List<UserDto>>> getDeletedUsers() {
+        log.info("Get deleted users request received");
+        List<UserDto> deleted = userService.getDeletedUsers();
+        return ApiResponseUtil.success("Deleted users fetched successfully", deleted, HttpStatus.OK);
+    }
+
+    @PatchMapping("/{id}/restore")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    public ResponseEntity<ApiResponse<UserDto>> restoreUser(@PathVariable Long id) {
+        log.info("Restore user request received for ID: {}", id);
+        UserDto restored = userService.restoreUser(id);
+        return ApiResponseUtil.success("User restored successfully", restored, HttpStatus.OK);
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────
 
     private User getCurrentUser() {

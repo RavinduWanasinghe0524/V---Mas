@@ -56,6 +56,8 @@ export const userAPI = {
   approveUser:    (id)       => api.patch(`/users/${id}/approve`),
   rejectUser:     (id)       => api.patch(`/users/${id}/reject`),
   getAllDrivers:   ()         => api.get('/users/drivers'),
+  getDeletedUsers: ()        => api.get('/users/deleted'),
+  restoreUser:    (id)       => api.patch(`/users/${id}/restore`),
 }
 
 export const profileAPI = {
