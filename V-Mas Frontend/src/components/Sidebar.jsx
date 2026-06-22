@@ -28,7 +28,7 @@ const navItems = {
   ],
   DRIVER: [
     { label: 'Dashboard',       icon: <LayoutDashboard size={23} strokeWidth={1.5} />, to: '/dashboard' },
-    { label: 'My Vehicle',      icon: <Truck size={23} strokeWidth={1.5} />,           to: '/vehicles'  },
+    { label: 'Vehicles',        icon: <Truck size={23} strokeWidth={1.5} />,           to: '/vehicles'  },
     { label: 'Fuel Log',        icon: <Fuel size={23} strokeWidth={1.5} />,            to: '/fuel-log'  },
     { label: 'Service History', icon: <Wrench size={23} strokeWidth={1.5} />,          to: '/service'   },
     { label: 'My Profile',      icon: <User size={23} strokeWidth={1.5} />,            to: '/profile'   },

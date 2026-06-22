@@ -17,30 +17,33 @@ import java.util.List;
 @AllArgsConstructor
 @RestController
 @RequestMapping("/api/services/intervals")
-@PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
 public class ServiceIntervalController {
 
     private final ServiceIntervalService serviceIntervalService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER', 'DRIVER')")
     public ResponseEntity<ApiResponse<List<ServiceIntervalDto>>> getAllIntervals() {
         List<ServiceIntervalDto> intervals = serviceIntervalService.getAllIntervals();
         return ApiResponseUtil.success("Service intervals retrieved successfully", intervals, HttpStatus.OK);
     }
 
     @GetMapping("/vehicle-type/{type}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER', 'DRIVER')")
     public ResponseEntity<ApiResponse<List<ServiceIntervalDto>>> getIntervalsByVehicleType(@PathVariable VehicleType type) {
         List<ServiceIntervalDto> intervals = serviceIntervalService.getIntervalsByVehicleType(type);
         return ApiResponseUtil.success("Service intervals for " + type + " retrieved successfully", intervals, HttpStatus.OK);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     public ResponseEntity<ApiResponse<ServiceIntervalDto>> updateInterval(@PathVariable Long id, @RequestBody ServiceIntervalDto dto) {
         ServiceIntervalDto updated = serviceIntervalService.updateInterval(id, dto);
         return ApiResponseUtil.success("Service interval updated successfully", updated, HttpStatus.OK);
     }
 
     @PutMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     public ResponseEntity<ApiResponse<List<ServiceIntervalDto>>> updateIntervalsBulk(@RequestBody List<ServiceIntervalDto> dtos) {
         List<ServiceIntervalDto> updated = serviceIntervalService.updateIntervalsBulk(dtos);
         return ApiResponseUtil.success("Service intervals updated successfully in bulk", updated, HttpStatus.OK);

@@ -726,22 +726,22 @@ const AlertSection = ({ alerts, navigate, isDark }) => {
   )
 }
 
-const DriverDashboard = ({ navigate, isDark }) => {
+const DriverDashboard = ({ navigate, isDark, vehicleCount }) => {
   const A = useAccents(isDark)
   return (
     <>
       <SectionHeader title="My Overview" />
       <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
-        <StatCard icon={<Car size={20} color={A.purple}/>} label="Assigned Vehicle" value="1" colorDim={A.purpleDim} colorHex={A.purple} change="VH-2024-087" onClick={() => navigate('/vehicles')} />
+        <StatCard icon={<Car size={20} color={A.purple}/>} label="Fleet Vehicles" value={vehicleCount} colorDim={A.purpleDim} colorHex={A.purple} change="Total vehicles in fleet" onClick={() => navigate('/vehicles')} />
         <StatCard icon={<ClipboardList size={20} color={A.blue}/>} label="Today's Tasks" value="3" colorDim={A.blueDim} colorHex={A.blue} change="Pending deliveries" />
         <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Completed" value="12" colorDim={A.greenDim} colorHex={A.green} change="This week" />
         <StatCard icon={<Activity size={20} color={A.green}/>} label="Status" value="Active" colorDim={A.greenDim} colorHex={A.green} change="Ready to drive" />
       </div>
       <SectionHeader title="Driver Tools" />
       <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
-        <FeatureCard icon={<Car size={24}/>} title="My Vehicle" desc="View status and information about your assigned vehicle." onClick={() => navigate('/vehicles')} />
+        <FeatureCard icon={<Car size={24}/>} title="Vehicles" desc="View status and information about all fleet vehicles." onClick={() => navigate('/vehicles')} />
         <FeatureCard icon={<Fuel size={24}/>} title="Fuel Log" desc="Record fuel consumption and view usage history." onClick={() => navigate('/fuel-log')} />
-        <FeatureCard icon={<Wrench size={24}/>} title="Service History" desc="View maintenance history for your vehicle." onClick={() => navigate('/service')} />
+        <FeatureCard icon={<Wrench size={24}/>} title="Service History" desc="View maintenance history and service records for all vehicles." onClick={() => navigate('/service')} />
         <FeatureCard icon={<BarChart3 size={24}/>} title="My Performance" desc="View driving stats, performance metrics, and history." onClick={() => navigate('/profile')} />
       </div>
     </>
@@ -755,6 +755,7 @@ const DashboardPage = () => {
   const isDark = theme === 'blue'
   const [stats, setStats] = useState({ totalUsers: 0, admins: 0, controllers: 0, drivers: 0, activeUsers: 0, inactiveUsers: 0 })
   const [controllerStats, setControllerStats] = useState({ total: 0, active: 0, maintenance: 0, available: 0 })
+  const [driverVehicleCount, setDriverVehicleCount] = useState(0)
   const [fleetChartData, setFleetChartData] = useState([])
   const [statusData, setStatusData] = useState([])
   const [alerts, setAlerts] = useState([])
@@ -837,6 +838,15 @@ const DashboardPage = () => {
           } catch (err) {
             console.error('Error loading status data:', err)
           }
+        } else if (user?.role === 'DRIVER') {
+          // Fetch total fleet vehicle count for driver dashboard
+          try {
+            const vehicleRes = await vehicleAPI.getAllVehicles()
+            const vehicles = vehicleRes.data.data || []
+            setDriverVehicleCount(vehicles.filter(v => !v.isDeleted).length)
+          } catch (err) {
+            console.error('Error loading fleet vehicle count for driver:', err)
+          }
         }
       } catch (err) {
         console.error('Error loading stats:', err)
@@ -911,7 +921,7 @@ const DashboardPage = () => {
           {/* Role-based content */}
           {user?.role === 'ADMIN' && <AdminDashboard stats={stats} loading={loading} navigate={navigate} isDark={isDark} />}
           {user?.role === 'CONTROLLER' && <ControllerDashboard navigate={navigate} isDark={isDark} chartData={fleetChartData} statusData={statusData} stats={controllerStats} activities={activities} />}
-          {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} />}
+          {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} vehicleCount={driverVehicleCount} />}
         </div>
       </div>
 
