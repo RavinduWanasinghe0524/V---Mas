@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useD, useTheme } from '../context/ThemeContext'
@@ -19,6 +19,8 @@ const FuelManagementPage = () => {
   const { theme } = useTheme()
   const isDark = theme === 'blue'
   const { user } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
 
   // ── Styles ──────────────────────────────────────────────────────────────
   const card = {
@@ -78,11 +80,6 @@ const FuelManagementPage = () => {
   const [filterStatus, setFilterStatus] = useState('all')
 
   const [showAddModal, setShowAddModal] = useState(false)
-  // True only when the Add modal was opened via the dashboard "Record Fuel Fill-up" Quick Command,
-  // so that completing/discarding/closing returns to the controller dashboard.
-  const [fromQuickCommand, setFromQuickCommand] = useState(false)
-  const location = useLocation()
-  const navigate = useNavigate()
   const [showDeletedDrawer, setShowDeletedDrawer] = useState(false)
   const [editingLog, setEditingLog] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -197,6 +194,12 @@ const FuelManagementPage = () => {
   // ── Effects ─────────────────────────────────────────────────────────────
   useEffect(() => { loadData() }, [loadData])
   useEffect(() => { applyFilters() }, [applyFilters])
+  useEffect(() => {
+    if (!loading && location.state?.openAddFuelLog) {
+      setShowAddModal(true)
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [loading, location.state, navigate, location.pathname])
 
   // ── Handlers ───────────────────────────────────────────────────────────
   const handleInputChange = e => {
@@ -248,25 +251,6 @@ const FuelManagementPage = () => {
     }))
   }
 
-  // Open the Record Fuel Entry modal directly when arriving from the dashboard "Record Fuel Fill-up" Quick Command.
-  useEffect(() => {
-    if (location.state?.openAddFuelLog) {
-      setShowAddModal(true)
-      if (location.state?.fromOneClick) setFromQuickCommand(true)
-      navigate(location.pathname, { replace: true, state: {} })
-    }
-  }, [location.state, navigate, location.pathname])
-
-  // Close the Add/Edit modal; return to the controller dashboard only when opened via the Quick Command.
-  const closeAddModal = () => {
-    setShowAddModal(false)
-    setEditingLog(null)
-    if (fromQuickCommand) {
-      setFromQuickCommand(false)
-      navigate('/dashboard')
-    }
-  }
-
   const handleAddSubmit = async e => {
     e.preventDefault()
     if (previousMileage != null && parseFloat(formData.mileage) < previousMileage) {
@@ -304,11 +288,6 @@ const FuelManagementPage = () => {
             '/fuel-analysis'
           )
         }
-      }
-      // From the dashboard Quick Command: return to the controller dashboard after completing the entry.
-      if (fromQuickCommand) {
-        setFromQuickCommand(false)
-        navigate('/dashboard')
       }
     } catch (err) {
       console.error('Add fuel log error:', err?.response?.data || err);
@@ -682,7 +661,7 @@ const FuelManagementPage = () => {
 
       {/* ── ADD/EDIT MODAL ────────────────────────────────────── */}
       {(showAddModal || editingLog) && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={() => { if (!submitting) closeAddModal() }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={() => { if (!submitting) { setShowAddModal(false); setEditingLog(null) } }}>
           <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
             <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
@@ -694,7 +673,7 @@ const FuelManagementPage = () => {
                   <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600, opacity: 0.9 }}>{editingLog ? `Refining details for ${editingLog.vehicleRegNumber}` : 'Enter the latest fill-up data for analysis'}</p>
                 </div>
               </div>
-              <button onClick={closeAddModal} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
+              <button onClick={() => { setShowAddModal(false); setEditingLog(null) }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
             </div>
 
             <form onSubmit={editingLog ? handleEditSubmit : handleAddSubmit} style={{ padding: '36px' }}>
@@ -856,7 +835,7 @@ const FuelManagementPage = () => {
                   {submitting ? <Loader2 size={22} className="animate-spin" /> : editingLog ? <Check size={22} /> : <FileText size={22} />}
                   {submitting ? (editingLog ? 'Updating Analysis...' : 'Processing Entry...') : (editingLog ? 'Update Analysis' : 'Complete Fuel Entry')}
                 </button>
-                <button type="button" disabled={submitting} onClick={closeAddModal} style={{ flex: 1, padding: '16px', borderRadius: 18, border: `1px solid ${D.border}`, background: D.surfaceHi, color: D.textSub, fontSize: '1.05rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = D.border} onMouseLeave={e => e.currentTarget.style.background = D.surfaceHi}>Discard</button>
+                <button type="button" disabled={submitting} onClick={() => { setShowAddModal(false); setEditingLog(null) }} style={{ flex: 1, padding: '16px', borderRadius: 18, border: `1px solid ${D.border}`, background: D.surfaceHi, color: D.textSub, fontSize: '1.05rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = D.border} onMouseLeave={e => e.currentTarget.style.background = D.surfaceHi}>Discard</button>
               </div>
             </form>
           </div>

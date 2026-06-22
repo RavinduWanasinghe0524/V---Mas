@@ -491,10 +491,10 @@ const StatusBreakdown = ({ isDark, statusData, stats }) => {
   )
 }
 
-const QuickActionsPanel = ({ navigate, onDailyMileage }) => {
+const QuickActionsPanel = ({ navigate }) => {
   const quickActions = [
-    { icon: <Wrench size={18} color="#fbbf24" />, bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.25)', label: 'Add Service Record', onClick: () => navigate('/service/add', { state: { fromOneClick: true } }) },
-    { icon: <Gauge size={18} color="#a855f7" />, bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.25)', label: 'Daily Mileage Update', onClick: onDailyMileage },
+    { icon: <Wrench size={18} color="#fbbf24" />, bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.25)', label: 'Add Service Record', onClick: () => navigate('/service', { state: { openAddServiceModal: true } }) },
+    { icon: <Gauge size={18} color="#a855f7" />, bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.25)', label: 'Daily Mileage Update', onClick: () => navigate('/service', { state: { activeTab: 'update' } }) },
     { icon: <UserCog size={18} color="#34d399" />, bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', label: 'Driver Check-in', onClick: () => navigate('/users') },
     { icon: <Car size={18} color="#3b82f6" />, bg: 'rgba(59, 130, 246,0.12)', border: 'rgba(59, 130, 246,0.25)', label: 'Register Vehicle', onClick: () => navigate('/vehicles', { state: { openAddVehicle: true, fromOneClick: true } }) },
     { icon: <Fuel size={18} color="#38bdf8" />, bg: 'rgba(56,189,248,0.12)', border: 'rgba(56,189,248,0.25)', label: 'Record Fuel Fill-up', onClick: () => navigate('/fuel-management', { state: { openAddFuelLog: true, fromOneClick: true } }) },
@@ -792,11 +792,9 @@ const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, a
         {/* Right Column: Breakdown & Quick Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <StatusBreakdown isDark={isDark} statusData={statusData} stats={stats} />
-          <QuickActionsPanel navigate={navigate} onDailyMileage={() => setMileageOpen(true)} />
+          <QuickActionsPanel navigate={navigate} />
         </div>
       </div>
-
-      <DailyMileageModal open={mileageOpen} onClose={() => setMileageOpen(false)} />
 
       <style>{`
         @media (max-width: 1024px) {

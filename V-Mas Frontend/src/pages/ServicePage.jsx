@@ -1768,9 +1768,14 @@ const ServicePage = () => {
   useEffect(() => { loadData() }, [loadData])
 
   useEffect(() => {
-    if (!loading && allVehicles.length > 0 && location.state?.logServicePrefill) {
-      openAddModal(location.state.logServicePrefill)
-      navigate(location.pathname, { replace: true, state: {} })
+    if (!loading && allVehicles.length > 0) {
+      if (location.state?.logServicePrefill) {
+        openAddModal(location.state.logServicePrefill)
+        navigate(location.pathname, { replace: true, state: {} })
+      } else if (location.state?.openAddServiceModal) {
+        openAddModal()
+        navigate(location.pathname, { replace: true, state: {} })
+      }
     }
   }, [loading, allVehicles, location.state, navigate, location.pathname])
 
