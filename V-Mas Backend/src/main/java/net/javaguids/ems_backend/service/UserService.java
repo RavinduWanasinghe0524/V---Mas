@@ -39,4 +39,7 @@ public interface UserService {
     List<UserDto> getDeletedUsers();
 
     UserDto restoreUser(Long id);
+
+    UserDto uploadDocument(Long id, String docType, org.springframework.web.multipart.MultipartFile file, String expiryDateStr);
+    org.springframework.core.io.Resource getDocument(Long id, String docType);
 }

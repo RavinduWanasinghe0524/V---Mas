@@ -21,4 +21,14 @@ public class UserDto {
     private boolean deleted;
     private String deletedBy;
     private java.time.LocalDateTime deletedAt;
+
+    private String phoneNumber;
+    private String gender;
+    private String nic;
+    private java.time.LocalDate dateOfBirth;
+    private String licenseNumber;
+    private java.time.LocalDate licenseExpiryDate;
+    private String licenseDocumentPath;
+    private java.time.LocalDate dateJoined;
+    private String experience;
 }

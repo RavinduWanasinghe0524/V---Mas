@@ -361,6 +361,34 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
         return filename;
     }
 
+    private Path resolveUploadPath(String relativePath) {
+        if (relativePath == null || relativePath.isBlank()) {
+            return null;
+        }
+        
+        String cleanPath = relativePath;
+        if (cleanPath.startsWith("uploads/")) {
+            cleanPath = cleanPath.substring("uploads/".length());
+        } else if (cleanPath.startsWith("uploads\\")) {
+            cleanPath = cleanPath.substring("uploads\\".length());
+        }
+
+        Path cwd = Paths.get("").toAbsolutePath();
+        Path uploadsDir;
+        
+        if (cwd.getFileName() != null && cwd.getFileName().toString().equals("V-Mas Backend")) {
+            uploadsDir = cwd.resolve("uploads");
+        } else if (Files.exists(cwd.resolve("V-Mas Backend"))) {
+            uploadsDir = cwd.resolve("V-Mas Backend").resolve("uploads");
+        } else if (Files.exists(cwd.resolve("V---Mas").resolve("V-Mas Backend"))) {
+            uploadsDir = cwd.resolve("V---Mas").resolve("V-Mas Backend").resolve("uploads");
+        } else {
+            uploadsDir = cwd.resolve("uploads");
+        }
+
+        return uploadsDir.resolve(cleanPath).normalize();
+    }
+
     @Override
     public ServiceRecordDto uploadAttachment(Long id, MultipartFile file) {
         ServiceRecord record = serviceRecordRepository.findById(java.util.Objects.requireNonNull(id))
@@ -370,7 +398,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
         try {
             // Build a stable directory per record, rooted inside the Backend folder
             String uploadDir = uploadBaseDir + "/" + id;
-            Path uploadPath = Paths.get(uploadDir);
+            Path uploadPath = resolveUploadPath(uploadDir);
             Files.createDirectories(uploadPath);
 
             // Use a UUID prefix to avoid filename collisions
@@ -569,7 +597,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
         }
 
         try {
-            Path filePath = Paths.get(attachmentPath);
+            Path filePath = resolveUploadPath(attachmentPath);
             org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(filePath.toUri());
             if (resource.exists() || resource.isReadable()) {
                 return resource;

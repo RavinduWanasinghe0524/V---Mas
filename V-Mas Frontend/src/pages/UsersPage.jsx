@@ -14,9 +14,9 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
-import { userAPI, vehicleAPI } from '../services/api'
+import api, { userAPI, vehicleAPI } from '../services/api'
 import { getDriverMetrics } from '../utils/driverUtils'
-import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car, BarChart2, Star, Activity, CheckCircle, RotateCcw, Archive, Trash2, User } from 'lucide-react'
+import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car, BarChart2, Star, Activity, CheckCircle, RotateCcw, Archive, Trash2, User, FileText, Upload } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
@@ -80,8 +80,11 @@ const UsersPage = () => {
   const [showModal, setShowModal] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
   const [formData, setFormData] = useState({
-    userName: '', email: '', password: '', role: 'DRIVER', accountStatus: 'ACTIVE', profilePicture: ''
+    userName: '', email: '', password: '', role: 'DRIVER', accountStatus: 'ACTIVE', profilePicture: '',
+    phoneNumber: '', gender: 'Male', nic: '', dateOfBirth: '', licenseNumber: '', licenseExpiryDate: '',
+    dateJoined: '', experience: ''
   })
+  const [licenseFile, setLicenseFile] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
@@ -124,7 +127,7 @@ const UsersPage = () => {
       await userAPI.restoreUser(id)
       setActionMsg('User has been restored successfully.')
       setTimeout(() => setActionMsg(''), 4000)
-      if (isAdmin) loadUsers()
+      if (isAdmin || isController) loadUsers()
       setDeletedUsers(prev => prev.filter(u => u.id !== id))
       setDeletedDetail(null)
     } catch (err) {
@@ -149,7 +152,6 @@ const UsersPage = () => {
     if (!file) return
     if (file.size > 1024 * 1024) {
       setError('Image must be under 1 MB')
-      setTimeout(() => setError(''), 4000)
       return
     }
     const reader = new FileReader()
@@ -179,6 +181,17 @@ const UsersPage = () => {
       loadVehicles()
     }
   }, [isAdmin, isController])
+
+  useEffect(() => {
+    if (showModal || isProfileOpen || deletedDrawer) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [showModal, isProfileOpen, deletedDrawer])
 
   const loadUsers = async () => {
     try {
@@ -216,7 +229,7 @@ const UsersPage = () => {
       setActionMsg(`${username} has been approved.`)
       setTimeout(() => setActionMsg(''), 4000)
       loadPending()
-      if (isAdmin) loadUsers()
+      if (isAdmin || isController) loadUsers()
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to approve user')
     }
@@ -231,7 +244,7 @@ const UsersPage = () => {
       setActionMsg(`${username}'s account has been rejected.`)
       setTimeout(() => setActionMsg(''), 4000)
       loadPending()
-      if (isAdmin) loadUsers()
+      if (isAdmin || isController) loadUsers()
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to reject user')
     }
@@ -241,7 +254,12 @@ const UsersPage = () => {
     setError('')
     setActionMsg('')
     setEditingUser(null)
-    setFormData({ userName: '', email: '', password: '', role: 'DRIVER', accountStatus: 'ACTIVE', profilePicture: '' })
+    setFormData({
+      userName: '', email: '', password: '', role: 'DRIVER', accountStatus: 'ACTIVE', profilePicture: '',
+      phoneNumber: '', gender: 'Male', nic: '', dateOfBirth: '', licenseNumber: '', licenseExpiryDate: '',
+      dateJoined: '', experience: ''
+    })
+    setLicenseFile(null)
     setShowModal(true)
   }
 
@@ -252,8 +270,17 @@ const UsersPage = () => {
     setFormData({
       userName: user.userName, email: user.email, password: '',
       role: user.role, accountStatus: user.accountStatus || 'ACTIVE',
-      profilePicture: user.profilePicture || ''
+      profilePicture: user.profilePicture || '',
+      phoneNumber: user.phoneNumber || '',
+      gender: user.gender || 'Male',
+      nic: user.nic || '',
+      dateOfBirth: user.dateOfBirth || '',
+      licenseNumber: user.licenseNumber || '',
+      licenseExpiryDate: user.licenseExpiryDate || '',
+      dateJoined: user.dateJoined || '',
+      experience: user.experience || ''
     })
+    setLicenseFile(null)
     setShowModal(true)
   }
 
@@ -265,7 +292,7 @@ const UsersPage = () => {
       await userAPI.deleteUser(id)
       setActionMsg('User has been deleted successfully.')
       setTimeout(() => setActionMsg(''), 4000)
-      if (isAdmin) loadUsers()
+      if (isAdmin || isController) loadUsers()
       loadPending()
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to delete user')
@@ -386,17 +413,26 @@ const UsersPage = () => {
       const submitData = { ...formData }
       if (!submitData.profilePicture)
         submitData.profilePicture = `https://ui-avatars.com/api/?name=${encodeURIComponent(submitData.userName)}&background=2563eb&color=fff&bold=true`
+      
+      let savedUser = null
       if (editingUser) {
         if (!submitData.password) delete submitData.password
-        await userAPI.updateUser(editingUser.id, submitData)
+        const res = await userAPI.updateUser(editingUser.id, submitData)
+        savedUser = res.data?.data
         setActionMsg(`User "${submitData.userName}" has been updated successfully.`)
       } else {
-        await userAPI.createUser(submitData)
+        const res = await userAPI.createUser(submitData)
+        savedUser = res.data?.data
         setActionMsg(`User "${submitData.userName}" has been created successfully.`)
       }
+
+      if (formData.role === 'DRIVER' && licenseFile && savedUser && savedUser.id) {
+        await userAPI.uploadDocument(savedUser.id, 'license', licenseFile, submitData.licenseExpiryDate)
+      }
+
       setTimeout(() => setActionMsg(''), 4000)
       setShowModal(false)
-      if (isAdmin) loadUsers()
+      if (isAdmin || isController) loadUsers()
       loadPending()
     } catch (e) {
       setError(e.response?.data?.message || 'Operation failed')
@@ -931,18 +967,18 @@ const UsersPage = () => {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
                                 <Phone size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                                <span>{metrics.phone}</span>
+                                <span>{u.phoneNumber || metrics.phone}</span>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
                                 {u.role === 'DRIVER' ? (
                                   <>
                                     <IdCard size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                                    <span>{metrics.license}</span>
+                                    <span>{u.licenseNumber || metrics.license}</span>
                                   </>
                                 ) : (
                                   <>
                                     <Shield size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                                    <span>User ID: #{u.id} · {u.email}</span>
+                                    <span>NIC: {u.nic || 'N/A'} · Gender: {u.gender || 'N/A'}</span>
                                   </>
                                 )}
                               </div>
@@ -1024,6 +1060,7 @@ const UsersPage = () => {
               position: 'relative',
               width: '92%',
               maxWidth: 500,
+              maxHeight: '90vh',
               background: D.surface,
               borderRadius: 28,
               boxShadow: '0 32px 100px rgba(0,0,0,0.6)',
@@ -1065,7 +1102,7 @@ const UsersPage = () => {
               </div>
 
               {/* Detail list */}
-              <div style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20, overflowY: 'auto', flex: 1, scrollbarWidth: 'thin' }}>
                 {u.role === 'DRIVER' && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 8 }}>
                     <div style={{ background: 'rgba(59, 130, 246, 0.04)', border: `1px solid rgba(59, 130, 246, 0.15)`, borderRadius: 16, padding: '14px 6px', textAlign: 'center' }}>
@@ -1100,6 +1137,26 @@ const UsersPage = () => {
                     <span style={{ fontSize: '0.85rem', fontWeight: 800, color: u.accountStatus === 'ACTIVE' ? D.green : u.accountStatus === 'PENDING' ? D.gold : D.red }}>{u.accountStatus}</span>
                   </div>
 
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>Phone Number</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>{u.phoneNumber || metrics.phone}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>Gender</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>{u.gender || 'N/A'}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>NIC Number</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>{u.nic || 'N/A'}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>Date of Birth</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>{u.dateOfBirth || 'N/A'}</span>
+                  </div>
+
                   {u.role === 'DRIVER' && (
                     <>
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>
@@ -1109,13 +1166,62 @@ const UsersPage = () => {
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>
                         <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>License Number</span>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>{metrics.license}</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>{u.licenseNumber || metrics.license}</span>
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 4 }}>
-                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>Phone Number</span>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>{metrics.phone}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>License Expiry</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>{u.licenseExpiryDate || 'N/A'}</span>
                       </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>Date Joined</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>{u.dateJoined || 'N/A'}</span>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: u.licenseDocumentPath ? `1px solid ${D.border}` : 'none', paddingBottom: u.licenseDocumentPath ? 10 : 4 }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>Experience</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>{u.experience || 'N/A'}</span>
+                      </div>
+
+                      {u.licenseDocumentPath && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 4, alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>License Document</span>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const token = localStorage.getItem('token')
+                                const res = await api.get(`/users/${u.id}/document/license`, {
+                                  responseType: 'blob',
+                                  headers: { 'Authorization': `Bearer ${token}` }
+                                })
+                                const blob = new Blob([res.data], { type: res.headers['content-type'] })
+                                const url = window.URL.createObjectURL(blob)
+                                window.open(url, '_blank')
+                              } catch (err) {
+                                let errMsg = "Failed to load document."
+                                if (err.response?.data instanceof Blob) {
+                                  try {
+                                    const text = await err.response.data.text()
+                                    const errorObj = JSON.parse(text)
+                                    errMsg = errorObj.message || errMsg
+                                  } catch (e) {}
+                                } else if (err.response?.data?.message) {
+                                  errMsg = err.response.data.message
+                                }
+                                alert(errMsg)
+                              }
+                            }}
+                            style={{
+                              background: 'none', border: 'none', color: D.blue,
+                              fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'underline', padding: 0
+                            }}
+                          >
+                            <FileText size={13} /> View License
+                          </button>
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -1123,6 +1229,12 @@ const UsersPage = () => {
 
               {/* Footer / Actions */}
               <div style={{ borderTop: `1px solid ${D.border}`, padding: '18px 32px', background: D.surfaceHi, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+                {(!isController || u.role === 'DRIVER') && (
+                  <button onClick={() => { closeProfile(); handleEdit(u); }} style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(37,99,235,0.2)' }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                    Edit Details
+                  </button>
+                )}
                 <button onClick={closeProfile} style={{ padding: '10px 20px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>
                   Close
@@ -1136,7 +1248,7 @@ const UsersPage = () => {
       {/* ── Modal ─────────────────────────────────────────────────── */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={() => setShowModal(false)}>
-          <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, maxHeight: '90vh', boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
             <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
                 <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
@@ -1156,7 +1268,7 @@ const UsersPage = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} style={{ padding: '36px' }}>
+            <form onSubmit={handleSubmit} style={{ padding: '36px', overflowY: 'auto', flex: 1, scrollbarWidth: 'thin' }}>
               <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 32 }}>
                 <div>
                   <label style={labelStyle}>Username</label>
@@ -1191,6 +1303,114 @@ const UsersPage = () => {
                     <option value="SUSPENDED" style={{ background: D.surfaceHi }}>Suspended</option>
                   </select>
                 </div>
+
+                {/* Common Profile Fields for All Roles */}
+                <div>
+                  <label style={labelStyle}>Phone Number</label>
+                  <input type="text" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. +94 77 123 4567" />
+                </div>
+                <div>
+                  <label style={labelStyle}>Gender</label>
+                  <select name="gender" value={formData.gender} onChange={handleChange} style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
+                    <option value="Male" style={{ background: D.surfaceHi }}>Male</option>
+                    <option value="Female" style={{ background: D.surfaceHi }}>Female</option>
+                    <option value="Other" style={{ background: D.surfaceHi }}>Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>NIC Number</label>
+                  <input type="text" name="nic" value={formData.nic} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 199912345678 or 991234567V" />
+                </div>
+                <div>
+                  <label style={labelStyle}>Date of Birth</label>
+                  <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                </div>
+
+                {/* Driver-Specific Fields */}
+                {formData.role === 'DRIVER' && (
+                  <>
+                    <div>
+                      <label style={labelStyle}>License Number</label>
+                      <input type="text" name="licenseNumber" value={formData.licenseNumber} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. B1234567" />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>License Expiry Date</label>
+                      <input type="date" name="licenseExpiryDate" value={formData.licenseExpiryDate} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Date Joined</label>
+                      <input type="date" name="dateJoined" value={formData.dateJoined} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Experience</label>
+                      <input type="text" name="experience" value={formData.experience} onChange={handleChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 5 years" />
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={labelStyle}>License Document</label>
+                      {editingUser?.licenseDocumentPath && !licenseFile ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                const token = localStorage.getItem('token')
+                                const res = await api.get(`/users/${editingUser.id}/document/license`, {
+                                  responseType: 'blob',
+                                  headers: { 'Authorization': `Bearer ${token}` }
+                                })
+                                const blob = new Blob([res.data], { type: res.headers['content-type'] })
+                                const url = window.URL.createObjectURL(blob)
+                                window.open(url, '_blank')
+                              } catch (err) {
+                                let errMsg = "Failed to load document."
+                                if (err.response?.data instanceof Blob) {
+                                  try {
+                                    const text = await err.response.data.text()
+                                    const errorObj = JSON.parse(text)
+                                    errMsg = errorObj.message || errMsg
+                                  } catch (e) {}
+                                } else if (err.response?.data?.message) {
+                                  errMsg = err.response.data.message
+                                }
+                                alert(errMsg)
+                              }
+                            }}
+                            style={{
+                              padding: '10px 20px', borderRadius: 12, border: `1px solid ${D.border}`,
+                              background: 'rgba(255,255,255,0.05)', color: D.blue, cursor: 'pointer',
+                              fontSize: '0.85rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8
+                            }}
+                          >
+                            <FileText size={14} /> View Current License
+                          </button>
+                          <label style={{ cursor: 'pointer' }}>
+                            <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => setLicenseFile(e.target.files[0])} />
+                            <span style={{ color: D.textSub, fontSize: '0.8rem', fontWeight: 800, textDecoration: 'underline' }}>Change Document</span>
+                          </label>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                          <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }} id="user-license-file" onChange={e => setLicenseFile(e.target.files[0])} />
+                          <button
+                            type="button"
+                            onClick={() => document.getElementById('user-license-file').click()}
+                            style={{
+                              padding: '10px 20px', borderRadius: 12,
+                              border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)',
+                              color: D.text, cursor: 'pointer', fontSize: '0.85rem', fontWeight: 800,
+                              display: 'flex', alignItems: 'center', gap: 8
+                            }}
+                          >
+                            <Upload size={14} /> Upload License Document
+                          </button>
+                          <span style={{ fontSize: '0.8rem', color: licenseFile ? D.text : D.textSub }}>
+                            {licenseFile ? licenseFile.name : 'No file chosen (Image / PDF)'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={labelStyle}>Profile Picture <span style={{ color: D.textFaint, fontWeight: 400, textTransform: 'none' }}>(optional — upload an image)</span></label>
                   <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>

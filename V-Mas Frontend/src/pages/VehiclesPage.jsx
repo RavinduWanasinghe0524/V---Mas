@@ -356,7 +356,17 @@ const VehiclesPage = () => {
       window.URL.revokeObjectURL(url)
     } catch (err) {
       console.error("Failed to download document:", err)
-      alert("Failed to download document. Please try again.")
+      let errMsg = "Failed to download document. Please try again."
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text()
+          const errorObj = JSON.parse(text)
+          errMsg = errorObj.message || errMsg
+        } catch (e) {}
+      } else if (err.response?.data?.message) {
+        errMsg = err.response.data.message
+      }
+      alert(errMsg)
     }
   }
 
@@ -374,7 +384,17 @@ const VehiclesPage = () => {
       window.open(url, '_blank')
     } catch (err) {
       console.error("Failed to view document online:", err)
-      alert("Failed to view document. Please try again.")
+      let errMsg = "Failed to view document. Please try again."
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text()
+          const errorObj = JSON.parse(text)
+          errMsg = errorObj.message || errMsg
+        } catch (e) {}
+      } else if (err.response?.data?.message) {
+        errMsg = err.response.data.message
+      }
+      alert(errMsg)
     }
   }
 
