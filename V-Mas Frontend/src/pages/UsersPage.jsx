@@ -414,7 +414,12 @@ const UsersPage = () => {
       }
 
       if (formData.role === 'DRIVER' && licenseFile && savedUser && savedUser.id) {
-        await userAPI.uploadDocument(savedUser.id, 'license', licenseFile, submitData.licenseExpiryDate)
+        try {
+          await userAPI.uploadDocument(savedUser.id, 'license', licenseFile, submitData.licenseExpiryDate)
+        } catch (uploadErr) {
+          console.error("Document upload failed:", uploadErr)
+          alert("User details saved successfully, but the license document upload failed: " + (uploadErr.response?.data?.message || uploadErr.message))
+        }
       }
 
       setTimeout(() => setActionMsg(''), 4000)
@@ -1368,6 +1373,12 @@ const UsersPage = () => {
                   </div>
                 </div>
               </div>
+
+              {error && (
+                <div style={{ padding: '12px 18px', borderRadius: 12, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 20, fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <AlertCircle size={16} /> {error}
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: 16 }}>
                 <button type="submit" style={{ flex: 1, padding: '14px 24px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 800, transition: 'all 0.25s', boxShadow: '0 8px 24px rgba(37, 99, 235,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}

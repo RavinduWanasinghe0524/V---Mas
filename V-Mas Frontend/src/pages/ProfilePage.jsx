@@ -268,7 +268,16 @@ const ProfilePage = () => {
           const last = logs.length ? new Date(logs[logs.length - 1].date).toLocaleDateString() : 'N/A'
           setStats({ totalLogs: logs.length, avgEfficiency: avg, lastEntry: last })
         } else {
-          const [vehicleRes, serviceRes] = await Promise.all([vehicleAPI.getAllVehicles(), serviceAPI.getUpcomingServices()])
+          const [vehicleRes, serviceRes] = await Promise.all([
+            vehicleAPI.getAllVehicles().catch(err => {
+              console.error('Failed to load vehicles:', err);
+              return { data: { data: [] } };
+            }),
+            serviceAPI.getUpcomingServices().catch(err => {
+              console.error('Failed to load upcoming services:', err);
+              return { data: { data: [] } };
+            })
+          ])
           setStats({ totalVehicles: vehicleRes.data?.data?.length || 0, upcomingServices: serviceRes.data?.data?.length || 0 })
         }
       } catch {
