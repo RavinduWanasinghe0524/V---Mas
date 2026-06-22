@@ -1198,47 +1198,49 @@ const VehiclesPage = () => {
 
                         {/* Actions Row */}
                         <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
-                          <button
-                            onClick={e => {
-                              e.stopPropagation();
-                              navigate('/service', {
-                                state: {
-                                  logServicePrefill: {
-                                    vehicleRegNumber: reg,
-                                    serviceType: record.serviceType
+                          {!isDriver && (
+                            <button
+                              onClick={e => {
+                                e.stopPropagation();
+                                navigate('/service', {
+                                  state: {
+                                    logServicePrefill: {
+                                      vehicleRegNumber: reg,
+                                      serviceType: record.serviceType
+                                    }
                                   }
-                                }
-                              })
-                            }}
-                            style={{
-                              flex: 1,
-                              background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
-                              border: 'none',
-                              color: isOverdue ? '#fff' : '#000',
-                              borderRadius: 10,
-                              padding: '8px 14px',
-                              fontSize: '0.8rem',
-                              fontWeight: 800,
-                              cursor: 'pointer',
-                              transition: 'all 0.2s',
-                              boxShadow: `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: 6
-                            }}
-                            onMouseEnter={e => {
-                              e.currentTarget.style.transform = 'translateY(-1px)'
-                              e.currentTarget.style.boxShadow = `0 6px 16px ${isOverdue ? 'rgba(239, 68, 68, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`
-                            }}
-                            onMouseLeave={e => {
-                              e.currentTarget.style.transform = 'translateY(0)'
-                              e.currentTarget.style.boxShadow = `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`
-                            }}
-                          >
-                            <Wrench size={12} />
-                            Log Service
-                          </button>
+                                })
+                              }}
+                              style={{
+                                flex: 1,
+                                background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
+                                border: 'none',
+                                color: isOverdue ? '#fff' : '#000',
+                                borderRadius: 10,
+                                padding: '8px 14px',
+                                fontSize: '0.8rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                boxShadow: `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 6
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.transform = 'translateY(-1px)'
+                                e.currentTarget.style.boxShadow = `0 6px 16px ${isOverdue ? 'rgba(239, 68, 68, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.transform = 'translateY(0)'
+                                e.currentTarget.style.boxShadow = `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`
+                              }}
+                            >
+                              <Wrench size={12} />
+                              Log Service
+                            </button>
+                          )}
                           <button
                             onClick={e => {
                               e.stopPropagation();
@@ -1408,12 +1410,10 @@ const VehiclesPage = () => {
                       <Search size={36} opacity={0.3} />
                     </div>
                     <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.2rem' }}>
-                      {isDriver ? 'No vehicle selected' : 'No matching vehicles'}
+                      {'No matching vehicles'}
                     </h3>
                     <p style={{ margin: '10px 0 0', color: D.textSub, fontSize: '1rem', fontWeight: 500 }}>
-                      {isDriver
-                        ? 'Please use the search bar at the top of the page to find and select a vehicle.'
-                        : 'Adjust your search terms or filters to find what you\'re looking for.'}
+                      {'Adjust your search terms or filters to find what you\'re looking for.'}
                     </p>
                   </div>
                 ) : viewMode === 'table' ? (
@@ -1733,26 +1733,19 @@ const VehiclesPage = () => {
                           </div>
 
                           {/* Action Buttons Row */}
-                          {!isDriver ? (
-                            <div style={{ borderTop: `1px solid ${D.border}`, margin: '8px 0 0', paddingTop: '16px', display: 'flex', gap: 10, justifyContent: 'flex-end', width: '100%' }}>
-                              <button onClick={(e) => { e.stopPropagation(); openProfile(v); }} title="Profile" style={{ padding: '8px 14px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.blue, cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontFamily: 'inherit' }}
-                                onMouseEnter={e => { e.currentTarget.style.background = D.blue; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = D.blue }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = D.blue; e.currentTarget.style.borderColor = D.border }}>
-                                <Eye size={14} /> Profile
-                              </button>
+                          <div style={{ borderTop: `1px solid ${D.border}`, margin: '8px 0 0', paddingTop: '16px', display: 'flex', gap: 10, justifyContent: 'flex-end', width: '100%' }}>
+                            <button onClick={(e) => { e.stopPropagation(); openProfile(v); }} title="Profile" style={{ padding: '8px 14px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.blue, cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontFamily: 'inherit' }}
+                              onMouseEnter={e => { e.currentTarget.style.background = D.blue; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = D.blue }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = D.blue; e.currentTarget.style.borderColor = D.border }}>
+                              <Eye size={14} /> {isDriver ? 'View Details' : 'Profile'}
+                            </button>
+                            {!isDriver && (
                               <button onClick={(e) => { e.stopPropagation(); openEditModal(v); }} title="Edit" style={{ padding: '8px 14px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontFamily: 'inherit' }}
                                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.15)'; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.color = '#60a5fa' }}
                                 onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
                                 <Edit2 size={14} /> Edit
                               </button>
-                            </div>
-                          ) : (
-                            <div style={{ borderTop: `1px solid ${D.border}`, margin: '8px 0 0', paddingTop: '16px', display: 'flex', width: '100%' }}>
-                              <button onClick={(e) => { e.stopPropagation(); openProfile(v); }} style={{ width: '100%', padding: '8px 16px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.blue, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.25s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'inherit' }}
-                                onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = D.blue; e.currentTarget.style.background = D.blue }} onMouseLeave={e => { e.currentTarget.style.color = D.blue; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}>
-                                <Eye size={14} /> View Details
-                              </button>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
                       )
                     })}
@@ -2985,42 +2978,6 @@ const VehiclesPage = () => {
                         {renderDocBlock('registration', 'Registration Book (V5)', selectedProfileVehicle.registrationBookPath)}
                       </div>
                     </div>
-                  </div>
-
-                  {/* Driver Card */}
-                  <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16, padding: '18px 20px' }}>
-                    <h4 style={{ margin: '0 0 12px', fontSize: '0.8rem', fontWeight: 800, color: D.text, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${D.border}`, paddingBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <User size={15} color={D.blue} /> Active Assignee
-                    </h4>
-                    {selectedProfileVehicle.driverUsername ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: '50%',
-                          background: D.blueDim,
-                          color: D.blue,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.85rem',
-                          fontWeight: 800,
-                          border: `1px solid ${D.blue}30`
-                        }}>
-                          {selectedProfileVehicle.driverUsername.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: D.text }}>
-                            {selectedProfileVehicle.driverUsername}
-                          </p>
-                          <p style={{ margin: 0, fontSize: '0.72rem', color: D.textSub }}>Driver / Assignee</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: D.textFaint, fontSize: '0.8rem', fontStyle: 'italic', padding: '6px 0' }}>
-                        <Info size={14} /> No driver currently assigned.
-                      </div>
-                    )}
                   </div>
                 </div>
               )}

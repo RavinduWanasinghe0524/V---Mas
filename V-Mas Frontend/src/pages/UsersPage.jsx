@@ -14,7 +14,7 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
-import api, { userAPI, vehicleAPI } from '../services/api'
+import api, { userAPI } from '../services/api'
 import { getDriverMetrics } from '../utils/driverUtils'
 import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car, BarChart2, Star, Activity, CheckCircle, RotateCcw, Archive, Trash2, User, FileText, Upload } from 'lucide-react'
 import { jsPDF } from 'jspdf'
@@ -91,9 +91,6 @@ const UsersPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const fileInputRef = useRef(null)
 
-  const [vehicles, setVehicles] = useState([])
-  const [activeAssigningDriverId, setActiveAssigningDriverId] = useState(null)
-
   const [selectedProfileUser, setSelectedProfileUser] = useState(null)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const openProfile = (user) => { setSelectedProfileUser(user); setIsProfileOpen(true); }
@@ -138,15 +135,6 @@ const UsersPage = () => {
     }
   }
 
-  const loadVehicles = async () => {
-    try {
-      const res = await vehicleAPI.getAllVehicles()
-      setVehicles(res.data.data || [])
-    } catch (e) {
-      console.error("Failed to load vehicles:", e)
-    }
-  }
-
   const handleFileChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
@@ -178,7 +166,6 @@ const UsersPage = () => {
     if (isAdmin || isController) {
       loadUsers()
       loadPending()
-      loadVehicles()
     }
   }, [isAdmin, isController])
 
@@ -734,7 +721,7 @@ const UsersPage = () => {
                   ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 }}>
                       {filteredUsers.map((u, i) => {
-                        const metrics = getDriverMetrics(u, vehicles)
+                        const metrics = getDriverMetrics(u, [])
                         const initials = u.userName
                           ? u.userName.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
                           : 'U'
@@ -814,91 +801,9 @@ const UsersPage = () => {
                                 <div>
                                   <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em' }}>{u.userName}</h4>
                                   {u.role === 'DRIVER' ? (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '4px 0 0' }} onClick={e => e.stopPropagation()}>
-                                      {activeAssigningDriverId === u.id ? (
-                                        <select
-                                          value={metrics.assignedVehicleId || ""}
-                                          onChange={async (e) => {
-                                            const vehId = e.target.value;
-                                            try {
-                                              if (vehId) {
-                                                await vehicleAPI.assignDriver(vehId, u.id);
-                                              } else if (metrics.assignedVehicleId) {
-                                                await vehicleAPI.unassignDriver(metrics.assignedVehicleId);
-                                              }
-                                              await loadVehicles();
-                                              if (isAdmin) await loadUsers();
-                                            } catch (err) {
-                                              console.error("Failed to assign vehicle:", err);
-                                              alert(err.response?.data?.message || "Failed to update vehicle assignment.");
-                                            }
-                                            setActiveAssigningDriverId(null);
-                                          }}
-                                          onBlur={() => setActiveAssigningDriverId(null)}
-                                          autoFocus
-                                          style={{
-                                            background: D.inputBg,
-                                            color: D.text,
-                                            border: `1px solid ${D.purple}`,
-                                            borderRadius: 8,
-                                            fontSize: '0.75rem',
-                                            padding: '2px 6px',
-                                            outline: 'none',
-                                            cursor: 'pointer'
-                                          }}
-                                        >
-                                          <option value="">No Vehicle (Unassign)</option>
-                                          {vehicles
-                                            .filter(v => !v.driverId || String(v.driverId) === String(u.id))
-                                            .map(v => (
-                                              <option key={v.id} value={v.id}>
-                                                {v.registrationNo}
-                                              </option>
-                                            ))
-                                          }
-                                        </select>
-                                      ) : (
-                                        <>
-                                          {metrics.assignedVehicleId ? (
-                                            <span
-                                              onClick={() => setActiveAssigningDriverId(u.id)}
-                                              style={{
-                                                color: D.blue,
-                                                cursor: 'pointer',
-                                                fontWeight: 800,
-                                                textDecoration: 'underline',
-                                                fontSize: '0.8rem'
-                                              }}
-                                              title="Click to Change or Unassign Vehicle"
-                                            >
-                                              {metrics.vehicle}
-                                            </span>
-                                          ) : (
-                                            <span
-                                              onClick={() => setActiveAssigningDriverId(u.id)}
-                                              style={{
-                                                color: D.blue,
-                                                cursor: 'pointer',
-                                                fontWeight: 800,
-                                                background: D.blueDim,
-                                                padding: '2px 8px',
-                                                borderRadius: 99,
-                                                fontSize: '0.72rem',
-                                                border: `1px solid ${D.blue}30`,
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: 4,
-                                                transition: 'all 0.2s',
-                                              }}
-                                              onMouseEnter={e => { e.currentTarget.style.background = D.blue; e.currentTarget.style.color = '#fff'; }}
-                                              onMouseLeave={e => { e.currentTarget.style.background = D.blueDim; e.currentTarget.style.color = D.blue; }}
-                                            >
-                                              + Assign Vehicle
-                                            </span>
-                                          )}
-                                        </>
-                                      )}
-                                    </div>
+                                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500 }}>
+                                      Active Driver
+                                    </p>
                                   ) : (
                                     <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500 }}>
                                       {u.role === 'ADMIN' ? 'System Administrator' : 'Fleet Controller'}
@@ -1032,7 +937,7 @@ const UsersPage = () => {
       {/* User Profile Details Modal Popup */}
       {isProfileOpen && selectedProfileUser && (() => {
         const u = selectedProfileUser
-        const metrics = getDriverMetrics(u, vehicles)
+        const metrics = getDriverMetrics(u, [])
         const initials = u.userName
           ? u.userName.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
           : 'U'
@@ -1159,11 +1064,6 @@ const UsersPage = () => {
 
                   {u.role === 'DRIVER' && (
                     <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>
-                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>Assigned Vehicle</span>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: metrics.assignedVehicleId ? D.blue : D.textFaint }}>{metrics.vehicle}</span>
-                      </div>
-
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>
                         <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>License Number</span>
                         <span style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>{u.licenseNumber || metrics.license}</span>
