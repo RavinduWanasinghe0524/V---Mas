@@ -537,10 +537,15 @@ const VehiclesPage = () => {
   }
 
   useEffect(() => {
-    if (!loading && vehicles.length > 0 && location.state?.openVehicleProfile) {
-      const v = vehicles.find(veh => veh.registrationNo === location.state.openVehicleProfile)
-      if (v) {
-        openProfile(v)
+    if (!loading) {
+      if (vehicles.length > 0 && location.state?.openVehicleProfile) {
+        const v = vehicles.find(veh => veh.registrationNo === location.state.openVehicleProfile)
+        if (v) {
+          openProfile(v)
+          navigate(location.pathname, { replace: true, state: {} })
+        }
+      } else if (location.state?.openAddVehicle) {
+        openModal()
         navigate(location.pathname, { replace: true, state: {} })
       }
     }
