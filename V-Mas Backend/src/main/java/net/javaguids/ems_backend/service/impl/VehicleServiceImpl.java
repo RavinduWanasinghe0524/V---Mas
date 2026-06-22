@@ -143,6 +143,34 @@ public class VehicleServiceImpl implements VehicleService {
         vehicleRepository.save(vehicle);
     }
 
+    private Path resolveUploadPath(String relativePath) {
+        if (relativePath == null || relativePath.isBlank()) {
+            return null;
+        }
+        
+        String cleanPath = relativePath;
+        if (cleanPath.startsWith("uploads/")) {
+            cleanPath = cleanPath.substring("uploads/".length());
+        } else if (cleanPath.startsWith("uploads\\")) {
+            cleanPath = cleanPath.substring("uploads\\".length());
+        }
+
+        Path cwd = Paths.get("").toAbsolutePath();
+        Path uploadsDir;
+        
+        if (cwd.getFileName() != null && cwd.getFileName().toString().equals("V-Mas Backend")) {
+            uploadsDir = cwd.resolve("uploads");
+        } else if (Files.exists(cwd.resolve("V-Mas Backend"))) {
+            uploadsDir = cwd.resolve("V-Mas Backend").resolve("uploads");
+        } else if (Files.exists(cwd.resolve("V---Mas").resolve("V-Mas Backend"))) {
+            uploadsDir = cwd.resolve("V---Mas").resolve("V-Mas Backend").resolve("uploads");
+        } else {
+            uploadsDir = cwd.resolve("uploads");
+        }
+
+        return uploadsDir.resolve(cleanPath).normalize();
+    }
+
     @Override
     @Transactional
     public VehicleDto uploadDocument(Long id, String docType, MultipartFile file, String expiryDateStr) {
@@ -152,7 +180,7 @@ public class VehicleServiceImpl implements VehicleService {
         try {
             // Target folder: uploads/vehicle-documents/{id}
             String uploadDir = "uploads/vehicle-documents/" + id;
-            Path uploadPath = Paths.get(uploadDir);
+            Path uploadPath = resolveUploadPath(uploadDir);
             Files.createDirectories(uploadPath);
 
             // Save filename using UUID prefix
@@ -215,7 +243,7 @@ public class VehicleServiceImpl implements VehicleService {
         }
 
         try {
-            Path filePath = Paths.get(savedPath);
+            Path filePath = resolveUploadPath(savedPath);
             org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(filePath.toUri());
             if (resource.exists() || resource.isReadable()) {
                 return resource;

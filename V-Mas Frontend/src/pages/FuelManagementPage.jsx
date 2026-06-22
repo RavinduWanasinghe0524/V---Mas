@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useD, useTheme } from '../context/ThemeContext'
@@ -18,6 +19,8 @@ const FuelManagementPage = () => {
   const { theme } = useTheme()
   const isDark = theme === 'blue'
   const { user } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
 
   // ── Styles ──────────────────────────────────────────────────────────────
   const card = {
@@ -191,6 +194,12 @@ const FuelManagementPage = () => {
   // ── Effects ─────────────────────────────────────────────────────────────
   useEffect(() => { loadData() }, [loadData])
   useEffect(() => { applyFilters() }, [applyFilters])
+  useEffect(() => {
+    if (!loading && location.state?.openAddFuelLog) {
+      setShowAddModal(true)
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [loading, location.state, navigate, location.pathname])
 
   // ── Handlers ───────────────────────────────────────────────────────────
   const handleInputChange = e => {

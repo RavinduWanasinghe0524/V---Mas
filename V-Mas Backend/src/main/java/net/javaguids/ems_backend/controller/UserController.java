@@ -193,6 +193,69 @@ public class UserController {
         return ApiResponseUtil.success("User deleted successfully", null, HttpStatus.OK);
     }
 
+    @GetMapping("/deleted")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    public ResponseEntity<ApiResponse<List<UserDto>>> getDeletedUsers() {
+        log.info("Get deleted users request received");
+        List<UserDto> deleted = userService.getDeletedUsers();
+        return ApiResponseUtil.success("Deleted users fetched successfully", deleted, HttpStatus.OK);
+    }
+
+    @PatchMapping("/{id}/restore")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    public ResponseEntity<ApiResponse<UserDto>> restoreUser(@PathVariable Long id) {
+        log.info("Restore user request received for ID: {}", id);
+        UserDto restored = userService.restoreUser(id);
+        return ApiResponseUtil.success("User restored successfully", restored, HttpStatus.OK);
+    }
+
+    // POST /api/users/{id}/document/{docType} — Upload user document (e.g. license)
+    @PostMapping(value = "/{id}/document/{docType}", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Object>> uploadDocument(
+            @PathVariable Long id,
+            @PathVariable String docType,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(value = "expiryDate", required = false) String expiryDate) {
+        log.info("Upload document request received for user ID: {} and type: {}", id, docType);
+        User currentUser = getCurrentUser();
+        if (!isAdmin() && !isController() && !currentUser.getId().equals(id)) {
+            return ApiResponseUtil.error("You don't have permission to upload documents for this user", HttpStatus.FORBIDDEN);
+        }
+        UserDto updated = userService.uploadDocument(id, docType, file, expiryDate);
+        return ApiResponseUtil.<Object>success("Document uploaded successfully", updated, HttpStatus.OK);
+    }
+
+    // GET /api/users/{id}/document/{docType} — Download/View user document
+    @GetMapping("/{id}/document/{docType}")
+    public ResponseEntity<org.springframework.core.io.Resource> getDocument(
+            @PathVariable Long id,
+            @PathVariable String docType) {
+        log.info("Get document request received for user ID: {} and type: {}", id, docType);
+        User currentUser = getCurrentUser();
+        if (!isAdmin() && !isController() && !currentUser.getId().equals(id)) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        org.springframework.core.io.Resource resource = userService.getDocument(id, docType);
+
+        String contentType = "application/octet-stream";
+        try {
+            contentType = java.nio.file.Files.probeContentType(java.nio.file.Paths.get(resource.getFile().getAbsolutePath()));
+        } catch (java.io.IOException e) {
+            // fallback
+        }
+
+        String originalFilename = resource.getFilename();
+        if (originalFilename != null && originalFilename.contains("_")) {
+            originalFilename = originalFilename.substring(originalFilename.indexOf("_") + 1);
+        }
+
+        return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + originalFilename + "\"")
+                .body(resource);
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────
 
     private User getCurrentUser() {

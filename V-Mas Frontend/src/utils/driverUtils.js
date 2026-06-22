@@ -37,8 +37,8 @@ export const getDriverMetrics = (u, vehicles = []) => {
   const vehicle = assignedVehicle ? assignedVehicle.registrationNo : 'Unassigned'
   const assignedVehicleId = assignedVehicle ? assignedVehicle.id : null
 
-  const phone = `+94 7${((id * 3) % 3) === 0 ? '7' : ((id * 3) % 3) === 1 ? '8' : '1'} ${(1000000 + (id * 23871) % 9000000)}`
-  const license = `B${9000000 - (id * 4321) % 5000000}`
+  const phone = u.phoneNumber || `+94 7${((id * 3) % 3) === 0 ? '7' : ((id * 3) % 3) === 1 ? '8' : '1'} ${(1000000 + (id * 23871) % 9000000)}`
+  const license = u.licenseNumber || `B${9000000 - (id * 4321) % 5000000}`
   
   return {
     status,
@@ -48,6 +48,12 @@ export const getDriverMetrics = (u, vehicles = []) => {
     vehicle,
     assignedVehicleId,
     phone,
-    license
+    license,
+    gender: u.gender || 'N/A',
+    dateOfBirth: u.dateOfBirth || 'N/A',
+    dateJoined: u.dateJoined || 'N/A',
+    experience: u.experience || 'N/A',
+    licenseExpiryDate: u.licenseExpiryDate || 'N/A',
+    licenseDocumentPath: u.licenseDocumentPath || null
   }
 }

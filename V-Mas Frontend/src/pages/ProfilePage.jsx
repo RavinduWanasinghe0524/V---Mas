@@ -3,8 +3,8 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
-import { profileAPI, fuelAPI, serviceAPI, vehicleAPI } from '../services/api'
-import { User, Mail, Key, ShieldCheck, Shield, Globe, Fuel, Ruler, Calendar, Car, Wrench, Edit2, AlertCircle, CheckCircle, Eye, EyeOff, Check, Trophy, Activity, Lock, Settings, LogOut, Zap, Bell, Clock, Smartphone, Share2, UserCheck, X, Sun, Moon } from 'lucide-react'
+import api, { profileAPI, fuelAPI, serviceAPI, vehicleAPI, userAPI } from '../services/api'
+import { User, Mail, Key, ShieldCheck, Shield, Globe, Fuel, Ruler, Calendar, Car, Wrench, Edit2, AlertCircle, CheckCircle, Eye, EyeOff, Check, Trophy, Activity, Lock, Settings, LogOut, Zap, Bell, Clock, Smartphone, Share2, UserCheck, X, Sun, Moon, FileText, Upload } from 'lucide-react'
 import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 const Toggle = ({ checked, onChange, color = '#2563eb' }) => (
@@ -83,10 +83,16 @@ const ProfilePage = () => {
 
   // State Hooks
   const [activeTab, setActiveTab] = useState('profile')
-  const [profileForm, setProfileForm] = useState({ email: '', profilePicture: '', fullName: '', phone: '', address: '' })
+  const [profileForm, setProfileForm] = useState({
+    email: '', profilePicture: '', fullName: '', phone: '', address: '',
+    gender: 'Male', nic: '', dateOfBirth: '', licenseNumber: '', licenseExpiryDate: '',
+    licenseDocumentPath: '', dateJoined: '', experience: ''
+  })
+  const [licenseFile, setLicenseFile] = useState(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileSuccess, setProfileSuccess] = useState('')
   const [profileError, setProfileError] = useState('')
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
 
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
   const [pwLoading, setPwLoading] = useState(false)
@@ -179,10 +185,47 @@ const ProfilePage = () => {
     }
   }
 
+  const handleCancelProfileEdit = () => {
+    setIsEditingProfile(false)
+    setProfileError('')
+    if (user) {
+      setProfileForm({
+        email: user.email || '',
+        profilePicture: user.profilePicture || '',
+        fullName: user.userName || '',
+        phone: user.phoneNumber || '',
+        address: user.address || '',
+        gender: user.gender || 'Male',
+        nic: user.nic || '',
+        dateOfBirth: user.dateOfBirth || '',
+        licenseNumber: user.licenseNumber || '',
+        licenseExpiryDate: user.licenseExpiryDate || '',
+        licenseDocumentPath: user.licenseDocumentPath || '',
+        dateJoined: user.dateJoined || '',
+        experience: user.experience || ''
+      })
+    }
+    setLicenseFile(null)
+  }
+
   const toggleAlertType = key => setPrivacy(p => ({
     ...p,
     alertTypes: p.alertTypes.includes(key) ? p.alertTypes.filter(k => k !== key) : [...p.alertTypes, key],
   }))
+
+  useEffect(() => {
+    const fetchLatestProfile = async () => {
+      try {
+        const res = await profileAPI.getMyProfile()
+        if (res.data?.data) {
+          updateUser(res.data.data)
+        }
+      } catch (err) {
+        console.error("Failed to fetch latest profile details:", err)
+      }
+    }
+    fetchLatestProfile()
+  }, [])
 
   useEffect(() => {
     if (user) {
@@ -191,6 +234,15 @@ const ProfilePage = () => {
         email: user.email || '',
         profilePicture: user.profilePicture || '',
         fullName: user.userName || '',
+        phone: user.phoneNumber || '',
+        gender: user.gender || 'Male',
+        nic: user.nic || '',
+        dateOfBirth: user.dateOfBirth || '',
+        licenseNumber: user.licenseNumber || '',
+        licenseExpiryDate: user.licenseExpiryDate || '',
+        licenseDocumentPath: user.licenseDocumentPath || '',
+        dateJoined: user.dateJoined || '',
+        experience: user.experience || ''
       }))
     }
   }, [user])
@@ -245,14 +297,37 @@ const ProfilePage = () => {
     try {
       if (user?.id?.toString().startsWith('demo_')) {
         await new Promise(r => setTimeout(r, 500))
-        updateUser({ ...user, email: profileForm.email, userName: profileForm.fullName, profilePicture: profileForm.profilePicture || user.profilePicture })
+        updateUser({
+          ...user,
+          email: profileForm.email,
+          userName: profileForm.fullName,
+          profilePicture: profileForm.profilePicture || user.profilePicture
+        })
         setProfileSuccess('Profile updated successfully')
         return
       }
-      const res = await profileAPI.updateMyProfile({ email: profileForm.email, profilePicture: profileForm.profilePicture })
-      const updated = res.data?.data
+      const res = await profileAPI.updateMyProfile({
+        email: profileForm.email,
+        profilePicture: profileForm.profilePicture,
+        phoneNumber: profileForm.phone,
+        gender: profileForm.gender,
+        nic: profileForm.nic,
+        dateOfBirth: profileForm.dateOfBirth || null,
+        licenseNumber: profileForm.licenseNumber,
+        licenseExpiryDate: profileForm.licenseExpiryDate || null,
+        dateJoined: profileForm.dateJoined || null,
+        experience: profileForm.experience
+      })
+      let updated = res.data?.data
+
+      if (user?.role === 'DRIVER' && licenseFile && updated && updated.id) {
+        const uploadRes = await userAPI.uploadDocument(updated.id, 'license', licenseFile, profileForm.licenseExpiryDate)
+        updated = uploadRes.data?.data
+      }
+
       if (updated) updateUser(updated)
       setProfileSuccess('Profile updated successfully')
+      setIsEditingProfile(false)
     } catch (err) {
       setProfileError(err.response?.data?.message || 'Failed to update profile')
     } finally {
@@ -400,11 +475,14 @@ const ProfilePage = () => {
           <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             
             {/* Left Sidebar Menu */}
-            <div style={{
-              width: '100%', maxWidth: 280, background: D.surface, borderRadius: 24,
-              border: `1px solid ${D.border}`, padding: '16px 12px', flexShrink: 0,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
-            }}>
+            <div
+              className="profile-settings-tabs"
+              style={{
+                width: '100%', maxWidth: 280, background: D.surface, borderRadius: 24,
+                border: `1px solid ${D.border}`, padding: '16px 12px', flexShrink: 0,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+              }}
+            >
               {[
                 { key: 'profile', label: 'Profile Settings', icon: <User size={18} /> },
                 { key: 'security', label: 'Security & Auth', icon: <Lock size={18} /> },
@@ -451,9 +529,9 @@ const ProfilePage = () => {
             </div>
 
             {/* Right Settings Content Area */}
-            <div style={{
-              flex: 1, minWidth: 320, background: D.surface, borderRadius: 24,
-              border: `1px solid ${D.border}`, padding: '32px 36px',
+            <div className="responsive-card-settings" style={{
+              flex: 1, minWidth: 0, background: D.surface, borderRadius: 24,
+              border: `1px solid ${D.border}`,
               boxShadow: '0 4px 24px rgba(0,0,0,0.15)', position: 'relative'
             }}>
               
@@ -468,47 +546,221 @@ const ProfilePage = () => {
 
                   <form onSubmit={handleProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     {/* Avatar Upload Box */}
-                    <div style={{ padding: 20, background: D.surfaceHi, borderRadius: 16, border: `1px dashed ${D.border}`, display: 'flex', gap: 20, alignItems: 'center' }}>
+                    <div style={{ padding: 20, background: D.surfaceHi, borderRadius: 16, border: `1px dashed ${D.border}`, display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
                       <img
                         src={profileForm.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.userName || 'U')}&background=1e3a8a&color=fff&size=100&bold=true`}
                         alt="preview"
                         style={{ width: 80, height: 80, borderRadius: 16, objectFit: 'cover', border: `1px solid ${D.border}`, flexShrink: 0 }}
                       />
                       <div>
-                        <button type="button" onClick={handleAvatarClick}
-                          style={{ padding: '8px 16px', borderRadius: 10, border: `1px solid ${D.indigo}40`, background: D.indigo + '10', color: D.indigo, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.2s ease', marginBottom: 6, display: 'block' }}
-                          onMouseEnter={e => e.currentTarget.style.background = D.indigo + '20'}
-                          onMouseLeave={e => e.currentTarget.style.background = D.indigo + '10'}
-                        >
-                          Choose New Avatar
-                        </button>
-                        <span style={{ fontSize: '0.75rem', color: D.textSub }}>JPG, PNG - Max 1 MB</span>
+                        {isEditingProfile ? (
+                          <>
+                            <button type="button" onClick={handleAvatarClick}
+                              style={{ padding: '8px 16px', borderRadius: 10, border: `1px solid ${D.indigo}40`, background: D.indigo + '10', color: D.indigo, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.2s ease', marginBottom: 6, display: 'block' }}
+                              onMouseEnter={e => e.currentTarget.style.background = D.indigo + '20'}
+                              onMouseLeave={e => e.currentTarget.style.background = D.indigo + '10'}
+                            >
+                              Choose New Avatar
+                            </button>
+                            <span style={{ fontSize: '0.75rem', color: D.textSub }}>JPG, PNG - Max 1 MB</span>
+                          </>
+                        ) : (
+                          <span style={{ fontSize: '0.85rem', color: D.textSub, fontWeight: 600 }}>Avatar is locked. Click "Edit Profile" below to change it.</span>
+                        )}
                       </div>
                       <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 24px' }}>
+                    <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 24px' }}>
                       <div>
-                        <label style={labelStyle}>Full Name</label>
-                        <input type="text" value={profileForm.fullName} onChange={e => setProfileForm(prev => ({ ...prev, fullName: e.target.value }))} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                        <label style={labelStyle}>Full Name / Username</label>
+                        <input type="text" value={profileForm.fullName} disabled style={{ ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub }} />
                       </div>
                       <div>
                         <label style={labelStyle}>Email Address</label>
-                        <input type="email" value={profileForm.email} onChange={e => setProfileForm(prev => ({ ...prev, email: e.target.value }))} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                        <input type="email" value={profileForm.email} onChange={e => setProfileForm(prev => ({ ...prev, email: e.target.value }))} required disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} />
                       </div>
                       <div>
                         <label style={labelStyle}>Phone Number</label>
-                        <input type="tel" value={profileForm.phone} onChange={e => setProfileForm(prev => ({ ...prev, phone: e.target.value }))} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                        <input type="tel" value={profileForm.phone} onChange={e => setProfileForm(prev => ({ ...prev, phone: e.target.value }))} required disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} />
                       </div>
                       <div>
                         <label style={labelStyle}>Role Status</label>
                         <input type="text" value={user?.role ? (user.role.charAt(0) + user.role.slice(1).toLowerCase()) : 'User'} disabled style={{ ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub }} />
                       </div>
+                      <div>
+                        <label style={labelStyle}>Gender</label>
+                        <select value={profileForm.gender} onChange={e => setProfileForm(prev => ({ ...prev, gender: e.target.value }))} disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : { ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>NIC Number</label>
+                        <input type="text" value={profileForm.nic} onChange={e => setProfileForm(prev => ({ ...prev, nic: e.target.value }))} required disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 199912345678" />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Date of Birth</label>
+                        <input type="date" value={profileForm.dateOfBirth} onChange={e => setProfileForm(prev => ({ ...prev, dateOfBirth: e.target.value }))} required disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                      </div>
+
+                      {user?.role === 'DRIVER' && (
+                        <>
+                          <div>
+                            <label style={labelStyle}>License Number</label>
+                            <input type="text" value={profileForm.licenseNumber} onChange={e => setProfileForm(prev => ({ ...prev, licenseNumber: e.target.value }))} required disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>License Expiry Date</label>
+                            <input type="date" value={profileForm.licenseExpiryDate} onChange={e => setProfileForm(prev => ({ ...prev, licenseExpiryDate: e.target.value }))} required disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Date Joined</label>
+                            <input type="date" value={profileForm.dateJoined} onChange={e => setProfileForm(prev => ({ ...prev, dateJoined: e.target.value }))} required disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Experience</label>
+                            <input type="text" value={profileForm.experience} onChange={e => setProfileForm(prev => ({ ...prev, experience: e.target.value }))} required disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 5 years" />
+                          </div>
+                          <div style={{ gridColumn: '1 / -1' }}>
+                            <label style={labelStyle}>License Document</label>
+                            {profileForm.licenseDocumentPath && !licenseFile ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      const token = localStorage.getItem('token')
+                                      const res = await api.get(`/users/${user.id}/document/license`, {
+                                        responseType: 'blob',
+                                        headers: { 'Authorization': `Bearer ${token}` }
+                                      })
+                                      const blob = new Blob([res.data], { type: res.headers['content-type'] })
+                                      const url = window.URL.createObjectURL(blob)
+                                      window.open(url, '_blank')
+                                    } catch (err) {
+                                      let errMsg = "Failed to load document."
+                                      if (err.response?.data instanceof Blob) {
+                                        try {
+                                          const text = await err.response.data.text()
+                                          const errorObj = JSON.parse(text)
+                                          errMsg = errorObj.message || errMsg
+                                        } catch (e) {}
+                                      } else if (err.response?.data?.message) {
+                                        errMsg = err.response.data.message
+                                      }
+                                      alert(errMsg)
+                                    }
+                                  }}
+                                  style={{
+                                    padding: '10px 20px', borderRadius: 12, border: `1px solid ${D.border}`,
+                                    background: 'rgba(255,255,255,0.05)', color: D.blue, cursor: 'pointer',
+                                    fontSize: '0.85rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8
+                                  }}
+                                >
+                                  <FileText size={14} /> View Current License
+                                </button>
+                                {isEditingProfile && (
+                                  <label style={{ cursor: 'pointer' }}>
+                                    <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => setLicenseFile(e.target.files[0])} />
+                                    <span style={{ color: D.textSub, fontSize: '0.8rem', fontWeight: 800, textDecoration: 'underline' }}>Change Document</span>
+                                  </label>
+                                )}
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }} id="user-license-file-profile" onChange={e => setLicenseFile(e.target.files[0])} disabled={!isEditingProfile} />
+                                <button
+                                  type="button"
+                                  onClick={() => document.getElementById('user-license-file-profile').click()}
+                                  disabled={!isEditingProfile}
+                                  style={{
+                                    padding: '10px 20px', borderRadius: 12,
+                                    border: `1px solid ${D.border}`, background: !isEditingProfile ? D.surfaceHi : 'rgba(255,255,255,0.05)',
+                                    color: !isEditingProfile ? D.textSub : D.text, cursor: !isEditingProfile ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 800,
+                                    display: 'flex', alignItems: 'center', gap: 8
+                                  }}
+                                >
+                                  <Upload size={14} /> Upload License Document
+                                </button>
+                                <span style={{ fontSize: '0.8rem', color: licenseFile ? D.text : D.textSub }}>
+                                  {licenseFile ? licenseFile.name : 'No file chosen (Image / PDF)'}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+
                       <div style={{ gridColumn: '1 / -1' }}>
                         <label style={labelStyle}>Address</label>
-                        <input type="text" value={profileForm.address} onChange={e => setProfileForm(prev => ({ ...prev, address: e.target.value }))} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                        <input type="text" value={profileForm.address} onChange={e => setProfileForm(prev => ({ ...prev, address: e.target.value }))} disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} />
                       </div>
                     </div>
+
+                    {/* Form Edit/Save Buttons */}
+                    {isEditingProfile ? (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 12 }}>
+                        <button
+                          type="submit"
+                          disabled={profileLoading}
+                          style={{
+                            padding: '12px 24px', borderRadius: 12, border: 'none',
+                            background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                            color: '#fff', fontSize: '0.9rem', fontWeight: 800,
+                            cursor: profileLoading ? 'not-allowed' : 'pointer',
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            transition: 'all 0.25s', boxShadow: '0 4px 12px rgba(37,99,235,0.2)'
+                          }}
+                          onMouseEnter={e => { if (!profileLoading) e.currentTarget.style.transform = 'translateY(-1px)' }}
+                          onMouseLeave={e => { if (!profileLoading) e.currentTarget.style.transform = 'translateY(0)' }}
+                        >
+                          {profileLoading ? (
+                            <>
+                              <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite' }} />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Check size={16} /> Save Changes
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCancelProfileEdit}
+                          style={{
+                            padding: '12px 24px', borderRadius: 12,
+                            border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)',
+                            color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 800,
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingProfile(true)}
+                          style={{
+                            padding: '12px 24px', borderRadius: 12, border: 'none',
+                            background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                            color: '#fff', fontSize: '0.9rem', fontWeight: 800,
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+                            transition: 'all 0.25s', boxShadow: '0 4px 12px rgba(37,99,235,0.2)'
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                          onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                        >
+                          <Edit2 size={16} /> Edit Profile
+                        </button>
+                      </div>
+                    )}
                   </form>
                 </div>
               )}
@@ -523,7 +775,7 @@ const ProfilePage = () => {
                   {pwSuccess && <div style={{ padding: '12px 14px', borderRadius: 10, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><CheckCircle size={16} /> {pwSuccess}</div>}
 
                   <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 24px' }}>
+                    <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 24px' }}>
                       <div style={{ gridColumn: '1 / -1' }}>
                         <label style={labelStyle}>Current Password</label>
                         <div style={{ position: 'relative' }}>
@@ -701,7 +953,7 @@ const ProfilePage = () => {
                   <h3 style={{ margin: '0 0 8px', fontSize: '1.2rem', fontWeight: 800, color: D.text }}>Theme & Appearance</h3>
                   <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: D.textSub }}>Choose your default background view and colors.</p>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                  <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
                     {/* Dark mode card */}
                     <div
                       onClick={() => { if (theme !== 'blue') toggleTheme() }}

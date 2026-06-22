@@ -12,4 +12,12 @@ import lombok.Setter;
 public class UpdateProfileRequest {
     private String email;
     private String profilePicture;
+    private String phoneNumber;
+    private String gender;
+    private String nic;
+    private java.time.LocalDate dateOfBirth;
+    private String licenseNumber;
+    private java.time.LocalDate licenseExpiryDate;
+    private java.time.LocalDate dateJoined;
+    private String experience;
 }

@@ -933,7 +933,7 @@ const ServicePage = () => {
   const [allVehicles, setAllVehicles] = useState([])
   const [allDrivers, setAllDrivers] = useState([])
   const [previousMileage, setPreviousMileage] = useState(null)
-  const [expandedVehicleId, setExpandedVehicleId] = useState(null)
+  const [expandedVehicleIds, setExpandedVehicleIds] = useState({})
 
   // ── Driver-specific lookup vehicle states ───────────────────────
   const [selectedDriverVehicle, setSelectedDriverVehicle] = useState(null)
@@ -1613,74 +1613,56 @@ const ServicePage = () => {
     setLoading(true)
     try {
       if (isDriver) {
-        // Driver loading path
-        const [statsRes, vehicleRes, intervalsRes] = await Promise.all([
+        // Driver loading path — fetch all services and all vehicles (read-only)
+        const [servRes, statsRes, vehicleRes, intervalsRes] = await Promise.all([
+          serviceAPI.getAllServices(),
           serviceAPI.getServiceStats(),
           vehicleAPI.getAllVehicles(),
           serviceAPI.getAllIntervals()
         ])
-        
+        const loadedServices = servRes.data.data || []
         const loadedVehicles = vehicleRes?.data.data || []
         const loadedIntervals = intervalsRes?.data.data || []
+        setServices(loadedServices)
         setStats(statsRes.data.data)
         setAllVehicles(loadedVehicles)
         setAllDrivers([user])
         setIntervals(loadedIntervals)
         setLocalIntervals(loadedIntervals)
         
-        // Find default or currently selected vehicle
-        const assigned = loadedVehicles.find(veh => String(veh.driverId) === String(user?.id))
-        const targetVehicle = selectedDriverVehicle || assigned
-        
-        if (targetVehicle) {
-          // If we resolved a vehicle, set it in state
-          if (!selectedDriverVehicle) {
-            setSelectedDriverVehicle(targetVehicle)
-            setDriverVehicleSearch(targetVehicle.registrationNo)
-          }
-          
-          // Fetch services specifically for this vehicle
-          const servRes = await serviceAPI.getServicesByVehicle(targetVehicle.registrationNo)
-          const loadedServices = servRes.data.data || []
-          setServices(loadedServices)
-          
-          // Compute alert records for this vehicle only
-          const alerts = []
-          if (!targetVehicle.isDeleted) {
-            const milestones = getVehicleMilestones(targetVehicle, loadedServices, loadedIntervals)
-            milestones.forEach(m => {
-              if (m.status === 'OVERDUE' || m.status === 'DUE_SOON') {
-                const completed = loadedServices.filter(s =>
-                  s.vehicleRegNumber === targetVehicle.registrationNo &&
-                  s.serviceType === m.serviceType &&
-                  getStatus(s) === 'COMPLETED'
-                )
-                let lastRecord = null
-                if (completed.length > 0) {
-                  completed.sort((a, b) => Number(b.currentMileageKm || 0) - Number(a.currentMileageKm || 0))
-                  lastRecord = completed[0]
-                }
-                const alertObj = {
-                  id: lastRecord ? lastRecord.id : `pseudo-${targetVehicle.registrationNo}-${m.serviceType}`,
-                  vehicleRegNumber: targetVehicle.registrationNo,
-                  serviceType: m.serviceType,
-                  _alertLevel: m.status,
-                  _vehicleCurrentKm: targetVehicle.currentMileageKm || 0,
-                  currentMileageKm: lastRecord ? lastRecord.currentMileageKm : 0,
-                  nextServiceMileageKm: m.nextDueMileage,
-                  serviceDate: lastRecord ? lastRecord.serviceDate : null,
-                  description: lastRecord ? lastRecord.description : 'Initial service milestone.',
-                  _isPseudo: !lastRecord
-                }
-                alerts.push(alertObj)
+        // Compute alert records for all non-deleted vehicles
+        const alerts = []
+        loadedVehicles.forEach(v => {
+          if (v.isDeleted) return
+          const milestones = getVehicleMilestones(v, loadedServices, loadedIntervals)
+          milestones.forEach(m => {
+            if (m.status === 'OVERDUE' || m.status === 'DUE_SOON') {
+              const completed = loadedServices.filter(s =>
+                s.vehicleRegNumber === v.registrationNo &&
+                s.serviceType === m.serviceType &&
+                getStatus(s) === 'COMPLETED'
+              )
+              let lastRecord = null
+              if (completed.length > 0) {
+                completed.sort((a, b) => Number(b.currentMileageKm || 0) - Number(a.currentMileageKm || 0))
+                lastRecord = completed[0]
               }
-            })
-          }
-          setAlertRecords(alerts)
-        } else {
-          setServices([])
-          setAlertRecords([])
-        }
+              alerts.push({
+                id: lastRecord ? lastRecord.id : `pseudo-${v.registrationNo}-${m.serviceType}`,
+                vehicleRegNumber: v.registrationNo,
+                serviceType: m.serviceType,
+                _alertLevel: m.status,
+                _vehicleCurrentKm: v.currentMileageKm || 0,
+                currentMileageKm: lastRecord ? lastRecord.currentMileageKm : 0,
+                nextServiceMileageKm: m.nextDueMileage,
+                serviceDate: lastRecord ? lastRecord.serviceDate : null,
+                description: lastRecord ? lastRecord.description : 'Initial service milestone.',
+                _isPseudo: !lastRecord
+              })
+            }
+          })
+        })
+        setAlertRecords(alerts)
       } else {
         // Admin / Controller loading path
         const requests = [
@@ -1769,7 +1751,7 @@ const ServicePage = () => {
     } finally {
       setLoading(false)
     }
-  }, [isDriver, selectedDriverVehicle, user])
+  }, [isDriver, user])
 
   const loadDeletedData = useCallback(async () => {
     setDeletedLoading(true)
@@ -1786,9 +1768,14 @@ const ServicePage = () => {
   useEffect(() => { loadData() }, [loadData])
 
   useEffect(() => {
-    if (!loading && allVehicles.length > 0 && location.state?.logServicePrefill) {
-      openAddModal(location.state.logServicePrefill)
-      navigate(location.pathname, { replace: true, state: {} })
+    if (!loading && allVehicles.length > 0) {
+      if (location.state?.logServicePrefill) {
+        openAddModal(location.state.logServicePrefill)
+        navigate(location.pathname, { replace: true, state: {} })
+      } else if (location.state?.openAddServiceModal) {
+        openAddModal()
+        navigate(location.pathname, { replace: true, state: {} })
+      }
     }
   }, [loading, allVehicles, location.state, navigate, location.pathname])
 
@@ -2106,7 +2093,7 @@ const ServicePage = () => {
     }))
   }
 
-  const myVehicle = isDriver ? selectedDriverVehicle : allVehicles.find(v => String(v.driverId) === String(user?.id))
+  const myVehicle = allVehicles.find(v => String(v.driverId) === String(user?.id))
   const scheduled = services.filter(s => getStatus(s) === 'SCHEDULED').length
   const completed = completedServices.length
   const total = services.length
@@ -2114,9 +2101,6 @@ const ServicePage = () => {
 
   /* Filtered and sorted list */
   const filtered = services.filter(s => {
-    if (isDriver) {
-      if (s.vehicleRegNumber !== myVehicle?.registrationNo) return false
-    }
     if (filter === 'UPCOMING') {
       if (!alertRecords.some(r => r.id === s.id && r._alertLevel === 'DUE_SOON')) return false
     } else if (filter === 'OVERDUE') {
@@ -2225,8 +2209,8 @@ const ServicePage = () => {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: D.bg, minHeight: '100vh' }}>
         <Topbar
-          title={isDriver ? 'Service History' : 'Service'}
-          subtitle={`Home / ${isDriver ? 'Service History' : 'Service'}`}
+          title={'Service'}
+          subtitle={'Home / Service'}
           onMenuToggle={() => setSidebarOpen(o => !o)}
         />
 
@@ -2327,7 +2311,7 @@ const ServicePage = () => {
                     margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#f0f2ff',
                     letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', 'Outfit', sans-serif",
                   }}>
-                    {isDriver ? 'Service History' : 'Maintenance Center'}
+                    {isDriver ? 'Fleet Service' : 'Maintenance Center'}
                   </h1>
                   <span style={{
                     background: 'rgba(99,102,241,0.2)',
@@ -2337,13 +2321,13 @@ const ServicePage = () => {
                     fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.06em',
                     backdropFilter: 'blur(6px)',
                   }}>
-                    {isDriver ? 'Driver View' : 'Fleet Operations'}
+                    {isDriver ? 'Read Only' : 'Fleet Operations'}
                   </span>
                 </div>
 
                 <p style={{ margin: '0 0 8px', color: 'rgba(165,180,252,0.7)', fontSize: '0.9rem', fontWeight: 400 }}>
                   {isDriver
-                    ? 'View your service history and track vehicle maintenance records.'
+                    ? 'Browse all service records and track maintenance milestones across the fleet (read-only).'
                     : 'Schedule services, manage work orders and minimise fleet downtime.'}
                 </p>
 
@@ -2367,103 +2351,6 @@ const ServicePage = () => {
 
             {/* Right — CTA buttons */}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, zIndex: 10, flexShrink: 0 }}>
-              {isDriver && (
-                <div ref={driverVehicleSearchRef} style={{ position: 'relative', width: 280 }}>
-                  <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
-                  <input
-                    type="text"
-                    placeholder="Search Vehicle (e.g. CAS-1020)..."
-                    value={driverVehicleSearch}
-                    onChange={e => {
-                      setDriverVehicleSearch(e.target.value)
-                      setDriverVehicleDropdownVisible(true)
-                    }}
-                    onFocus={() => setDriverVehicleDropdownVisible(true)}
-                    style={{
-                      width: '100%',
-                      padding: '12px 14px 12px 40px',
-                      background: 'rgba(15, 23, 42, 0.6)',
-                      border: `1.5px solid ${driverVehicleSearch ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`,
-                      borderRadius: 14,
-                      color: D.text,
-                      fontSize: '0.88rem',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                      transition: 'all 0.25s ease',
-                      boxShadow: driverVehicleSearch ? '0 0 16px rgba(99,102,241,0.2)' : 'none',
-                    }}
-                  />
-                  {driverVehicleSearch && (
-                    <X
-                      size={16}
-                      onClick={() => {
-                        setDriverVehicleSearch('')
-                        setSelectedDriverVehicle(null)
-                      }}
-                      style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, cursor: 'pointer' }}
-                    />
-                  )}
-                  {/* Autocomplete Dropdown List */}
-                  {driverVehicleDropdownVisible && (
-                    <div style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 8px)',
-                      left: 0,
-                      width: '100%',
-                      maxHeight: 250,
-                      overflowY: 'auto',
-                      background: D.surfaceHi,
-                      border: `1px solid ${D.borderHi}`,
-                      borderRadius: 12,
-                      boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                      zIndex: 999,
-                      scrollbarWidth: 'thin'
-                    }}>
-                      {(() => {
-                        const query = driverVehicleSearch.toLowerCase().trim()
-                        const filteredVehicles = allVehicles.filter(v =>
-                          !v.isDeleted && (
-                            v.registrationNo?.toLowerCase().includes(query) ||
-                            `${v.manufacturer || ''} ${v.model || ''}`.toLowerCase().includes(query)
-                          )
-                        )
-                        if (filteredVehicles.length === 0) {
-                          return (
-                            <div style={{ padding: '12px 16px', fontSize: '0.82rem', color: D.textFaint, textAlign: 'center' }}>
-                              No vehicles found
-                            </div>
-                          )
-                        }
-                        return filteredVehicles.map(v => (
-                          <div
-                            key={v.id}
-                            onClick={() => {
-                              setSelectedDriverVehicle(v)
-                              setDriverVehicleSearch(v.registrationNo)
-                              setDriverVehicleDropdownVisible(false)
-                            }}
-                            className="svc-row-hover"
-                            style={{
-                              padding: '10px 16px',
-                              fontSize: '0.85rem',
-                              color: selectedDriverVehicle?.id === v.id ? '#a5b4fc' : D.text,
-                              cursor: 'pointer',
-                              borderBottom: `1px solid ${D.border}`,
-                              background: selectedDriverVehicle?.id === v.id ? 'rgba(99,102,241,0.08)' : 'transparent',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: 2
-                            }}
-                          >
-                            <span style={{ fontWeight: 800 }}>{v.registrationNo}</span>
-                            <span style={{ fontSize: '0.72rem', color: D.textSub }}>{v.manufacturer} {v.model} ({v.vehicleType || 'Unknown'})</span>
-                          </div>
-                        ))
-                      })()}
-                    </div>
-                  )}
-                </div>
-              )}
 
               {!isAdmin && !isDriver && (
                 <button
@@ -2506,127 +2393,7 @@ const ServicePage = () => {
             </div>
           </div>
 
-          {/* ══════════════════════════════════════════════════════
-              2. 5 KPI GLOWING METRIC TILES
-          ══════════════════════════════════════════════════════ */}
-          {!isDriver && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 26 }}>
-              {[
-                {
-                  icon: <ClipboardList size={20} />,
-                  label: 'Open Orders', value: openOrdersCount,
-                  sub: 'Awaiting action',
-                  iconBg: 'rgba(59,130,246,0.15)', iconColor: '#60a5fa',
-                  glowColor: 'rgba(59,130,246,0.12)',
-                },
-                {
-                  icon: <Calendar size={20} />,
-                  label: 'Due This Week', value: dueThisWeekCount,
-                  sub: 'Scheduled services',
-                  iconBg: 'rgba(139,92,246,0.15)', iconColor: '#a78bfa',
-                  glowColor: 'rgba(139,92,246,0.1)',
-                },
-                {
-                  icon: <ShieldAlert size={20} />,
-                  label: 'Overdue', value: overdueCount,
-                  sub: 'Needs attention',
-                  iconBg: 'rgba(239,68,68,0.15)', iconColor: '#f87171',
-                  glowColor: 'rgba(239,68,68,0.1)',
-                  urgent: overdueCount > 0,
-                },
-                {
-                  icon: <Wallet size={20} />,
-                  label: 'MTD Cost',
-                  value: null,
-                  displayValue: `LKR ${mtdCost >= 1000 ? (mtdCost / 1000).toFixed(1) + 'k' : mtdCost.toLocaleString()}`,
-                  fullValue: `LKR ${mtdCost.toLocaleString()}`,
-                  sub: 'Month to date',
-                  iconBg: 'rgba(251,191,36,0.15)', iconColor: '#fbbf24',
-                  glowColor: 'rgba(251,191,36,0.08)',
-                  trend: costTrendPercent,
-                },
-                {
-                  icon: <Clock size={20} />,
-                  label: 'Avg Downtime',
-                  value: null,
-                  displayValue: `${avgDowntime} hrs`,
-                  sub: 'Per completed service',
-                  iconBg: 'rgba(45,212,191,0.15)', iconColor: '#2dd4bf',
-                  glowColor: 'rgba(45,212,191,0.08)',
-                  trend: downtimeTrendPercent,
-                },
-              ].map((card, i) => (
-                <div
-                  key={i}
-                  className="svc-kpi-card"
-                  style={{
-                    background: D.surface,
-                    borderRadius: 16,
-                    padding: '20px 22px',
-                    overflow: 'hidden',
-                    border: `1px solid ${card.urgent ? 'rgba(239,68,68,0.22)' : D.border}`,
-                    boxShadow: card.urgent
-                      ? '0 4px 20px rgba(239,68,68,0.12)'
-                      : `0 4px 20px ${card.glowColor}`,
-                    position: 'relative',
-                    animation: `fadeSlideUp 0.4s ease ${i * 0.07}s both`,
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-                    <div style={{
-                      width: 40, height: 40, borderRadius: 11,
-                      background: card.iconBg,
-                      border: `1px solid ${card.iconColor}22`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: card.iconColor,
-                    }}>
-                      {card.icon}
-                    </div>
-                    {card.trend !== undefined && card.trend !== 0 && (
-                      <div style={{
-                        fontSize: '0.62rem', fontWeight: 800,
-                        padding: '3px 8px', borderRadius: 6,
-                        background: card.trend < 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-                        color: card.trend < 0 ? '#10b981' : '#ef4444',
-                        border: `1px solid ${card.trend < 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
-                      }}>
-                        {card.trend < 0 ? '▼' : '▲'} {Math.abs(card.trend)}%
-                      </div>
-                    )}
-                    {card.urgent && (
-                      <div style={{
-                        fontSize: '0.58rem', fontWeight: 800,
-                        padding: '3px 8px', borderRadius: 6,
-                        background: 'rgba(239,68,68,0.14)', color: '#f87171',
-                        border: '1px solid rgba(239,68,68,0.28)',
-                        animation: 'pulseBar 1.8s ease-in-out infinite',
-                        letterSpacing: '0.05em',
-                      }}>
-                        URGENT
-                      </div>
-                    )}
-                  </div>
 
-                  <p style={{ margin: '0 0 6px', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                    {card.label}
-                  </p>
-                  <p
-                    style={{
-                      margin: '0 0 4px', fontFamily: "'Plus Jakarta Sans', 'Outfit', sans-serif",
-                      fontSize: '1.6rem',
-                      fontWeight: 900, color: card.urgent ? '#f87171' : D.text,
-                      lineHeight: 1.1,
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}
-                    title={card.fullValue || card.displayValue || String(card.value)}
-                  >
-                    {card.displayValue ?? card.value}
-                  </p>
-                  <p style={{ margin: 0, fontSize: '0.68rem', color: D.textFaint, fontWeight: 500 }}>{card.sub}</p>
-                </div>
-              ))}
-            </div>
-          )}
 
           {/* Service Alerts - Full Width */}
           {alertRecords.length > 0 && (
@@ -2876,64 +2643,64 @@ const ServicePage = () => {
 
           {/* Display tab calculation */}
           {(() => {
-            const displayTab = isDriver ? 'history' : activeTab
+            const displayTab = activeTab
             return (
               <>
-                {/* Tabs Navigation (visible to non-drivers, e.g., admin & controller) */}
-                {!isDriver && (
-                  <div style={{
-                    display: 'flex',
-                    gap: 12,
-                    marginBottom: 26,
-                    borderBottom: `1px solid ${D.border}`,
-                    paddingBottom: 10,
-                    flexWrap: 'wrap'
-                  }}>
-                    {[
-                      { id: 'status', label: 'Active Status / Milestones', icon: <Gauge size={16} /> },
+                {/* Tabs Navigation (visible to all roles, limited tabs for drivers) */}
+                <div style={{
+                  display: 'flex',
+                  gap: 12,
+                  marginBottom: 26,
+                  borderBottom: `1px solid ${D.border}`,
+                  paddingBottom: 10,
+                  flexWrap: 'wrap'
+                }}>
+                  {[
+                    { id: 'status', label: 'Active Status / Milestones', icon: <Gauge size={16} /> },
+                    ...(!isDriver ? [
                       { id: 'update', label: 'Daily Mileage Update', icon: <Gauge size={16} /> },
                       { id: 'intervals', label: 'Intervals Settings', icon: <Settings size={16} /> },
-                      { id: 'history', label: 'Service History Logs', icon: <ClipboardList size={16} /> }
-                    ].map(tab => {
-                      const isActive = displayTab === tab.id
-                      return (
-                        <button
-                          key={tab.id}
-                          onClick={() => setActiveTab(tab.id)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            padding: '10px 20px',
-                            borderRadius: 12,
-                            fontSize: '0.9rem',
-                            fontWeight: isActive ? 800 : 600,
-                            background: isActive ? 'rgba(99,102,241,0.15)' : 'transparent',
-                            color: isActive ? '#a5b4fc' : D.textSub,
-                            border: isActive ? '1px solid rgba(99,102,241,0.3)' : '1px solid transparent',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                          }}
-                          onMouseEnter={e => {
-                            if (!isActive) {
-                              e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
-                              e.currentTarget.style.color = D.text
-                            }
-                          }}
-                          onMouseLeave={e => {
-                            if (!isActive) {
-                              e.currentTarget.style.background = 'transparent'
-                              e.currentTarget.style.color = D.textSub
-                            }
-                          }}
-                        >
-                          {tab.icon}
-                          {tab.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
+                    ] : []),
+                    { id: 'history', label: 'Service History Logs', icon: <ClipboardList size={16} /> }
+                  ].map(tab => {
+                    const isActive = displayTab === tab.id
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          padding: '10px 20px',
+                          borderRadius: 12,
+                          fontSize: '0.9rem',
+                          fontWeight: isActive ? 800 : 600,
+                          background: isActive ? 'rgba(99,102,241,0.15)' : 'transparent',
+                          color: isActive ? '#a5b4fc' : D.textSub,
+                          border: isActive ? '1px solid rgba(99,102,241,0.3)' : '1px solid transparent',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                        }}
+                        onMouseEnter={e => {
+                          if (!isActive) {
+                            e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
+                            e.currentTarget.style.color = D.text
+                          }
+                        }}
+                        onMouseLeave={e => {
+                          if (!isActive) {
+                            e.currentTarget.style.background = 'transparent'
+                            e.currentTarget.style.color = D.textSub
+                          }
+                        }}
+                      >
+                        {tab.icon}
+                        {tab.label}
+                      </button>
+                    )
+                  })}
+                </div>
 
                 {/* ── Active Status / Milestones Tab ── */}
                 {displayTab === 'status' && (
@@ -2984,14 +2751,19 @@ const ServicePage = () => {
                         ))
                         .map(v => {
                           const milestones = getVehicleMilestones(v, services, intervals)
-                          const isExpanded = expandedVehicleId === v.id
+                          const isExpanded = !!expandedVehicleIds[v.id]
                           const overdueAlertsCount = milestones.filter(m => m.status === 'OVERDUE').length
                           const dueSoonAlertsCount = milestones.filter(m => m.status === 'DUE_SOON').length
 
                           return (
                             <div
                               key={v.id}
-                              onClick={() => setExpandedVehicleId(isExpanded ? null : v.id)}
+                              onClick={() => {
+                                setExpandedVehicleIds(prev => ({
+                                  ...prev,
+                                  [v.id]: !prev[v.id]
+                                }))
+                              }}
                               style={{
                                 background: D.surface, border: `1px solid ${isExpanded ? D.borderHi : D.border}`,
                                 borderRadius: 16, padding: '20px',
@@ -3099,7 +2871,7 @@ const ServicePage = () => {
                                               }}>
                                                 {statusConfig.label}
                                               </span>
-                                              {(isOverdue || isDueSoon) && (
+                                              {(isOverdue || isDueSoon) && !isDriver && (
                                                 <button
                                                   onClick={() => openAddModal({ vehicleRegNumber: v.registrationNo, serviceType: m.serviceType })}
                                                   title={`Log completed ${m.serviceType.replace(/_/g, ' ')}`}
@@ -3221,7 +2993,7 @@ const ServicePage = () => {
                     </div>
 
                     {/* Table zones */}
-                    <div style={{ overflowX: 'auto', scrollbarWidth: 'thin' }}>
+                    <div className="desktop-view-only" style={{ overflowX: 'auto', scrollbarWidth: 'thin' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
                           <tr style={{ background: D.surfaceHi, borderBottom: `1px solid ${D.border}` }}>
@@ -3291,6 +3063,99 @@ const ServicePage = () => {
                             })}
                         </tbody>
                       </table>
+                    </div>
+
+                    {/* Mobile Card list */}
+                    <div className="mobile-view-only" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      {allVehicles
+                        .filter(v => !v.isDeleted && (
+                          (v.registrationNo || '').toLowerCase().includes(mileageSearch.toLowerCase()) ||
+                          `${v.manufacturer || ''} ${v.model || ''}`.toLowerCase().includes(mileageSearch.toLowerCase())
+                        ))
+                        .map(v => {
+                          const currentVal = v.currentMileageKm || 0
+                          const entryVal = dailyMileages[v.id] !== undefined ? dailyMileages[v.id] : currentVal
+                          const hasError = errors[v.id]
+                          const isChanged = Number(entryVal) !== currentVal
+
+                          return (
+                            <div key={v.id} style={{
+                              background: D.surfaceHi,
+                              border: `1px solid ${hasError ? '#ef4444' : isChanged ? 'rgba(99,102,241,0.4)' : D.border}`,
+                              borderRadius: 16,
+                              padding: '16px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 12,
+                              boxShadow: isChanged ? '0 4px 12px rgba(99,102,241,0.08)' : 'none',
+                              transition: 'all 0.2s ease'
+                            }}>
+                              {/* Row 1: Reg Number + Type */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.95rem', fontWeight: 800, color: D.text }}>
+                                  {v.registrationNo}
+                                </span>
+                                <span style={{
+                                  fontSize: '0.7rem', fontWeight: 700,
+                                  color: D.textSub, background: D.inputBg,
+                                  padding: '4px 10px', borderRadius: 8,
+                                  border: `1px solid ${D.border}`,
+                                  textTransform: 'uppercase', letterSpacing: '0.04em'
+                                }}>
+                                  {v.vehicleType || 'Unknown'}
+                                </span>
+                              </div>
+
+                              {/* Row 2: Details & Assignee */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: D.textSub }}>
+                                <span>{v.manufacturer} {v.model}</span>
+                                <span style={{ fontWeight: 600, color: v.driverName ? D.text : D.textFaint }}>
+                                  Assignee: {v.driverName || 'Unassigned'}
+                                </span>
+                              </div>
+
+                              {/* Row 3: Current Mileage vs New Entry */}
+                              <div style={{
+                                borderTop: `1px solid ${D.border}`,
+                                paddingTop: 12,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 8
+                              }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem' }}>
+                                  <span style={{ color: D.textFaint, fontWeight: 500 }}>Current Mileage:</span>
+                                  <span style={{ fontWeight: 800, color: D.text }}>{currentVal.toLocaleString()} km</span>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  <input
+                                    type="number"
+                                    value={entryVal === 0 ? '' : entryVal}
+                                    placeholder={`New Mileage (min: ${currentVal})`}
+                                    onChange={e => {
+                                      const val = e.target.value === '' ? 0 : Number(e.target.value)
+                                      setDailyMileages(prev => ({ ...prev, [v.id]: val }))
+                                      if (val >= currentVal && errors[v.id]) {
+                                        setErrors(prev => ({ ...prev, [v.id]: undefined }))
+                                      }
+                                    }}
+                                    style={{
+                                      width: '100%', padding: '10px 12px',
+                                      background: D.inputBg, border: `1px solid ${hasError ? '#ef4444' : isChanged ? 'rgba(99,102,241,0.6)' : D.inputBorder}`,
+                                      borderRadius: 10, color: D.text, fontSize: '0.9rem', outline: 'none',
+                                      boxSizing: 'border-box'
+                                    }}
+                                  />
+                                  {hasError && (
+                                    <span style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 600, marginTop: 2 }}>
+                                      {hasError}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
                     </div>
                   </div>
                 )}
@@ -3830,21 +3695,23 @@ const ServicePage = () => {
                           </button>
                         </div>
 
-                        <button
-                          onClick={handleExportPDF}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                            padding: '10px 18px', borderRadius: 12,
-                            background: D.surfaceHi, border: `1px solid ${D.border}`,
-                            color: D.text, fontSize: '0.88rem', fontWeight: 800,
-                            cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
-                          }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.1)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.28)'; e.currentTarget.style.color = '#a5b4fc' }}
-                          onMouseLeave={e => { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}
-                        >
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-                          Export PDF
-                        </button>
+                        {!isDriver && (
+                          <button
+                            onClick={handleExportPDF}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 6,
+                              padding: '10px 18px', borderRadius: 12,
+                              background: D.surfaceHi, border: `1px solid ${D.border}`,
+                              color: D.text, fontSize: '0.88rem', fontWeight: 800,
+                              cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.1)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.28)'; e.currentTarget.style.color = '#a5b4fc' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                            Export PDF
+                          </button>
+                        )}
 
                         {!isDriver && (
                           <button

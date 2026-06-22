@@ -4,14 +4,23 @@ import { AuthContext } from './AuthContext'
 
 // ── Helper: build a normalised user object from the backend UserDto ──
 const buildUser = (userDto) => ({
-  id:            userDto.id,
-  userName:      userDto.userName,
-  email:         userDto.email,
-  role:          userDto.role,          // "ADMIN" | "CONTROLLER" | "DRIVER"
-  accountStatus: userDto.accountStatus, // "ACTIVE" | "INACTIVE" | "PENDING"
+  id:                  userDto.id,
+  userName:            userDto.userName,
+  email:               userDto.email,
+  role:                userDto.role,          // "ADMIN" | "CONTROLLER" | "DRIVER"
+  accountStatus:       userDto.accountStatus, // "ACTIVE" | "INACTIVE" | "PENDING"
   profilePicture:
     userDto.profilePicture ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(userDto.userName)}&background=2563eb&color=fff&size=128&bold=true`,
+  phoneNumber:         userDto.phoneNumber,
+  gender:              userDto.gender,
+  nic:                 userDto.nic,
+  dateOfBirth:         userDto.dateOfBirth,
+  licenseNumber:       userDto.licenseNumber,
+  licenseExpiryDate:   userDto.licenseExpiryDate,
+  licenseDocumentPath: userDto.licenseDocumentPath,
+  dateJoined:          userDto.dateJoined,
+  experience:          userDto.experience,
 })
 
 export const AuthProvider = ({ children }) => {

@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
-import { useTheme } from '../context/ThemeContext'
+import { useTheme, useD } from '../context/ThemeContext'
 import { userAPI, fuelAPI, serviceAPI, vehicleAPI, alertAPI, notificationAPI } from '../services/api'
 import * as notifService from '../services/notificationService'
-import { Users, Shield, Gamepad2, Car, CheckCircle, Ban, Wrench, Fuel, MapPin, BarChart3, UserCog, ClipboardList, Activity, AlertTriangle, FileText, ShieldAlert, Clock, TrendingUp, Settings2, Info, Gauge } from 'lucide-react'
+import { Users, Shield, Gamepad2, Car, CheckCircle, Ban, Wrench, Fuel, MapPin, BarChart3, UserCog, ClipboardList, Activity, AlertTriangle, FileText, ShieldAlert, Clock, TrendingUp, Settings2, Info, Gauge, X } from 'lucide-react'
 
 const StatCard = ({ icon, label, value, colorDim, colorHex, change, onClick }) => (
   <div onClick={onClick} style={{
@@ -473,7 +473,7 @@ const StatusBreakdown = ({ isDark, statusData, stats }) => {
             )
           ))}
           <text x={cx} y={cy - 6} fontSize="28" fontWeight="900" fill="var(--text-primary)" textAnchor="middle" fontFamily="'Plus Jakarta Sans',sans-serif">{total}</text>
-          <text x={cx} y={cy + 14} fontSize="11" fill="var(--text-muted)" textAnchor="middle" fontWeight="700" fontFamily="inherit" textTransform="uppercase" letterSpacing="0.05em">Total</text>
+          <text x={cx} y={cy + 14} fontSize="11" fill="var(--text-muted)" textAnchor="middle" fontWeight="700" fontFamily="inherit" style={{ textTransform: 'uppercase' }} letterSpacing="0.05em">Total</text>
         </svg>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', width: '100%', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
           {donutData.map((d, i) => (
@@ -493,7 +493,7 @@ const StatusBreakdown = ({ isDark, statusData, stats }) => {
 
 const QuickActionsPanel = ({ navigate }) => {
   const quickActions = [
-    { icon: <Wrench size={18} color="#fbbf24" />, bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.25)', label: 'Add Service Record', onClick: () => navigate('/service/add', { state: { fromOneClick: true } }) },
+    { icon: <Wrench size={18} color="#fbbf24" />, bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.25)', label: 'Add Service Record', onClick: () => navigate('/service', { state: { openAddServiceModal: true } }) },
     { icon: <Gauge size={18} color="#a855f7" />, bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.25)', label: 'Daily Mileage Update', onClick: () => navigate('/service', { state: { activeTab: 'update' } }) },
     { icon: <UserCog size={18} color="#34d399" />, bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', label: 'Driver Check-in', onClick: () => navigate('/users') },
     { icon: <Car size={18} color="#3b82f6" />, bg: 'rgba(59, 130, 246,0.12)', border: 'rgba(59, 130, 246,0.25)', label: 'Register Vehicle', onClick: () => navigate('/vehicles', { state: { openAddVehicle: true, fromOneClick: true } }) },
@@ -613,7 +613,165 @@ const RecentActivitySection = ({ activities = [], navigate }) => (
   </div>
 )
 
+/* ── Daily Mileage Update Modal ──────────────────────────────── */
+const DailyMileageModal = ({ open, onClose }) => {
+  const D = useD()
+  const [vehicles, setVehicles] = useState([])
+  const [loadingVehicles, setLoadingVehicles] = useState(false)
+  const [selectedId, setSelectedId] = useState('')
+  const [newMileage, setNewMileage] = useState('')
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  // Load vehicles when opened; reset everything when closed
+  useEffect(() => {
+    if (!open) {
+      setSelectedId(''); setNewMileage(''); setError(''); setSuccess(''); setSaving(false)
+      return
+    }
+    setLoadingVehicles(true)
+    vehicleAPI.getAllVehicles()
+      .then(res => setVehicles((res.data.data || []).filter(v => !v.isDeleted)))
+      .catch(() => setError('Failed to load vehicles.'))
+      .finally(() => setLoadingVehicles(false))
+  }, [open])
+
+  // Lock background scroll while the modal is open
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [open])
+
+  if (!open) return null
+
+  const selected = vehicles.find(v => String(v.id) === String(selectedId))
+  const currentVal = selected ? (selected.currentMileageKm || 0) : 0
+  // Lower limit mirrors the bulk Daily Mileage Update guardrail: not below the vehicle's initial reading.
+  const lowerLimit = selected && selected.initialMileageKm != null ? Number(selected.initialMileageKm) : 0
+
+  const labelStyle = { display: 'block', fontSize: '0.74rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 6 }
+  const inputStyle = { width: '100%', padding: '10px 14px', background: D.inputBg, border: `1px solid ${D.inputBorder}`, borderRadius: 8, color: D.text, fontSize: '0.88rem', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }
+
+  const handleSave = async () => {
+    setError(''); setSuccess('')
+    if (!selected) { setError('Please select a vehicle.'); return }
+    if (newMileage === '' || isNaN(Number(newMileage))) { setError('Enter a valid mileage reading.'); return }
+    const val = Number(newMileage)
+    if (val < lowerLimit) { setError(`Reading cannot be less than ${lowerLimit.toLocaleString()} km.`); return }
+    if (val === currentVal) { setError('New reading matches the current mileage.'); return }
+    if (val < currentVal) {
+      const ok = window.confirm(`You are decreasing the mileage for ${selected.registrationNo}: ${currentVal.toLocaleString()} km → ${val.toLocaleString()} km.\n\nProceed with this correction?`)
+      if (!ok) return
+    }
+    setSaving(true)
+    try {
+      await vehicleAPI.updateBulkMileage([{ id: selected.id, currentMileageKm: val }])
+      setVehicles(prev => prev.map(v => v.id === selected.id ? { ...v, currentMileageKm: val } : v))
+      setSuccess(`${selected.registrationNo} updated to ${val.toLocaleString()} km.`)
+      setNewMileage('')
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update mileage.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: 460, background: D.surface, border: `1px solid ${D.border}`, borderRadius: 18, boxShadow: '0 24px 60px rgba(0,0,0,0.45)', overflow: 'hidden', animation: 'fadeIn 0.2s ease' }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }}>
+          <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(168,85,247,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a855f7', flexShrink: 0 }}>
+            <Gauge size={20} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Daily Mileage Update</h3>
+            <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: D.textSub }}>Record today's odometer reading</p>
+          </div>
+          <button onClick={onClose} aria-label="Close" style={{ background: 'transparent', border: 'none', color: D.textSub, cursor: 'pointer', padding: 4, display: 'flex' }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '22px 24px' }}>
+          {error && (
+            <div style={{ background: D.redDim, border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, padding: '9px 14px', marginBottom: 16, color: D.red, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <AlertTriangle size={16} /> {error}
+            </div>
+          )}
+          {success && (
+            <div style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, padding: '9px 14px', marginBottom: 16, color: '#22c55e', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <CheckCircle size={16} /> {success}
+            </div>
+          )}
+
+          <label style={labelStyle}>Vehicle *</label>
+          <select
+            value={selectedId}
+            onChange={e => { setSelectedId(e.target.value); setNewMileage(''); setError(''); setSuccess('') }}
+            disabled={loadingVehicles}
+            style={{ ...inputStyle, cursor: 'pointer', marginBottom: 18 }}
+          >
+            <option value="">{loadingVehicles ? 'Loading vehicles...' : 'Select a vehicle'}</option>
+            {vehicles.map(v => (
+              <option key={v.id} value={v.id}>{v.registrationNo} — {v.manufacturer} {v.model}</option>
+            ))}
+          </select>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div>
+              <label style={labelStyle}>Current Mileage</label>
+              <div style={{ ...inputStyle, background: D.surfaceHi, color: D.textSub, display: 'flex', alignItems: 'center' }}>
+                {selected ? `${currentVal.toLocaleString()} km` : '—'}
+              </div>
+            </div>
+            <div>
+              <label style={labelStyle}>New Reading (km) *</label>
+              <input
+                type="number"
+                value={newMileage}
+                onChange={e => { setNewMileage(e.target.value); setError('') }}
+                placeholder={selected ? currentVal.toString() : 'e.g. 45200'}
+                disabled={!selected}
+                style={{ ...inputStyle, opacity: selected ? 1 : 0.6 }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', padding: '16px 24px', borderTop: `1px solid ${D.border}`, background: D.surfaceHi }}>
+          <button
+            onClick={onClose}
+            style={{ padding: '10px 22px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'transparent', color: D.text, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving || !selected}
+            style={{ padding: '10px 24px', borderRadius: 8, border: 'none', display: 'flex', alignItems: 'center', gap: 8, background: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#fff', fontSize: '0.85rem', fontWeight: 700, boxShadow: '0 4px 14px rgba(168,85,247,0.35)', opacity: (saving || !selected) ? 0.6 : 1, cursor: (saving || !selected) ? 'not-allowed' : 'pointer' }}
+          >
+            {saving ? 'Saving...' : <><CheckCircle size={15} /> Update Mileage</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, activities }) => {
+  const [mileageOpen, setMileageOpen] = useState(false)
   return (
     <>
       <SectionHeader title="Fleet Overview" />
@@ -726,22 +884,22 @@ const AlertSection = ({ alerts, navigate, isDark }) => {
   )
 }
 
-const DriverDashboard = ({ navigate, isDark }) => {
+const DriverDashboard = ({ navigate, isDark, vehicleCount }) => {
   const A = useAccents(isDark)
   return (
     <>
       <SectionHeader title="My Overview" />
       <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
-        <StatCard icon={<Car size={20} color={A.purple}/>} label="Assigned Vehicle" value="1" colorDim={A.purpleDim} colorHex={A.purple} change="VH-2024-087" onClick={() => navigate('/vehicles')} />
+        <StatCard icon={<Car size={20} color={A.purple}/>} label="Fleet Vehicles" value={vehicleCount} colorDim={A.purpleDim} colorHex={A.purple} change="Total vehicles in fleet" onClick={() => navigate('/vehicles')} />
         <StatCard icon={<ClipboardList size={20} color={A.blue}/>} label="Today's Tasks" value="3" colorDim={A.blueDim} colorHex={A.blue} change="Pending deliveries" />
         <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Completed" value="12" colorDim={A.greenDim} colorHex={A.green} change="This week" />
         <StatCard icon={<Activity size={20} color={A.green}/>} label="Status" value="Active" colorDim={A.greenDim} colorHex={A.green} change="Ready to drive" />
       </div>
       <SectionHeader title="Driver Tools" />
       <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
-        <FeatureCard icon={<Car size={24}/>} title="My Vehicle" desc="View status and information about your assigned vehicle." onClick={() => navigate('/vehicles')} />
+        <FeatureCard icon={<Car size={24}/>} title="Vehicles" desc="View status and information about all fleet vehicles." onClick={() => navigate('/vehicles')} />
         <FeatureCard icon={<Fuel size={24}/>} title="Fuel Log" desc="Record fuel consumption and view usage history." onClick={() => navigate('/fuel-log')} />
-        <FeatureCard icon={<Wrench size={24}/>} title="Service History" desc="View maintenance history for your vehicle." onClick={() => navigate('/service')} />
+        <FeatureCard icon={<Wrench size={24}/>} title="Service History" desc="View maintenance history and service records for all vehicles." onClick={() => navigate('/service')} />
         <FeatureCard icon={<BarChart3 size={24}/>} title="My Performance" desc="View driving stats, performance metrics, and history." onClick={() => navigate('/profile')} />
       </div>
     </>
@@ -755,6 +913,7 @@ const DashboardPage = () => {
   const isDark = theme === 'blue'
   const [stats, setStats] = useState({ totalUsers: 0, admins: 0, controllers: 0, drivers: 0, activeUsers: 0, inactiveUsers: 0 })
   const [controllerStats, setControllerStats] = useState({ total: 0, active: 0, maintenance: 0, available: 0 })
+  const [driverVehicleCount, setDriverVehicleCount] = useState(0)
   const [fleetChartData, setFleetChartData] = useState([])
   const [statusData, setStatusData] = useState([])
   const [alerts, setAlerts] = useState([])
@@ -837,6 +996,15 @@ const DashboardPage = () => {
           } catch (err) {
             console.error('Error loading status data:', err)
           }
+        } else if (user?.role === 'DRIVER') {
+          // Fetch total fleet vehicle count for driver dashboard
+          try {
+            const vehicleRes = await vehicleAPI.getAllVehicles()
+            const vehicles = vehicleRes.data.data || []
+            setDriverVehicleCount(vehicles.filter(v => !v.isDeleted).length)
+          } catch (err) {
+            console.error('Error loading fleet vehicle count for driver:', err)
+          }
         }
       } catch (err) {
         console.error('Error loading stats:', err)
@@ -911,7 +1079,7 @@ const DashboardPage = () => {
           {/* Role-based content */}
           {user?.role === 'ADMIN' && <AdminDashboard stats={stats} loading={loading} navigate={navigate} isDark={isDark} />}
           {user?.role === 'CONTROLLER' && <ControllerDashboard navigate={navigate} isDark={isDark} chartData={fleetChartData} statusData={statusData} stats={controllerStats} activities={activities} />}
-          {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} />}
+          {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} vehicleCount={driverVehicleCount} />}
         </div>
       </div>
 
