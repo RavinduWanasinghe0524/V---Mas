@@ -974,6 +974,9 @@ const ServicePage = () => {
   }, [detailModal.isOpen])
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  // True only when the Add modal was opened via the dashboard "Add Service Record" Quick Command,
+  // so that adding/cancelling/closing returns to the controller dashboard.
+  const [fromQuickCommand, setFromQuickCommand] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
   const [editingServiceId, setEditingServiceId] = useState(null)
@@ -1371,7 +1374,15 @@ const ServicePage = () => {
 
     setIsAddModalOpen(true)
   }
-  const closeAddModal = () => setIsAddModalOpen(false)
+  const closeAddModal = () => {
+    setIsAddModalOpen(false)
+    // When opened from the dashboard Quick Command, return to the controller dashboard
+    // after adding, cancelling, or closing. Normal maintenance-center usage stays on the page.
+    if (fromQuickCommand) {
+      setFromQuickCommand(false)
+      navigate('/dashboard')
+    }
+  }
 
   const openScheduleModal = () => {
     setScheduleFormData(initialScheduleForm)
@@ -1520,6 +1531,11 @@ const ServicePage = () => {
       }
       setIsAddModalOpen(false)
       loadData()
+      // From the dashboard Quick Command: return to the controller dashboard after adding the record.
+      if (fromQuickCommand) {
+        setFromQuickCommand(false)
+        navigate('/dashboard')
+      }
     } catch (err) {
       const msg = err.response?.data ? JSON.stringify(err.response.data) : (err.message || 'Failed to save service record.')
       setSubmitError('Debug Backend Error: ' + msg)
@@ -1774,6 +1790,7 @@ const ServicePage = () => {
         navigate(location.pathname, { replace: true, state: {} })
       } else if (location.state?.openAddServiceModal) {
         openAddModal()
+        if (location.state?.fromOneClick) setFromQuickCommand(true)
         navigate(location.pathname, { replace: true, state: {} })
       }
     }
