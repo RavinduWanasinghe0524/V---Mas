@@ -933,7 +933,7 @@ const ServicePage = () => {
   const [allVehicles, setAllVehicles] = useState([])
   const [allDrivers, setAllDrivers] = useState([])
   const [previousMileage, setPreviousMileage] = useState(null)
-  const [expandedVehicleId, setExpandedVehicleId] = useState(null)
+  const [expandedVehicleIds, setExpandedVehicleIds] = useState({})
 
   // ── Driver-specific lookup vehicle states ───────────────────────
   const [selectedDriverVehicle, setSelectedDriverVehicle] = useState(null)
@@ -2746,14 +2746,19 @@ const ServicePage = () => {
                         ))
                         .map(v => {
                           const milestones = getVehicleMilestones(v, services, intervals)
-                          const isExpanded = expandedVehicleId === v.id
+                          const isExpanded = !!expandedVehicleIds[v.id]
                           const overdueAlertsCount = milestones.filter(m => m.status === 'OVERDUE').length
                           const dueSoonAlertsCount = milestones.filter(m => m.status === 'DUE_SOON').length
 
                           return (
                             <div
                               key={v.id}
-                              onClick={() => setExpandedVehicleId(isExpanded ? null : v.id)}
+                              onClick={() => {
+                                setExpandedVehicleIds(prev => ({
+                                  ...prev,
+                                  [v.id]: !prev[v.id]
+                                }))
+                              }}
                               style={{
                                 background: D.surface, border: `1px solid ${isExpanded ? D.borderHi : D.border}`,
                                 borderRadius: 16, padding: '20px',
