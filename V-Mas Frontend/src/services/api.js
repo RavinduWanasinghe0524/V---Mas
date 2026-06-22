@@ -58,6 +58,17 @@ export const userAPI = {
   getAllDrivers:   ()         => api.get('/users/drivers'),
   getDeletedUsers: ()        => api.get('/users/deleted'),
   restoreUser:    (id)       => api.patch(`/users/${id}/restore`),
+  uploadDocument: (id, docType, file, expiryDate) => {
+    const form = new FormData()
+    form.append('file', file)
+    if (expiryDate) {
+      form.append('expiryDate', expiryDate)
+    }
+    return api.post(`/users/${id}/document/${docType}`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  getDocumentUrl: (id, docType) => `${API_BASE_URL}/users/${id}/document/${docType}`,
 }
 
 export const profileAPI = {
