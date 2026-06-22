@@ -440,6 +440,283 @@ export const generateStyledExcel = async (id, {
     ws.columns = [{ width: 14 }, { width: 18 }, { width: 20 }, { width: 18 }, { width: 15 }]
   }
 
+  const getTableStatus = (s) => {
+    if (!s) return 'Open'
+    const isCompleted = s.serviceDate && (() => {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const serviceDate = new Date(s.serviceDate)
+      serviceDate.setHours(0, 0, 0, 0)
+      return serviceDate <= today
+    })()
+
+    if (isCompleted) return 'Completed'
+    if (!s.serviceDate) return 'Open'
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const targetDate = new Date(s.serviceDate)
+    targetDate.setHours(0, 0, 0, 0)
+
+    if (targetDate < today) return 'Overdue'
+
+    // Mark as In Progress if within 5 days
+    const diffTime = targetDate.getTime() - today.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    if (diffDays <= 5) return 'In Progress'
+
+    return 'Open'
+  }
+
+  const buildDriverPerformanceSheet = () => {
+    const ws = wb.addWorksheet('Driver Performance', { views: [{ state: 'frozen', ySplit: 6 }] })
+    ws.properties.tabColor = { argb: 'FF' + BRAND.purple }
+    const COLS = 6
+    let row = addCoverBlock(ws, 'Driver Performance Report', dateRangeLabel, COLS)
+
+    // Aggregate driver metrics
+    const drvMap = {}
+    filteredFuel.forEach(l => {
+      const drv = l.driverUsername || l.uploadedBy || 'Unassigned'
+      if (!drvMap[drv]) drvMap[drv] = { count: 0, liters: 0, cost: 0, effSums: 0, effCount: 0 }
+      drvMap[drv].count += 1
+      drvMap[drv].liters += l.liters || 0
+      drvMap[drv].cost += l.totalCost || 0
+      if (l.fuelEfficiency && l.fuelEfficiency > 0) {
+        drvMap[drv].effSums += l.fuelEfficiency
+        drvMap[drv].effCount += 1
+      }
+    })
+
+    const driverRanking = Object.entries(drvMap).map(([name, d]) => {
+      const avgEff = d.effCount > 0 ? d.effSums / d.effCount : null
+      const status = avgEff == null ? 'N/A'
+        : avgEff > 10 ? 'Excellent'
+          : avgEff > 7 ? 'Good'
+            : avgEff > 5 ? 'Average'
+              : 'Poor'
+      return [
+        name,
+        d.count,
+        Number(d.liters.toFixed(1)),
+        d.cost,
+        avgEff != null ? Number(avgEff.toFixed(2)) : 'N/A',
+        status
+      ]
+    }).sort((a, b) => {
+      const aVal = typeof a[4] === 'number' ? a[4] : -1
+      const bVal = typeof b[4] === 'number' ? b[4] : -1
+      return bVal - aVal
+    })
+
+    row = addSectionHeader(ws, 'Driver Performance Ranking', row, COLS, BRAND.purple)
+    const hdrs = ['Driver Name', 'Logs Count', 'Total Volume (L)', 'Total Spent', 'Avg Efficiency (km/L)', 'Status']
+    
+    const formattedData = driverRanking.map(r => [
+      r[0],
+      r[1],
+      r[2] + ' L',
+      fmtCost(r[3]),
+      typeof r[4] === 'number' ? r[4] + ' km/L' : 'N/A',
+      r[5]
+    ])
+
+    row = addDataTable(ws, hdrs, formattedData, row, BRAND.purple, COLS)
+
+    ws.eachRow((r, ri) => {
+      if (ri <= 6) return
+      const statusCell = r.getCell(6)
+      const s = String(statusCell.value || '')
+      if (s === 'Excellent') { statusCell.fill = fill(BRAND.greenPale); statusCell.font = { ...statusCell.font, color: { argb: 'FF' + BRAND.green }, bold: true } }
+      else if (s === 'Good') { statusCell.fill = fill(BRAND.bluePale); statusCell.font = { ...statusCell.font, color: { argb: 'FF' + BRAND.blue }, bold: true } }
+      else if (s === 'Average') { statusCell.fill = fill(BRAND.goldPale); statusCell.font = { ...statusCell.font, color: { argb: 'FF' + BRAND.gold }, bold: true } }
+      else if (s === 'Poor') { statusCell.fill = fill(BRAND.redPale); statusCell.font = { ...statusCell.font, color: { argb: 'FF' + BRAND.red }, bold: true } }
+    })
+
+    addFooter(ws, row + 1, COLS)
+    ws.columns = [{ width: 22 }, { width: 14 }, { width: 18 }, { width: 16 }, { width: 22 }, { width: 14 }]
+  }
+
+  const buildVehicleDocumentsSheet = () => {
+    const ws = wb.addWorksheet('Vehicle Documents', { views: [{ state: 'frozen', ySplit: 6 }] })
+    ws.properties.tabColor = { argb: 'FF' + BRAND.navy }
+    const COLS = 6
+    let row = addCoverBlock(ws, 'Vehicle Document & Renewal Report', 'Compliance & validity tracking', COLS)
+
+    const today = new Date()
+    today.setHours(0,0,0,0)
+
+    const tableData = vehicles.map(v => {
+      const insExp = v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate) : null
+      const licExp = v.licenseExpiryDate ? new Date(v.licenseExpiryDate) : null
+      
+      let minDays = Infinity
+      let warningText = 'Valid'
+      let statusLevel = 'OK'
+
+      if (insExp) {
+        const diff = insExp - today
+        const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
+        if (days < minDays) minDays = days
+      }
+      if (licExp) {
+        const diff = licExp - today
+        const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
+        if (days < minDays) minDays = days
+      }
+
+      if (!insExp && !licExp) {
+        warningText = 'No Documents'
+        statusLevel = 'NONE'
+      } else if (minDays < 0) {
+        warningText = `Expired (${Math.abs(minDays)} days ago)`
+        statusLevel = 'EXPIRED'
+      } else if (minDays <= 30) {
+        warningText = `Expiring soon (${minDays} days left)`
+        statusLevel = 'WARNING'
+      } else {
+        warningText = `Valid (${minDays} days left)`
+        statusLevel = 'OK'
+      }
+
+      return [
+        v.registrationNo || 'N/A',
+        `${v.manufacturer || ''} ${v.model || ''}`.trim() || 'N/A',
+        v.status || 'N/A',
+        v.insuranceExpiryDate ? fmtDate(v.insuranceExpiryDate) : 'N/A',
+        v.licenseExpiryDate ? fmtDate(v.licenseExpiryDate) : 'N/A',
+        warningText,
+        statusLevel
+      ]
+    })
+
+    row = addSectionHeader(ws, 'Vehicle Document Compliance List', row, COLS, BRAND.navy)
+    const hdrs = ['Reg Number', 'Vehicle Model', 'Fleet Status', 'Insurance Expiry', 'License Expiry', 'Renewal Status']
+    
+    const cleanedData = tableData.map(r => [r[0], r[1], r[2], r[3], r[4], r[5]])
+    row = addDataTable(ws, hdrs, cleanedData, row, BRAND.navy, COLS)
+
+    ws.eachRow((r, ri) => {
+      if (ri <= 6) return
+      const mappedIndex = ri - 7
+      if (mappedIndex >= tableData.length) return
+      const statusLevel = tableData[mappedIndex][6]
+      const statusCell = r.getCell(6)
+      if (statusLevel === 'EXPIRED') {
+        statusCell.fill = fill(BRAND.redPale)
+        statusCell.font = { ...statusCell.font, color: { argb: 'FF' + BRAND.red }, bold: true }
+      } else if (statusLevel === 'WARNING') {
+        statusCell.fill = fill(BRAND.goldPale)
+        statusCell.font = { ...statusCell.font, color: { argb: 'FF' + BRAND.gold }, bold: true }
+      } else if (statusLevel === 'OK') {
+        statusCell.fill = fill(BRAND.greenPale)
+        statusCell.font = { ...statusCell.font, color: { argb: 'FF' + BRAND.green }, bold: true }
+      }
+    })
+
+    addFooter(ws, row + 1, COLS)
+    ws.columns = [{ width: 16 }, { width: 22 }, { width: 14 }, { width: 18 }, { width: 18 }, { width: 24 }]
+  }
+
+  const buildScheduledMaintenanceSheet = () => {
+    const ws = wb.addWorksheet('Scheduled Maintenance', { views: [{ state: 'frozen', ySplit: 6 }] })
+    ws.properties.tabColor = { argb: 'FF' + BRAND.green }
+    const COLS = 6
+    let row = addCoverBlock(ws, 'Scheduled Maintenance & Alerts Report', dateRangeLabel, COLS)
+
+    const scheduledRecords = services.filter(s => {
+      if (s.deleted) return false
+      const status = getTableStatus(s)
+      return ['Open', 'In Progress', 'Overdue'].includes(status)
+    })
+
+    const data = scheduledRecords.map(s => {
+      const status = getTableStatus(s)
+      return [
+        s.vehicleRegNumber || 'N/A',
+        String(s.serviceType || 'N/A').replace(/_/g, ' '),
+        s.serviceClassification || 'N/A',
+        s.serviceDate ? fmtDate(s.serviceDate) : 'N/A',
+        s.technicianWorkshop || 'N/A',
+        status
+      ]
+    })
+
+    row = addSectionHeader(ws, 'Scheduled & Overdue Maintenance Tasks', row, COLS, BRAND.green)
+    const hdrs = ['Vehicle Reg', 'Service Type', 'Classification', 'Target Date', 'Workshop', 'Status']
+    row = addDataTable(ws, hdrs, data, row, BRAND.green, COLS)
+
+    ws.eachRow((r, ri) => {
+      if (ri <= 6) return
+      const statusCell = r.getCell(6)
+      const s = String(statusCell.value || '')
+      if (s === 'Overdue') { statusCell.fill = fill(BRAND.redPale); statusCell.font = { ...statusCell.font, color: { argb: 'FF' + BRAND.red }, bold: true } }
+      else if (s === 'In Progress') { statusCell.fill = fill(BRAND.goldPale); statusCell.font = { ...statusCell.font, color: { argb: 'FF' + BRAND.gold }, bold: true } }
+      else if (s === 'Open') { statusCell.fill = fill(BRAND.bluePale); statusCell.font = { ...statusCell.font, color: { argb: 'FF' + BRAND.blue }, bold: true } }
+    })
+
+    addFooter(ws, row + 1, COLS)
+    ws.columns = [{ width: 16 }, { width: 22 }, { width: 16 }, { width: 18 }, { width: 22 }, { width: 14 }]
+  }
+
+  const buildFleetTrackingSheet = () => {
+    const ws = wb.addWorksheet('Fleet Live Tracking', { views: [{ state: 'frozen', ySplit: 6 }] })
+    ws.properties.tabColor = { argb: 'FF' + BRAND.teal }
+    const COLS = 6
+    let row = addCoverBlock(ws, 'Live Fleet Tracking & Status Report', 'Real-time GPS status', COLS)
+
+    const liveTrackingData = [
+      { reg: 'WP-CAB-1234', driver: 'Kamal Perera',   status: 'MOVING',  speed: 58,   location: 'Colombo 07, Rosmead Pl', lastUpdate: '2 min ago' },
+      { reg: 'WP-CAB-5678', driver: 'Nimal Silva',    status: 'IDLE',    speed: 0,    location: 'Nugegoda, High Level Rd', lastUpdate: '5 min ago' },
+      { reg: 'SP-7890',     driver: '—',              status: 'PARKED',  speed: 0,    location: 'Kandy City Centre',       lastUpdate: '1 hr ago'  },
+      { reg: 'WP-CAB-9012', driver: 'Sunil Fernando', status: 'MOVING',  speed: 72,   location: 'Galle Road, Dehiwala',   lastUpdate: '1 min ago' },
+    ]
+
+    const trackingRows = []
+    const trackedRegs = new Set(liveTrackingData.map(d => d.reg.toLowerCase()))
+    
+    liveTrackingData.forEach(d => {
+      trackingRows.push([
+        d.reg,
+        d.driver,
+        d.status,
+        d.location,
+        d.speed > 0 ? `${d.speed} km/h` : 'Stationary',
+        d.lastUpdate
+      ])
+    })
+
+    vehicles.forEach(v => {
+      if (v.registrationNo && !trackedRegs.has(v.registrationNo.toLowerCase())) {
+        trackingRows.push([
+          v.registrationNo,
+          'Unassigned',
+          'PARKED',
+          'Depot / Fleet Base',
+          'Stationary',
+          'Unknown'
+        ])
+      }
+    })
+
+    row = addSectionHeader(ws, 'Fleet Status Tracking Directory', row, COLS, BRAND.teal)
+    const hdrs = ['Reg Number', 'Driver', 'Status', 'Current Location', 'Speed (km/h)', 'Last Updated']
+    row = addDataTable(ws, hdrs, trackingRows, row, BRAND.teal, COLS)
+
+    ws.eachRow((r, ri) => {
+      if (ri <= 6) return
+      const statusCell = r.getCell(3)
+      const s = String(statusCell.value || '')
+      if (s === 'MOVING') { statusCell.fill = fill(BRAND.greenPale); statusCell.font = { ...statusCell.font, color: { argb: 'FF' + BRAND.green }, bold: true } }
+      else if (s === 'IDLE') { statusCell.fill = fill(BRAND.goldPale); statusCell.font = { ...statusCell.font, color: { argb: 'FF' + BRAND.gold }, bold: true } }
+      else if (s === 'PARKED') { statusCell.fill = fill(BRAND.bluePale); statusCell.font = { ...statusCell.font, color: { argb: 'FF' + BRAND.blue }, bold: true } }
+    })
+
+    addFooter(ws, row + 1, COLS)
+    ws.columns = [{ width: 16 }, { width: 20 }, { width: 14 }, { width: 30 }, { width: 15 }, { width: 15 }]
+  }
+
   const buildMasterSheet = () => {
     // Summary overview sheet first
     const ws = wb.addWorksheet('Executive Summary', { views: [{ state: 'frozen', ySplit: 6 }] })
@@ -469,6 +746,10 @@ export const generateStyledExcel = async (id, {
     buildUserSheet()
     buildEfficiencySheet()
     buildCostSheet()
+    buildDriverPerformanceSheet()
+    buildVehicleDocumentsSheet()
+    buildScheduledMaintenanceSheet()
+    buildFleetTrackingSheet()
   }
 
   // ── Dispatch to correct sheet builder ────────────────────────────────────
@@ -479,6 +760,10 @@ export const generateStyledExcel = async (id, {
     case 'user-report':      buildUserSheet();      break
     case 'fuel-efficiency':  buildEfficiencySheet(); break
     case 'cost-report':      buildCostSheet();      break
+    case 'driver-performance': buildDriverPerformanceSheet(); break
+    case 'vehicle-documents': buildVehicleDocumentsSheet(); break
+    case 'maintenance-schedule': buildScheduledMaintenanceSheet(); break
+    case 'fleet-tracking': buildFleetTrackingSheet(); break
     case 'master-report':    buildMasterSheet();    break
     default: break
   }
@@ -497,6 +782,10 @@ export const generateStyledExcel = async (id, {
     'user-report':     'User-Activity',
     'fuel-efficiency': 'Fuel-Efficiency',
     'cost-report':     'Cost-Analysis',
+    'driver-performance': 'Driver-Performance',
+    'vehicle-documents': 'Vehicle-Documents',
+    'maintenance-schedule': 'Maintenance-Schedule',
+    'fleet-tracking': 'Fleet-Tracking',
     'master-report':   'Master-Report',
   }
   link.href     = url
