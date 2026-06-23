@@ -268,7 +268,16 @@ const ProfilePage = () => {
           const last = logs.length ? new Date(logs[logs.length - 1].date).toLocaleDateString() : 'N/A'
           setStats({ totalLogs: logs.length, avgEfficiency: avg, lastEntry: last })
         } else {
-          const [vehicleRes, serviceRes] = await Promise.all([vehicleAPI.getAllVehicles(), serviceAPI.getUpcomingServices()])
+          const [vehicleRes, serviceRes] = await Promise.all([
+            vehicleAPI.getAllVehicles().catch(err => {
+              console.error('Failed to load vehicles:', err);
+              return { data: { data: [] } };
+            }),
+            serviceAPI.getUpcomingServices().catch(err => {
+              console.error('Failed to load upcoming services:', err);
+              return { data: { data: [] } };
+            })
+          ])
           setStats({ totalVehicles: vehicleRes.data?.data?.length || 0, upcomingServices: serviceRes.data?.data?.length || 0 })
         }
       } catch {
@@ -787,11 +796,21 @@ const ProfilePage = () => {
                       </div>
                       <div>
                         <label style={labelStyle}>New Password</label>
-                        <input type={showPasswords ? 'text' : 'password'} value={pwForm.newPassword} onChange={e => setPwForm(prev => ({ ...prev, newPassword: e.target.value }))} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                        <div style={{ position: 'relative' }}>
+                          <input type={showPasswords ? 'text' : 'password'} value={pwForm.newPassword} onChange={e => setPwForm(prev => ({ ...prev, newPassword: e.target.value }))} required style={{ ...inputStyle, paddingRight: 45 }} onFocus={onFocus} onBlur={onBlur} />
+                          <button type="button" onClick={() => setShowPasswords(p => !p)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, display: 'flex', alignItems: 'center' }}>
+                            {showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
                       </div>
                       <div>
                         <label style={labelStyle}>Confirm New Password</label>
-                        <input type={showPasswords ? 'text' : 'password'} value={pwForm.confirmPassword} onChange={e => setPwForm(prev => ({ ...prev, confirmPassword: e.target.value }))} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                        <div style={{ position: 'relative' }}>
+                          <input type={showPasswords ? 'text' : 'password'} value={pwForm.confirmPassword} onChange={e => setPwForm(prev => ({ ...prev, confirmPassword: e.target.value }))} required style={{ ...inputStyle, paddingRight: 45 }} onFocus={onFocus} onBlur={onBlur} />
+                          <button type="button" onClick={() => setShowPasswords(p => !p)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, display: 'flex', alignItems: 'center' }}>
+                            {showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -868,6 +887,10 @@ const ProfilePage = () => {
                         </select>
                       </div>
                     </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24, borderTop: `1px solid ${D.border}`, paddingTop: 20 }}>
+                      {saveBtn('Save Password & Security', pwLoading)}
+                    </div>
                   </form>
                 </div>
               )}
@@ -934,7 +957,7 @@ const ProfilePage = () => {
                     </div>
 
                     {/* Preview Sample Email */}
-                    <div style={{ padding: '20px 0 0' }}>
+                    <div style={{ padding: '20px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, borderTop: `1px solid ${D.border}`, marginTop: 24 }}>
                       <button onClick={previewEmail} type="button"
                         style={{ padding: '12px 20px', borderRadius: 12, border: `1px solid ${D.indigo}40`, background: D.indigoDim, color: D.indigo, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.15s ease' }}
                         onMouseEnter={e => { e.currentTarget.style.background = D.indigo; e.currentTarget.style.color = '#fff' }}
@@ -942,6 +965,7 @@ const ProfilePage = () => {
                       >
                         <Mail size={15} /> Preview Sample Email Template
                       </button>
+                      {saveBtn('Save Notification Settings', notifSaving, handleNotifSave)}
                     </div>
                   </div>
                 </div>
@@ -1054,6 +1078,10 @@ const ProfilePage = () => {
                           <option value="never">Do Not Report</option>
                         </select>
                       </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24, borderTop: `1px solid ${D.border}`, paddingTop: 20 }}>
+                      {saveBtn('Save Fleet Configurations', fleetSaving)}
                     </div>
                   </form>
                 </div>

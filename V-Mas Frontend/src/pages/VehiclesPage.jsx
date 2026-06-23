@@ -614,8 +614,14 @@ const VehiclesPage = () => {
     const loadData = async () => {
       try {
         const [vehicleRes, serviceRes, fuelStatsRes, intervalsRes] = await Promise.all([
-          vehicleAPI.getAllVehicles(),
-          serviceAPI.getAllServices(),
+          vehicleAPI.getAllVehicles().catch(err => {
+            console.error('Failed to load vehicles:', err);
+            return { data: { data: [] } };
+          }),
+          serviceAPI.getAllServices().catch(err => {
+            console.error('Failed to load services:', err);
+            return { data: { data: [] } };
+          }),
           fuelAPI.getVehicleStats().catch(() => ({ data: { data: [] } })),
           serviceAPI.getAllIntervals().catch(() => ({ data: { data: [] } }))
         ])

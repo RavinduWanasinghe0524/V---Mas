@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -30,14 +30,15 @@ const ROLE_ICONS = {
 };
 
 /* ─────────────────────────────────────────────────────
-   REUSABLE PREMIUM FLOATING INPUT FIELD
+   REUSABLE PREMIUM MODERN INPUT FIELD
    ───────────────────────────────────────────────────── */
-const FloatingInput = ({
+const ModernInput = ({
   id,
   type,
   value,
   onChange,
   placeholder,
+  label,
   required = false,
   autoComplete,
   tabIndex,
@@ -46,70 +47,61 @@ const FloatingInput = ({
   icon,
   rightElement
 }) => {
-  const [focused, setFocused] = useState(false);
-  const isActive = focused || (value !== undefined && value !== null && value !== '');
-
   return (
-    <div className={`ag-field ${isActive ? 'ag-field--active' : ''} ${icon ? '' : 'ag-field--no-icon'}`}>
-      <input
-        id={id}
-        name={name}
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        required={required}
-        autoComplete={autoComplete}
-        tabIndex={tabIndex}
-        disabled={disabled}
-        className="ag-input"
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-      />
-      <label htmlFor={id} className="ag-floating-label">
-        {placeholder}
-      </label>
-      {icon && <span className="ag-field-icon">{icon}</span>}
-      {rightElement}
+    <div className="modern-form-group">
+      {label && <label htmlFor={id} className="modern-form-lbl">{label}</label>}
+      <div className="modern-input-wrap">
+        {icon && <span className="modern-input-ico">{icon}</span>}
+        <input
+          id={id}
+          name={name}
+          type={type}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          required={required}
+          autoComplete={autoComplete}
+          tabIndex={tabIndex}
+          disabled={disabled}
+          className={`modern-form-input ${icon ? 'modern-form-input--has-icon' : ''}`}
+        />
+        {rightElement}
+      </div>
     </div>
   );
 };
 
 /* ─────────────────────────────────────────────────────
-   REUSABLE PREMIUM FLOATING SELECT FIELD
+   REUSABLE PREMIUM MODERN SELECT FIELD
    ───────────────────────────────────────────────────── */
-const FloatingSelect = ({
+const ModernSelect = ({
   id,
   name,
   value,
   onChange,
   placeholder,
+  label,
   tabIndex,
   leftIcon,
   children
 }) => {
-  const [focused, setFocused] = useState(false);
-  const isActive = focused || value !== '';
-
   return (
-    <div className={`ag-field ag-field--select ${isActive ? 'ag-field--active' : ''}`}>
-      {leftIcon && <span className="ag-select-icon">{leftIcon}</span>}
-      <select
-        id={id}
-        name={name}
-        value={value}
-        onChange={onChange}
-        tabIndex={tabIndex}
-        className="ag-input ag-select"
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-      >
-        {children}
-      </select>
-      <label htmlFor={id} className="ag-floating-label">
-        {placeholder}
-      </label>
-      <ChevronDown size={14} className="ag-field-icon ag-caret" />
+    <div className="modern-form-group">
+      {label && <label htmlFor={id} className="modern-form-lbl">{label}</label>}
+      <div className="modern-input-wrap">
+        {leftIcon && <span className="modern-input-ico">{leftIcon}</span>}
+        <select
+          id={id}
+          name={name}
+          value={value}
+          onChange={onChange}
+          tabIndex={tabIndex}
+          className={`modern-form-input modern-select ${leftIcon ? 'modern-form-input--has-icon' : ''}`}
+        >
+          {children}
+        </select>
+        <ChevronDown size={14} className="modern-caret" />
+      </div>
     </div>
   );
 };
@@ -124,10 +116,15 @@ const LoginSlide = ({ onSwitch, onForgot, isActive }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
+  const [selectedRole, setSelectedRole] = useState('ADMIN');
   const { login } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => { if (!isActive) setError(''); }, [isActive]);
+
+  const handleRoleChange = (role) => {
+    setSelectedRole(role);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -139,9 +136,50 @@ const LoginSlide = ({ onSwitch, onForgot, isActive }) => {
     setLoading(false);
   };
 
+  const placeholders = {
+    ADMIN: 'admin@vmas.com',
+    DRIVER: 'driver@vmas.com',
+    CONTROLLER: 'controller@vmas.com'
+  };
+
   return (
     <div className="ag-slide" aria-hidden={!isActive}>
-      <h2 className="ag-title">Login</h2>
+      <h2 className="ag-welcome-title">Welcome back</h2>
+      <p className="ag-welcome-sub">Sign in to access your V-MAS dashboard</p>
+
+      {/* System Status Badge */}
+      <div className="ag-slide-status-bar">
+        <div className="ag-slide-status-dot"></div>
+        <span className="ag-slide-status-txt">ALL SYSTEMS OPERATIONAL</span>
+      </div>
+
+      {/* Role Tabs Selector */}
+      <div className="modern-role-wrap" role="group" aria-label="Select your role">
+        <button
+          type="button"
+          className={`modern-role-btn ${selectedRole === 'ADMIN' ? 'active' : ''}`}
+          onClick={() => handleRoleChange('ADMIN')}
+          tabIndex={isActive ? 0 : -1}
+        >
+          <Users size={13} /> Admin
+        </button>
+        <button
+          type="button"
+          className={`modern-role-btn ${selectedRole === 'DRIVER' ? 'active' : ''}`}
+          onClick={() => handleRoleChange('DRIVER')}
+          tabIndex={isActive ? 0 : -1}
+        >
+          <Car size={13} /> Driver
+        </button>
+        <button
+          type="button"
+          className={`modern-role-btn ${selectedRole === 'CONTROLLER' ? 'active' : ''}`}
+          onClick={() => handleRoleChange('CONTROLLER')}
+          tabIndex={isActive ? 0 : -1}
+        >
+          <Settings size={13} /> Controller
+        </button>
+      </div>
 
       {error && (
         <div className="ag-error" role="alert">
@@ -150,37 +188,40 @@ const LoginSlide = ({ onSwitch, onForgot, isActive }) => {
       )}
 
       <form onSubmit={handleSubmit} className="ag-form" noValidate>
-        {/* Username */}
-        <FloatingInput
+        {/* Username / Email */}
+        <ModernInput
           id="login-username"
           type="text"
           value={userName}
           onChange={(e) => setUserName(e.target.value)}
-          placeholder="Username"
+          placeholder={placeholders[selectedRole]}
+          label="EMAIL ADDRESS / USERNAME"
           required
           autoComplete="username"
           tabIndex={isActive ? 0 : -1}
-          icon={<User size={16} />}
+          icon={<Mail size={15} />}
         />
 
         {/* Password */}
-        <FloatingInput
+        <ModernInput
           id="login-password"
           type={showPw ? 'text' : 'password'}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
+          placeholder="••••••••"
+          label="PASSWORD"
           required
           autoComplete="current-password"
           tabIndex={isActive ? 0 : -1}
+          icon={<Lock size={15} />}
           rightElement={
             <button
               type="button"
-              className="ag-field-icon ag-field-btn"
+              className="modern-field-btn"
               onClick={() => setShowPw(!showPw)}
               tabIndex={-1}
             >
-              {showPw ? <EyeOff size={16} /> : <Lock size={16} />}
+              {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           }
         />
@@ -200,7 +241,7 @@ const LoginSlide = ({ onSwitch, onForgot, isActive }) => {
 
         <button
           type="submit"
-          className="ag-btn"
+          className="ag-btn ag-btn-submit"
           disabled={loading}
           id="login-submit"
           tabIndex={isActive ? 0 : -1}
@@ -208,10 +249,11 @@ const LoginSlide = ({ onSwitch, onForgot, isActive }) => {
           {loading ? (
             <span className="ag-btn-spinner" />
           ) : (
-            <><LogIn size={16} /> Login</>
+            <><LogIn size={16} /> Sign In</>
           )}
         </button>
       </form>
+
 
       <p className="ag-switch">
         Don't have an account?{' '}
@@ -219,8 +261,6 @@ const LoginSlide = ({ onSwitch, onForgot, isActive }) => {
           Register
         </button>
       </p>
-
-
     </div>
   );
 };
@@ -291,7 +331,8 @@ const SignupSlide = ({ onSwitch, isActive }) => {
 
   return (
     <div className="ag-slide" aria-hidden={!isActive}>
-      <h2 className="ag-title">Create Account</h2>
+      <h2 className="ag-welcome-title" style={{ marginBottom: '0.4rem' }}>Create Account</h2>
+      <p className="ag-welcome-sub" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Fill in your details to get started</p>
 
       {error && (
         <div className="ag-error" role="alert"><AlertCircle size={14} />{error}</div>
@@ -299,81 +340,93 @@ const SignupSlide = ({ onSwitch, isActive }) => {
 
       <form onSubmit={handleSubmit} className="ag-form" noValidate>
         {/* Username */}
-        <FloatingInput
+        <ModernInput
           id="reg-username"
           type="text"
           name="userName"
           value={formData.userName}
           onChange={handleChange}
-          placeholder="Enter Name"
+          placeholder="Username"
+          label="NAME / USERNAME"
           required
           autoComplete="username"
           tabIndex={isActive ? 0 : -1}
-          icon={<User size={16} />}
+          icon={<User size={15} />}
         />
 
         {/* Email */}
-        <FloatingInput
+        <ModernInput
           id="reg-email"
           type="email"
           name="email"
           value={formData.email}
           onChange={handleChange}
-          placeholder="Email address"
+          placeholder="email@example.com"
+          label="EMAIL ADDRESS"
           required
           autoComplete="email"
           tabIndex={isActive ? 0 : -1}
-          icon={<Mail size={16} />}
+          icon={<Mail size={15} />}
         />
 
-        {/* Password */}
-        <FloatingInput
-          id="reg-password"
-          type={showPw ? 'text' : 'password'}
-          name="password"
-          value={formData.password}
-          onChange={handleChange}
-          placeholder="Password"
-          required
-          autoComplete="new-password"
-          tabIndex={isActive ? 0 : -1}
-          rightElement={
-            <button type="button" className="ag-field-icon ag-field-btn"
-              onClick={() => setShowPw(!showPw)} tabIndex={-1}>
-              {showPw ? <EyeOff size={16} /> : <Lock size={16} />}
-            </button>
-          }
-        />
+        {/* Password and Confirm row */}
+        <div className="ag-form-row" style={{ display: 'flex', gap: '0.75rem' }}>
+          <div style={{ flex: 1 }}>
+            <ModernInput
+              id="reg-password"
+              type={showPw ? 'text' : 'password'}
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Password"
+              label="PASSWORD"
+              required
+              autoComplete="new-password"
+              tabIndex={isActive ? 0 : -1}
+              icon={<Lock size={15} />}
+              rightElement={
+                <button type="button" className="modern-field-btn"
+                  onClick={() => setShowPw(!showPw)} tabIndex={-1}>
+                  {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              }
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <ModernInput
+              id="reg-confirm"
+              type={showCf ? 'text' : 'password'}
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              placeholder="Confirm"
+              label="CONFIRM PASSWORD"
+              required
+              autoComplete="new-password"
+              tabIndex={isActive ? 0 : -1}
+              icon={<Lock size={15} />}
+              rightElement={
+                <button type="button" className="modern-field-btn"
+                  onClick={() => setShowCf(!showCf)} tabIndex={-1}>
+                  {showCf ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              }
+            />
+          </div>
+        </div>
+
         {formData.password && (
-          <div className="ag-strength">
+          <div className="ag-strength" style={{ marginTop: '-4px' }}>
             {[1, 2, 3, 4, 5].map(n => (
               <div key={n} className="ag-strength-bar"
-                style={{ background: n <= strength ? S_COLOR[strength] : 'rgba(255,255,255,0.15)' }} />
+                style={{ background: n <= strength ? S_COLOR[strength] : 'rgba(255,255,255,0.12)' }} />
             ))}
             <span style={{ color: S_COLOR[strength] }}>{S_LABEL[strength]}</span>
           </div>
         )}
 
-        {/* Confirm */}
-        <FloatingInput
-          id="reg-confirm"
-          type={showCf ? 'text' : 'password'}
-          name="confirmPassword"
-          value={formData.confirmPassword}
-          onChange={handleChange}
-          placeholder="Confirm password"
-          required
-          autoComplete="new-password"
-          tabIndex={isActive ? 0 : -1}
-          rightElement={
-            <button type="button" className="ag-field-icon ag-field-btn"
-              onClick={() => setShowCf(!showCf)} tabIndex={-1}>
-              {showCf ? <EyeOff size={16} /> : <Lock size={16} />}
-            </button>
-          }
-        />
         {formData.confirmPassword && (
-          <div className="ag-match">
+          <div className="ag-match" style={{ marginTop: '-4px' }}>
             {formData.password === formData.confirmPassword
               ? <><CheckCircle size={11} color="#4ade80" /><span style={{ color: '#4ade80' }}>Passwords match</span></>
               : <><AlertCircle size={11} color="#f87171" /><span style={{ color: '#f87171' }}>Passwords do not match</span></>}
@@ -381,27 +434,28 @@ const SignupSlide = ({ onSwitch, isActive }) => {
         )}
 
         {/* Role */}
-        <FloatingSelect
+        <ModernSelect
           id="reg-role"
           name="role"
           value={formData.role}
           onChange={handleChange}
           placeholder="Role"
+          label="SELECT ROLE"
           tabIndex={isActive ? 0 : -1}
           leftIcon={ROLE_ICONS[formData.role]}
         >
           <option value="DRIVER">Driver</option>
           <option value="CONTROLLER">Controller</option>
           <option value="ADMIN">Admin</option>
-        </FloatingSelect>
+        </ModernSelect>
 
         {/* Info */}
-        <div className="ag-info-banner">
+        <div className="ag-info-banner" style={{ margin: '2px 0' }}>
           <Clock size={12} />
           <span>New accounts require <strong>admin approval</strong> before sign in.</span>
         </div>
 
-        <button type="submit" className="ag-btn" disabled={loading}
+        <button type="submit" className="ag-btn ag-btn-submit" disabled={loading}
           id="reg-submit" tabIndex={isActive ? 0 : -1}>
           {loading ? <span className="ag-btn-spinner" /> : <><UserPlus size={16} /> Create Account</>}
         </button>
@@ -471,8 +525,8 @@ const ForgotSlide = ({ onSwitch, isActive }) => {
 
   return (
     <div className="ag-slide" aria-hidden={!isActive}>
-      <h2 className="ag-title">Reset Password</h2>
-      <p className="ag-pending-desc" style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+      <h2 className="ag-welcome-title" style={{ marginBottom: '0.4rem' }}>Reset Password</h2>
+      <p className="ag-welcome-sub" style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
         Enter your registered email address and we'll send you instructions to reset your password.
       </p>
 
@@ -483,21 +537,22 @@ const ForgotSlide = ({ onSwitch, isActive }) => {
       )}
 
       <form onSubmit={handleSubmit} className="ag-form" noValidate>
-        <FloatingInput
+        <ModernInput
           id="forgot-email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email address"
+          placeholder="email@example.com"
+          label="EMAIL ADDRESS"
           required
           autoComplete="email"
           tabIndex={isActive ? 0 : -1}
-          icon={<Mail size={16} />}
+          icon={<Mail size={15} />}
         />
 
         <button
           type="submit"
-          className="ag-btn"
+          className="ag-btn ag-btn-submit"
           disabled={loading}
           id="forgot-submit"
           tabIndex={isActive ? 0 : -1}
@@ -534,6 +589,8 @@ const AuthPage = () => {
   const [isForgot, setIsForgot] = useState(false);
   const isSignup = location.pathname === '/signup';
 
+  const canvasRef = useRef(null);
+
   useEffect(() => {
     if (isAuthenticated) navigate('/dashboard');
   }, [isAuthenticated, navigate]);
@@ -542,6 +599,327 @@ const AuthPage = () => {
     // Reset forgot state whenever pathname transitions
     setIsForgot(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let W, H;
+    let animationFrameId;
+
+    const isLight = themeMode === 'day';
+    const BG_COLOR = isLight ? '#F4F7FC' : '#04091A';
+    const GRID_COLOR = isLight ? 'rgba(15, 23, 42, 0.05)' : 'rgba(255, 255, 255, 0.028)';
+    const ROAD_BG = isLight ? '#E3EAF5' : '#0A152A';
+    const LANE_COLOR = isLight ? 'rgba(37, 99, 235, 0.2)' : 'rgba(29, 94, 248, 0.18)';
+    const INTERSECTION_GLOW = isLight ? 'rgba(37, 99, 235, 0.5)' : 'rgba(0, 200, 248, 0.6)';
+    const INTERSECTION_OFF = isLight ? 'rgba(37, 99, 235, 0.15)' : 'rgba(29, 94, 248, 0.25)';
+    const INTERSECTION_COLOR = isLight ? '#2563EB' : '#00C8F8';
+
+    const RH = [0.12, 0.26, 0.40, 0.54, 0.68, 0.82, 0.92];
+    const RV = [0.10, 0.22, 0.38, 0.55, 0.70, 0.84, 0.94];
+
+    const BLUE = isLight ? '#2563EB' : '#1D5EF8';
+    const CYAN = isLight ? '#0284C7' : '#00C8F8';
+    const AMB = isLight ? '#D97706' : '#F59E0B';
+
+    /* pre-compute glowing intersections */
+    const GLOW_SET = new Set();
+    RH.forEach(ry => RV.forEach(rx => {
+      if (Math.random() > 0.55) GLOW_SET.add(`${rx},${ry}`);
+    }));
+
+    let cityBlocks = [];
+
+    function generateCityBlocks() {
+      cityBlocks = [];
+      const roadW = 16;
+      const roadH = 22;
+      const cols = [0, ...RV, 1];
+      const rows = [0, ...RH, 1];
+
+      for (let i = 0; i < cols.length - 1; i++) {
+        for (let j = 0; j < rows.length - 1; j++) {
+          const x1 = cols[i] * W + (i === 0 ? 0 : roadW / 2 + 4);
+          const x2 = cols[i+1] * W - (i+1 === cols.length - 1 ? 0 : roadW / 2 + 4);
+          const y1 = rows[j] * H + (j === 0 ? 0 : roadH / 2 + 4);
+          const y2 = rows[j+1] * H - (j+1 === rows.length - 1 ? 0 : roadH / 2 + 4);
+
+          const blockW = x2 - x1;
+          const blockH = y2 - y1;
+
+          if (blockW > 12 && blockH > 12) {
+            const buildings = [];
+            const isPark = Math.random() > 0.85;
+
+            if (isPark) {
+              buildings.push({
+                type: 'park',
+                x: x1 + 2,
+                y: y1 + 2,
+                w: blockW - 4,
+                h: blockH - 4
+              });
+            } else {
+              const subdivideX = blockW > 45 && Math.random() > 0.45;
+              const subdivideY = blockH > 45 && Math.random() > 0.45;
+              const numX = subdivideX ? 2 : 1;
+              const numY = subdivideY ? 2 : 1;
+
+              const bW = (blockW - (numX + 1) * 3) / numX;
+              const bH = (blockH - (numY + 1) * 3) / numY;
+
+              for (let bx = 0; bx < numX; bx++) {
+                for (let by = 0; by < numY; by++) {
+                  const padding = 3;
+                  const bxCoord = x1 + padding + bx * (bW + padding);
+                  const byCoord = y1 + padding + by * (bH + padding);
+                  const randW = bW * (0.85 + Math.random() * 0.15);
+                  const randH = bH * (0.85 + Math.random() * 0.15);
+
+                  buildings.push({
+                    type: 'building',
+                    x: bxCoord,
+                    y: byCoord,
+                    w: randW,
+                    h: randH,
+                    windows: Math.random() > 0.35
+                  });
+                }
+              }
+            }
+            cityBlocks.push({ buildings });
+          }
+        }
+      }
+    }
+
+    function resize() {
+      W = canvas.width = canvas.offsetWidth;
+      H = canvas.height = canvas.offsetHeight;
+      generateCityBlocks();
+    }
+    resize();
+
+    const vehicles = [];
+    const MAX_V = 35;
+
+    class Vehicle {
+      constructor() { this.init() }
+      init() {
+        const h = Math.random() > 0.48;
+        this.isH = h;
+        if (h) {
+          this.road = RH[Math.floor(Math.random() * RH.length)];
+          this.dir = Math.random() > 0.5 ? 1 : -1;
+          this.pos = this.dir > 0 ? -0.04 : 1.04;
+          this.lane = this.road + (Math.random() * 0.014 - 0.007);
+        } else {
+          this.road = RV[Math.floor(Math.random() * RV.length)];
+          this.dir = Math.random() > 0.5 ? 1 : -1;
+          this.pos = this.dir > 0 ? -0.04 : 1.04;
+          this.lane = this.road + (Math.random() * 0.01 - 0.005);
+        }
+        this.spd = (0.00065 + Math.random() * 0.0011) * this.dir;
+        const r = Math.random();
+        this.col = r < 0.5 ? BLUE : r < 0.8 ? CYAN : AMB;
+        this.len = 0.022 + Math.random() * 0.018;
+        this.alive = true;
+      }
+      update() {
+        this.pos += this.spd;
+        if ((this.dir > 0 && this.pos > 1.08) || (this.dir < 0 && this.pos < -0.08)) this.alive = false;
+      }
+      draw() {
+        const x = this.isH ? this.pos * W : this.lane * W;
+        const y = this.isH ? this.lane * H : this.pos * H;
+
+        ctx.save();
+        ctx.translate(x, y);
+        
+        // Rotate vehicle local axis to match direction
+        if (this.isH) {
+          if (this.dir < 0) ctx.rotate(Math.PI);
+        } else {
+          if (this.dir > 0) ctx.rotate(Math.PI / 2);
+          else ctx.rotate(-Math.PI / 2);
+        }
+
+        // Draw local vehicle silhouette
+        const w = 18 + Math.random() * 6; // length (local x)
+        const h = 8; // width (local y)
+
+        // Glow chassis
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = this.col;
+        ctx.fillStyle = this.col;
+        ctx.globalAlpha = 0.92;
+        
+        ctx.beginPath();
+        if (ctx.roundRect) {
+          ctx.roundRect(-w / 2, -h / 2, w, h, 2.5);
+        } else {
+          ctx.rect(-w / 2, -h / 2, w, h);
+        }
+        ctx.fill();
+
+        // Windshield cabin
+        ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 0.75)' : 'rgba(4, 9, 26, 0.75)';
+        ctx.beginPath();
+        if (ctx.roundRect) {
+          ctx.roundRect(-w / 6, -h * 0.35, w * 0.4, h * 0.7, 1.5);
+        } else {
+          ctx.rect(-w / 6, -h * 0.35, w * 0.4, h * 0.7);
+        }
+        ctx.fill();
+
+        // Headlights (white/yellow circles at the front-right)
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(w / 2, -h * 0.25, 1.2, 0, Math.PI * 2);
+        ctx.arc(w / 2, h * 0.25, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Headlight beams
+        const gradient = ctx.createRadialGradient(w / 2, 0, 1, w / 2 + 18, 0, 18);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.moveTo(w / 2, -h * 0.25);
+        ctx.lineTo(w / 2 + 18, -h * 0.5);
+        ctx.lineTo(w / 2 + 18, h * 0.5);
+        ctx.lineTo(w / 2, h * 0.25);
+        ctx.closePath();
+        ctx.fill();
+
+        // Red taillights (rear-left)
+        ctx.shadowColor = '#ef4444';
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(-w / 2, -h * 0.25, 1.0, 0, Math.PI * 2);
+        ctx.arc(-w / 2, h * 0.25, 1.0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+
+    function buildVehicles() {
+      vehicles.length = 0;
+      for (let i = 0; i < MAX_V; i++) {
+        const v = new Vehicle();
+        v.pos = Math.random();
+        vehicles.push(v);
+      }
+    }
+    buildVehicles();
+
+    function resizeHandler() {
+      resize();
+      buildVehicles();
+    }
+    window.addEventListener('resize', resizeHandler);
+
+    function drawBg() {
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = BG_COLOR;
+      ctx.fillRect(0, 0, W, H);
+
+      // subtle dot grid
+      ctx.fillStyle = GRID_COLOR;
+      const gs = W / 28;
+      for (let x = gs; x < W; x += gs) {
+        for (let y = gs; y < H; y += gs) {
+          ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+
+      // Draw City Blocks
+      cityBlocks.forEach(block => {
+        block.buildings.forEach(b => {
+          if (b.type === 'park') {
+            ctx.fillStyle = isLight ? 'rgba(34, 197, 94, 0.08)' : 'rgba(16, 185, 129, 0.06)';
+            ctx.strokeStyle = isLight ? 'rgba(34, 197, 94, 0.18)' : 'rgba(16, 185, 129, 0.15)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(b.x, b.y, b.w, b.h, 4);
+            else ctx.rect(b.x, b.y, b.w, b.h);
+            ctx.fill();
+            ctx.stroke();
+          } else {
+            ctx.fillStyle = isLight ? 'rgba(15, 23, 42, 0.035)' : 'rgba(255, 255, 255, 0.015)';
+            ctx.strokeStyle = isLight ? 'rgba(15, 23, 42, 0.07)' : 'rgba(255, 255, 255, 0.04)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(b.x, b.y, b.w, b.h, 3);
+            else ctx.rect(b.x, b.y, b.w, b.h);
+            ctx.fill();
+            ctx.stroke();
+
+            if (b.windows && b.w > 15 && b.h > 15) {
+              ctx.fillStyle = isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(0, 200, 248, 0.08)';
+              const winSize = 1.5;
+              const spacing = 4;
+              for (let wx = b.x + 3; wx < b.x + b.w - 3; wx += spacing) {
+                for (let wy = b.y + 3; wy < b.y + b.h - 3; wy += spacing) {
+                  ctx.fillRect(wx, wy, winSize, winSize);
+                }
+              }
+            }
+          }
+        });
+      });
+
+      // road bands
+      ctx.fillStyle = ROAD_BG;
+      RH.forEach(ry => { ctx.fillRect(0, ry * H - 11, W, 22) });
+      RV.forEach(rx => { ctx.fillRect(rx * W - 8, 0, 16, H) });
+
+      // road lane lines
+      ctx.setLineDash([8, 12]); ctx.lineWidth = 0.8; ctx.strokeStyle = LANE_COLOR;
+      RH.forEach(ry => { ctx.beginPath(); ctx.moveTo(0, ry * H); ctx.lineTo(W, ry * H); ctx.stroke() });
+      RV.forEach(rx => { ctx.beginPath(); ctx.moveTo(rx * W, 0); ctx.lineTo(rx * W, H); ctx.stroke() });
+      ctx.setLineDash([]);
+
+      // intersection nodes
+      RH.forEach(ry => RV.forEach(rx => {
+        const key = `${rx},${ry}`;
+        if (GLOW_SET.has(key)) {
+          ctx.save();
+          ctx.shadowBlur = 16; ctx.shadowColor = INTERSECTION_COLOR;
+          ctx.fillStyle = INTERSECTION_GLOW;
+          ctx.beginPath(); ctx.arc(rx * W, ry * H, 2.5, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        } else {
+          ctx.fillStyle = INTERSECTION_OFF;
+          ctx.beginPath(); ctx.arc(rx * W, ry * H, 2, 0, Math.PI * 2); ctx.fill();
+        }
+      }));
+    }
+
+    function animate() {
+      drawBg();
+      vehicles.forEach((v, i) => {
+        v.update();
+        v.draw();
+        if (!v.alive) {
+          vehicles.splice(i, 1);
+          vehicles.push(new Vehicle());
+        }
+      });
+      animationFrameId = requestAnimationFrame(animate);
+    }
+    animate();
+
+    return () => {
+      window.removeEventListener('resize', resizeHandler);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [themeMode]);
 
   const goSignup = useCallback(() => navigate('/signup', { replace: true }), [navigate]);
   const goLogin = useCallback(() => navigate('/login', { replace: true }), [navigate]);
@@ -574,83 +952,77 @@ const AuthPage = () => {
 
   return (
     <div className={`ag-container${themeMode === 'day' ? ' theme-light' : ''}`} onMouseMove={handleMouseMove}>
-      {/* Zoom parallax background element */}
-      <div className="ag-container-bg" style={{ backgroundImage: `url("${themeMode === 'day' ? loginBgWhite : loginBg}")` }} />
-
-      {/* Full-screen dark overlay */}
-      <div className="ag-overlay" />
-
-      {/* Floating Day/Night Theme Switcher */}
-      <div className="ag-theme-toggle-container">
-        <div
-          className={`ag-theme-pill ${themeMode === 'day' ? 'ag-theme-pill--day' : 'ag-theme-pill--night'}`}
-          onClick={() => handleThemeChange(themeMode === 'day' ? 'night' : 'day')}
-          title={themeMode === 'day' ? 'Switch to Night Theme' : 'Switch to Day Theme'}
-        >
-          <div className="ag-theme-knob">
-            {themeMode === 'day' ? <Sun size={14} color="#2563eb" /> : <Moon size={14} color="#3b82f6" />}
+      
+      {/* ── LEFT PANEL ── */}
+      <div className="ag-panel-left">
+        <canvas ref={canvasRef} className="ag-road-canvas" />
+        <div className="ag-left-overlay">
+          <div className="ag-brand">
+            <div className="ag-brand-mark">
+              <img src={logo} alt="V-MAS Logo" className="ag-logo-img" />
+            </div>
+            <span className="ag-brand-name">V-MAS</span>
           </div>
-          <div className="ag-theme-icon-placeholder ag-theme-icon-left">
-            <Moon size={13} />
-          </div>
-          <div className="ag-theme-icon-placeholder ag-theme-icon-right">
-            <Sun size={13} />
-          </div>
-        </div>
-      </div>
 
-      {/* System Status Badge */}
-      <div className="ag-status-badge">
-        <span className="ag-status-dot">
-          <span className="ag-status-pulse" />
-        </span>
-        <span>ALL SYSTEMS OPERATIONAL</span>
-      </div>
-
-      {/* Glassmorphism card */}
-      <div className="ag-card">
-        {/* Card header */}
-        <div className="ag-card-header">
-          <div className="ag-logo-box">
-            <img src={logo} alt="V-MAS" className="ag-logo-img" />
-          </div>
-          <span className="ag-logo-name">V-MAS</span>
-        </div>
-
-        {/* Swipe indicator dots */}
-        <div className="ag-dots">
-          <button
-            type="button"
-            className={`ag-dot ${!isSignup && !isForgot ? 'ag-dot--on' : ''}`}
-            onClick={() => { setIsForgot(false); goLogin(); }}
-            aria-label="Go to Login"
-          />
-          <button
-            type="button"
-            className={`ag-dot ${isSignup ? 'ag-dot--on' : ''}`}
-            onClick={() => { setIsForgot(false); goSignup(); }}
-            aria-label="Go to Sign Up"
-          />
-          <button
-            type="button"
-            className={`ag-dot ${isForgot ? 'ag-dot--on' : ''}`}
-            onClick={() => setIsForgot(true)}
-            aria-label="Go to Forgot Password"
-          />
-        </div>
-
-        {/* Swipe track */}
-        <div className="ag-track-outer">
-          <div className={`ag-track${getTrackClass()}`}>
-            <LoginSlide onSwitch={goSignup} onForgot={() => setIsForgot(true)} isActive={!isSignup && !isForgot} />
-            <SignupSlide onSwitch={goLogin} isActive={isSignup} />
-            <ForgotSlide onSwitch={() => { setIsForgot(false); goLogin(); }} isActive={isForgot} />
+          <div className="ag-hero">
+            <div className="ag-hero-eyebrow">Fleet Intelligence Platform</div>
+            <h1 className="ag-hero-headline">
+              Smart Fleet.<br/><em>Smarter</em> Decisions.
+            </h1>
+            <p className="ag-hero-sub">
+              Real-time vehicle monitoring, proactive maintenance alerts, and driver operations — all from one unified dashboard.
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Footer below card */}
-      <p className="ag-page-footer">© 2026 V-MAS Fleet Management. All rights reserved.</p>
+      {/* ── RIGHT PANEL ── */}
+      <div className="ag-panel-right">
+        {/* Floating Day/Night Theme Switcher */}
+        <div className="ag-theme-toggle-container">
+          <div
+            className={`ag-theme-pill ${themeMode === 'day' ? 'ag-theme-pill--day' : 'ag-theme-pill--night'}`}
+            onClick={() => handleThemeChange(themeMode === 'day' ? 'night' : 'day')}
+            title={themeMode === 'day' ? 'Switch to Night Theme' : 'Switch to Day Theme'}
+          >
+            <div className="ag-theme-knob">
+              {themeMode === 'day' ? <Sun size={14} color="#2563eb" /> : <Moon size={14} color="#3b82f6" />}
+            </div>
+            <div className="ag-theme-icon-placeholder ag-theme-icon-left">
+              <Moon size={13} />
+            </div>
+            <div className="ag-theme-icon-placeholder ag-theme-icon-right">
+              <Sun size={13} />
+            </div>
+          </div>
+        </div>
+
+        {/* System Status Badge - only shown for non-login slides */}
+        {(isSignup || isForgot) && (
+          <div className="ag-status-badge">
+            <span className="ag-status-dot">
+              <span className="ag-status-pulse" />
+            </span>
+            <span>ALL SYSTEMS OPERATIONAL</span>
+          </div>
+        )}
+
+        {/* Glassmorphism card */}
+        <div className="ag-card">
+          {/* Swipe track */}
+          <div className="ag-track-outer">
+            <div className={`ag-track${getTrackClass()}`}>
+              <LoginSlide onSwitch={goSignup} onForgot={() => setIsForgot(true)} isActive={!isSignup && !isForgot} />
+              <SignupSlide onSwitch={goLogin} isActive={isSignup} />
+              <ForgotSlide onSwitch={() => { setIsForgot(false); goLogin(); }} isActive={isForgot} />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer below card */}
+        <p className="ag-page-footer">© 2026 V-MAS Fleet Management. All rights reserved.</p>
+      </div>
+
     </div>
   );
 };

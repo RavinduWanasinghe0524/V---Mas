@@ -1631,16 +1631,28 @@ const ServicePage = () => {
       if (isDriver) {
         // Driver loading path — fetch all services and all vehicles (read-only)
         const [servRes, statsRes, vehicleRes, intervalsRes] = await Promise.all([
-          serviceAPI.getAllServices(),
-          serviceAPI.getServiceStats(),
-          vehicleAPI.getAllVehicles(),
-          serviceAPI.getAllIntervals()
+          serviceAPI.getAllServices().catch(err => {
+            console.error('Failed to load services:', err);
+            return { data: { data: [] } };
+          }),
+          serviceAPI.getServiceStats().catch(err => {
+            console.error('Failed to load service stats:', err);
+            return { data: { data: null } };
+          }),
+          vehicleAPI.getAllVehicles().catch(err => {
+            console.error('Failed to load vehicles:', err);
+            return { data: { data: [] } };
+          }),
+          serviceAPI.getAllIntervals().catch(err => {
+            console.error('Failed to load service intervals:', err);
+            return { data: { data: [] } };
+          })
         ])
         const loadedServices = servRes.data.data || []
         const loadedVehicles = vehicleRes?.data.data || []
         const loadedIntervals = intervalsRes?.data.data || []
         setServices(loadedServices)
-        setStats(statsRes.data.data)
+        setStats(statsRes?.data?.data || null)
         setAllVehicles(loadedVehicles)
         setAllDrivers([user])
         setIntervals(loadedIntervals)
@@ -1682,17 +1694,32 @@ const ServicePage = () => {
       } else {
         // Admin / Controller loading path
         const requests = [
-          serviceAPI.getAllServices(),
-          serviceAPI.getServiceStats(),
-          vehicleAPI.getAllVehicles(),
-          userAPI.getAllDrivers(),
-          serviceAPI.getAllIntervals()
+          serviceAPI.getAllServices().catch(err => {
+            console.error('Failed to load services:', err);
+            return { data: { data: [] } };
+          }),
+          serviceAPI.getServiceStats().catch(err => {
+            console.error('Failed to load service stats:', err);
+            return { data: { data: null } };
+          }),
+          vehicleAPI.getAllVehicles().catch(err => {
+            console.error('Failed to load vehicles:', err);
+            return { data: { data: [] } };
+          }),
+          userAPI.getAllDrivers().catch(err => {
+            console.error('Failed to load drivers:', err);
+            return { data: { data: [] } };
+          }),
+          serviceAPI.getAllIntervals().catch(err => {
+            console.error('Failed to load service intervals:', err);
+            return { data: { data: [] } };
+          })
         ]
         const [servRes, statsRes, vehicleRes, driversRes, intervalsRes] = await Promise.all(requests)
         const loadedServices = servRes.data.data || []
         const loadedVehicles = vehicleRes?.data.data || []
         setServices(loadedServices)
-        setStats(statsRes.data.data)
+        setStats(statsRes?.data?.data || null)
         if (vehicleRes) {
           setAllVehicles(loadedVehicles)
           const mileageMap = {}
