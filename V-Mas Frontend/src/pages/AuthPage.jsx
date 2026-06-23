@@ -254,16 +254,6 @@ const LoginSlide = ({ onSwitch, onForgot, isActive }) => {
         </button>
       </form>
 
-      {/* Divider */}
-      <div className="modern-divider">
-        <span>secured connection</span>
-      </div>
-
-      {/* Security badge footer */}
-      <div className="modern-sec-badge">
-        <Lock size={11} />
-        <span>256-bit SSL encrypted · Role-based access control</span>
-      </div>
 
       <p className="ag-switch">
         Don't have an account?{' '}
@@ -983,8 +973,6 @@ const AuthPage = () => {
               Real-time vehicle monitoring, proactive maintenance alerts, and driver operations — all from one unified dashboard.
             </p>
           </div>
-
-          <p className="ag-left-copy">© 2026 V-MAS. All rights reserved.</p>
         </div>
       </div>
 

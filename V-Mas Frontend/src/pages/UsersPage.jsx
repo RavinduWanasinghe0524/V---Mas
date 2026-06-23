@@ -491,7 +491,7 @@ const UsersPage = () => {
                   </p>
                 </div>
               </div>
-              {isAdmin && (
+              {(isAdmin || isController) && (
                 <button onClick={handleCreate} style={{
                   position: 'relative', padding: '14px 28px', borderRadius: 16, border: 'none', background: '#fff', color: '#1e3a8a', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 8px 30px rgba(0,0,0,0.25)', whiteSpace: 'nowrap'
                 }}
@@ -895,7 +895,7 @@ const UsersPage = () => {
                             </div>
 
                             {/* Action Buttons Row */}
-                            {(u.accountStatus === 'PENDING' || (!isController || u.role === 'DRIVER')) && (
+                            {(u.accountStatus === 'PENDING' || (!isController || u.role !== 'ADMIN')) && (
                               <div style={{ borderTop: `1px solid ${D.border}`, margin: '8px 0 0', paddingTop: '16px', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                                 {u.accountStatus === 'PENDING' && (
                                   <>
@@ -909,7 +909,7 @@ const UsersPage = () => {
                                     </button>
                                   </>
                                 )}
-                                {(!isController || u.role === 'DRIVER') && (
+                                {(!isController || u.role !== 'ADMIN') && (
                                   <>
                                     <button onClick={(e) => { e.stopPropagation(); handleEdit(u); }} style={{ padding: '8px 16px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
                                       onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.15)'; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.color = '#60a5fa' }}
@@ -1134,7 +1134,7 @@ const UsersPage = () => {
 
               {/* Footer / Actions */}
               <div style={{ borderTop: `1px solid ${D.border}`, padding: '18px 32px', background: D.surfaceHi, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-                {(!isController || u.role === 'DRIVER') && (
+                {(!isController || u.role !== 'ADMIN') && (
                   <button onClick={() => { closeProfile(); handleEdit(u); }} style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(37,99,235,0.2)' }}
                     onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
                     Edit Details
@@ -1191,11 +1191,9 @@ const UsersPage = () => {
                   <label style={labelStyle}>Role</label>
                   <select name="role" value={formData.role} onChange={handleChange} style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
                     <option value="DRIVER" style={{ background: D.surfaceHi }}>Driver</option>
+                    <option value="CONTROLLER" style={{ background: D.surfaceHi }}>Controller</option>
                     {!isController && (
-                      <>
-                        <option value="CONTROLLER" style={{ background: D.surfaceHi }}>Controller</option>
-                        <option value="ADMIN" style={{ background: D.surfaceHi }}>Admin</option>
-                      </>
+                      <option value="ADMIN" style={{ background: D.surfaceHi }}>Admin</option>
                     )}
                   </select>
                 </div>
