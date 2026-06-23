@@ -317,7 +317,7 @@ const ProfilePage = () => {
       }
       const res = await profileAPI.updateMyProfile({
         email: profileForm.email,
-        profilePicture: profileForm.profilePicture,
+        profilePicture: profileForm.profilePicture !== user?.profilePicture ? profileForm.profilePicture : null,
         phoneNumber: profileForm.phone,
         gender: profileForm.gender,
         nic: profileForm.nic,
