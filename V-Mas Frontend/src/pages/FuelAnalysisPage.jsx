@@ -289,8 +289,14 @@ const FuelAnalysisPage = () => {
       if (isAdmin || isController) {
         // -- Admin/Controller: compute everything locally from raw logs --
         const [allLogsRes, vehiclesRes] = await Promise.all([
-          fuelAPI.getAllFuelLogs(),
-          vehicleAPI.getAllVehicles(),
+          fuelAPI.getAllFuelLogs().catch(err => {
+            console.error('Failed to load fuel logs:', err);
+            return { data: { data: [] } };
+          }),
+          vehicleAPI.getAllVehicles().catch(err => {
+            console.error('Failed to load vehicles:', err);
+            return { data: { data: [] } };
+          }),
         ])
         const rawLogs = allLogsRes.data.data || []
         const vehicles = vehiclesRes.data.data || []
@@ -368,11 +374,25 @@ const FuelAnalysisPage = () => {
       } else if (isDriver) {
         // -- Driver: use own-scoped summary + chart + logs + vehicles for baseline --
         const [summaryRes, chartRes, logsRes, vehiclesRes] = await Promise.all([
-          fuelAPI.getSummary(), fuelAPI.getChartData(), fuelAPI.getMyLogs(),
-          vehicleAPI.getAllVehicles(),
+          fuelAPI.getSummary().catch(err => {
+            console.error('Failed to load fuel summary:', err);
+            return { data: { data: null } };
+          }),
+          fuelAPI.getChartData().catch(err => {
+            console.error('Failed to load fuel chart data:', err);
+            return { data: { data: null } };
+          }),
+          fuelAPI.getMyLogs().catch(err => {
+            console.error('Failed to load driver fuel logs:', err);
+            return { data: { data: [] } };
+          }),
+          vehicleAPI.getAllVehicles().catch(err => {
+            console.error('Failed to load vehicles:', err);
+            return { data: { data: [] } };
+          }),
         ])
-        setSummary(summaryRes.data.data || { totalDiesel: 0, totalPetrol: 0, totalVolume: 0, totalCost: 0 })
-        setChartData(chartRes.data.data || { months: [], data: { Diesel: [], Petrol: [] } })
+        setSummary(summaryRes?.data?.data || { totalDiesel: 0, totalPetrol: 0, totalVolume: 0, totalCost: 0 })
+        setChartData(chartRes?.data?.data || { months: [], data: { Diesel: [], Petrol: [] } })
         const driverLogs = logsRes.data.data || []
         const vehicles = vehiclesRes.data.data || []
         computeLogsEfficiency(driverLogs, vehicles)

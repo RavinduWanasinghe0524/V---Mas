@@ -25,6 +25,27 @@ public class EmsBackendApplication {
 			}
 
 			try {
+				// Make vehicle_id nullable so new inserts (which only specify vehicle_reg_number) don't fail
+				jdbcTemplate.execute("ALTER TABLE service_records MODIFY COLUMN vehicle_id BIGINT NULL;");
+				System.out.println("✅ vehicle_id column in service_records successfully made nullable.");
+			} catch (Exception e) {
+				System.out.println("ℹ️ Note on making vehicle_id nullable: " + e.getMessage());
+			}
+
+			try {
+				// Migrate old vehicle_id references to new vehicle_reg_number
+				jdbcTemplate.execute(
+					"UPDATE service_records sr " +
+					"JOIN vehicles v ON sr.vehicle_id = v.id " +
+					"SET sr.vehicle_reg_number = v.registration_no " +
+					"WHERE sr.vehicle_reg_number = '' OR sr.vehicle_reg_number IS NULL;"
+				);
+				System.out.println("✅ Successfully migrated vehicle_id to vehicle_reg_number in service_records.");
+			} catch (Exception e) {
+				System.out.println("ℹ️ Note on migrating service_records to registration numbers: " + e.getMessage());
+			}
+
+			try {
 				String bCryptHash = new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("admin123");
 				System.out.println("ℹ️ Dynamically generated BCrypt hash for 'admin123': " + bCryptHash);
 				
