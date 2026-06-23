@@ -828,15 +828,14 @@ const VehiclesPage = () => {
         chassisNumber: editFormData.chassisNumber,
         engineNumber: editFormData.engineNumber,
         manufacturer: editFormData.manufacturer,
-        year: editFormData.year,
-        fuelType: editFormData.fuelType.toUpperCase(),
-        currentMileageKm: editFormData.currentMileageKm,
-        fuelCapacity: editFormData.fuelCapacity ? Number(editFormData.fuelCapacity) : null,
+        year: editFormData.year ? Number(editFormData.year) : null,
+        fuelType: editFormData.fuelType ? editFormData.fuelType.toUpperCase() : null,
+        currentMileageKm: editFormData.currentMileageKm ? Number(editFormData.currentMileageKm) : null,
         insuranceExpiryDate: editFormData.insuranceExpiryDate || null,
         licenseExpiryDate: editFormData.licenseExpiryDate || null,
         status: editFormData.status,
         vehicleType: editFormData.vehicleType,
-        vehicleImage: editFormData.vehicleImage
+        vehicleImage: editFormData.vehicleImage || null
       })
       
       const uploadPromises = []
