@@ -67,10 +67,12 @@ public class Vehicle {
     @Column(name = "updated_by", length = 100)
     private String updatedBy;
 
-    @Column(name = "status",nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status",nullable = false, length = 50)
     private VehicleSatus status;
 
-    @Column(name = "fuel_type")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "fuel_type", length = 50)
     private FuelTypes fuelType;
 
     @Enumerated(EnumType.STRING)
