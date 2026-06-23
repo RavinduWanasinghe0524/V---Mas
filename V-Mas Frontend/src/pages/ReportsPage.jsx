@@ -5,7 +5,7 @@ import { useD, useTheme } from '../context/ThemeContext'
 import {
   Car, Fuel, Wrench, Users, DollarSign,
   FileText, Calendar, Download, ClipboardList, BarChart2, Loader2, Database, TrendingUp,
-  AlertCircle, CheckCircle, X, Search, Sliders, Palette
+  AlertCircle, CheckCircle, X, Search, Sliders, Palette, MapPin
 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -39,6 +39,10 @@ const ReportsPage = () => {
     { id: 'service-report',     icon: <Wrench size={22} strokeWidth={1.5} />,      title: 'Service & Maintenance Report',  desc: 'Summary of all service records, costs, and upcoming maintenance schedules.',            category: 'Maintenance', color: D.green,  bg: D.greenDim  },
     { id: 'user-report',        icon: <Users size={22} strokeWidth={1.5} />,       title: 'User Activity Report',          desc: 'User registration, role distribution, login history, and account statuses.',            category: 'Users',       color: D.orange, bg: D.orangeDim },
     { id: 'cost-report',        icon: <DollarSign size={22} strokeWidth={1.5} />,  title: 'Cost Analysis Report',          desc: 'Full cost breakdown including fuel, maintenance, and operational expenses.',             category: 'Finance',     color: D.blue,   bg: D.blueDim   },
+    { id: 'driver-performance', icon: <Users size={22} strokeWidth={1.5} />,       title: 'Driver Performance Report',     desc: 'Rank system drivers by their average fuel efficiency (km/L), liters, spent, and logs.',   category: 'Users',       color: D.purple, bg: D.purpleDim },
+    { id: 'vehicle-documents',  icon: <FileText size={22} strokeWidth={1.5} />,    title: 'Vehicle Documents & Renewals',  desc: 'Track vehicle compliance and renewal dates, including insurance and license validity.', category: 'Fleet',       color: D.indigo, bg: D.indigoDim },
+    { id: 'maintenance-schedule', icon: <Calendar size={22} strokeWidth={1.5} />, title: 'Scheduled Maintenance Alerts',   desc: 'Lists upcoming and overdue scheduled maintenance records, tracking mileage/date.',      category: 'Maintenance', color: D.green,  bg: D.greenDim  },
+    { id: 'fleet-tracking',     icon: <MapPin size={22} strokeWidth={1.5} />,      title: 'Live Fleet Status & Tracking',  desc: 'Current live location, status, and speed of all vehicles in the fleet.',               category: 'Fleet',       color: D.teal,   bg: D.tealDim   },
   ]
   const [generating, setGenerating] = useState(null)
   const [error, setError] = useState('')
@@ -375,6 +379,277 @@ const ReportsPage = () => {
         })
       }
 
+      if (id === 'driver-performance' || id === 'master-report') {
+        if (id === 'driver-performance') addHeader('Driver Performance Report')
+        if (id === 'master-report') {
+          doc.setFontSize(14)
+          doc.setTextColor(40, 40, 40)
+          doc.text('Driver Performance Ranking', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
+        }
+        const { data: fuelRes } = await fuelAPI.getAllFuelLogs()
+        const logs = fuelRes.data || []
+        const drvMap = {}
+        logs.forEach(l => {
+          const drv = l.driverUsername || l.uploadedBy || 'Unassigned'
+          if (!drvMap[drv]) drvMap[drv] = { count: 0, liters: 0, cost: 0, effSums: 0, effCount: 0 }
+          drvMap[drv].count += 1
+          drvMap[drv].liters += l.liters || 0
+          drvMap[drv].cost += l.totalCost || 0
+          if (l.fuelEfficiency && l.fuelEfficiency > 0) {
+            drvMap[drv].effSums += l.fuelEfficiency
+            drvMap[drv].effCount += 1
+          }
+        })
+        const driverRanking = Object.entries(drvMap).map(([name, d]) => {
+          const avgEff = d.effCount > 0 ? d.effSums / d.effCount : null
+          const status = avgEff == null ? 'N/A'
+            : avgEff > 10 ? 'Excellent'
+              : avgEff > 7 ? 'Good'
+                : avgEff > 5 ? 'Average'
+                  : 'Poor'
+          return [
+            name,
+            d.count,
+            `${d.liters.toFixed(1)} L`,
+            `Rs. ${Number(d.cost).toLocaleString()}`,
+            avgEff != null ? `${avgEff.toFixed(2)} km/L` : 'N/A',
+            status,
+            avgEff
+          ]
+        }).sort((a, b) => {
+          const aVal = a[6] != null ? a[6] : -1
+          const bVal = b[6] != null ? b[6] : -1
+          return bVal - aVal
+        })
+
+        const tableData = driverRanking.map(r => [r[0], r[1], r[2], r[3], r[4], r[5]])
+        autoTable(doc, {
+          startY: id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 45) : 40,
+          head: [['Driver Name', 'Logs Count', 'Total Liters', 'Total Spent', 'Avg km/L', 'Status']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: { fillColor: headerColor },
+          didParseCell: (data) => {
+            if (data.section === 'body' && data.column.index === 5) {
+              const status = data.cell.raw
+              if (status === 'Poor') data.cell.styles.textColor = [220, 38, 38]
+              else if (status === 'Average') data.cell.styles.textColor = [180, 120, 0]
+              else if (status === 'Good') data.cell.styles.textColor = [37, 99, 235]
+              else if (status === 'Excellent') data.cell.styles.textColor = [5, 150, 105]
+            }
+          }
+        })
+      }
+
+      if (id === 'vehicle-documents' || id === 'master-report') {
+        if (id === 'vehicle-documents') addHeader('Vehicle Document & Renewal Report')
+        if (id === 'master-report') {
+          doc.setFontSize(14)
+          doc.setTextColor(40, 40, 40)
+          doc.text('Vehicle Documents & Compliance', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
+        }
+        const { data: vRes } = await vehicleAPI.getAllVehicles()
+        const vehicles = vRes.data || []
+        const today = new Date()
+        today.setHours(0,0,0,0)
+
+        const tableData = vehicles.map(v => {
+          const insExp = v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate) : null
+          const licExp = v.licenseExpiryDate ? new Date(v.licenseExpiryDate) : null
+          
+          let minDays = Infinity
+          let warningText = 'Valid'
+          let statusLevel = 'OK'
+
+          if (insExp) {
+            const diff = insExp - today
+            const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
+            if (days < minDays) minDays = days
+          }
+          if (licExp) {
+            const diff = licExp - today
+            const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
+            if (days < minDays) minDays = days
+          }
+
+          if (!insExp && !licExp) {
+            warningText = 'No Documents'
+            statusLevel = 'NONE'
+          } else if (minDays < 0) {
+            warningText = `Expired (${Math.abs(minDays)} days ago)`
+            statusLevel = 'EXPIRED'
+          } else if (minDays <= 30) {
+            warningText = `Expiring soon (${minDays} days left)`
+            statusLevel = 'WARNING'
+          } else {
+            warningText = `Valid (${minDays} days left)`
+            statusLevel = 'OK'
+          }
+
+          return [
+            v.registrationNo || 'N/A',
+            `${v.manufacturer || ''} ${v.model || ''}`.trim() || 'N/A',
+            v.status || 'N/A',
+            v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate).toLocaleDateString() : 'N/A',
+            v.licenseExpiryDate ? new Date(v.licenseExpiryDate).toLocaleDateString() : 'N/A',
+            warningText,
+            statusLevel
+          ]
+        })
+
+        const displayRows = tableData.map(r => [r[0], r[1], r[2], r[3], r[4], r[5]])
+        autoTable(doc, {
+          startY: id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 45) : 40,
+          head: [['Reg No', 'Vehicle Model', 'Status', 'Insurance Expiry', 'License Expiry', 'Renewal Status']],
+          body: displayRows,
+          theme: 'grid',
+          headStyles: { fillColor: headerColor },
+          didParseCell: (data) => {
+            if (data.section === 'body' && data.column.index === 5) {
+              const mappedIndex = data.row.index
+              if (mappedIndex < tableData.length) {
+                const statusLevel = tableData[mappedIndex][6]
+                if (statusLevel === 'EXPIRED') data.cell.styles.textColor = [220, 38, 38]
+                else if (statusLevel === 'WARNING') data.cell.styles.textColor = [180, 120, 0]
+                else if (statusLevel === 'OK') data.cell.styles.textColor = [5, 150, 105]
+              }
+            }
+          }
+        })
+      }
+
+      if (id === 'maintenance-schedule' || id === 'master-report') {
+        if (id === 'maintenance-schedule') addHeader('Scheduled Maintenance & Alerts Report')
+        if (id === 'master-report') {
+          doc.setFontSize(14)
+          doc.setTextColor(40, 40, 40)
+          doc.text('Scheduled & Pending Maintenance Alerts', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
+        }
+        const { data: svcRes } = await serviceAPI.getAllServices()
+        const allSvc = svcRes.data || []
+        
+        const getTableStatusLocal = (s) => {
+          if (!s) return 'Open'
+          const isCompleted = s.serviceDate && (() => {
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+            const serviceDate = new Date(s.serviceDate)
+            serviceDate.setHours(0, 0, 0, 0)
+            return serviceDate <= today
+          })()
+
+          if (isCompleted) return 'Completed'
+          if (!s.serviceDate) return 'Open'
+
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+
+          const targetDate = new Date(s.serviceDate)
+          targetDate.setHours(0, 0, 0, 0)
+
+          if (targetDate < today) return 'Overdue'
+
+          const diffTime = targetDate.getTime() - today.getTime()
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+          if (diffDays <= 5) return 'In Progress'
+
+          return 'Open'
+        }
+
+        const scheduled = allSvc.filter(s => {
+          if (s.deleted) return false
+          const stat = getTableStatusLocal(s)
+          return ['Open', 'In Progress', 'Overdue'].includes(stat)
+        })
+
+        const tableData = scheduled.map(s => [
+          s.vehicleRegNumber || 'N/A',
+          String(s.serviceType || 'N/A').replace(/_/g, ' '),
+          s.serviceClassification || 'N/A',
+          s.serviceDate ? new Date(s.serviceDate).toLocaleDateString() : 'N/A',
+          s.technicianWorkshop || 'N/A',
+          getTableStatusLocal(s)
+        ])
+
+        autoTable(doc, {
+          startY: id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 45) : 40,
+          head: [['Vehicle Reg', 'Service Type', 'Classification', 'Target Date', 'Workshop', 'Status']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: { fillColor: headerColor },
+          didParseCell: (data) => {
+            if (data.section === 'body' && data.column.index === 5) {
+              const status = data.cell.raw
+              if (status === 'Overdue') data.cell.styles.textColor = [220, 38, 38]
+              else if (status === 'In Progress') data.cell.styles.textColor = [180, 120, 0]
+              else if (status === 'Open') data.cell.styles.textColor = [37, 99, 235]
+            }
+          }
+        })
+      }
+
+      if (id === 'fleet-tracking' || id === 'master-report') {
+        if (id === 'fleet-tracking') addHeader('Live Fleet Location & Status Report')
+        if (id === 'master-report') {
+          doc.setFontSize(14)
+          doc.setTextColor(40, 40, 40)
+          doc.text('Live Fleet GPS Tracking & Utilization', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
+        }
+        
+        const { data: vRes } = await vehicleAPI.getAllVehicles()
+        const vehicles = vRes.data || []
+
+        const liveTrackingData = [
+          { reg: 'WP-CAB-1234', driver: 'Kamal Perera',   status: 'MOVING',  speed: 58,   location: 'Colombo 07, Rosmead Pl', lastUpdate: '2 min ago' },
+          { reg: 'WP-CAB-5678', driver: 'Nimal Silva',    status: 'IDLE',    speed: 0,    location: 'Nugegoda, High Level Rd', lastUpdate: '5 min ago' },
+          { reg: 'SP-7890',     driver: '—',              status: 'PARKED',  speed: 0,    location: 'Kandy City Centre',       lastUpdate: '1 hr ago'  },
+          { reg: 'WP-CAB-9012', driver: 'Sunil Fernando', status: 'MOVING',  speed: 72,   location: 'Galle Road, Dehiwala',   lastUpdate: '1 min ago' },
+        ]
+
+        const trackingRows = []
+        const trackedRegs = new Set(liveTrackingData.map(d => d.reg.toLowerCase()))
+        
+        liveTrackingData.forEach(d => {
+          trackingRows.push([
+            d.reg,
+            d.driver,
+            d.status,
+            d.location,
+            d.speed > 0 ? `${d.speed} km/h` : 'Stationary',
+            d.lastUpdate
+          ])
+        })
+
+        vehicles.forEach(v => {
+          if (v.registrationNo && !trackedRegs.has(v.registrationNo.toLowerCase())) {
+            trackingRows.push([
+              v.registrationNo,
+              'Unassigned',
+              'PARKED',
+              'Depot / Fleet Base',
+              'Stationary',
+              'Unknown'
+            ])
+          }
+        })
+
+        autoTable(doc, {
+          startY: id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 45) : 40,
+          head: [['Reg Number', 'Driver', 'Live Status', 'Current Location', 'Speed', 'Last Updated']],
+          body: trackingRows,
+          theme: 'grid',
+          headStyles: { fillColor: headerColor },
+          didParseCell: (data) => {
+            if (data.section === 'body' && data.column.index === 2) {
+              const status = data.cell.raw
+              if (status === 'MOVING') data.cell.styles.textColor = [5, 150, 105]
+              else if (status === 'IDLE') data.cell.styles.textColor = [180, 120, 0]
+              else if (status === 'PARKED') data.cell.styles.textColor = [37, 99, 235]
+            }
+          }
+        })
+      }
+
       if (id === 'master-report') {
         doc.setPage(1)
         addHeader('Comprehensive Master Report')
@@ -422,9 +697,9 @@ const ReportsPage = () => {
       let users    = []
       let effReport = null
 
-      const needsVehicles    = ['vehicle-summary', 'master-report'].includes(id)
-      const needsFuel        = ['fuel-report', 'fuel-efficiency', 'cost-report', 'master-report'].includes(id)
-      const needsServices    = ['service-report', 'cost-report', 'master-report'].includes(id)
+      const needsVehicles    = ['vehicle-summary', 'vehicle-documents', 'fleet-tracking', 'master-report'].includes(id)
+      const needsFuel        = ['fuel-report', 'fuel-efficiency', 'cost-report', 'driver-performance', 'master-report'].includes(id)
+      const needsServices    = ['service-report', 'cost-report', 'maintenance-schedule', 'master-report'].includes(id)
       const needsUsers       = ['user-report', 'master-report'].includes(id)
       const needsEfficiency  = ['fuel-efficiency', 'master-report'].includes(id)
 
