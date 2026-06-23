@@ -21,7 +21,7 @@ public class ServiceRecord {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "vehicle_reg_number", nullable = false, length = 20)
+    @Column(name = "vehicle_reg_number", nullable = false, length = 20, columnDefinition = "VARCHAR(20) DEFAULT ''")
     private String vehicleRegNumber;
 
     @Enumerated(EnumType.STRING)
@@ -72,7 +72,7 @@ public class ServiceRecord {
     private String partsReplaced;
 
     /** Classification: ROUTINE or AD_HOC */
-    @Column(name = "service_classification", nullable = false, length = 50)
+    @Column(name = "service_classification", nullable = false, length = 50, columnDefinition = "VARCHAR(50) DEFAULT 'ROUTINE'")
     private String serviceClassification = "ROUTINE";
 
     @CreationTimestamp

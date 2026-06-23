@@ -147,8 +147,8 @@ public class UserController {
     public ResponseEntity<ApiResponse<Object>> createUser(@RequestBody RegisterRequest request) {
         log.info("Create user request received for username: {}", request.getUserName());
         if (!isAdmin() && isController()) {
-            if (!Role.DRIVER.equals(request.getRole())) {
-                return ApiResponseUtil.error("Controllers can only create driver accounts", HttpStatus.FORBIDDEN);
+            if (!Role.DRIVER.equals(request.getRole()) && !Role.CONTROLLER.equals(request.getRole())) {
+                return ApiResponseUtil.error("Controllers can only create driver or controller accounts", HttpStatus.FORBIDDEN);
             }
         }
         UserDto user = userService.createUser(request);
@@ -166,11 +166,11 @@ public class UserController {
         }
         if (!isAdmin() && isController() && !currentUser.getId().equals(id)) {
             UserDto targetUser = userService.getUserById(id);
-            if (!Role.DRIVER.equals(targetUser.getRole())) {
-                return ApiResponseUtil.error("Controllers can only modify driver accounts", HttpStatus.FORBIDDEN);
+            if (Role.ADMIN.equals(targetUser.getRole())) {
+                return ApiResponseUtil.error("Controllers cannot modify admin accounts", HttpStatus.FORBIDDEN);
             }
-            if (!Role.DRIVER.equals(userDto.getRole())) {
-                return ApiResponseUtil.error("Controllers cannot elevate privileges", HttpStatus.FORBIDDEN);
+            if (Role.ADMIN.equals(userDto.getRole())) {
+                return ApiResponseUtil.error("Controllers cannot elevate privileges to Admin", HttpStatus.FORBIDDEN);
             }
         }
         UserDto updatedUser = userService.updateUser(id, userDto);
