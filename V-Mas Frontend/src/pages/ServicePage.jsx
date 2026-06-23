@@ -2298,10 +2298,10 @@ const ServicePage = () => {
               ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
               : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
             borderRadius: 28,
-            padding: '32px 36px',
-            marginBottom: 28,
+            padding: '40px',
+            marginBottom: 32,
             overflow: 'hidden',
-            border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid var(--border)',
+            border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid rgba(37, 99, 235, 0.2)',
             boxShadow: isDark
               ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
               : '0 16px 48px rgba(0,0,0,0.4)',
@@ -2309,56 +2309,58 @@ const ServicePage = () => {
             justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: 'wrap',
-            gap: 20,
+            gap: 16,
             animation: 'fadeSlideUp 0.5s ease both',
           }}>
-            {/* Aurora blobs */}
-            <div style={{ position: 'absolute', top: '-40%', left: '-10%', width: '55%', height: '200%', background: 'radial-gradient(ellipse, rgba(99,102,241,0.18) 0%, transparent 65%)', animation: 'auroraPulse 6s ease-in-out infinite', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', top: '-20%', right: '-5%', width: '40%', height: '160%', background: 'radial-gradient(ellipse, rgba(45,212,191,0.12) 0%, transparent 60%)', animation: 'auroraPulse 8s ease-in-out infinite 2s', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', bottom: '-30%', left: '40%', width: '35%', height: '150%', background: 'radial-gradient(ellipse, rgba(251,191,36,0.07) 0%, transparent 60%)', animation: 'auroraPulse 10s ease-in-out infinite 4s', pointerEvents: 'none' }} />
+            {/* Decorative circles */}
+            {[['80%', '-20px', '220px', 'rgba(59,130,246,0.04)'], ['20%', '60%', '150px', 'rgba(99,102,241,0.04)'], ['55%', '80%', '100px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
+              <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
+            ))}
+            {/* Neon radial glow for dark */}
+            {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
 
             {/* Left — identity */}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20, zIndex: 2 }}>
               {/* Wrench icon in glowing ring */}
               <div style={{
-                width: 68, height: 68, borderRadius: 18,
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.35) 0%, rgba(45,212,191,0.2) 100%)',
-                border: '1.5px solid rgba(99,102,241,0.4)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 0 24px rgba(99,102,241,0.28), inset 0 1px 0 rgba(255,255,255,0.1)',
+                width: 64, height: 64, borderRadius: 16,
+                background: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.1)',
                 backdropFilter: 'blur(8px)',
+                border: isDark ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(255,255,255,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+                boxShadow: isDark ? '0 0 20px rgba(59,130,246,0.3), 0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.2)',
                 flexShrink: 0,
               }}>
-                <Wrench size={30} color="#a5b4fc" strokeWidth={1.6} />
+                <Wrench size={32} color="#fff" strokeWidth={1.5} />
               </div>
 
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 5 }}>
                   <h1 style={{
-                    margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#f0f2ff',
-                    letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', 'Outfit', sans-serif",
+                    margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff',
+                    letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif",
                   }}>
                     {isDriver ? 'Fleet Service' : 'Maintenance Center'}
                   </h1>
                   <span style={{
-                    background: 'rgba(99,102,241,0.2)',
-                    border: '1px solid rgba(99,102,241,0.3)',
-                    color: '#a5b4fc',
-                    padding: '3px 14px', borderRadius: 999,
-                    fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.06em',
-                    backdropFilter: 'blur(6px)',
+                    background: isDark ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.15)',
+                    color: '#dbeafe',
+                    padding: '3px 10px', borderRadius: 999,
+                    fontSize: '0.75rem', fontWeight: 700,
+                    backdropFilter: 'blur(4px)',
+                    border: isDark ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(255,255,255,0.2)',
                   }}>
                     {isDriver ? 'Read Only' : 'Fleet Operations'}
                   </span>
                 </div>
 
-                <p style={{ margin: '0 0 8px', color: 'rgba(165,180,252,0.7)', fontSize: '0.9rem', fontWeight: 400 }}>
+                <p style={{ margin: '6px 0 0', color: isDark ? '#93c5fd' : '#60a5fa', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                   {isDriver
                     ? 'Browse all service records and track maintenance milestones across the fleet (read-only).'
                     : 'Schedule services, manage work orders and minimise fleet downtime.'}
                 </p>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
                   <span style={{
                     width: 9, height: 9, borderRadius: '50%',
                     background: '#34d399', display: 'inline-block',
@@ -2369,7 +2371,7 @@ const ServicePage = () => {
                     Live — {liveTime}
                   </span>
                   <span style={{ color: 'rgba(165,180,252,0.4)', fontSize: '0.77rem' }}>·</span>
-                  <span style={{ fontSize: '0.77rem', color: 'rgba(165,180,252,0.55)', fontWeight: 500 }}>
+                  <span style={{ fontSize: '0.77rem', color: 'rgba(255,255,255,0.55)', fontWeight: 500 }}>
                     {services.length} records
                   </span>
                 </div>
@@ -2377,44 +2379,38 @@ const ServicePage = () => {
             </div>
 
             {/* Right — CTA buttons */}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, zIndex: 10, flexShrink: 0 }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12, zIndex: 10, flexShrink: 0 }}>
 
               {!isAdmin && !isDriver && (
                 <button
                   onClick={openScheduleModal}
                   style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 8,
-                    padding: '14px 24px', borderRadius: 16,
-                    fontSize: '0.95rem', fontWeight: 700,
-                    background: 'rgba(99,102,241,0.14)',
-                    color: '#a5b4fc',
-                    border: '1px solid rgba(99,102,241,0.28)',
-                    cursor: 'pointer', transition: 'all 0.2s ease',
-                    backdropFilter: 'blur(6px)',
+                    position: 'relative', padding: '14px 24px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.25)',
+                    background: 'rgba(255, 255, 255, 0.08)', color: '#fff', fontSize: '0.95rem', fontWeight: 800,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, backdropFilter: 'blur(8px)',
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.15)', whiteSpace: 'nowrap'
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.28)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.14)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.28)' }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)' }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)' }}
                 >
-                  <Clock size={16} /> Schedule
+                  <Clock size={18} /> Schedule
                 </button>
               )}
               {!isAdmin && !isDriver && (
                 <button
                   onClick={() => openAddModal()}
                   style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 8,
-                    padding: '14px 28px', borderRadius: 16,
-                    fontSize: '0.95rem', fontWeight: 800,
-                    background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
-                    color: '#fff',
-                    border: '1px solid rgba(99,102,241,0.45)',
-                    cursor: 'pointer', transition: 'all 0.2s ease',
-                    boxShadow: '0 4px 16px rgba(99,102,241,0.38)',
+                    position: 'relative', padding: '14px 28px', borderRadius: 16, border: 'none',
+                    background: '#fff', color: '#1e3a8a', fontSize: '0.95rem', fontWeight: 800,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.25)', whiteSpace: 'nowrap'
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.52)' }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.38)' }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}
                 >
-                  <Sparkles size={16} strokeWidth={3} /> New Work Order
+                  <Sparkles size={20} strokeWidth={3} /> New Work Order
                 </button>
               )}
             </div>
