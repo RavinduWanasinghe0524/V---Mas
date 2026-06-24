@@ -29,14 +29,6 @@ public class ServiceIntervalServiceImpl implements ServiceIntervalService {
         );
     }
 
-    private ServiceInterval mapToEntity(ServiceIntervalDto dto) {
-        ServiceInterval entity = new ServiceInterval();
-        entity.setId(dto.getId());
-        entity.setVehicleType(dto.getVehicleType());
-        entity.setServiceType(dto.getServiceType());
-        entity.setIntervalKm(dto.getIntervalKm());
-        return entity;
-    }
 
     @Override
     public List<ServiceIntervalDto> getAllIntervals() {
