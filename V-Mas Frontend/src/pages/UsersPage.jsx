@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
@@ -89,6 +90,16 @@ const UsersPage = () => {
   const [roleFilter, setRoleFilter] = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Pre-apply the role filter when navigated here with a roleFilter (e.g. the dashboard "Driver Check-in" Quick Command).
+  useEffect(() => {
+    if (location.state?.roleFilter) {
+      setRoleFilter(location.state.roleFilter)
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [location.state, navigate, location.pathname])
   const fileInputRef = useRef(null)
 
   const [selectedProfileUser, setSelectedProfileUser] = useState(null)
