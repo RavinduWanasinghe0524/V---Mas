@@ -267,6 +267,10 @@ const FuelManagementPage = () => {
 
   const handleAddSubmit = async e => {
     e.preventDefault()
+    if (!formData.driverUsername) {
+      showToast('Driver selection is required.', 'error')
+      return
+    }
     if (previousMileage != null && parseFloat(formData.mileage) < previousMileage) {
       setMileageError(`Must be ≥ previous reading (${previousMileage.toFixed(1)} km)`)
       return
@@ -317,6 +321,10 @@ const FuelManagementPage = () => {
   const handleEditSubmit = async e => {
     e.preventDefault()
     if (!editingLog) return
+    if (!editingLog.driverUsername) {
+      showToast('Driver selection is required.', 'error')
+      return
+    }
     setSubmitting(true)
     const editMilNew = parseFloat(editingLog.mileage)
     const editLitersNew = parseFloat(editingLog.liters)
