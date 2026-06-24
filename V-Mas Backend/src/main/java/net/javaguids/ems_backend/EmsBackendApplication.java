@@ -52,19 +52,19 @@ public class EmsBackendApplication {
 				// Seed admin if not present
 				jdbcTemplate.update("INSERT INTO users (user_name, email, password, role, account_status, profile_picture) " +
 						"SELECT 'admin', 'admin@vmas.com', ?, 'ADMIN', 'ACTIVE', NULL " +
-						"WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_name = 'admin')",
+						"WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_name = 'admin' OR email = 'admin@vmas.com')",
 						bCryptHash);
 				
 				// Seed controller if not present
 				jdbcTemplate.update("INSERT INTO users (user_name, email, password, role, account_status, profile_picture) " +
 						"SELECT 'controller1', 'controller@vmas.com', ?, 'CONTROLLER', 'ACTIVE', NULL " +
-						"WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_name = 'controller1')",
+						"WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_name = 'controller1' OR email = 'controller@vmas.com')",
 						bCryptHash);
 				
 				// Seed driver if not present
 				jdbcTemplate.update("INSERT INTO users (user_name, email, password, role, account_status, profile_picture) " +
 						"SELECT 'driver1', 'driver@vmas.com', ?, 'DRIVER', 'ACTIVE', NULL " +
-						"WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_name = 'driver1')",
+						"WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_name = 'driver1' OR email = 'driver@vmas.com')",
 						bCryptHash);
 
 				// Force passwords to 'admin123' for these users
