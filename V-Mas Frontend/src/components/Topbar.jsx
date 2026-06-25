@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
-import { Bell, Moon, Sun, User, Check, Info, Fuel, Wrench, Trash2, AlertTriangle, ChevronRight } from 'lucide-react'
+import { Bell, Moon, Sun, User, Check, Info, Fuel, Wrench, Trash2, AlertTriangle, ChevronRight, X, Car } from 'lucide-react'
 import { notificationAPI } from '../services/api'
 import * as notifService from '../services/notificationService'
 
@@ -10,6 +10,70 @@ const roleText = {
   ADMIN: 'System Administrator',
   CONTROLLER: 'System Controller',
   DRIVER: 'Driver',
+}
+
+const parseBackendDate = (dateStr) => {
+  if (!dateStr) return new Date(0);
+  if (dateStr instanceof Date) return dateStr;
+  let normalized = dateStr;
+  if (typeof dateStr === 'string') {
+    normalized = dateStr.replace(' ', 'T');
+  }
+  if (normalized.endsWith('Z') || normalized.match(/[+-]\d{2}:\d{2}$/)) {
+    return new Date(normalized);
+  }
+  const isLocalhost = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  if (isLocalhost) {
+    return new Date(normalized);
+  } else {
+    return new Date(normalized + 'Z');
+  }
+};
+
+const getSystemNotifIconEl = (type) => {
+  if (!type) return <Info size={14} />
+  const uType = type.toUpperCase()
+  if (uType === 'WARNING' || uType === 'OVERDUE_SERVICE' || uType === 'SERVICE_DUE') {
+    return <Wrench size={14} />
+  }
+  if (uType.startsWith('FUEL') || uType === 'LOW_EFFICIENCY') {
+    return <Fuel size={14} />
+  }
+  if (uType.startsWith('USER')) {
+    return <User size={14} />
+  }
+  if (uType === 'UPDATE' || uType === 'ASSIGN' || uType === 'UNASSIGN') {
+    return <Car size={14} />
+  }
+  return <Info size={14} />
+}
+
+const getSystemNotifIconBg = (type, isRead, isDark) => {
+  const base = { borderRadius: '50%', padding: 6, display: 'flex', color: '#fff' }
+  if (isRead) {
+    return { ...base, background: isDark ? '#374151' : '#e5e7eb', color: isDark ? '#9ca3af' : '#6b7280' }
+  }
+  if (!type) {
+    return { ...base, background: '#3b82f6' }
+  }
+  const uType = type.toUpperCase()
+  if (uType === 'OVERDUE_SERVICE') {
+    return { ...base, background: '#ef4444' } // Red for overdue
+  }
+  if (uType === 'WARNING' || uType === 'SERVICE_DUE') {
+    return { ...base, background: '#f59e0b' } // Orange for warnings/due soon
+  }
+  if (uType.startsWith('FUEL') || uType === 'LOW_EFFICIENCY') {
+    return { ...base, background: uType === 'LOW_EFFICIENCY' ? '#f97316' : '#2563eb' }
+  }
+  if (uType.startsWith('USER')) {
+    return { ...base, background: '#6366f1' } // Indigo for user management
+  }
+  if (uType === 'UPDATE' || uType === 'ASSIGN' || uType === 'UNASSIGN') {
+    return { ...base, background: '#10b981' } // Green for vehicles
+  }
+  return { ...base, background: '#3b82f6' }
 }
 
 // Map backend notification types → frontend routes
@@ -205,12 +269,162 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
   const hasUnreadNotifs = unreadCount > 0 || (user?.role === 'CONTROLLER' ? ctrlUnread > 0 : false) || (user?.role === 'DRIVER' ? drvUnread > 0 : false)
 
   return (
-    <header style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 32px', background: 'var(--topbar-bg)',
-      borderBottom: '1px solid var(--topbar-border)', height: 'var(--navbar-h)', boxSizing: 'border-box', width: '100%',
-      gap: 12,
-    }}>
+    <>
+      <style>{`
+        @keyframes bellSwing {
+          0%, 100% { transform: rotate(0); }
+          20% { transform: rotate(15deg); }
+          40% { transform: rotate(-15deg); }
+          60% { transform: rotate(10deg); }
+          80% { transform: rotate(-10deg); }
+        }
+
+        @keyframes bellRingingAlert {
+          0%, 85%, 100% { transform: rotate(0) scale(1); }
+          90% { transform: rotate(12deg) scale(1.05); }
+          92% { transform: rotate(-12deg) scale(1.05); }
+          94% { transform: rotate(10deg) scale(1.05); }
+          96% { transform: rotate(-10deg) scale(1.05); }
+          98% { transform: rotate(5deg) scale(1.02); }
+        }
+
+        @keyframes badgePulse {
+          0% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+          }
+          70% {
+            transform: scale(1.15);
+            box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+          }
+          100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+          }
+        }
+
+        @keyframes badgePulseAlert {
+          0% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+          }
+          70% {
+            transform: scale(1.15);
+            box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+          }
+          100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+          }
+        }
+
+        @keyframes dropdownEntry {
+          from {
+            opacity: 0;
+            transform: translateY(12px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes mobileSlideUp {
+          from {
+            opacity: 0;
+            transform: translateY(100%);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .topbar-bell-container {
+          transition: all 0.2s ease;
+        }
+        .topbar-bell-container:hover {
+          background: ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'} !important;
+        }
+        .topbar-bell-container:hover .topbar-bell-icon-wrapper {
+          animation: bellSwing 0.5s ease-in-out;
+          transform-origin: top center;
+        }
+
+        .topbar-notif-dropdown {
+          position: absolute;
+          top: 100%;
+          right: -20px;
+          margin-top: 16px;
+          width: 380px;
+          background: ${isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255, 255, 255, 0.96)'};
+          backdrop-filter: blur(12px);
+          border: 1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'};
+          border-radius: 16px;
+          box-shadow: ${isDark ? '0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)' : 'var(--shadow-xl)'};
+          z-index: 1000;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          animation: dropdownEntry 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          transform-origin: top right;
+        }
+
+        .topbar-notif-dropdown-list {
+          max-height: 380px;
+          overflow-y: auto;
+        }
+
+        .topbar-notif-dropdown-list::-webkit-scrollbar {
+          width: 6px;
+        }
+        .topbar-notif-dropdown-list::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .topbar-notif-dropdown-list::-webkit-scrollbar-thumb {
+          background: ${isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'};
+          border-radius: 99px;
+        }
+        .topbar-notif-dropdown-list::-webkit-scrollbar-thumb:hover {
+          background: ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'};
+        }
+
+        .topbar-notif-mobile-close {
+          display: none;
+        }
+
+        @media (max-width: 768px) {
+          .topbar-notif-dropdown {
+            position: fixed !important;
+            top: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-height: 100vh !important;
+            margin-top: 0 !important;
+            border-radius: 0 !important;
+            z-index: 9999 !important;
+            animation: mobileSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+          }
+
+          .topbar-notif-dropdown-list {
+            max-height: calc(100vh - 60px) !important;
+            padding-bottom: 60px;
+          }
+
+          .topbar-notif-mobile-close {
+            display: flex !important;
+          }
+        }
+      `}</style>
+      <header style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 32px', background: 'var(--topbar-bg)',
+        borderBottom: '1px solid var(--topbar-border)', height: 'var(--navbar-h)', boxSizing: 'border-box', width: '100%',
+        gap: 12,
+      }}>
       {/* Hamburger menu button (mobile only) */}
       {onMenuToggle && (
         <button
@@ -287,53 +501,120 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
         {/* Unified Notification Bell */}
         {user && (
           <div ref={dropdownRef} style={{ position: 'relative', cursor: 'pointer' }}>
-            <div onClick={() => setShowNotifications(!showNotifications)} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <Bell size={22} color={isDark ? '#94a3b8' : '#9ca3af'} />
+            <div 
+              onClick={() => setShowNotifications(!showNotifications)} 
+              className="topbar-bell-container"
+              style={{ 
+                position: 'relative', 
+                display: 'flex', 
+                alignItems: 'center',
+                padding: 8,
+                borderRadius: '50%',
+                background: showNotifications 
+                  ? (isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.08)') 
+                  : 'transparent',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s ease',
+                animation: totalUnread > 0 ? 'bellRingingAlert 3.5s ease-in-out infinite' : 'none',
+                transformOrigin: 'top center',
+              }}
+              className="topbar-bell-icon-wrapper"
+              >
+                <Bell 
+                  size={22} 
+                  color={showNotifications || totalUnread > 0 
+                    ? (isDark ? '#3b82f6' : '#2563eb') 
+                    : (isDark ? '#94a3b8' : '#6b7280')} 
+                  style={{ transition: 'color 0.2s' }}
+                />
+              </div>
               {totalUnread > 0 && (
-                <div style={{
-                  position: 'absolute', top: -5, right: -5,
-                  background: alertCount > 0 ? 'var(--danger)' : 'var(--primary)',
-                  color: '#fff', fontSize: '0.65rem', fontWeight: 700, width: 16, height: 16, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid var(--topbar-bg)`,
-                }}>
+                <div 
+                  className="topbar-bell-badge"
+                  style={{
+                    position: 'absolute', 
+                    top: 2, 
+                    right: 2,
+                    background: alertCount > 0 ? '#ef4444' : '#3b82f6',
+                    color: '#fff', 
+                    fontSize: '0.62rem', 
+                    fontWeight: 800, 
+                    minWidth: 16, 
+                    height: 16, 
+                    borderRadius: 8, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    border: `2px solid var(--topbar-bg)`,
+                    padding: '0 2px',
+                    boxSizing: 'border-box',
+                    animation: alertCount > 0 ? 'badgePulseAlert 2s infinite' : 'badgePulse 2s infinite',
+                  }}
+                >
                   {totalUnread > 9 ? '9+' : totalUnread}
                 </div>
               )}
             </div>
-
             {showNotifications && (
-              <div className="topbar-notif-dropdown" style={{
-                position: 'absolute', top: '100%', right: -20, marginTop: 16, width: 340, background: 'var(--surface)',
-                border: `1px solid var(--surface-border)`, borderRadius: 16, boxShadow: 'var(--shadow-xl)', zIndex: 100, display: 'flex', flexDirection: 'column', overflow: 'hidden'
-              }}>
+              <div className="topbar-notif-dropdown">
                 <div style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                   <h3 style={{ margin: 0, fontSize: '0.95rem', color: isDark ? '#fff' : '#1e293b', fontWeight: 600 }}>
                     {user.role === 'ADMIN' ? 'System Notifications' : (user.role === 'CONTROLLER' ? 'Activity & Alerts' : 'My Notifications')}
                   </h3>
-                  {hasUnreadNotifs && (
-                    <button
-                      onClick={handleMarkAllAsRead}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {hasUnreadNotifs && (
+                      <button
+                        onClick={handleMarkAllAsRead}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--primary)',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          padding: '4px 8px',
+                          borderRadius: 6,
+                          transition: 'background 0.2s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          whiteSpace: 'nowrap'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                      >
+                        <Check size={12} />
+                        Mark all as read
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => setShowNotifications(false)}
+                      className="topbar-notif-mobile-close"
+                      title="Close"
                       style={{
                         background: 'none',
                         border: 'none',
-                        color: 'var(--primary)',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
+                        color: isDark ? '#94a3b8' : '#64748b',
                         cursor: 'pointer',
                         padding: '4px 8px',
                         borderRadius: 6,
-                        transition: 'background 0.2s',
-                        display: 'flex',
+                        display: 'none',
                         alignItems: 'center',
-                        gap: 4,
-                        whiteSpace: 'nowrap'
+                        justifyContent: 'center',
+                        transition: 'background 0.2s'
                       }}
-                      onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)'}
+                      onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'none'}
                     >
-                      <Check size={12} />
-                      Mark all as read
+                      <X size={16} />
                     </button>
-                  )}
+                  </div>
                 </div>
 
                 {/* 1. Dashboard Alerts */}
@@ -349,21 +630,21 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
                   </Link>
                 )}
 
-                <div style={{ maxHeight: 380, overflowY: 'auto' }}>
+                <div className="topbar-notif-dropdown-list">
                   {/* 2. Admin System Notifs */}
                   {user.role === 'ADMIN' && (
                     notifications.length === 0 ? <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No recent system activity</div> :
                     notifications.map(n => {
                       const dest = n.link || getLinkFromType(n.type)
                       return (
-                        <div key={n.id} onClick={() => handleAdminNotifClick(n)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)'), cursor: dest ? 'pointer' : (n.isRead ? 'default' : 'pointer'), transition: 'background 0.15s' }}
+                        <div key={n.id} onClick={() => handleAdminNotifClick(n)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)'), cursor: dest ? 'pointer' : (n.isRead ? 'default' : 'pointer'), transition: 'all 0.15s', borderLeft: n.isRead ? '3px solid transparent' : '3px solid #3b82f6' }}
                           onMouseEnter={e => { if (dest || !n.isRead) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
                           onMouseLeave={e => { e.currentTarget.style.background = n.isRead ? 'transparent' : (isDark ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)') }}
                         >
-                          <div style={{ background: n.isRead ? (isDark ? '#374151' : '#f3f4f6') : '#3b82f6', color: '#fff', borderRadius: '50%', padding: 6, display: 'flex' }}><Info size={14} /></div>
+                          <div style={getSystemNotifIconBg(n.type, n.isRead, isDark)}>{getSystemNotifIconEl(n.type)}</div>
                           <div style={{ flex: 1 }}>
-                            <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#f3f4f6' : '#374151', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
-                            <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{new Date(n.createdAt).toLocaleString()}</span>
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: n.isRead ? (isDark ? '#94a3b8' : '#64748b') : (isDark ? '#f3f4f6' : '#1e293b'), fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
+                            <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{parseBackendDate(n.createdAt).toLocaleString()}</span>
                           </div>
                           {!n.isRead && (
                             <button
@@ -411,14 +692,14 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
                           {notifications.map(n => {
                             const dest = n.link || getLinkFromType(n.type)
                             return (
-                              <div key={n.id} onClick={() => handleAdminNotifClick(n)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)'), cursor: dest ? 'pointer' : (n.isRead ? 'default' : 'pointer'), transition: 'background 0.15s' }}
+                              <div key={n.id} onClick={() => handleAdminNotifClick(n)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)'), cursor: dest ? 'pointer' : (n.isRead ? 'default' : 'pointer'), transition: 'all 0.15s', borderLeft: n.isRead ? '3px solid transparent' : '3px solid #3b82f6' }}
                                 onMouseEnter={e => { if (dest || !n.isRead) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
                                 onMouseLeave={e => { e.currentTarget.style.background = n.isRead ? 'transparent' : (isDark ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)') }}
                               >
-                                <div style={{ background: n.isRead ? (isDark ? '#374151' : '#f3f4f6') : '#3b82f6', color: '#fff', borderRadius: '50%', padding: 6, display: 'flex' }}><Info size={14} /></div>
+                                <div style={getSystemNotifIconBg(n.type, n.isRead, isDark)}>{getSystemNotifIconEl(n.type)}</div>
                                 <div style={{ flex: 1 }}>
-                                  <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#f3f4f6' : '#374151', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
-                                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{new Date(n.createdAt).toLocaleString()}</span>
+                                  <p style={{ margin: 0, fontSize: '0.85rem', color: n.isRead ? (isDark ? '#94a3b8' : '#64748b') : (isDark ? '#f3f4f6' : '#1e293b'), fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
+                                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{parseBackendDate(n.createdAt).toLocaleString()}</span>
                                 </div>
                                 {!n.isRead && (
                                   <button
@@ -466,14 +747,14 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
                         <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No recent activity</div>
                       ) : (
                         ctrlNotifs.map(n => (
-                          <div key={n.id} onClick={() => handleNotifClick(n, handleCtrlMarkRead)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(96, 165, 250,0.06)' : 'rgba(96, 165, 250,0.04)'), cursor: n.link ? 'pointer' : (n.isRead ? 'default' : 'pointer'), transition: 'background 0.15s' }}
+                          <div key={n.id} onClick={() => handleNotifClick(n, handleCtrlMarkRead)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(96, 165, 250,0.06)' : 'rgba(96, 165, 250,0.04)'), cursor: n.link ? 'pointer' : (n.isRead ? 'default' : 'pointer'), transition: 'all 0.15s', borderLeft: n.isRead ? '3px solid transparent' : '3px solid #a855f7' }}
                             onMouseEnter={e => { if (n.link || !n.isRead) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
                             onMouseLeave={e => { e.currentTarget.style.background = n.isRead ? 'transparent' : (isDark ? 'rgba(96, 165, 250,0.06)' : 'rgba(96, 165, 250,0.04)') }}
                           >
                             <div style={ctrlNotifIcon(n.type, isDark)}>{ctrlNotifIconEl(n.type)}</div>
                             <div style={{ flex: 1 }}>
-                              <p style={{ margin: 0, fontSize: '0.82rem', color: isDark ? '#f3f4f6' : '#374151', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
-                              <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{new Date(n.createdAt).toLocaleString()}</span>
+                              <p style={{ margin: 0, fontSize: '0.82rem', color: n.isRead ? (isDark ? '#94a3b8' : '#64748b') : (isDark ? '#f3f4f6' : '#1e293b'), fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
+                              <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{parseBackendDate(n.createdAt).toLocaleString()}</span>
                             </div>
                             {!n.isRead && (
                               <button
@@ -514,14 +795,14 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
                   {user.role === 'DRIVER' && (
                     drvNotifs.length === 0 ? <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No recent activity</div> :
                     drvNotifs.map(n => (
-                      <div key={n.id} onClick={() => handleNotifClick(n, handleDrvMarkRead)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.04)'), cursor: n.link ? 'pointer' : (n.isRead ? 'default' : 'pointer'), transition: 'background 0.15s' }}
+                      <div key={n.id} onClick={() => handleNotifClick(n, handleDrvMarkRead)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.04)'), cursor: n.link ? 'pointer' : (n.isRead ? 'default' : 'pointer'), transition: 'all 0.15s', borderLeft: n.isRead ? '3px solid transparent' : '3px solid #10b981' }}
                         onMouseEnter={e => { if (n.link || !n.isRead) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
                         onMouseLeave={e => { e.currentTarget.style.background = n.isRead ? 'transparent' : (isDark ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.04)') }}
                       >
                         <div style={drvNotifIcon(n.type, isDark)}>{drvNotifIconEl(n.type)}</div>
                         <div style={{ flex: 1 }}>
-                          <p style={{ margin: 0, fontSize: '0.82rem', color: isDark ? '#f3f4f6' : '#374151', fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
-                          <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{new Date(n.createdAt).toLocaleString()}</span>
+                          <p style={{ margin: 0, fontSize: '0.82rem', color: n.isRead ? (isDark ? '#94a3b8' : '#64748b') : (isDark ? '#f3f4f6' : '#1e293b'), fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
+                          <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{parseBackendDate(n.createdAt).toLocaleString()}</span>
                         </div>
                         {!n.isRead && (
                           <button
@@ -579,6 +860,7 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
         </a>
       </div>
     </header>
+    </>
   )
 }
 

@@ -7,9 +7,29 @@ import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import { addControllerNotification, addDriverNotification } from '../services/notificationService'
 import { computeMileageProgress, computeDateAlert, getAlertLevel, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
-import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle, Paperclip, User, Eye, Archive, Clock, Gauge, BellRing, MoreVertical, ShieldAlert, Wallet, Sparkles, LayoutGrid, List, Download, IdCard, Shield, FileText } from 'lucide-react'
+import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wrench, Car, Calendar, MapPin, Edit2, Trash2, ClipboardList, CheckCircle, CircleDollarSign, X, Check, AlertTriangle, Paperclip, User, Eye, Archive, Clock, Gauge, BellRing, MoreVertical, ShieldAlert, Wallet, Plus, LayoutGrid, List, Download, IdCard, Shield, FileText } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
+
+/* ── Parse Backend Date Helper (Handles hosted UTC vs local tz) ── */
+const parseBackendDate = (dateStr) => {
+  if (!dateStr) return new Date(0);
+  if (dateStr instanceof Date) return dateStr;
+  let normalized = dateStr;
+  if (typeof dateStr === 'string') {
+    normalized = dateStr.replace(' ', 'T');
+  }
+  if (normalized.endsWith('Z') || normalized.match(/[+-]\d{2}:\d{2}$/)) {
+    return new Date(normalized);
+  }
+  const isLocalhost = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  if (isLocalhost) {
+    return new Date(normalized);
+  } else {
+    return new Date(normalized + 'Z');
+  }
+};
 
 /* ── Table Status Helper ────────────────────────────────────────── */
 const getTableStatus = (s) => {
@@ -504,7 +524,7 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
           )}
           {record.createdAt && (
             <span style={{ fontSize: '0.82rem', color: D.textSub, fontWeight: 500 }}>
-              {new Date(record.createdAt).toLocaleDateString()}
+              {parseBackendDate(record.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
           {/* ── Attachment chip ── */}
@@ -720,7 +740,7 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
         )}
         {record.createdAt && (
           <span style={{ fontSize: '0.8rem', color: D.textSub, fontWeight: 500 }}>
-            · {new Date(record.createdAt).toLocaleDateString()}
+            · {parseBackendDate(record.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </span>
         )}
         {record.attachmentPath && (
@@ -923,6 +943,7 @@ const ServicePage = () => {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState('grid')
+  const [sortBy, setSortBy] = useState('creationDesc') // Default: Creation Time (Newest)
 
   // ── Service due alerts ──────────────────────────────────────────
   const [alertRecords, setAlertRecords] = useState([])  // records with DUE_SOON or OVERDUE level
@@ -2213,9 +2234,33 @@ const ServicePage = () => {
     }
     return true
   }).sort((a, b) => {
-    const dateA = a.serviceDate ? new Date(a.serviceDate) : new Date(0);
-    const dateB = b.serviceDate ? new Date(b.serviceDate) : new Date(0);
-    return dateB - dateA;
+    if (sortBy === 'creationDesc') {
+      const dateA = a.createdAt ? parseBackendDate(a.createdAt) : new Date(0);
+      const dateB = b.createdAt ? parseBackendDate(b.createdAt) : new Date(0);
+      return dateB - dateA;
+    }
+    if (sortBy === 'creationAsc') {
+      const dateA = a.createdAt ? parseBackendDate(a.createdAt) : new Date(0);
+      const dateB = b.createdAt ? parseBackendDate(b.createdAt) : new Date(0);
+      return dateA - dateB;
+    }
+    if (sortBy === 'serviceDateDesc') {
+      const dateA = a.serviceDate ? new Date(a.serviceDate) : new Date(0);
+      const dateB = b.serviceDate ? new Date(b.serviceDate) : new Date(0);
+      return dateB - dateA;
+    }
+    if (sortBy === 'serviceDateAsc') {
+      const dateA = a.serviceDate ? new Date(a.serviceDate) : new Date(0);
+      const dateB = b.serviceDate ? new Date(b.serviceDate) : new Date(0);
+      return dateA - dateB;
+    }
+    if (sortBy === 'costDesc') {
+      return (b.serviceCost || 0) - (a.serviceCost || 0);
+    }
+    if (sortBy === 'costAsc') {
+      return (a.serviceCost || 0) - (b.serviceCost || 0);
+    }
+    return 0;
   })
 
   /* ── Shared stat-card style ───────────────────────────────────── */
@@ -2427,7 +2472,7 @@ const ServicePage = () => {
                   onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}
                 >
-                  <Sparkles size={20} strokeWidth={3} /> New Work Order
+                  <Plus size={20} strokeWidth={3} /> New Work Order
                 </button>
               )}
             </div>
@@ -3703,6 +3748,50 @@ const ServicePage = () => {
                           </div>
                         </div>
 
+                        {/* Sort Dropdown */}
+                        <div style={{ position: 'relative', minWidth: 200 }}>
+                          <select
+                            value={sortBy}
+                            onChange={e => setSortBy(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '12px 28px 12px 14px',
+                              background: D.inputBg,
+                              border: `1px solid ${sortBy !== 'creationDesc' ? 'rgba(99,102,241,0.4)' : D.inputBorder}`,
+                              borderRadius: 14,
+                              color: D.text,
+                              fontSize: '0.9rem',
+                              fontWeight: 700,
+                              outline: 'none',
+                              cursor: 'pointer',
+                              appearance: 'none',
+                              fontFamily: "'Outfit', sans-serif",
+                              boxSizing: 'border-box',
+                              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                            }}
+                            onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; e.target.style.background = D.surface }}
+                            onBlur={e => { e.target.style.borderColor = sortBy !== 'creationDesc' ? 'rgba(99,102,241,0.4)' : D.inputBorder; e.target.style.background = D.inputBg }}
+                          >
+                            <option value="creationDesc" style={{ background: D.surfaceHi, color: D.text }}>Creation Time (Newest)</option>
+                            <option value="creationAsc" style={{ background: D.surfaceHi, color: D.text }}>Creation Time (Oldest)</option>
+                            <option value="serviceDateDesc" style={{ background: D.surfaceHi, color: D.text }}>Service Date (Newest)</option>
+                            <option value="serviceDateAsc" style={{ background: D.surfaceHi, color: D.text }}>Service Date (Oldest)</option>
+                            <option value="costDesc" style={{ background: D.surfaceHi, color: D.text }}>Cost (High to Low)</option>
+                            <option value="costAsc" style={{ background: D.surfaceHi, color: D.text }}>Cost (Low to High)</option>
+                          </select>
+                          <div style={{
+                            position: 'absolute',
+                            right: 12,
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            pointerEvents: 'none',
+                            color: D.textSub,
+                            fontSize: '0.8rem'
+                          }}>
+                            ▾
+                          </div>
+                        </div>
+
                         {/* View Switcher */}
                         <div style={{ display: 'flex', background: D.surfaceHi, border: `1px solid ${D.border}`, borderRadius: 10, padding: 2, gap: 2 }}>
                           <button
@@ -4261,7 +4350,7 @@ const ServicePage = () => {
                         {r.createdAt && (
                           <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.8rem', color: D.textSub }}>
                             <Calendar size={13} />
-                            {new Date(r.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            {parseBackendDate(r.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </span>
                         )}
                         {r.attachmentPath && (
@@ -4589,7 +4678,7 @@ const ServicePage = () => {
                         )}
                         {r.createdAt && (
                           <span style={{ fontSize: '0.75rem', color: D.textSub, marginLeft: 'auto' }}>
-                            {new Date(r.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            {parseBackendDate(r.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </span>
                         )}
                       </div>
@@ -4633,7 +4722,7 @@ const ServicePage = () => {
                                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Edited</span>
                                 <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.text }}>by {entry.changedBy || '—'}</span>
                                 <span style={{ fontSize: '0.75rem', color: D.textSub, marginLeft: 'auto' }}>
-                                  {entry.changedAt ? new Date(entry.changedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                                  {entry.changedAt ? parseBackendDate(entry.changedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                                 </span>
                               </div>
 
