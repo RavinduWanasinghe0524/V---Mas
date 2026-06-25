@@ -560,16 +560,6 @@ const RecentActivitySection = ({ activities = [], navigate }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
       <h2 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text-primary)', fontWeight: 700 }}>Recent Fleet Activity</h2>
       <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-      <button
-        onClick={() => navigate('/reports')}
-        style={{
-          padding: '6px 14px', borderRadius: 8, border: '1px solid var(--surface-border)',
-          background: 'var(--surface)', color: 'var(--text-muted)',
-          fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
-          outline: 'none',
-          fontFamily: 'inherit',
-        }}
-      >View all →</button>
     </div>
     <div style={{
       background: 'var(--surface)', borderRadius: 24,
