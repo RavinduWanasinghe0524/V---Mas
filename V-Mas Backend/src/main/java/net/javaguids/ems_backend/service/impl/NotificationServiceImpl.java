@@ -7,6 +7,8 @@ import net.javaguids.ems_backend.mapper.NotificationMapper;
 import net.javaguids.ems_backend.repository.NotificationRepository;
 import net.javaguids.ems_backend.service.NotificationService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,9 +20,16 @@ public class NotificationServiceImpl implements NotificationService {
     private NotificationRepository notificationRepository;
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void createNotification(String target, String message, String type) {
-        Notification notification = new Notification(target, message, type);
-        notificationRepository.save(notification);
+        try {
+            Notification notification = new Notification(target, message, type);
+            notificationRepository.save(notification);
+        } catch (Exception e) {
+            // Log but never propagate — a failed notification must never roll back the parent operation
+            org.slf4j.LoggerFactory.getLogger(NotificationServiceImpl.class)
+                    .warn("Failed to create notification for target='{}' type='{}': {}", target, type, e.getMessage());
+        }
     }
 
     @Override

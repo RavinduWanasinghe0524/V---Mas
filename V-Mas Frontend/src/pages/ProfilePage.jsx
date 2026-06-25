@@ -131,6 +131,10 @@ const ProfilePage = () => {
 
   // Refs
   const fileInputRef = useRef(null)
+  // Guard: prevents the form from submitting immediately after entering edit mode.
+  // When the DOM swaps "Edit Profile" → "Save Changes" at the same position,
+  // the browser can fire a spurious click/submit on the new button.
+  const justEnteredEditRef = useRef(false)
 
   // Styles
   const inputStyle = {
@@ -175,7 +179,11 @@ const ProfilePage = () => {
   const handleSaveAll = (e) => {
     if (e) e.preventDefault();
     if (activeTab === 'profile') {
-      handleProfileSubmit({ preventDefault: () => {} })
+      if (isEditingProfile) {
+        handleProfileSubmit({ preventDefault: () => {} })
+      } else {
+        setIsEditingProfile(true)
+      }
     } else if (activeTab === 'security') {
       handlePasswordSubmit({ preventDefault: () => {} })
     } else if (activeTab === 'notifications') {
@@ -228,7 +236,9 @@ const ProfilePage = () => {
   }, [])
 
   useEffect(() => {
-    if (user) {
+    // Only sync from user data when NOT actively editing,
+    // to prevent resetting changes the user has typed.
+    if (user && !isEditingProfile) {
       setProfileForm(prev => ({
         ...prev,
         email: user.email || '',
@@ -300,8 +310,17 @@ const ProfilePage = () => {
     reader.readAsDataURL(file)
   }
 
+  // Enter edit mode and set a 500ms guard against spurious form submissions
+  const handleEnterEditMode = () => {
+    justEnteredEditRef.current = true
+    setIsEditingProfile(true)
+    setTimeout(() => { justEnteredEditRef.current = false }, 500)
+  }
+
   const handleProfileSubmit = async e => {
     e.preventDefault()
+    // Block submission if triggered within 500ms of entering edit mode (spurious click guard)
+    if (justEnteredEditRef.current) return
     setProfileError(''); setProfileSuccess(''); setProfileLoading(true)
     try {
       if (user?.id?.toString().startsWith('demo_')) {
@@ -317,7 +336,7 @@ const ProfilePage = () => {
       }
       const res = await profileAPI.updateMyProfile({
         email: profileForm.email,
-        profilePicture: profileForm.profilePicture,
+        profilePicture: profileForm.profilePicture !== user?.profilePicture ? profileForm.profilePicture : null,
         phoneNumber: profileForm.phone,
         gender: profileForm.gender,
         nic: profileForm.nic,
@@ -434,50 +453,7 @@ const ProfilePage = () => {
               </p>
             </div>
 
-            {/* Save Changes button on top banner */}
-            <button
-              onClick={handleSaveAll}
-              disabled={isSaving || activeTab === 'appearance'}
-              style={{
-                position: 'relative', padding: '14px 28px', borderRadius: 16, border: 'none',
-                background: (isSaving || activeTab === 'appearance') 
-                  ? 'rgba(255,255,255,0.1)' 
-                  : '#fff',
-                color: (isSaving || activeTab === 'appearance') 
-                  ? 'rgba(255,255,255,0.4)' 
-                  : '#1e3a8a',
-                fontSize: '0.95rem', fontWeight: 800,
-                cursor: (isSaving || activeTab === 'appearance') ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', gap: 10,
-                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: (isSaving || activeTab === 'appearance') ? 'none' : '0 8px 30px rgba(0,0,0,0.25)',
-                whiteSpace: 'nowrap', flexShrink: 0,
-              }}
-              onMouseEnter={e => {
-                if (!isSaving && activeTab !== 'appearance') {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.background = '#f8fafc';
-                }
-              }}
-              onMouseLeave={e => {
-                if (!isSaving && activeTab !== 'appearance') {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.background = '#ffffff';
-                }
-              }}
-            >
-              {isSaving ? (
-                <>
-                  <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(0,0,0,0.1)', borderTopColor: '#1e3a8a', animation: 'spin 0.7s linear infinite' }} />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Check size={18} strokeWidth={3} />
-                  Save Changes
-                </>
-              )}
-            </button>
+
           </div>
 
           {/* Split Settings Layout */}
@@ -541,12 +517,13 @@ const ProfilePage = () => {
             <div className="responsive-card-settings" style={{
               flex: 1, minWidth: 0, background: D.surface, borderRadius: 24,
               border: `1px solid ${D.border}`,
-              boxShadow: '0 4px 24px rgba(0,0,0,0.15)', position: 'relative'
+              boxShadow: '0 4px 24px rgba(0,0,0,0.15)', position: 'relative',
+              padding: '28px 32px'
             }}>
               
               {/* Profile Settings Panel */}
               {activeTab === 'profile' && (
-                <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                <div style={{ animation: 'fadeIn 0.3s ease', padding: 0 }}>
                   <h3 style={{ margin: '0 0 8px', fontSize: '1.2rem', fontWeight: 800, color: D.text }}>Profile Information</h3>
                   <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: D.textSub }}>Update your basic details, contact info, and profile avatar.</p>
 
@@ -755,7 +732,7 @@ const ProfilePage = () => {
                       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
                         <button
                           type="button"
-                          onClick={() => setIsEditingProfile(true)}
+                          onClick={handleEnterEditMode}
                           style={{
                             padding: '12px 24px', borderRadius: 12, border: 'none',
                             background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
