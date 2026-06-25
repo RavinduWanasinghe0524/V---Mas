@@ -1454,14 +1454,14 @@
   font-weight: 700;
   color: #EDF2FF;
   margin-bottom: 7px;
-  text-align: left;
+  text-align: center;
 }
 .ag-welcome-sub {
   font-size: 13.5px;
   color: #8899B8;
   line-height: 1.5;
   margin-bottom: 22px;
-  text-align: left;
+  text-align: center;
 }
 
 .theme-light .ag-welcome-title {
@@ -1475,6 +1475,7 @@
 .ag-slide-status-bar {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   margin-bottom: 22px;
   padding: 10px 14px;
