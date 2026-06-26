@@ -9,6 +9,9 @@ A full-stack fleet management web application with role-based access control, re
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Architecture Overview](#architecture-overview)
+- [Security & Authentication Architecture](#-security--authentication-architecture)
+- [Database Schema & PostConstruct Migrations](#%EF%B8%8F-database-schema--postconstruct-migrations)
+- [Core Algorithms & Telemetry Processing](#-core-algorithms--telemetry-processing)
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
   - [1. Database Setup](#1-database-setup)
@@ -40,6 +43,7 @@ A full-stack fleet management web application with role-based access control, re
 - Assign/unassign drivers to vehicles; view full assignment history
 - Vehicle availability status tracking (`AVAILABLE`, `ASSIGNED`, `UNDER_MAINTENANCE`)
 - Upload and download vehicle documents (insurance, license, etc.)
+- **Live Location Tracking** – Interactive dark-themed SVG map mockup (`LocationPage.jsx`) featuring live-updating positions, real-time speed monitoring (MOVING, IDLE, PARKED), and specific vehicle details inspection cards.
 
 ### ⛽ Fuel Logging & Analytics
 - **Drivers** log personal fuel fill-ups (litres, cost per litre, current mileage, date)
@@ -74,6 +78,7 @@ A full-stack fleet management web application with role-based access control, re
 - Admin/Controller panel to create, update, activate/deactivate, and delete users
 - Approve or reject pending user registrations
 - Employee directory management (separate from system user accounts)
+- **Role & Status filtering via Dashboard** – Stat cards on the Admin Dashboard support navigation shortcuts; clicking on Admin, Controller, Driver, Active, or Inactive cards redirects directly to the `/users` screen pre-filtered by the selected role or account status.
 
 ### 🔔 Notifications
 - System-wide notifications for key events (vehicle updates, fuel log changes, service records)
@@ -87,6 +92,9 @@ A full-stack fleet management web application with role-based access control, re
 - Animated stat cards, hover effects, and toast notifications
 - Lazy-loaded page components (via `React.lazy` + `Suspense`) with a branded loading screen
 - `ThemeContext` + `AuthContext` provide consistent design tokens and auth state across the app
+- **Interactive SVG Visualization Components**:
+  - **Live Fleet Utilization Chart** – Pulsing area line chart with animated gradient overlays, neon glow effects, and interactive hover tooltip tracking.
+  - **Status Breakdown Donut Chart** – Custom-calculated SVG donut chart representing active, maintenance, and available fleet splits with animated slice transitions and hover highlights.
 
 ---
 
@@ -142,6 +150,74 @@ A full-stack fleet management web application with role-based access control, re
 - Frontend hosted on **Vercel** (SPA rewrites via `vercel.json`)
 - Backend API proxied through **AWS CloudFront** → Elastic Beanstalk
 - Database on **AWS RDS MySQL** (ap-southeast-1, Singapore)
+
+---
+
+## 🔒 Security & Authentication Architecture
+
+The system enforces robust JWT-based stateless authentication and authorization mechanisms across both frontend and backend layers.
+
+### Backend Security Components (`SecurityConfig.java`)
+- **JWT Authentication Filter (`JwtAuthenticationFilter.java`)**: Intercepts all incoming HTTP requests (except public auth paths and Swagger UI). It extracts the JWT token from the `Authorization: Bearer <token>` header, extracts the username, and validates it against current `UserDetails`.
+- **User Activation & Soft-Delete Guard (`CustomUserDetailsService.java`)**: 
+  - Prevents deleted users (checked via `user.isDeleted()`) from authenticating by throwing a `UsernameNotFoundException`.
+  - Maps the account status (`AccountStatus.ACTIVE`) to Spring Security's `enabled` property. Users in `PENDING`, `INACTIVE`, or `REJECTED` states will fail database authentication attempts with a `DisabledException`.
+- **Role Hierarchy & Method Security**: Uses Spring Security's `@EnableMethodSecurity` to declare fine-grained controller access.
+- **REST Exception Handlers**:
+  - `RestAuthenticationEntryPoint` returns custom JSON payloads for unauthenticated users (`401 Unauthorized`).
+  - `RestAccessDeniedHandler` returns custom JSON payloads for unauthorized actions (`403 Forbidden`).
+- **Dynamic CORS Controls**: Configures allowed origins dynamically. Out-of-the-box support includes `localhost:3000`, `localhost:5173`, LAN testing via `192.168.15.238:3000/3001` (for mobile emulator testing), and production origin `v-mas.vercel.app`. Additional endpoints can be populated at runtime via the `cors.allowed.origins` property.
+
+### Frontend Security Mechanics (`api.js` & `AuthContext.jsx`)
+- **Axios Interceptors**:
+  - **Request Interceptor**: Automatically pulls the current JWT token from `localStorage` and injects it as an `Authorization` header on every outbound API call.
+  - **Response Interceptor**: Intercepts global response errors. If a `401 Unauthorized` status is received on non-login/register/profile pages, it automatically wipes the token and cached user configuration from `localStorage` and triggers a hard redirect to `/login`.
+- **Role Scope Restrictions**:
+  - **Driver Scope**: Restricted to personal logs and views. Drivers cannot query other users, alter fleet configurations, or inspect full operational costs.
+  - **Controller Scope**: Possesses general read-write privileges for vehicle scheduling and fuel logging but is explicitly constrained from modifying admin profiles or elevating other users to ADMIN. In the approval panel, controllers are restricted to view, approve, or reject DRIVER accounts only.
+  - **Admin Scope**: Has unrestricted privileges to approve controllers, customize system parameters, and delete user profiles.
+
+---
+
+## ⚙️ Database Schema & PostConstruct Migrations
+
+Rather than relying entirely on Spring Boot's automatic schema updates, V-MAS implements a dual-layer strategy to handle complex schema migrations safely:
+
+1. **Idempotent Post-Initialization Schema Migrations (`SchemaMigrationConfig.java`)**:
+   - Runs database modifications at startup within a `@PostConstruct` method using `JdbcTemplate`.
+   - Resolves issues that Hibernate's `ddl-auto=update` cannot handle natively (such as changing constraint nullability or dropping legacy columns).
+   - **Migration 1 (Service Records Stale Column)**: Identifies and removes a deprecated `vehicle_id` foreign key column from the `service_records` table, dropping key constraints dynamically first to prevent foreign key errors.
+   - **Migration 2 (Fuel Log Legacy Column)**: Drops a legacy `current_mileage` column in `fuel_logs` that was orphaned by entity field name refactoring.
+   - **Migration 3 (Fuel Log Nullability)**: Alters `driver_username` and `uploaded_by` column schemas to permit `NULL` values, supporting entries registered by controllers where driver associations are not mandatory.
+2. **Flyway Integration**:
+   - Migration scripts reside in `V-Mas Backend/src/main/resources/db/migration/` (e.g., expanding profile pictures to `LONGTEXT`, adding auditing flags).
+   - Configured via standard SQL migrations for baseline adjustments, ensuring consistency across environments.
+
+---
+
+## 🧮 Core Algorithms & Telemetry Processing
+
+### 1. Report Export Workbook Construction (`excelExport.js`)
+Generates 7 different highly styled Excel reports (Vehicle Summary, Fuel Consumption, Service & Maintenance, User Directory, Fuel Efficiency, Cost Analysis, Comprehensive Master Report) using `ExcelJS`:
+- **Theme Accents**: Defines color mappings for headers (`navy`, `indigo`, `teal`, `purple`, `gold`, `green`) and pale colors for cell styling.
+- **KPI Summary Cards**: Automatically renders key metrics in standard 2-column tables before list details.
+- **Auto-Fit Formula**: Loops through each column's cell values to dynamically set the appropriate width, bounded between 12 and 40 characters.
+- **Formatting Utilities**: Applies custom formatting rules for currency (`Rs. 0,000`) and localization formats (`en-GB` format, e.g. `27-Jun-2026`).
+
+### 2. Service Alert Threshold Computations (`serviceAlertUtils.js`)
+Ensures vehicle safety and compliance by calculating upcoming maintenance windows:
+- **Mileage Progress**: Compares current vehicle odometer readings against the last serviced and target mileages. If the remaining distance is `<= 200 km`, a `DUE_SOON` warning is triggered. Odometer values exceeding the target return `OVERDUE`.
+- **Date Alerts**: Calculates dates against today's timestamp. If a scheduled date is within `7 days`, it returns `DUE_SOON`. If the date is past today, it returns `OVERDUE`.
+- **Precedence Logic**: Employs a priority order (`OVERDUE` > `DUE_SOON` > `OK`) to aggregate mileage and date status flags.
+
+### 3. Client-Side Fuel Efficiency Progression (`fuelUtils.js`)
+- Groups raw fuel transactions by vehicle registration number and sorts them chronologically.
+- Resolves sequential fuel efficiency via `(current mileage - previous mileage) / liters`.
+- Uses the vehicle's initial database registration mileage as a baseline fallback for the very first log to ensure that efficiency calculations are available from entry #1.
+
+### 4. Driver Telemetry & Mock Data Mocking (`driverUtils.js`)
+- Generates driver telemetry such as safety ratings and travel indicators based on user database ID hash tables.
+- Resolves real vehicle assignments dynamically by joining driver records against active database vehicle instances in-place.
 
 ---
 
@@ -300,11 +376,18 @@ Created automatically by `setup-database.sql`:
 
 ## API Endpoints
 
-> 🔐 **Authentication Required** — All endpoints except `/api/auth/register` and `/api/auth/login` require:
+> 🔐 **Authentication & Authorization Policy** — All endpoints except `/api/auth/register` and `/api/auth/login` require:
 > ```
 > Authorization: Bearer <your_jwt_token>
 > ```
 > Base URL (local): `http://localhost:8080`
+>
+> ### 🛡️ Controller vs. Admin Authorization Constraints:
+> While both `ADMIN` and `CONTROLLER` roles have access to user management endpoints, the backend enforces the following logical constraints inside service layers and controllers:
+> - **User Approval Queue (`/api/users/pending`)**: Controllers can query this queue, but the results are filtered in-memory to only reveal pending `DRIVER` accounts. Attempts by a Controller to approve or reject a pending `ADMIN` or `CONTROLLER` will throw a runtime access violation.
+> - **User Modification (`/api/users/{id}`)**: Controllers cannot update `ADMIN` accounts or elevate any user's role to `ADMIN`.
+> - **User Registration (`/api/users`)**: Controllers are restricted to creating only `DRIVER` or `CONTROLLER` accounts.
+> - **User Deletion (`/api/users/{id}`)**: Controllers are restricted to deleting only `DRIVER` accounts.
 
 ---
 
@@ -644,14 +727,15 @@ Created automatically by `setup-database.sql`:
 
 ### 📦 Postman Collections
 
-Ready-to-import collections are included in `V-Mas Backend/`:
+Ready-to-import collections are included in the repository:
 
-| File | Contents |
-|------|----------|
-| `VMAS_Postman_Collection.json` | Auth, Vehicle, User, Employee endpoints |
-| `Fuel_Analysis_Complete_Postman_Collection.json` | Full fuel management and analytics suite |
-| `Service_API_Postman_Collection.json` | Service record endpoints |
-| `VMAS_Local_Environment.postman_environment.json` | Pre-configured `baseUrl` and `token` variables |
+| File | Location | Contents |
+|------|----------|----------|
+| `V-MAS.postman_collection.json` | Root Directory | Root-level combined API collection |
+| `VMAS_Postman_Collection.json` | `V-Mas Backend/` | Auth, Vehicle, User, Employee endpoints |
+| `Fuel_Analysis_Complete_Postman_Collection.json` | `V-Mas Backend/` | Full fuel management and analytics suite |
+| `Service_API_Postman_Collection.json` | `V-Mas Backend/` | Service record endpoints |
+| `VMAS_Local_Environment.postman_environment.json` | `V-Mas Backend/` | Pre-configured `baseUrl` and `token` variables |
 
 **How to import:**
 1. Open Postman → **Import** → select the `.json` files above
