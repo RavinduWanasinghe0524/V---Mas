@@ -210,6 +210,9 @@ const VehiclesPage = () => {
   const { user, isAdmin, isController, isDriver } = useAuth()
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  // True only when the Add modal was opened via the dashboard "Register Vehicle" Quick Command,
+  // so that adding/cancelling/closing returns to the controller dashboard.
+  const [fromQuickCommand, setFromQuickCommand] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [pendingUpload, setPendingUpload] = useState(null)
@@ -546,6 +549,7 @@ const VehiclesPage = () => {
         }
       } else if (location.state?.openAddVehicle) {
         openModal()
+        if (location.state?.fromOneClick) setFromQuickCommand(true)
         navigate(location.pathname, { replace: true, state: {} })
       }
     }
@@ -695,6 +699,12 @@ const VehiclesPage = () => {
     })
     setInsuranceFile(null)
     setLicenseFile(null)
+    // When opened from the dashboard Quick Command, return to the controller dashboard
+    // after adding, cancelling, or closing. Normal Fleet-page usage stays on the page.
+    if (fromQuickCommand) {
+      setFromQuickCommand(false)
+      navigate('/dashboard')
+    }
   }
 
   const handleSubmit = async (e) => {

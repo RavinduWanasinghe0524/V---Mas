@@ -127,11 +127,11 @@ const AdminDashboard = ({ stats, loading, navigate, isDark }) => {
       <SectionHeader title="User Statistics" />
       <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
         <StatCard icon={<Users size={20} color={A.purple}/>} label="Total Users" value={stats.totalUsers} colorDim={A.purpleDim} colorHex={A.purple} change="Registered in system" onClick={() => navigate('/users')} />
-        <StatCard icon={<Shield size={20} color={A.indigo}/>} label="Admins" value={stats.admins} colorDim={A.indigoDim} colorHex={A.indigo} change="System administrators" onClick={() => navigate('/users')} />
-        <StatCard icon={<Gamepad2 size={20} color={A.blue}/>} label="Controllers" value={stats.controllers} colorDim={A.blueDim} colorHex={A.blue} change="Fleet controllers" onClick={() => navigate('/users')} />
-        <StatCard icon={<Car size={20} color={A.green}/>} label="Drivers" value={stats.drivers} colorDim={A.greenDim} colorHex={A.green} change="Vehicle operators" onClick={() => navigate('/users')} />
-        <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Active" value={stats.activeUsers} colorDim={A.greenDim} colorHex={A.green} change="Currently active accounts" onClick={() => navigate('/users')} />
-        <StatCard icon={<Ban size={20} color={A.red}/>} label="Inactive" value={stats.inactiveUsers} colorDim={A.redDim} colorHex={A.red} change="Disabled accounts" onClick={() => navigate('/users')} />
+        <StatCard icon={<Shield size={20} color={A.indigo}/>} label="Admins" value={stats.admins} colorDim={A.indigoDim} colorHex={A.indigo} change="System administrators" onClick={() => navigate('/users', { state: { roleFilter: 'ADMIN' } })} />
+        <StatCard icon={<Gamepad2 size={20} color={A.blue}/>} label="Controllers" value={stats.controllers} colorDim={A.blueDim} colorHex={A.blue} change="Fleet controllers" onClick={() => navigate('/users', { state: { roleFilter: 'CONTROLLER' } })} />
+        <StatCard icon={<Car size={20} color={A.green}/>} label="Drivers" value={stats.drivers} colorDim={A.greenDim} colorHex={A.green} change="Vehicle operators" onClick={() => navigate('/users', { state: { roleFilter: 'DRIVER' } })} />
+        <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Active" value={stats.activeUsers} colorDim={A.greenDim} colorHex={A.green} change="Currently active accounts" onClick={() => navigate('/users', { state: { statusFilter: 'ACTIVE' } })} />
+        <StatCard icon={<Ban size={20} color={A.red}/>} label="Inactive" value={stats.inactiveUsers} colorDim={A.redDim} colorHex={A.red} change="Disabled accounts" onClick={() => navigate('/users', { state: { statusFilter: 'INACTIVE' } })} />
       </div>
 
       <SectionHeader title="Quick Actions" />
@@ -493,9 +493,9 @@ const StatusBreakdown = ({ isDark, statusData, stats }) => {
 
 const QuickActionsPanel = ({ navigate }) => {
   const quickActions = [
-    { icon: <Wrench size={18} color="#fbbf24" />, bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.25)', label: 'Add Service Record', onClick: () => navigate('/service', { state: { openAddServiceModal: true } }) },
+    { icon: <Wrench size={18} color="#fbbf24" />, bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.25)', label: 'Add Service Record', onClick: () => navigate('/service', { state: { openAddServiceModal: true, fromOneClick: true } }) },
     { icon: <Gauge size={18} color="#a855f7" />, bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.25)', label: 'Daily Mileage Update', onClick: () => navigate('/service', { state: { activeTab: 'update' } }) },
-    { icon: <UserCog size={18} color="#34d399" />, bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', label: 'Driver Check-in', onClick: () => navigate('/users') },
+    { icon: <UserCog size={18} color="#34d399" />, bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', label: 'Driver Check-in', onClick: () => navigate('/users', { state: { roleFilter: 'DRIVER' } }) },
     { icon: <Car size={18} color="#3b82f6" />, bg: 'rgba(59, 130, 246,0.12)', border: 'rgba(59, 130, 246,0.25)', label: 'Register Vehicle', onClick: () => navigate('/vehicles', { state: { openAddVehicle: true, fromOneClick: true } }) },
     { icon: <Fuel size={18} color="#38bdf8" />, bg: 'rgba(56,189,248,0.12)', border: 'rgba(56,189,248,0.25)', label: 'Record Fuel Fill-up', onClick: () => navigate('/fuel-management', { state: { openAddFuelLog: true, fromOneClick: true } }) },
   ]
@@ -560,16 +560,6 @@ const RecentActivitySection = ({ activities = [], navigate }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
       <h2 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text-primary)', fontWeight: 700 }}>Recent Fleet Activity</h2>
       <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-      <button
-        onClick={() => navigate('/reports')}
-        style={{
-          padding: '6px 14px', borderRadius: 8, border: '1px solid var(--surface-border)',
-          background: 'var(--surface)', color: 'var(--text-muted)',
-          fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
-          outline: 'none',
-          fontFamily: 'inherit',
-        }}
-      >View all →</button>
     </div>
     <div style={{
       background: 'var(--surface)', borderRadius: 24,

@@ -116,15 +116,10 @@ const LoginSlide = ({ onSwitch, onForgot, isActive }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
-  const [selectedRole, setSelectedRole] = useState('ADMIN');
   const { login } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => { if (!isActive) setError(''); }, [isActive]);
-
-  const handleRoleChange = (role) => {
-    setSelectedRole(role);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -136,12 +131,6 @@ const LoginSlide = ({ onSwitch, onForgot, isActive }) => {
     setLoading(false);
   };
 
-  const placeholders = {
-    ADMIN: 'admin@vmas.com',
-    DRIVER: 'driver@vmas.com',
-    CONTROLLER: 'controller@vmas.com'
-  };
-
   return (
     <div className="ag-slide" aria-hidden={!isActive}>
       <h2 className="ag-welcome-title">Welcome back</h2>
@@ -151,34 +140,6 @@ const LoginSlide = ({ onSwitch, onForgot, isActive }) => {
       <div className="ag-slide-status-bar">
         <div className="ag-slide-status-dot"></div>
         <span className="ag-slide-status-txt">ALL SYSTEMS OPERATIONAL</span>
-      </div>
-
-      {/* Role Tabs Selector */}
-      <div className="modern-role-wrap" role="group" aria-label="Select your role">
-        <button
-          type="button"
-          className={`modern-role-btn ${selectedRole === 'ADMIN' ? 'active' : ''}`}
-          onClick={() => handleRoleChange('ADMIN')}
-          tabIndex={isActive ? 0 : -1}
-        >
-          <Users size={13} /> Admin
-        </button>
-        <button
-          type="button"
-          className={`modern-role-btn ${selectedRole === 'DRIVER' ? 'active' : ''}`}
-          onClick={() => handleRoleChange('DRIVER')}
-          tabIndex={isActive ? 0 : -1}
-        >
-          <Car size={13} /> Driver
-        </button>
-        <button
-          type="button"
-          className={`modern-role-btn ${selectedRole === 'CONTROLLER' ? 'active' : ''}`}
-          onClick={() => handleRoleChange('CONTROLLER')}
-          tabIndex={isActive ? 0 : -1}
-        >
-          <Settings size={13} /> Controller
-        </button>
       </div>
 
       {error && (
@@ -194,7 +155,7 @@ const LoginSlide = ({ onSwitch, onForgot, isActive }) => {
           type="text"
           value={userName}
           onChange={(e) => setUserName(e.target.value)}
-          placeholder={placeholders[selectedRole]}
+          placeholder="your username or email"
           label="EMAIL ADDRESS / USERNAME"
           required
           autoComplete="username"
@@ -288,6 +249,10 @@ const SignupSlide = ({ onSwitch, isActive }) => {
     if (name === 'password') setStrength(calcStr(value));
   };
 
+  const handleRoleChange = (role) => {
+    setFormData(p => ({ ...p, role }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -333,6 +298,12 @@ const SignupSlide = ({ onSwitch, isActive }) => {
     <div className="ag-slide" aria-hidden={!isActive}>
       <h2 className="ag-welcome-title" style={{ marginBottom: '0.4rem' }}>Create Account</h2>
       <p className="ag-welcome-sub" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Fill in your details to get started</p>
+
+      {/* System Status Badge */}
+      <div className="ag-slide-status-bar">
+        <div className="ag-slide-status-dot"></div>
+        <span className="ag-slide-status-txt">ALL SYSTEMS OPERATIONAL</span>
+      </div>
 
       {error && (
         <div className="ag-error" role="alert"><AlertCircle size={14} />{error}</div>
@@ -434,20 +405,35 @@ const SignupSlide = ({ onSwitch, isActive }) => {
         )}
 
         {/* Role */}
-        <ModernSelect
-          id="reg-role"
-          name="role"
-          value={formData.role}
-          onChange={handleChange}
-          placeholder="Role"
-          label="SELECT ROLE"
-          tabIndex={isActive ? 0 : -1}
-          leftIcon={ROLE_ICONS[formData.role]}
-        >
-          <option value="DRIVER">Driver</option>
-          <option value="CONTROLLER">Controller</option>
-          <option value="ADMIN">Admin</option>
-        </ModernSelect>
+        <div className="modern-form-group">
+          <label className="modern-form-lbl">SELECT ROLE</label>
+          <div className="modern-role-wrap" role="group" aria-label="Select your role" style={{ marginBottom: 0 }}>
+            <button
+              type="button"
+              className={`modern-role-btn ${formData.role === 'ADMIN' ? 'active' : ''}`}
+              onClick={() => handleRoleChange('ADMIN')}
+              tabIndex={isActive ? 0 : -1}
+            >
+              <Users size={13} /> Admin
+            </button>
+            <button
+              type="button"
+              className={`modern-role-btn ${formData.role === 'DRIVER' ? 'active' : ''}`}
+              onClick={() => handleRoleChange('DRIVER')}
+              tabIndex={isActive ? 0 : -1}
+            >
+              <Car size={13} /> Driver
+            </button>
+            <button
+              type="button"
+              className={`modern-role-btn ${formData.role === 'CONTROLLER' ? 'active' : ''}`}
+              onClick={() => handleRoleChange('CONTROLLER')}
+              tabIndex={isActive ? 0 : -1}
+            >
+              <Settings size={13} /> Controller
+            </button>
+          </div>
+        </div>
 
         {/* Info */}
         <div className="ag-info-banner" style={{ margin: '2px 0' }}>
@@ -529,6 +515,12 @@ const ForgotSlide = ({ onSwitch, isActive }) => {
       <p className="ag-welcome-sub" style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
         Enter your registered email address and we'll send you instructions to reset your password.
       </p>
+
+      {/* System Status Badge */}
+      <div className="ag-slide-status-bar">
+        <div className="ag-slide-status-dot"></div>
+        <span className="ag-slide-status-txt">ALL SYSTEMS OPERATIONAL</span>
+      </div>
 
       {error && (
         <div className="ag-error" role="alert">
@@ -997,15 +989,7 @@ const AuthPage = () => {
           </div>
         </div>
 
-        {/* System Status Badge - only shown for non-login slides */}
-        {(isSignup || isForgot) && (
-          <div className="ag-status-badge">
-            <span className="ag-status-dot">
-              <span className="ag-status-pulse" />
-            </span>
-            <span>ALL SYSTEMS OPERATIONAL</span>
-          </div>
-        )}
+
 
         {/* Glassmorphism card */}
         <div className="ag-card">

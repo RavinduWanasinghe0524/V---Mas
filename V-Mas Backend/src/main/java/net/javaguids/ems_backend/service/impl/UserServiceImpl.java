@@ -87,7 +87,7 @@ public class UserServiceImpl implements UserService {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUserName(), request.getPassword()));
 
-        User user = userRepository.findByUserName(request.getUserName())
+        User user = userRepository.findByUserNameOrEmail(request.getUserName(), request.getUserName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         // Status gate — checked AFTER credential validation so we don't leak info
