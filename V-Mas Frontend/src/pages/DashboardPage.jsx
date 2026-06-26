@@ -1055,7 +1055,7 @@ const DashboardPage = () => {
                   </span>
                 </div>
                 <p style={{ margin: '6px 0 0', color: isDark ? '#93c5fd' : '#60a5fa', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  Here's your personalized fleet overview
+                  Here's how your fleet is doing today.
                 </p>
               </div>
             </div>
