@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { authAPI } from '../services/api'
 import { AuthContext } from './AuthContext'
+import { LogOut, X } from 'lucide-react'
+import { useD, useTheme } from './ThemeContext'
 
 // ── Helper: build a normalised user object from the backend UserDto ──
 const buildUser = (userDto) => ({
@@ -27,6 +29,7 @@ export const AuthProvider = ({ children }) => {
   const [user,    setUser]    = useState(null)
   const [token,   setToken]   = useState(null)
   const [loading, setLoading] = useState(true)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   // Restore session from localStorage
   useEffect(() => {
@@ -107,12 +110,16 @@ export const AuthProvider = ({ children }) => {
   }
 
   // ── LOGOUT ─────────────────────────────────────────────────────────
-  const logout = async () => {
+  const confirmLogout = async () => {
     try { await authAPI.logout() } catch { /* ignore */ }
     setToken(null)
     setUser(null)
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+  }
+
+  const logout = () => {
+    setShowLogoutConfirm(true)
   }
 
   // ── UPDATE USER ────────────────────────────────────────────────────
@@ -145,5 +152,162 @@ export const AuthProvider = ({ children }) => {
     )
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      {showLogoutConfirm && (
+        <LogoutConfirmationModal 
+          onConfirm={async () => {
+            setShowLogoutConfirm(false)
+            await confirmLogout()
+          }}
+          onCancel={() => setShowLogoutConfirm(false)}
+        />
+      )}
+    </AuthContext.Provider>
+  )
+}
+
+const LogoutConfirmationModal = ({ onConfirm, onCancel }) => {
+  const D = useD()
+  const { theme } = useTheme()
+  const isDark = theme === 'blue'
+
+  return (
+    <div 
+      style={{ 
+        position: 'fixed', 
+        inset: 0, 
+        background: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(15,15,26,0.4)', 
+        backdropFilter: 'blur(12px)', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        zIndex: 9999, 
+        animation: 'fadeIn 0.25s ease' 
+      }} 
+      onClick={onCancel}
+    >
+      <div 
+        style={{ 
+          background: D.surface, 
+          borderRadius: 32, 
+          padding: '40px 32px 32px', 
+          width: '90%', 
+          maxWidth: 400, 
+          boxShadow: isDark ? '0 32px 100px rgba(0,0,0,0.6)' : '0 16px 48px rgba(0,0,0,0.15)', 
+          border: `1px solid ${D.border}`, 
+          textAlign: 'center',
+          position: 'relative'
+        }} 
+        onClick={e => e.stopPropagation()}
+      >
+        <button 
+          onClick={onCancel} 
+          style={{ 
+            position: 'absolute',
+            top: 20,
+            right: 20,
+            background: 'transparent', 
+            border: 'none', 
+            borderRadius: 10, 
+            padding: 8, 
+            color: D.textSub, 
+            cursor: 'pointer', 
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }} 
+          onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} 
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        >
+          <X size={18} />
+        </button>
+
+        <div style={{ 
+          width: 56, 
+          height: 56, 
+          borderRadius: 16, 
+          background: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.1)', 
+          color: D.red, 
+          border: isDark ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(239,68,68,0.2)', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          margin: '12px auto 20px' 
+        }}>
+          <LogOut size={24} />
+        </div>
+
+        <h3 style={{ 
+          margin: '0 0 8px', 
+          fontWeight: 800, 
+          color: D.text, 
+          fontSize: '1.25rem', 
+          fontFamily: "'Plus Jakarta Sans', sans-serif", 
+          letterSpacing: '-0.02em' 
+        }}>
+          Sign Out
+        </h3>
+
+        <p style={{ 
+          margin: '0 0 28px', 
+          color: D.textSub, 
+          fontSize: '0.9rem', 
+          lineHeight: 1.5,
+          fontFamily: "inherit"
+        }}>
+          Are you sure to sign out?
+        </p>
+
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button 
+            type="button" 
+            onClick={onCancel} 
+            style={{ 
+              flex: 1, 
+              padding: '11px 20px', 
+              borderRadius: 12, 
+              border: `1px solid ${D.border}`, 
+              background: 'transparent', 
+              color: D.text, 
+              cursor: 'pointer', 
+              fontSize: '0.88rem', 
+              fontWeight: 700, 
+              transition: 'all 0.2s',
+              fontFamily: 'inherit'
+            }} 
+            onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'} 
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            Cancel
+          </button>
+          
+          <button 
+            type="button" 
+            onClick={onConfirm} 
+            style={{ 
+              flex: 1, 
+              padding: '11px 20px', 
+              borderRadius: 12, 
+              border: 'none', 
+              background: D.red, 
+              color: '#fff', 
+              fontSize: '0.88rem', 
+              fontWeight: 700, 
+              cursor: 'pointer', 
+              transition: 'all 0.2s', 
+              boxShadow: isDark ? '0 4px 12px rgba(239,68,68,0.3)' : '0 4px 12px rgba(239,68,68,0.2)',
+              fontFamily: 'inherit'
+            }} 
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = isDark ? '0 6px 16px rgba(239,68,68,0.4)' : '0 6px 16px rgba(239,68,68,0.3)' }} 
+            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isDark ? '0 4px 12px rgba(239,68,68,0.3)' : '0 4px 12px rgba(239,68,68,0.2)' }}
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }

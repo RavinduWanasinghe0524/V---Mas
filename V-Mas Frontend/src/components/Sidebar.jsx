@@ -124,9 +124,8 @@ const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
   const toggleExpand = (label) =>
     setExpanded(prev => ({ ...prev, [label]: !prev[label] }))
 
-  const handleLogout = async () => {
-    await logout()
-    navigate('/login')
+  const handleLogout = () => {
+    logout()
   }
 
   // ── Render a single nav item ─────────────────────────────────────────────
