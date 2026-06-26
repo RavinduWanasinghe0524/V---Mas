@@ -2404,16 +2404,18 @@ const ServicePage = () => {
                   }}>
                     {isDriver ? 'Fleet Service' : 'Maintenance Center'}
                   </h1>
-                  <span style={{
-                    background: isDark ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.15)',
-                    color: '#dbeafe',
-                    padding: '3px 10px', borderRadius: 999,
-                    fontSize: '0.75rem', fontWeight: 700,
-                    backdropFilter: 'blur(4px)',
-                    border: isDark ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(255,255,255,0.2)',
-                  }}>
-                    {isDriver ? 'Read Only' : 'Fleet Operations'}
-                  </span>
+                  {isDriver && (
+                    <span style={{
+                      background: isDark ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.15)',
+                      color: '#dbeafe',
+                      padding: '3px 10px', borderRadius: 999,
+                      fontSize: '0.75rem', fontWeight: 700,
+                      backdropFilter: 'blur(4px)',
+                      border: isDark ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(255,255,255,0.2)',
+                    }}>
+                      Read Only
+                    </span>
+                  )}
                 </div>
 
                 <p style={{ margin: '6px 0 0', color: isDark ? '#93c5fd' : '#60a5fa', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
