@@ -93,10 +93,11 @@ const UsersPage = () => {
   const location = useLocation()
   const navigate = useNavigate()
 
-  // Pre-apply the role filter when navigated here with a roleFilter (e.g. the dashboard "Driver Check-in" Quick Command).
+  // Pre-apply role/status filters when navigated here with them (e.g. dashboard stat cards & Driver Check-in).
   useEffect(() => {
-    if (location.state?.roleFilter) {
-      setRoleFilter(location.state.roleFilter)
+    if (location.state?.roleFilter || location.state?.statusFilter) {
+      if (location.state.roleFilter) setRoleFilter(location.state.roleFilter)
+      if (location.state.statusFilter) setStatusFilter(location.state.statusFilter)
       navigate(location.pathname, { replace: true, state: {} })
     }
   }, [location.state, navigate, location.pathname])
