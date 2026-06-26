@@ -130,8 +130,8 @@ const AdminDashboard = ({ stats, loading, navigate, isDark }) => {
         <StatCard icon={<Shield size={20} color={A.indigo}/>} label="Admins" value={stats.admins} colorDim={A.indigoDim} colorHex={A.indigo} change="System administrators" onClick={() => navigate('/users', { state: { roleFilter: 'ADMIN' } })} />
         <StatCard icon={<Gamepad2 size={20} color={A.blue}/>} label="Controllers" value={stats.controllers} colorDim={A.blueDim} colorHex={A.blue} change="Fleet controllers" onClick={() => navigate('/users', { state: { roleFilter: 'CONTROLLER' } })} />
         <StatCard icon={<Car size={20} color={A.green}/>} label="Drivers" value={stats.drivers} colorDim={A.greenDim} colorHex={A.green} change="Vehicle operators" onClick={() => navigate('/users', { state: { roleFilter: 'DRIVER' } })} />
-        <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Active" value={stats.activeUsers} colorDim={A.greenDim} colorHex={A.green} change="Currently active accounts" onClick={() => navigate('/users')} />
-        <StatCard icon={<Ban size={20} color={A.red}/>} label="Inactive" value={stats.inactiveUsers} colorDim={A.redDim} colorHex={A.red} change="Disabled accounts" onClick={() => navigate('/users')} />
+        <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Active" value={stats.activeUsers} colorDim={A.greenDim} colorHex={A.green} change="Currently active accounts" onClick={() => navigate('/users', { state: { statusFilter: 'ACTIVE' } })} />
+        <StatCard icon={<Ban size={20} color={A.red}/>} label="Inactive" value={stats.inactiveUsers} colorDim={A.redDim} colorHex={A.red} change="Disabled accounts" onClick={() => navigate('/users', { state: { statusFilter: 'INACTIVE' } })} />
       </div>
 
       <SectionHeader title="Quick Actions" />
