@@ -40,6 +40,7 @@ A full-stack fleet management web application with role-based access control, re
 - Assign/unassign drivers to vehicles; view full assignment history
 - Vehicle availability status tracking (`AVAILABLE`, `ASSIGNED`, `UNDER_MAINTENANCE`)
 - Upload and download vehicle documents (insurance, license, etc.)
+- **Live Location Tracking** – Interactive dark-themed SVG map mockup (`LocationPage.jsx`) featuring live-updating positions, real-time speed monitoring (MOVING, IDLE, PARKED), and specific vehicle details inspection cards.
 
 ### ⛽ Fuel Logging & Analytics
 - **Drivers** log personal fuel fill-ups (litres, cost per litre, current mileage, date)
@@ -74,6 +75,7 @@ A full-stack fleet management web application with role-based access control, re
 - Admin/Controller panel to create, update, activate/deactivate, and delete users
 - Approve or reject pending user registrations
 - Employee directory management (separate from system user accounts)
+- **Role & Status filtering via Dashboard** – Stat cards on the Admin Dashboard support navigation shortcuts; clicking on Admin, Controller, Driver, Active, or Inactive cards redirects directly to the `/users` screen pre-filtered by the selected role or account status.
 
 ### 🔔 Notifications
 - System-wide notifications for key events (vehicle updates, fuel log changes, service records)
@@ -87,6 +89,9 @@ A full-stack fleet management web application with role-based access control, re
 - Animated stat cards, hover effects, and toast notifications
 - Lazy-loaded page components (via `React.lazy` + `Suspense`) with a branded loading screen
 - `ThemeContext` + `AuthContext` provide consistent design tokens and auth state across the app
+- **Interactive SVG Visualization Components**:
+  - **Live Fleet Utilization Chart** – Pulsing area line chart with animated gradient overlays, neon glow effects, and interactive hover tooltip tracking.
+  - **Status Breakdown Donut Chart** – Custom-calculated SVG donut chart representing active, maintenance, and available fleet splits with animated slice transitions and hover highlights.
 
 ---
 
@@ -644,14 +649,15 @@ Created automatically by `setup-database.sql`:
 
 ### 📦 Postman Collections
 
-Ready-to-import collections are included in `V-Mas Backend/`:
+Ready-to-import collections are included in the repository:
 
-| File | Contents |
-|------|----------|
-| `VMAS_Postman_Collection.json` | Auth, Vehicle, User, Employee endpoints |
-| `Fuel_Analysis_Complete_Postman_Collection.json` | Full fuel management and analytics suite |
-| `Service_API_Postman_Collection.json` | Service record endpoints |
-| `VMAS_Local_Environment.postman_environment.json` | Pre-configured `baseUrl` and `token` variables |
+| File | Location | Contents |
+|------|----------|----------|
+| `V-MAS.postman_collection.json` | Root Directory | Root-level combined API collection |
+| `VMAS_Postman_Collection.json` | `V-Mas Backend/` | Auth, Vehicle, User, Employee endpoints |
+| `Fuel_Analysis_Complete_Postman_Collection.json` | `V-Mas Backend/` | Full fuel management and analytics suite |
+| `Service_API_Postman_Collection.json` | `V-Mas Backend/` | Service record endpoints |
+| `VMAS_Local_Environment.postman_environment.json` | `V-Mas Backend/` | Pre-configured `baseUrl` and `token` variables |
 
 **How to import:**
 1. Open Postman → **Import** → select the `.json` files above
