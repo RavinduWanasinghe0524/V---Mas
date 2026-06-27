@@ -110,7 +110,7 @@ public class SecurityConfig {
         // Add any extra origins from environment variable (e.g. custom Vercel preview URLs)
         if (extraAllowedOrigins != null && !extraAllowedOrigins.isBlank()) {
             Arrays.stream(extraAllowedOrigins.split(","))
-                    .map(String::trim)
+                    .map(s -> s == null ? "" : s.trim())
                     .filter(s -> !s.isEmpty())
                     .forEach(allowedOrigins::add);
         }
