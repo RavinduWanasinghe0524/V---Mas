@@ -440,11 +440,6 @@ const ProfilePage = () => {
             ))}
             
             <div style={{ flex: 1, position: 'relative' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
-                <span style={{ background: 'rgba(255,255,255,0.15)', color: '#dbeafe', padding: '3px 12px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Configuration
-                </span>
-              </div>
               <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                 Settings, {user?.userName || 'Admin'}!
               </h1>
