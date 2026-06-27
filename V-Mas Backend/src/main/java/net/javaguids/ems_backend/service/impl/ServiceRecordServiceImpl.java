@@ -141,7 +141,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isDriver = auth != null && auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_DRIVER"));
-        if (isDriver) {
+        if (isDriver && auth != null) {
             String currentUsername = auth.getName();
             if (!currentUsername.equals(record.getCreatedBy())) {
                 throw new AccessDeniedException(
@@ -529,6 +529,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public net.javaguids.ems_backend.dto.ServiceRecordStatsDto getServiceStatsForDriver(String driverUsername) {
         return vehicleRepository.findByAssigneeUsername(driverUsername)
                 .map(vehicle -> {
@@ -587,6 +588,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public org.springframework.core.io.Resource getAttachment(Long id) {
         ServiceRecord record = serviceRecordRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Service record not found with id: " + id));

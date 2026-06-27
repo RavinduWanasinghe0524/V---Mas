@@ -92,7 +92,7 @@ public class ServiceRecordController {
     public ResponseEntity<ApiResponse<ServiceRecordStatsDto>> getServiceStats(Authentication authentication) {
         boolean isDriver = authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_DRIVER"));
-        ServiceRecordStatsDto stats = isDriver
+        ServiceRecordStatsDto stats = (isDriver && authentication != null)
                 ? serviceRecordService.getServiceStatsForDriver(authentication.getName())
                 : serviceRecordService.getServiceStats();
         return ApiResponseUtil.success("Service stats fetched successfully", stats, HttpStatus.OK);
@@ -151,7 +151,10 @@ public class ServiceRecordController {
         org.springframework.core.io.Resource resource = serviceRecordService.getAttachment(id);
         String contentType = "application/octet-stream";
         try {
-            contentType = java.nio.file.Files.probeContentType(java.nio.file.Paths.get(resource.getFile().getAbsolutePath()));
+            String probed = java.nio.file.Files.probeContentType(java.nio.file.Paths.get(resource.getFile().getAbsolutePath()));
+            if (probed != null) {
+                contentType = probed;
+            }
         } catch (Exception ignored) {}
 
         return ResponseEntity.ok()

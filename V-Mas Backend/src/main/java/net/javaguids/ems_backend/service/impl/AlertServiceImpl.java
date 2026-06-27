@@ -117,7 +117,7 @@ public class AlertServiceImpl {
         }
 
         // Sort: OVERDUE first (most negative daysRemaining first), then UPCOMING ascending
-        alerts.sort(Comparator.comparingLong(AlertItem::getDaysRemaining));
+        alerts.sort(Comparator.comparingLong(item -> item.getDaysRemaining()));
 
         long overdueCount  = alerts.stream().filter(a -> "OVERDUE".equals(a.getSeverity())).count();
         long upcomingCount = alerts.stream().filter(a -> "UPCOMING".equals(a.getSeverity())).count();

@@ -47,6 +47,9 @@ public class ServiceIntervalServiceImpl implements ServiceIntervalService {
     @Override
     @Transactional
     public ServiceIntervalDto updateInterval(Long id, ServiceIntervalDto dto) {
+        if (id == null) {
+            throw new IllegalArgumentException("Id must not be null");
+        }
         ServiceInterval interval = serviceIntervalRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Service interval not found with id: " + id));
         interval.setIntervalKm(dto.getIntervalKm());
@@ -59,8 +62,9 @@ public class ServiceIntervalServiceImpl implements ServiceIntervalService {
     public List<ServiceIntervalDto> updateIntervalsBulk(List<ServiceIntervalDto> dtos) {
         List<ServiceIntervalDto> updatedList = new ArrayList<>();
         for (ServiceIntervalDto dto : dtos) {
-            if (dto.getId() != null) {
-                ServiceInterval interval = serviceIntervalRepository.findById(dto.getId())
+            Long dtoId = dto.getId();
+            if (dtoId != null) {
+                ServiceInterval interval = serviceIntervalRepository.findById(dtoId)
                         .orElseThrow(() -> new ResourceNotFoundException("Service interval not found with id: " + dto.getId()));
                 interval.setIntervalKm(dto.getIntervalKm());
                 ServiceInterval saved = serviceIntervalRepository.save(interval);

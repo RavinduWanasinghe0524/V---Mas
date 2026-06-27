@@ -48,6 +48,9 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public NotificationDto markAsRead(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("Id must not be null");
+        }
         Notification notification = notificationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Notification not found"));
         notification.setIsRead(true);

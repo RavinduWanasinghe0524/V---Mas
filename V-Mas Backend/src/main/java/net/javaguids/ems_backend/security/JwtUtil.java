@@ -24,10 +24,12 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private Long JWT_EXPIRATION;
 
+    @SuppressWarnings("null")
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
+    @SuppressWarnings("null")
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
