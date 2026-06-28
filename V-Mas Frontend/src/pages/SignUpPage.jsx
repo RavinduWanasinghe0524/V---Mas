@@ -5,7 +5,7 @@ import {
   Eye, EyeOff, AlertCircle, CheckCircle, ChevronDown,
   Clock, ArrowLeft, UserPlus, Car, Settings, Users
 } from 'lucide-react';
-import logo from '../assets/logo.png';
+import logo from '../assets/V-MAS Logo.svg';
 import fleetHero from '../assets/fleet-hero.png';
 import './SignUpPage.css';
 

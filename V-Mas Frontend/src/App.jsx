@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import logo from './assets/logo.png'
+import logo from './assets/V-MAS Logo.svg'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthProvider'
 import { ThemeProvider } from './context/ThemeProvider'
