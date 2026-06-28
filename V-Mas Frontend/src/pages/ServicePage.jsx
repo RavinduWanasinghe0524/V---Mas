@@ -615,7 +615,7 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
 }
 
 /* ── Service Grid Card (New Style) ──────────────────────────────── */
-const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, vehicleCurrentKm, isLatest, onEdit, onDelete, onView, onViewAttachment, D }) => {
+const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, vehicleCurrentKm, isLatest, onEdit, onDelete, onView, onViewAttachment, D, vehicleImage, vehicleName }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
@@ -645,13 +645,51 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
     >
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <div style={{ color: D.indigo, fontSize: '1.05rem', fontWeight: 800, marginBottom: 4 }}>
-            {record.serviceType?.replace(/_/g, ' ') || 'Service'}
-          </div>
-          <div style={{ color: D.textSub, fontSize: '0.9rem' }}>
-            {record.vehicleRegNumber || '—'}
-            {record.serviceTypeDetail ? ` - ${record.serviceTypeDetail}` : ''}
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          {vehicleImage ? (
+            <img
+              src={vehicleImage}
+              alt={record.vehicleRegNumber}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 8,
+                objectFit: 'cover',
+                border: `1px solid ${D.border}`,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                flexShrink: 0
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 8,
+                background: D.indigoDim,
+                border: `1px solid ${D.border}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              <Car size={18} style={{ color: D.indigo }} />
+            </div>
+          )}
+          <div>
+            <div style={{ color: D.indigo, fontSize: '1.05rem', fontWeight: 800, marginBottom: 4 }}>
+              {record.serviceType?.replace(/_/g, ' ') || 'Service'}
+            </div>
+            <div style={{ color: D.textSub, fontSize: '0.9rem' }}>
+              {record.vehicleRegNumber || '—'}
+              {record.serviceTypeDetail ? ` - ${record.serviceTypeDetail}` : ''}
+            </div>
+            {vehicleName && (
+              <div style={{ fontSize: '0.78rem', color: D.textFaint, marginTop: 2 }}>
+                {vehicleName}
+              </div>
+            )}
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
@@ -2875,20 +2913,53 @@ const ServicePage = () => {
                             >
                               {/* Vehicle details header */}
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <span style={{ fontWeight: 800, fontSize: '1.1rem', color: D.text }}>
-                                      {v.registrationNo}
-                                    </span>
-                                    <span style={{
-                                      padding: '2px 8px', borderRadius: 999, fontSize: '0.65rem', fontWeight: 800,
-                                      background: D.indigoDim, color: D.indigo, border: `1px solid ${D.borderHi}`
-                                    }}>
-                                      {v.vehicleType || 'Unknown'}
-                                    </span>
-                                  </div>
-                                  <div style={{ fontSize: '0.82rem', color: D.textSub, marginTop: 4 }}>
-                                    {v.manufacturer} {v.model}
+                                <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                                  {v.vehicleImage ? (
+                                    <img
+                                      src={v.vehicleImage}
+                                      alt={v.registrationNo}
+                                      style={{
+                                        width: 52,
+                                        height: 52,
+                                        borderRadius: 10,
+                                        objectFit: 'cover',
+                                        border: `1px solid ${D.border}`,
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                                        flexShrink: 0
+                                      }}
+                                    />
+                                  ) : (
+                                    <div
+                                      style={{
+                                        width: 52,
+                                        height: 52,
+                                        borderRadius: 10,
+                                        background: D.indigoDim,
+                                        border: `1px solid ${D.border}`,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        flexShrink: 0
+                                      }}
+                                    >
+                                      <Car size={22} style={{ color: D.indigo }} />
+                                    </div>
+                                  )}
+                                  <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <span style={{ fontWeight: 800, fontSize: '1.1rem', color: D.text }}>
+                                        {v.registrationNo}
+                                      </span>
+                                      <span style={{
+                                        padding: '2px 8px', borderRadius: 999, fontSize: '0.65rem', fontWeight: 800,
+                                        background: D.indigoDim, color: D.indigo, border: `1px solid ${D.borderHi}`
+                                      }}>
+                                        {v.vehicleType || 'Unknown'}
+                                      </span>
+                                    </div>
+                                    <div style={{ fontSize: '0.82rem', color: D.textSub, marginTop: 4 }}>
+                                      {v.manufacturer} {v.model}
+                                    </div>
                                   </div>
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
@@ -3906,6 +3977,7 @@ const ServicePage = () => {
                                   onView={(rec) => setDetailModal({ isOpen: true, record: rec })}
                                   onViewAttachment={handleViewAttachment}
                                   D={D}
+                                  vehicleImage={vc?.vehicleImage} vehicleName={vc && (vc.manufacturer || vc.model) ? `${vc.manufacturer || ''} ${vc.model || ''}`.trim() : null}
                                 />
                               )
                             })
@@ -4499,6 +4571,10 @@ const ServicePage = () => {
         const icon = SERVICE_TYPE_ICONS[r.serviceType] || <Wrench size={24} />
         const closeDetail = () => setDetailModal({ isOpen: false, record: null })
         const visibleHistory = showAllEdits ? serviceHistory : serviceHistory.slice(0, 1)
+        
+        const vc = allVehicles.find(v => v.registrationNo === r.vehicleRegNumber)
+        const vehicleName = vc && (vc.manufacturer || vc.model) ? `${vc.manufacturer || ''} ${vc.model || ''}`.trim() : null
+
         return (
           <div
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.15s ease', padding: '16px' }}
@@ -4511,9 +4587,25 @@ const ServicePage = () => {
               {/* Header — indigo gradient */}
               <div style={{ background: 'linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#1e40af 100%)', padding: '22px 28px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexShrink: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 14, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
-                    {icon}
-                  </div>
+                  {vc?.vehicleImage ? (
+                    <img
+                      src={vc.vehicleImage}
+                      alt={r.vehicleRegNumber}
+                      style={{
+                        width: 52,
+                        height: 52,
+                        borderRadius: 14,
+                        objectFit: 'cover',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        flexShrink: 0
+                      }}
+                    />
+                  ) : (
+                    <div style={{ width: 52, height: 52, borderRadius: 14, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+                      {icon}
+                    </div>
+                  )}
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                       <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#fff', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
@@ -4523,9 +4615,16 @@ const ServicePage = () => {
                         {sc.label}
                       </span>
                     </div>
-                    <div style={{ color: '#60a5fa', fontSize: '0.85rem', marginTop: 4 }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Car size={13} /> {r.vehicleRegNumber || '—'}</span>
-                      {r.serviceTypeDetail && <span style={{ marginLeft: 10, opacity: 0.8 }}>· {r.serviceTypeDetail}</span>}
+                    <div style={{ color: '#60a5fa', fontSize: '0.85rem', marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#60a5fa', fontWeight: 600 }}>
+                        <Car size={13} /> {r.vehicleRegNumber || '—'}
+                        {r.serviceTypeDetail && <span style={{ opacity: 0.8 }}>· {r.serviceTypeDetail}</span>}
+                      </span>
+                      {vehicleName && (
+                        <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.78rem' }}>
+                          {vehicleName}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
