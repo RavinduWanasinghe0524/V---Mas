@@ -119,7 +119,7 @@ const MonthlyCostTrendChart = ({ data = [], isDark }) => {
   const [hover, setHover] = useState(null)
   const blue = '#3b82f6', green = '#34d399'
   const pts = (data && data.length) ? data : [{ label: '—', maintenance: 0, fuel: 0 }]
-  const W = 580, H = 300, padL = 52, padR = 24, padT = 24, padB = 40
+  const W = 580, H = 220, padL = 52, padR = 24, padT = 20, padB = 36
   const plotW = W - padL - padR, plotH = H - padT - padB
   const rawMax = Math.max(1, ...pts.flatMap(p => [Number(p.maintenance) || 0, Number(p.fuel) || 0]))
   const stepPow = Math.pow(10, Math.floor(Math.log10(rawMax)))
@@ -133,12 +133,12 @@ const MonthlyCostTrendChart = ({ data = [], isDark }) => {
   const axisText = isDark ? '#64748b' : '#94a3b8'
 
   return (
-    <div style={{ background: 'var(--surface)', borderRadius: 24, border: '1px solid var(--surface-border)', boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px' }}>
+    <div style={{ background: 'var(--surface)', borderRadius: 24, border: '1px solid var(--surface-border)', boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '20px 28px' }}>
       <div style={{ marginBottom: 8 }}>
         <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Monthly Cost Trend</div>
         <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Maintenance vs fuel (LKR thousands)</div>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }} onMouseLeave={() => setHover(null)}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', maxHeight: '250px', overflow: 'visible' }} onMouseLeave={() => setHover(null)}>
         {Array.from({ length: grid + 1 }).map((_, i) => {
           const v = (niceMax / grid) * i, yy = Y(v)
           return (
