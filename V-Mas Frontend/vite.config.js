@@ -8,8 +8,9 @@ export default defineConfig({
     strictPort: false,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'https://d3dqxbt72t73lz.cloudfront.net',
         changeOrigin: true,
+        secure: true,
         rewrite: (path) => path
       }
     }
