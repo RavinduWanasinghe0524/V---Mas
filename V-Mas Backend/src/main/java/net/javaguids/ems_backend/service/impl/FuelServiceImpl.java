@@ -236,7 +236,7 @@ public class FuelServiceImpl implements FuelService {
         return fuelLogRepository.findAll()
                 .stream()
                 .filter(f -> f.getIsDeleted() == null || !f.getIsDeleted())
-                .sorted(Comparator.comparing(FuelLog::getDate).reversed())
+                .sorted(Comparator.comparing((FuelLog f) -> f.getDate()).reversed())
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }

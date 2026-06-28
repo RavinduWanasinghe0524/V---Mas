@@ -17,8 +17,9 @@ INSERT INTO users (user_name, email, password, role, account_status, profile_pic
 SELECT 'driver1', 'driver@vmas.com', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xd00DMxs.AQubh4a', 'DRIVER', 'ACTIVE', NULL
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_name = 'driver1' OR email = 'driver@vmas.com');
 
--- Force reset passwords for default users to 'admin123' (BCrypt hash)
-UPDATE users SET password = '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xd00DMxs.AQubh4a' WHERE user_name IN ('admin', 'controller1', 'driver1');
+-- NOTE: Default user passwords are managed by the CommandLineRunner in EmsBackendApplication.java
+-- which dynamically generates a BCrypt hash for 'admin123' at startup.
+-- Do NOT add a static password UPDATE here as it will overwrite the dynamically-set hash.
 
 -- Seed default service intervals for CAR
 INSERT INTO service_intervals (vehicle_type, service_type, interval_km)

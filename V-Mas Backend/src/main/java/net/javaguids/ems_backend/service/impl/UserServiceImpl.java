@@ -316,7 +316,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserDto> getDeletedUsers() {
         return userRepository.findAll().stream()
-                .filter(User::isDeleted)
+                .filter(u -> u != null && u.isDeleted())
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
@@ -409,6 +409,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public org.springframework.core.io.Resource getDocument(Long id, String docType) {
         User user = userRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));

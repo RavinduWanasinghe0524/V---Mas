@@ -6,7 +6,7 @@ import {
   Eye, EyeOff, User, Lock, LogIn, AlertCircle, UserPlus, Car, Settings,
   Users, CheckCircle, ChevronDown, Clock, ArrowLeft, Mail, Sun, Moon
 } from 'lucide-react';
-import logo from '../assets/logo.png';
+import logo from '../assets/V-MAS Logo.svg';
 import loginBg from '../assets/login-bg-opt.jpg';
 import loginBgWhite from '../assets/Login bg image (White)-opt.jpg';
 import './AuthPage.css';
@@ -953,7 +953,7 @@ const AuthPage = () => {
             <div className="ag-brand-mark">
               <img src={logo} alt="V-MAS Logo" className="ag-logo-img" />
             </div>
-            <span className="ag-brand-name">V-MAS</span>
+            
           </div>
 
           <div className="ag-hero">

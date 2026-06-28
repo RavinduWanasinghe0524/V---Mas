@@ -50,6 +50,9 @@ public class VehicleServiceImpl implements VehicleService {
 
     @Override
     public VehicleDto getVehicleById(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("Id must not be null");
+        }
         Vehicle vehicle = vehicleRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
         return VehicleMapper.mapToVehicleDto(vehicle);
     }
@@ -65,6 +68,9 @@ public class VehicleServiceImpl implements VehicleService {
     @Override
     @Transactional
     public VehicleDto updateVehicle(Long id, VehicleDto vehicleDto, String updatedBy) {
+        if (id == null) {
+            throw new IllegalArgumentException("Id must not be null");
+        }
         Vehicle vehicle = vehicleRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
 
         if (!vehicle.getRegistrationNo().equals(vehicleDto.getRegistrationNo()) && vehicleRepository.existsByRegistrationNo(vehicleDto.getRegistrationNo())) {
@@ -87,7 +93,7 @@ public class VehicleServiceImpl implements VehicleService {
             List<ServiceRecord> records = serviceRecordRepository.findByVehicleRegNumberAndDeletedFalse(vehicle.getRegistrationNo());
             int maxCompletedServiceMileage = records.stream()
                     .filter(r -> r.getServiceDate() != null && !r.getServiceDate().isAfter(java.time.LocalDate.now()))
-                    .mapToInt(ServiceRecord::getCurrentMileageKm)
+                    .mapToInt(r -> r != null ? r.getCurrentMileageKm() : 0)
                     .max()
                     .orElse(0);
 
@@ -135,6 +141,9 @@ public class VehicleServiceImpl implements VehicleService {
     @Override
     @Transactional
     public void deleteVehicle(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("Id must not be null");
+        }
         Vehicle vehicle = vehicleRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         vehicle.setDeleted(true);
@@ -174,6 +183,9 @@ public class VehicleServiceImpl implements VehicleService {
     @Override
     @Transactional
     public VehicleDto uploadDocument(Long id, String docType, MultipartFile file, String expiryDateStr) {
+        if (id == null) {
+            throw new IllegalArgumentException("Id must not be null");
+        }
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
 
@@ -223,7 +235,11 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
+    @SuppressWarnings("null")
     public org.springframework.core.io.Resource getDocument(Long id, String docType) {
+        if (id == null) {
+            throw new IllegalArgumentException("Id must not be null");
+        }
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
 
@@ -258,7 +274,7 @@ public class VehicleServiceImpl implements VehicleService {
     @Override
     public List<VehicleDto> getDeletedVehicles() {
         return vehicleRepository.findAll().stream()
-                .filter(Vehicle::isDeleted)
+                .filter(v -> v != null && v.isDeleted())
                 .map(VehicleMapper::mapToVehicleDto)
                 .collect(Collectors.toList());
     }
@@ -266,6 +282,9 @@ public class VehicleServiceImpl implements VehicleService {
     @Override
     @Transactional
     public VehicleDto restoreVehicle(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("Id must not be null");
+        }
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
         if (!vehicle.isDeleted()) {
@@ -282,32 +301,35 @@ public class VehicleServiceImpl implements VehicleService {
     @Transactional
     public void updateBulkMileage(List<VehicleMileageUpdateDto> updates, String updatedBy) {
         for (VehicleMileageUpdateDto update : updates) {
-            Vehicle vehicle = vehicleRepository.findById(update.getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + update.getId()));
+            Long updateId = update.getId();
+            if (updateId != null) {
+                Vehicle vehicle = vehicleRepository.findById(updateId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + updateId));
 
-            if (update.getCurrentMileageKm() != null) {
-                // Find all active completed service records to enforce a minimum boundary
-                List<ServiceRecord> records = serviceRecordRepository.findByVehicleRegNumberAndDeletedFalse(vehicle.getRegistrationNo());
-                int maxCompletedServiceMileage = records.stream()
-                        .filter(r -> r.getServiceDate() != null && !r.getServiceDate().isAfter(java.time.LocalDate.now()))
-                        .mapToInt(ServiceRecord::getCurrentMileageKm)
-                        .max()
-                        .orElse(0);
+                if (update.getCurrentMileageKm() != null) {
+                    // Find all active completed service records to enforce a minimum boundary
+                    List<ServiceRecord> records = serviceRecordRepository.findByVehicleRegNumberAndDeletedFalse(vehicle.getRegistrationNo());
+                    int maxCompletedServiceMileage = records.stream()
+                            .filter(r -> r.getServiceDate() != null && !r.getServiceDate().isAfter(java.time.LocalDate.now()))
+                            .mapToInt(r -> r != null ? r.getCurrentMileageKm() : 0)
+                            .max()
+                            .orElse(0);
 
-                int initialMileage = vehicle.getInitialMileageKm() != null ? vehicle.getInitialMileageKm() : 0;
-                int lowerLimit = Math.max(initialMileage, maxCompletedServiceMileage);
+                    int initialMileage = vehicle.getInitialMileageKm() != null ? vehicle.getInitialMileageKm() : 0;
+                    int lowerLimit = Math.max(initialMileage, maxCompletedServiceMileage);
 
-                if (update.getCurrentMileageKm() < lowerLimit) {
-                    throw new RuntimeException("Updated mileage for vehicle " + vehicle.getRegistrationNo() + 
-                            " cannot be less than the minimum required limit (" + lowerLimit + " km, based on initial mileage or completed service history).");
+                    if (update.getCurrentMileageKm() < lowerLimit) {
+                        throw new RuntimeException("Updated mileage for vehicle " + vehicle.getRegistrationNo() + 
+                                " cannot be less than the minimum required limit (" + lowerLimit + " km, based on initial mileage or completed service history).");
+                    }
+                    vehicle.setCurrentMileageKm(update.getCurrentMileageKm());
+                    vehicle.setUpdatedBy(updatedBy);
+                    vehicle.setUpdatedAt(LocalDateTime.now());
+                    vehicleRepository.save(vehicle);
+
+                    // Check service milestones
+                    checkServiceMilestones(vehicle);
                 }
-                vehicle.setCurrentMileageKm(update.getCurrentMileageKm());
-                vehicle.setUpdatedBy(updatedBy);
-                vehicle.setUpdatedAt(LocalDateTime.now());
-                vehicleRepository.save(vehicle);
-
-                // Check service milestones
-                checkServiceMilestones(vehicle);
             }
         }
     }

@@ -121,7 +121,10 @@ public class VehicleController {
         
         String contentType = "application/octet-stream";
         try {
-            contentType = java.nio.file.Files.probeContentType(java.nio.file.Paths.get(resource.getFile().getAbsolutePath()));
+            String probed = java.nio.file.Files.probeContentType(java.nio.file.Paths.get(resource.getFile().getAbsolutePath()));
+            if (probed != null) {
+                contentType = probed;
+            }
         } catch (java.io.IOException e) {
             // fallback
         }
