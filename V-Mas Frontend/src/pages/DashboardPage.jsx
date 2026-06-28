@@ -487,8 +487,8 @@ const FleetUtilizationChart = ({ isDark, chartData }) => {
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
         <div>
-          <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Live Fleet Utilization</div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Active vehicles across the day</div>
+          <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fleet Utilization</div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Active vehicles per month (this year)</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(34,197,94,0.1)', padding: '4px 10px', borderRadius: 20, border: '1px solid rgba(34,197,94,0.2)' }}>
           <span className="live-pulse-dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
@@ -1158,12 +1158,22 @@ const DashboardPage = () => {
             }
           }
 
-          // Fetch real-time chart data for live fleet utilization
+          // Fleet utilization — real data: distinct active vehicles per month (current year), from fuel activity
           try {
-            const chartRes = await fuelAPI.getChartData()
-            setFleetChartData(chartRes.data.data || [])
+            const logsRes = await fuelAPI.getAllFuelLogs()
+            const logs = (logsRes.data.data || []).filter(l => !l.isDeleted && !l.deleted)
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            const now = new Date(), yr = now.getFullYear(), upto = now.getMonth()
+            const sets = Array.from({ length: 12 }, () => new Set())
+            logs.forEach(l => {
+              const d = new Date(l.date)
+              if (d.getFullYear() === yr && l.vehicleRegNumber) sets[d.getMonth()].add(l.vehicleRegNumber)
+            })
+            const util = []
+            for (let m = 0; m <= upto; m++) util.push({ time: monthNames[m], active: sets[m].size })
+            setFleetChartData(util)
           } catch (err) {
-            console.error('Error loading chart data:', err)
+            console.error('Error loading fleet utilization data:', err)
           }
 
           // Fetch real-time vehicle status breakdown data
