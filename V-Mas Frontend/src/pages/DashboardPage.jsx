@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
@@ -377,96 +377,48 @@ const mapNotificationToActivity = (n) => {
   }
 }
 
-const FleetUtilizationChart = ({ isDark, chartData }) => {
+const FleetFuelChart = ({ isDark, chartData }) => {
   const [tooltip, setTooltip] = useState(null)
-  const [animProgress, setAnimProgress] = useState(0)
   const svgRef = useRef(null)
 
-  const fleetHourlyData = (chartData && chartData.length > 0) ? chartData : [
-    { time: '06:00', active: 4 },
-    { time: '07:00', active: 7 },
-    { time: '08:00', active: 11 },
-    { time: '09:00', active: 14 },
-    { time: '10:00', active: 16 },
-    { time: '11:00', active: 17 },
-    { time: '12:00', active: 15 },
-    { time: '13:00', active: 16 },
-    { time: '14:00', active: 14 },
-    { time: '15:00', active: 12 },
-    { time: '16:00', active: 10 },
-    { time: '17:00', active: 6 },
-  ]
+  const months = chartData?.months || []
+  const dieselArr = chartData?.data?.Diesel || []
+  const petrolArr = chartData?.data?.Petrol || []
+  const upto = months.length ? Math.min(new Date().getMonth(), months.length - 1) : -1
+  const pts0 = []
+  for (let i = 0; i <= upto; i++) pts0.push({ label: months[i], diesel: Number(dieselArr[i]) || 0, petrol: Number(petrolArr[i]) || 0 })
+  const hasData = pts0.length > 0
 
-  useEffect(() => {
-    let frame
-    let start = null
-    const duration = 1200
-    const animate = (ts) => {
-      if (!start) start = ts
-      const p = Math.min((ts - start) / duration, 1)
-      setAnimProgress(p)
-      if (p < 1) frame = requestAnimationFrame(animate)
-    }
-    frame = requestAnimationFrame(animate)
-    return () => cancelAnimationFrame(frame)
-  }, [chartData])
-
-  const W = 520, H = 180, padL = 40, padR = 16, padT = 16, padB = 36
-  const chartW = W - padL - padR
-  const chartH = H - padT - padB
-  const maxVal = Math.max(...fleetHourlyData.map(d => d.active), 22)
-  const pts = fleetHourlyData.map((d, i) => ({
-    x: padL + (i / (fleetHourlyData.length - 1 || 1)) * chartW,
-    y: padT + chartH - (d.active / maxVal) * chartH,
-    ...d,
-  }))
-
-  const buildPath = (progress) => {
-    const cutIdx = Math.floor(progress * (pts.length - 1))
-    const frac = progress * (pts.length - 1) - cutIdx
-    const visible = pts.slice(0, cutIdx + 1)
-    if (visible.length < 2) return ''
-    if (cutIdx < pts.length - 1) {
-      const next = pts[cutIdx + 1]
-      const curr = pts[cutIdx]
-      visible.push({ x: curr.x + (next.x - curr.x) * frac, y: curr.y + (next.y - curr.y) * frac })
-    }
-    let d = `M ${visible[0].x} ${visible[0].y}`
-    for (let i = 1; i < visible.length; i++) {
-      const prev = visible[i - 1]
-      const cp1x = prev.x + (visible[i].x - prev.x) * 0.4
-      const cp2x = visible[i].x - (visible[i].x - prev.x) * 0.4
-      d += ` C ${cp1x} ${prev.y} ${cp2x} ${visible[i].y} ${visible[i].x} ${visible[i].y}`
+  const dieselC = '#f59e0b', petrolC = '#3b82f6'
+  const W = 520, H = 180, padL = 46, padR = 16, padT = 16, padB = 36
+  const chartW = W - padL - padR, chartH = H - padT - padB
+  const rawMax = Math.max(1, ...pts0.flatMap(p => [p.diesel, p.petrol]))
+  const stepPow = Math.pow(10, Math.floor(Math.log10(rawMax)))
+  const maxVal = Math.max(stepPow, Math.ceil(rawMax / stepPow) * stepPow)
+  const X = i => padL + (pts0.length <= 1 ? chartW / 2 : (i / (pts0.length - 1)) * chartW)
+  const Y = v => padT + chartH - ((Number(v) || 0) / maxVal) * chartH
+  const grid = 4
+  const axis = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'
+  const axisText = isDark ? '#64748b' : '#94a3b8'
+  const fmtL = v => { const n = Number(v) || 0; return n >= 1000 ? `${Math.round(n / 1000)}k` : `${Math.round(n)}` }
+  const smooth = key => {
+    if (!pts0.length) return ''
+    let d = `M ${X(0)} ${Y(pts0[0][key])}`
+    for (let i = 1; i < pts0.length; i++) {
+      const px = X(i - 1), py = Y(pts0[i - 1][key]), nx = X(i), ny = Y(pts0[i][key])
+      d += ` C ${px + (nx - px) * 0.4} ${py} ${nx - (nx - px) * 0.4} ${ny} ${nx} ${ny}`
     }
     return d
   }
 
-  const linePath = buildPath(animProgress)
-  const lastPt = (() => {
-    if (pts.length === 0) return { x: padL, y: padT + chartH }
-    const cutIdx = Math.min(Math.floor(animProgress * (pts.length - 1)), pts.length - 2)
-    const frac = animProgress * (pts.length - 1) - cutIdx
-    const curr = pts[cutIdx], next = pts[Math.min(cutIdx + 1, pts.length - 1)]
-    return { x: curr.x + (next.x - curr.x) * frac, y: curr.y + (next.y - curr.y) * frac }
-  })()
-
-  const areaPath = linePath ? linePath + ` L ${lastPt.x} ${padT + chartH} L ${padL} ${padT + chartH} Z` : ''
-  const gridLines = [0, 5, 10, 15, 20].map(v => ({ y: padT + chartH - (v / maxVal) * chartH, label: v }))
-
-  const handleMouseMove = useCallback((e) => {
+  const handleMouseMove = (e) => {
     const rect = svgRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const mx = e.clientX - rect.left
-    let closest = null, minDist = 30
-    pts.forEach(p => { const dist = Math.abs(p.x - mx); if (dist < minDist) { minDist = dist; closest = p } })
-    setTooltip(closest)
-  }, [pts])
-
-  const step = pts.length > 15 ? 4 : (pts.length > 8 ? 2 : 1)
-  const visibleTicks = pts.filter((_, i) => {
-    if (i === 0 || i === pts.length - 1) return true
-    return i % step === 0 && (pts.length - 1 - i) >= step * 0.7
-  })
+    if (!rect || !pts0.length) return
+    const mx = (e.clientX - rect.left) / rect.width * W
+    let idx = 0, min = Infinity
+    pts0.forEach((p, i) => { const dd = Math.abs(X(i) - mx); if (dd < min) { min = dd; idx = i } })
+    setTooltip(idx)
+  }
 
   return (
     <div style={{
@@ -485,93 +437,58 @@ const FleetUtilizationChart = ({ isDark, chartData }) => {
         e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)'
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-        <div>
-          <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fleet Utilization</div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Active vehicles per month (this year)</div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(34,197,94,0.1)', padding: '4px 10px', borderRadius: 20, border: '1px solid rgba(34,197,94,0.2)' }}>
-          <span className="live-pulse-dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-          <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Live Tracking</span>
-        </div>
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel Consumption</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Monthly litres by fuel type (this year)</div>
       </div>
-      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
-        style={{ width: '100%', height: 'auto', display: 'block', cursor: 'crosshair' }}
-        onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
-        <defs>
-          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
-            <stop offset="50%" stopColor="#a855f7" stopOpacity="0.1" />
-            <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.00" />
-          </linearGradient>
-          <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#3b82f6" />
-            <stop offset="50%" stopColor="#a855f7" />
-            <stop offset="100%" stopColor="#06b6d4" />
-          </linearGradient>
-          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="4" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
-        </defs>
-
-        {/* Faint Vertical Grid Lines */}
-        {visibleTicks.map(p => (
-          <line key={p.time} x1={p.x} x2={p.x} y1={padT} y2={padT + chartH} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3 3" opacity="0.15" />
-        ))}
-
-        {/* Horizontal Grid Lines */}
-        {gridLines.map(gl => (
-          <g key={gl.label}>
-            <line x1={padL} x2={W - padR} y1={gl.y} y2={gl.y} stroke="var(--border)" strokeWidth="0.75" strokeDasharray="4 4" opacity="0.25" />
-            <text x={padL - 8} y={gl.y + 4} fontSize="9" fill="var(--text-muted)" textAnchor="end" fontFamily="inherit">{gl.label}</text>
-          </g>
-        ))}
-
-        {/* X Axis Labels */}
-        {visibleTicks.map((p, i) => (
-          <text key={i} x={p.x} y={H - 4} fontSize="9" fill="var(--text-muted)" textAnchor="middle" fontFamily="inherit" fontWeight="600">{p.time}</text>
-        ))}
-
-        {/* Area fill path */}
-        {areaPath && <path d={areaPath} fill="url(#areaGrad)" />}
-
-        {/* Neon Glow stroke paths */}
-        {linePath && <path d={linePath} fill="none" stroke="url(#lineGrad)" strokeWidth="5" opacity="0.18" filter="url(#glow)" strokeLinecap="round" strokeLinejoin="round" />}
-        {linePath && <path d={linePath} fill="none" stroke="url(#lineGrad)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
-
-        {/* Animating pulsing end dot */}
-        {animProgress > 0 && (
-          <>
-            <circle cx={lastPt.x} cy={lastPt.y} r="7" fill="#06b6d4" opacity="0.3">
-              <animate attributeName="r" values="5;11;5" dur="2s" repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0.3;0.05;0.3" dur="2s" repeatCount="indefinite" />
-            </circle>
-            <circle cx={lastPt.x} cy={lastPt.y} r="4" fill="#06b6d4" stroke="#fff" strokeWidth="2" />
-          </>
-        )}
-
-        {/* Interactive Hover Tooltip */}
-        {tooltip && (
-          <g>
-            <line x1={tooltip.x} x2={tooltip.x} y1={padT} y2={padT + chartH} stroke="#3b82f6" strokeWidth="1" strokeDasharray="4 3" opacity="0.6" />
-            <rect x={tooltip.x - 58} y={tooltip.y - 34} width={116} height={28} rx={6} fill="rgba(10,15,30,0.85)" stroke="url(#lineGrad)" strokeWidth="1.5" style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.5))' }} />
-            <text x={tooltip.x} y={tooltip.y - 22} fontSize="8" fill="#94a3b8" textAnchor="middle" fontFamily="inherit" fontWeight="600">{tooltip.time}</text>
-            <text x={tooltip.x} y={tooltip.y - 10} fontSize="8.5" fill="#fff" textAnchor="middle" fontWeight="800" fontFamily="inherit">Active : {tooltip.active} vehicles</text>
-            <circle cx={tooltip.x} cy={tooltip.y} r="4" fill="#06b6d4" stroke="#fff" strokeWidth="1.5" />
-          </g>
-        )}
-      </svg>
-      <style>{`
-        @keyframes pulse-live {
-          0% { transform: scale(0.95); opacity: 0.6; }
-          50% { transform: scale(1.25); opacity: 1; }
-          100% { transform: scale(0.95); opacity: 0.6; }
-        }
-        .live-pulse-dot {
-          animation: pulse-live 2s infinite ease-in-out;
-        }
-      `}</style>
+      {hasData ? (
+        <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
+          style={{ width: '100%', height: 'auto', display: 'block', cursor: 'crosshair' }}
+          onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
+          {Array.from({ length: grid + 1 }).map((_, i) => {
+            const v = (maxVal / grid) * i, y = Y(v)
+            return (
+              <g key={i}>
+                <line x1={padL} x2={W - padR} y1={y} y2={y} stroke={axis} strokeDasharray="4 4" />
+                <text x={padL - 8} y={y + 4} fontSize="9" fill={axisText} textAnchor="end">{fmtL(v)}</text>
+              </g>
+            )
+          })}
+          {pts0.map((p, i) => (<text key={i} x={X(i)} y={H - 6} fontSize="9" fill={axisText} textAnchor="middle" fontWeight="600">{p.label}</text>))}
+          <path d={smooth('diesel')} fill="none" stroke={dieselC} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={smooth('petrol')} fill="none" stroke={petrolC} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          {pts0.map((p, i) => (
+            <g key={i}>
+              <circle cx={X(i)} cy={Y(p.diesel)} r={tooltip === i ? 4.5 : 3} fill="var(--surface)" stroke={dieselC} strokeWidth="2" />
+              <circle cx={X(i)} cy={Y(p.petrol)} r={tooltip === i ? 4.5 : 3} fill="var(--surface)" stroke={petrolC} strokeWidth="2" />
+            </g>
+          ))}
+          {tooltip !== null && pts0[tooltip] && (() => {
+            const p = pts0[tooltip], hx = X(tooltip), bw = 124, bh = 56
+            let bx = hx + 10; if (bx + bw > W) bx = hx - bw - 10
+            const by = padT + 4
+            return (
+              <g style={{ pointerEvents: 'none' }}>
+                <line x1={hx} y1={padT} x2={hx} y2={padT + chartH} stroke={axisText} strokeDasharray="3 3" opacity="0.6" />
+                <rect x={bx} y={by} width={bw} height={bh} rx="8" fill={isDark ? '#0e1529' : '#ffffff'} stroke="var(--surface-border)" style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.4))' }} />
+                <text x={bx + 10} y={by + 18} fontSize="10" fontWeight="800" fill="var(--text-primary)">{p.label}</text>
+                <text x={bx + 10} y={by + 34} fontSize="9.5" fill={dieselC} fontWeight="700">Diesel: {Math.round(p.diesel).toLocaleString()} L</text>
+                <text x={bx + 10} y={by + 48} fontSize="9.5" fill={petrolC} fontWeight="700">Petrol: {Math.round(p.petrol).toLocaleString()} L</text>
+              </g>
+            )
+          })()}
+        </svg>
+      ) : (
+        <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No fuel data yet</div>
+      )}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 10 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+          <span style={{ width: 18, height: 3, borderRadius: 2, background: dieselC }} /> Diesel (L)
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+          <span style={{ width: 18, height: 3, borderRadius: 2, background: petrolC }} /> Petrol (L)
+        </span>
+      </div>
     </div>
   )
 }
@@ -939,7 +856,7 @@ const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, a
       <div className="dashboard-columns-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start', marginBottom: 36 }}>
         {/* Left Column: Utilization & Activity */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <FleetUtilizationChart isDark={isDark} chartData={chartData} />
+          <FleetFuelChart isDark={isDark} chartData={chartData} />
           <RecentActivitySection activities={activities} navigate={navigate} />
         </div>
 
@@ -1158,22 +1075,12 @@ const DashboardPage = () => {
             }
           }
 
-          // Fleet utilization — real data: distinct active vehicles per month (current year), from fuel activity
+          // Monthly fuel consumption (Diesel vs Petrol) — real data for the controller chart
           try {
-            const logsRes = await fuelAPI.getAllFuelLogs()
-            const logs = (logsRes.data.data || []).filter(l => !l.isDeleted && !l.deleted)
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-            const now = new Date(), yr = now.getFullYear(), upto = now.getMonth()
-            const sets = Array.from({ length: 12 }, () => new Set())
-            logs.forEach(l => {
-              const d = new Date(l.date)
-              if (d.getFullYear() === yr && l.vehicleRegNumber) sets[d.getMonth()].add(l.vehicleRegNumber)
-            })
-            const util = []
-            for (let m = 0; m <= upto; m++) util.push({ time: monthNames[m], active: sets[m].size })
-            setFleetChartData(util)
+            const chartRes = await fuelAPI.getChartData()
+            setFleetChartData(chartRes.data.data || null)
           } catch (err) {
-            console.error('Error loading fleet utilization data:', err)
+            console.error('Error loading fuel consumption chart data:', err)
           }
 
           // Fetch real-time vehicle status breakdown data
