@@ -1045,7 +1045,6 @@ const DriverDashboard = ({ navigate, isDark, vehicleCount }) => {
       <SectionHeader title="My Overview" />
       <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
         <StatCard icon={<Car size={20} color={A.purple}/>} label="Fleet Vehicles" value={vehicleCount} colorDim={A.purpleDim} colorHex={A.purple} change="Total vehicles in fleet" onClick={() => navigate('/vehicles')} />
-        <StatCard icon={<ClipboardList size={20} color={A.blue}/>} label="Today's Tasks" value="3" colorDim={A.blueDim} colorHex={A.blue} change="Pending deliveries" />
         <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Completed" value="12" colorDim={A.greenDim} colorHex={A.green} change="This week" />
         <StatCard icon={<Activity size={20} color={A.green}/>} label="Status" value="Active" colorDim={A.greenDim} colorHex={A.green} change="Ready to drive" />
       </div>
