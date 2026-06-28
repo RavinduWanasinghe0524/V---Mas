@@ -114,7 +114,152 @@ const useAccents = (isDark) => ({
   goldDim:   isDark ? 'rgba(251, 191, 36, 0.15)' : 'rgba(217, 119, 6, 0.1)',
 })
 
-const AdminDashboard = ({ stats, loading, navigate, isDark }) => {
+/* ── Monthly Cost Trend (Maintenance vs Fuel) — SVG line chart ── */
+const MonthlyCostTrendChart = ({ data = [], isDark }) => {
+  const [hover, setHover] = useState(null)
+  const blue = '#3b82f6', green = '#34d399'
+  const pts = (data && data.length) ? data : [{ label: '—', maintenance: 0, fuel: 0 }]
+  const W = 580, H = 300, padL = 52, padR = 24, padT = 24, padB = 40
+  const plotW = W - padL - padR, plotH = H - padT - padB
+  const rawMax = Math.max(1, ...pts.flatMap(p => [Number(p.maintenance) || 0, Number(p.fuel) || 0]))
+  const stepPow = Math.pow(10, Math.floor(Math.log10(rawMax)))
+  const niceMax = Math.max(stepPow, Math.ceil(rawMax / stepPow) * stepPow)
+  const X = i => padL + (pts.length === 1 ? plotW / 2 : (i / (pts.length - 1)) * plotW)
+  const Y = v => padT + plotH - ((Number(v) || 0) / niceMax) * plotH
+  const grid = 4
+  const fmtK = v => `${Math.round((Number(v) || 0) / 1000)}k`
+  const linePath = key => pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${X(i)} ${Y(p[key])}`).join(' ')
+  const axis = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'
+  const axisText = isDark ? '#64748b' : '#94a3b8'
+
+  return (
+    <div style={{ background: 'var(--surface)', borderRadius: 24, border: '1px solid var(--surface-border)', boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px' }}>
+      <div style={{ marginBottom: 8 }}>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Monthly Cost Trend</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Maintenance vs fuel (LKR thousands)</div>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }} onMouseLeave={() => setHover(null)}>
+        {Array.from({ length: grid + 1 }).map((_, i) => {
+          const v = (niceMax / grid) * i, yy = Y(v)
+          return (
+            <g key={`g${i}`}>
+              <line x1={padL} y1={yy} x2={W - padR} y2={yy} stroke={axis} strokeDasharray="4 4" />
+              <text x={padL - 10} y={yy + 4} fontSize="11" fill={axisText} textAnchor="end" fontWeight="600">{fmtK(v)}</text>
+            </g>
+          )
+        })}
+        {pts.map((p, i) => (
+          <g key={`x${i}`}>
+            <text x={X(i)} y={H - padB + 22} fontSize="11" fill={axisText} textAnchor="middle" fontWeight="600">{p.label}</text>
+            <rect x={X(i) - plotW / (pts.length * 2)} y={padT} width={plotW / Math.max(1, pts.length)} height={plotH} fill="transparent" onMouseEnter={() => setHover(i)} />
+          </g>
+        ))}
+        <path d={linePath('fuel')} fill="none" stroke={green} strokeWidth="2.5" strokeDasharray="6 5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={linePath('maintenance')} fill="none" stroke={blue} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        {pts.map((p, i) => (
+          <g key={`p${i}`}>
+            <circle cx={X(i)} cy={Y(p.fuel)} r={hover === i ? 5 : 3.5} fill="var(--surface)" stroke={green} strokeWidth="2.5" />
+            <circle cx={X(i)} cy={Y(p.maintenance)} r={hover === i ? 5 : 3.5} fill="var(--surface)" stroke={blue} strokeWidth="2.5" />
+          </g>
+        ))}
+        {hover !== null && (() => {
+          const p = pts[hover], hx = X(hover), boxW = 152, boxH = 72
+          let bx = hx + 12; if (bx + boxW > W) bx = hx - boxW - 12
+          const by = padT + 6
+          return (
+            <g style={{ pointerEvents: 'none' }}>
+              <line x1={hx} y1={padT} x2={hx} y2={padT + plotH} stroke={axisText} strokeDasharray="3 3" opacity="0.6" />
+              <rect x={bx} y={by} width={boxW} height={boxH} rx="10" fill={isDark ? '#0e1529' : '#ffffff'} stroke="var(--surface-border)" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.25))' }} />
+              <text x={bx + 14} y={by + 22} fontSize="12" fontWeight="800" fill="var(--text-primary)">{p.label}</text>
+              <text x={bx + 14} y={by + 43} fontSize="11.5" fill="var(--text-primary)">Maintenance: {fmtK(p.maintenance)}</text>
+              <text x={bx + 14} y={by + 61} fontSize="11.5" fill={green} fontWeight="600">Fuel: {fmtK(p.fuel)}</text>
+            </g>
+          )
+        })()}
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 8 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+          <span style={{ width: 18, height: 3, borderRadius: 2, background: blue }} /> Maintenance (LKR k)
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+          <span style={{ width: 18, borderTop: `3px dashed ${green}` }} /> Fuel (LKR k)
+        </span>
+      </div>
+    </div>
+  )
+}
+
+/* ── User Statistics donut with Role / Status toggle ── */
+const UserStatsPieChart = ({ stats }) => {
+  const [mode, setMode] = useState('role')
+  const roleData = [
+    { label: 'Admins', value: stats.admins || 0, color: '#3b82f6' },
+    { label: 'Controllers', value: stats.controllers || 0, color: '#fbbf24' },
+    { label: 'Drivers', value: stats.drivers || 0, color: '#34d399' },
+  ]
+  const statusData = [
+    { label: 'Active', value: stats.activeUsers || 0, color: '#34d399' },
+    { label: 'Inactive', value: stats.inactiveUsers || 0, color: '#f87171' },
+    { label: 'Suspended', value: stats.suspendedUsers || 0, color: '#94a3b8' },
+    { label: 'Pending', value: stats.pendingUsers || 0, color: '#fbbf24' },
+  ]
+  const data = mode === 'role' ? roleData : statusData
+  const total = data.reduce((s, d) => s + d.value, 0)
+  const cx = 110, cy = 110, R = 86, r = 56
+  let angle = -Math.PI / 2
+  const slices = data.map(d => {
+    const sweep = (d.value / (total || 1)) * 2 * Math.PI
+    const x1 = cx + R * Math.cos(angle), y1 = cy + R * Math.sin(angle)
+    const x2 = cx + R * Math.cos(angle + sweep), y2 = cy + R * Math.sin(angle + sweep)
+    const ix1 = cx + r * Math.cos(angle), iy1 = cy + r * Math.sin(angle)
+    const ix2 = cx + r * Math.cos(angle + sweep), iy2 = cy + r * Math.sin(angle + sweep)
+    const large = sweep > Math.PI ? 1 : 0
+    const path = `M ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${r} ${r} 0 ${large} 0 ${ix1} ${iy1} Z`
+    const mid = angle + sweep / 2, midR = (R + r) / 2
+    const lx = cx + midR * Math.cos(mid), ly = cy + midR * Math.sin(mid)
+    angle += sweep
+    return { ...d, path, sweep, lx, ly }
+  })
+  const tabBtn = (active) => ({ flex: 1, padding: '7px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: '0.76rem', fontWeight: 800, fontFamily: 'inherit', transition: 'all 0.15s', background: active ? 'var(--primary)' : 'transparent', color: active ? '#fff' : 'var(--text-muted)' })
+
+  return (
+    <div style={{ background: 'var(--surface)', borderRadius: 24, border: '1px solid var(--surface-border)', boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>User Statistics</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>{mode === 'role' ? 'Distribution by role' : 'Distribution by account status'}</div>
+      </div>
+      <div style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--surface-hi)', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 20 }}>
+        <button style={tabBtn(mode === 'role')} onClick={() => setMode('role')}>Role based</button>
+        <button style={tabBtn(mode === 'status')} onClick={() => setMode('status')}>Status based</button>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, flex: 1 }}>
+        <svg viewBox="0 0 220 220" style={{ width: 150, height: 150, flexShrink: 0 }}>
+          {total === 0 ? (
+            <circle cx={cx} cy={cy} r={(R + r) / 2} fill="none" stroke="var(--border)" strokeWidth={R - r} />
+          ) : slices.map((s, i) => s.sweep > 0 && (
+            <g key={i}>
+              <path d={s.path} fill={s.color} style={{ transition: 'opacity 0.2s', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.35))' }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.8'} onMouseLeave={e => e.currentTarget.style.opacity = '1'} />
+              <text x={s.lx} y={s.ly + 5} fontSize="15" fontWeight="900" fill="#fff" textAnchor="middle" style={{ pointerEvents: 'none' }}>{s.value}</text>
+            </g>
+          ))}
+          <text x={cx} y={cy - 4} fontSize="26" fontWeight="900" fill="var(--text-primary)" textAnchor="middle" fontFamily="'Plus Jakarta Sans',sans-serif">{total}</text>
+          <text x={cx} y={cy + 15} fontSize="11" fill="var(--text-muted)" textAnchor="middle" fontWeight="700" letterSpacing="0.05em">USERS</text>
+        </svg>
+        <div style={{ display: 'grid', gridTemplateColumns: mode === 'role' ? '1fr 1fr 1fr' : '1fr 1fr', width: '100%', gap: 10, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+          {data.map((d, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+              <div style={{ width: 9, height: 9, borderRadius: '50%', background: d.color, flexShrink: 0, boxShadow: `0 0 8px ${d.color}70` }} />
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700 }}>{d.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const AdminDashboard = ({ stats, loading, navigate, isDark, monthlyCostData }) => {
   const A = useAccents(isDark)
   if (loading) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
@@ -134,15 +279,34 @@ const AdminDashboard = ({ stats, loading, navigate, isDark }) => {
         <StatCard icon={<Ban size={20} color={A.red}/>} label="Inactive" value={stats.inactiveUsers} colorDim={A.redDim} colorHex={A.red} change="Disabled accounts" onClick={() => navigate('/users', { state: { statusFilter: 'INACTIVE' } })} />
       </div>
 
+      <div className="dashboard-columns-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start', marginBottom: 36 }}>
+        {/* Left Column: cost trend chart */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <MonthlyCostTrendChart data={monthlyCostData} isDark={isDark} />
+        </div>
+
+        {/* Right Column: user statistics donut */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <UserStatsPieChart stats={stats} />
+        </div>
+      </div>
+
       <SectionHeader title="Quick Actions" />
       <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
         <FeatureCard icon={<Car size={24}/>} title="Vehicles" desc="Manage and monitor all fleet vehicles, statuses, assignments and details." onClick={() => navigate('/vehicles')} />
         <FeatureCard icon={<Wrench size={24}/>} title="Service" desc="Schedule and track vehicle service appointments and maintenance records." onClick={() => navigate('/service')} />
         <FeatureCard icon={<Users size={24}/>} title="Users" desc="Create, view, edit, and delete users. Manage roles and account status." onClick={() => navigate('/users')} />
         <FeatureCard icon={<Fuel size={24}/>} title="Fuel Analysis" desc="Monitor fuel consumption trends and cost analysis across the entire fleet." onClick={() => navigate('/fuel-analysis')} />
-
         <FeatureCard icon={<BarChart3 size={24}/>} title="Reports" desc="Generate comprehensive reports on fleet performance and system activity." onClick={() => navigate('/reports')} />
       </div>
+
+      <style>{`
+        @media (max-width: 1024px) {
+          .dashboard-columns-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </>
   )
 }
@@ -901,7 +1065,8 @@ const DashboardPage = () => {
   const { theme } = useTheme()
   const navigate = useNavigate()
   const isDark = theme === 'blue'
-  const [stats, setStats] = useState({ totalUsers: 0, admins: 0, controllers: 0, drivers: 0, activeUsers: 0, inactiveUsers: 0 })
+  const [stats, setStats] = useState({ totalUsers: 0, admins: 0, controllers: 0, drivers: 0, activeUsers: 0, inactiveUsers: 0, suspendedUsers: 0, pendingUsers: 0 })
+  const [monthlyCostData, setMonthlyCostData] = useState([])
   const [controllerStats, setControllerStats] = useState({ total: 0, active: 0, maintenance: 0, available: 0 })
   const [driverVehicleCount, setDriverVehicleCount] = useState(0)
   const [fleetChartData, setFleetChartData] = useState([])
@@ -936,9 +1101,31 @@ const DashboardPage = () => {
                 drivers: users.filter(u => u.role === 'DRIVER').length,
                 activeUsers: users.filter(u => u.accountStatus === 'ACTIVE').length,
                 inactiveUsers: users.filter(u => u.accountStatus === 'INACTIVE').length,
+                suspendedUsers: users.filter(u => u.accountStatus === 'SUSPENDED').length,
+                pendingUsers: users.filter(u => u.accountStatus === 'PENDING').length,
               })
             } catch (err) {
               console.error('Error loading admin user stats:', err)
+            }
+
+            // Monthly cost trend (current year): fuel cost vs maintenance cost per month
+            try {
+              const [fuelRes, serviceRes] = await Promise.all([
+                fuelAPI.getAllFuelLogs(),
+                serviceAPI.getAllServices(),
+              ])
+              const fuelLogs = (fuelRes.data.data || []).filter(l => !l.isDeleted && !l.deleted)
+              const serviceRecords = (serviceRes.data.data || []).filter(s => !s.isDeleted && !s.deleted)
+              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+              const now = new Date(), yr = now.getFullYear(), upto = now.getMonth()
+              const fuelByMonth = Array(12).fill(0), maintByMonth = Array(12).fill(0)
+              fuelLogs.forEach(l => { const d = new Date(l.date); if (d.getFullYear() === yr) fuelByMonth[d.getMonth()] += (l.totalCost || 0) })
+              serviceRecords.forEach(s => { const d = new Date(s.serviceDate); if (d.getFullYear() === yr) maintByMonth[d.getMonth()] += (parseFloat(s.serviceCost) || 0) })
+              const mcd = []
+              for (let m = 0; m <= upto; m++) mcd.push({ label: monthNames[m], maintenance: maintByMonth[m], fuel: fuelByMonth[m] })
+              setMonthlyCostData(mcd)
+            } catch (err) {
+              console.error('Error loading monthly cost trend:', err)
             }
           }
 
@@ -1067,7 +1254,7 @@ const DashboardPage = () => {
           )}
 
           {/* Role-based content */}
-          {user?.role === 'ADMIN' && <AdminDashboard stats={stats} loading={loading} navigate={navigate} isDark={isDark} />}
+          {user?.role === 'ADMIN' && <AdminDashboard stats={stats} loading={loading} navigate={navigate} isDark={isDark} monthlyCostData={monthlyCostData} />}
           {user?.role === 'CONTROLLER' && <ControllerDashboard navigate={navigate} isDark={isDark} chartData={fleetChartData} statusData={statusData} stats={controllerStats} activities={activities} />}
           {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} vehicleCount={driverVehicleCount} />}
         </div>
