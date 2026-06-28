@@ -378,21 +378,16 @@ const mapNotificationToActivity = (n) => {
 }
 
 const FleetFuelChart = ({ isDark, chartData }) => {
-  const [tooltip, setTooltip] = useState(null)
+  const [hover, setHover] = useState(null) // { i, type: 'diesel' | 'petrol' }
   const svgRef = useRef(null)
 
-  const months = chartData?.months || []
-  const dieselArr = chartData?.data?.Diesel || []
-  const petrolArr = chartData?.data?.Petrol || []
-  const upto = months.length ? Math.min(new Date().getMonth(), months.length - 1) : -1
-  const pts0 = []
-  for (let i = 0; i <= upto; i++) pts0.push({ label: months[i], diesel: Number(dieselArr[i]) || 0, petrol: Number(petrolArr[i]) || 0 })
+  const pts0 = Array.isArray(chartData) ? chartData : []
   const hasData = pts0.length > 0
 
   const dieselC = '#f59e0b', petrolC = '#3b82f6'
   const W = 520, H = 180, padL = 46, padR = 16, padT = 16, padB = 36
   const chartW = W - padL - padR, chartH = H - padT - padB
-  const rawMax = Math.max(1, ...pts0.flatMap(p => [p.diesel, p.petrol]))
+  const rawMax = Math.max(1, ...pts0.flatMap(p => [p.diesel || 0, p.petrol || 0]))
   const stepPow = Math.pow(10, Math.floor(Math.log10(rawMax)))
   const maxVal = Math.max(stepPow, Math.ceil(rawMax / stepPow) * stepPow)
   const X = i => padL + (pts0.length <= 1 ? chartW / 2 : (i / (pts0.length - 1)) * chartW)
@@ -409,15 +404,6 @@ const FleetFuelChart = ({ isDark, chartData }) => {
       d += ` C ${px + (nx - px) * 0.4} ${py} ${nx - (nx - px) * 0.4} ${ny} ${nx} ${ny}`
     }
     return d
-  }
-
-  const handleMouseMove = (e) => {
-    const rect = svgRef.current?.getBoundingClientRect()
-    if (!rect || !pts0.length) return
-    const mx = (e.clientX - rect.left) / rect.width * W
-    let idx = 0, min = Infinity
-    pts0.forEach((p, i) => { const dd = Math.abs(X(i) - mx); if (dd < min) { min = dd; idx = i } })
-    setTooltip(idx)
   }
 
   return (
@@ -439,12 +425,12 @@ const FleetFuelChart = ({ isDark, chartData }) => {
     >
       <div style={{ marginBottom: 18 }}>
         <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel Consumption</div>
-        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Monthly litres by fuel type (this year)</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Monthly litres by fuel type — hover a point for vehicles</div>
       </div>
       {hasData ? (
         <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
-          style={{ width: '100%', height: 'auto', display: 'block', cursor: 'crosshair' }}
-          onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
+          style={{ width: '100%', height: 'auto', display: 'block' }}
+          onMouseLeave={() => setHover(null)}>
           {Array.from({ length: grid + 1 }).map((_, i) => {
             const v = (maxVal / grid) * i, y = Y(v)
             return (
@@ -455,25 +441,68 @@ const FleetFuelChart = ({ isDark, chartData }) => {
             )
           })}
           {pts0.map((p, i) => (<text key={i} x={X(i)} y={H - 6} fontSize="9" fill={axisText} textAnchor="middle" fontWeight="600">{p.label}</text>))}
+          {/* x-axis hover strips → show month summary of both fuels */}
+          {pts0.map((p, i) => {
+            const colW = pts0.length > 1 ? chartW / (pts0.length - 1) : chartW
+            return <rect key={`mh${i}`} x={X(i) - colW / 2} y={padT + chartH} width={colW} height={padB} fill="transparent" style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ i, type: 'month' })} />
+          })}
           <path d={smooth('diesel')} fill="none" stroke={dieselC} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           <path d={smooth('petrol')} fill="none" stroke={petrolC} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           {pts0.map((p, i) => (
             <g key={i}>
-              <circle cx={X(i)} cy={Y(p.diesel)} r={tooltip === i ? 4.5 : 3} fill="var(--surface)" stroke={dieselC} strokeWidth="2" />
-              <circle cx={X(i)} cy={Y(p.petrol)} r={tooltip === i ? 4.5 : 3} fill="var(--surface)" stroke={petrolC} strokeWidth="2" />
+              <circle cx={X(i)} cy={Y(p.diesel)} r={hover && hover.i === i && hover.type === 'diesel' ? 5 : 3} fill="var(--surface)" stroke={dieselC} strokeWidth="2" />
+              <circle cx={X(i)} cy={Y(p.diesel)} r="10" fill="transparent" style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ i, type: 'diesel' })} />
+              <circle cx={X(i)} cy={Y(p.petrol)} r={hover && hover.i === i && hover.type === 'petrol' ? 5 : 3} fill="var(--surface)" stroke={petrolC} strokeWidth="2" />
+              <circle cx={X(i)} cy={Y(p.petrol)} r="10" fill="transparent" style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ i, type: 'petrol' })} />
             </g>
           ))}
-          {tooltip !== null && pts0[tooltip] && (() => {
-            const p = pts0[tooltip], hx = X(tooltip), bw = 124, bh = 56
-            let bx = hx + 10; if (bx + bw > W) bx = hx - bw - 10
-            const by = padT + 4
+          {hover && pts0[hover.i] && (() => {
+            const p = pts0[hover.i], hx = X(hover.i)
+
+            // Month summary — both fuels' totals
+            if (hover.type === 'month') {
+              const bw = 132, bh = 58
+              let bx = hx + 12; if (bx + bw > W) bx = hx - bw - 12; if (bx < 2) bx = 2
+              const by = padT + 4
+              return (
+                <g style={{ pointerEvents: 'none' }}>
+                  <line x1={hx} y1={padT} x2={hx} y2={padT + chartH} stroke={axisText} strokeDasharray="3 3" opacity="0.5" />
+                  <rect x={bx} y={by} width={bw} height={bh} rx="8" fill={isDark ? '#0e1529' : '#ffffff'} stroke="var(--surface-border)" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.45))' }} />
+                  <text x={bx + 12} y={by + 18} fontSize="10" fontWeight="800" fill="var(--text-primary)">{p.label}</text>
+                  <text x={bx + 12} y={by + 35} fontSize="9" fill={dieselC} fontWeight="700">Diesel: {Math.round(p.diesel).toLocaleString()} L</text>
+                  <text x={bx + 12} y={by + 49} fontSize="9" fill={petrolC} fontWeight="700">Petrol: {Math.round(p.petrol).toLocaleString()} L</text>
+                </g>
+              )
+            }
+
+            // Per-fuel vehicle breakdown (compact, centered)
+            const list = hover.type === 'diesel' ? (p.dieselVehicles || []) : (p.petrolVehicles || [])
+            const color = hover.type === 'diesel' ? dieselC : petrolC
+            const fuelName = hover.type === 'diesel' ? 'Diesel' : 'Petrol'
+            const shown = list.slice(0, 7)
+            const rowH = 11, headH = 32 // header + gap before first vehicle
+            const rows = Math.max(1, shown.length) + (list.length > 7 ? 1 : 0)
+            const bw = 160, bh = headH + rows * rowH + 6
+            const cy = Y(hover.type === 'diesel' ? p.diesel : p.petrol)
+            let bx = hx + 12; if (bx + bw > W) bx = hx - bw - 12; if (bx < 2) bx = 2
+            let by = cy - bh - 8; if (by < 2) by = cy + 12; if (by + bh > H) by = Math.max(2, H - bh - 2)
+            const cx = bx + bw / 2
             return (
               <g style={{ pointerEvents: 'none' }}>
-                <line x1={hx} y1={padT} x2={hx} y2={padT + chartH} stroke={axisText} strokeDasharray="3 3" opacity="0.6" />
-                <rect x={bx} y={by} width={bw} height={bh} rx="8" fill={isDark ? '#0e1529' : '#ffffff'} stroke="var(--surface-border)" style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.4))' }} />
-                <text x={bx + 10} y={by + 18} fontSize="10" fontWeight="800" fill="var(--text-primary)">{p.label}</text>
-                <text x={bx + 10} y={by + 34} fontSize="9.5" fill={dieselC} fontWeight="700">Diesel: {Math.round(p.diesel).toLocaleString()} L</text>
-                <text x={bx + 10} y={by + 48} fontSize="9.5" fill={petrolC} fontWeight="700">Petrol: {Math.round(p.petrol).toLocaleString()} L</text>
+                <line x1={hx} y1={padT} x2={hx} y2={padT + chartH} stroke={color} strokeDasharray="3 3" opacity="0.5" />
+                <rect x={bx} y={by} width={bw} height={bh} rx="8" fill={isDark ? '#0e1529' : '#ffffff'} stroke="var(--surface-border)" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.45))' }} />
+                <text x={cx} y={by + 16} fontSize="9" fontWeight="800" fill={color} textAnchor="middle">{p.label} · {fuelName}</text>
+                {list.length === 0
+                  ? <text x={cx} y={by + headH} fontSize="7.5" fill={axisText} textAnchor="middle">No {fuelName.toLowerCase()} vehicles</text>
+                  : shown.map((v, k) => (
+                    <text key={k} x={cx} y={by + headH + k * rowH} fontSize="7.5" fill="var(--text-primary)" textAnchor="middle">
+                      <tspan fontWeight="700">{v.reg}</tspan>
+                      <tspan fill={axisText}>  ·  {Math.round(v.liters).toLocaleString()} L</tspan>
+                    </text>
+                  ))}
+                {list.length > 7 && (
+                  <text x={cx} y={by + headH + shown.length * rowH} fontSize="6.5" fill={axisText} textAnchor="middle">+{list.length - 7} more</text>
+                )}
               </g>
             )
           })()}
@@ -1075,10 +1104,28 @@ const DashboardPage = () => {
             }
           }
 
-          // Monthly fuel consumption (Diesel vs Petrol) — real data for the controller chart
+          // Monthly fuel consumption (Diesel vs Petrol) with per-vehicle breakdown — from real fuel logs
           try {
-            const chartRes = await fuelAPI.getChartData()
-            setFleetChartData(chartRes.data.data || null)
+            const logsRes = await fuelAPI.getAllFuelLogs()
+            const logs = (logsRes.data.data || []).filter(l => !l.isDeleted && !l.deleted)
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            const now = new Date(), yr = now.getFullYear(), upto = now.getMonth()
+            const agg = Array.from({ length: 12 }, () => ({ diesel: 0, petrol: 0, dieselMap: {}, petrolMap: {} }))
+            logs.forEach(l => {
+              const d = new Date(l.date)
+              if (d.getFullYear() !== yr) return
+              const m = d.getMonth(), ft = (l.fuelType || '').toLowerCase()
+              const liters = Number(l.liters) || 0
+              const reg = l.vehicleRegNumber || 'Unknown'
+              if (ft.includes('diesel')) { agg[m].diesel += liters; agg[m].dieselMap[reg] = (agg[m].dieselMap[reg] || 0) + liters }
+              else if (ft.includes('petrol')) { agg[m].petrol += liters; agg[m].petrolMap[reg] = (agg[m].petrolMap[reg] || 0) + liters }
+            })
+            const toList = map => Object.entries(map).map(([reg, liters]) => ({ reg, liters })).sort((a, b) => b.liters - a.liters)
+            const arr = []
+            for (let m = 0; m <= upto; m++) {
+              arr.push({ label: monthNames[m], diesel: agg[m].diesel, petrol: agg[m].petrol, dieselVehicles: toList(agg[m].dieselMap), petrolVehicles: toList(agg[m].petrolMap) })
+            }
+            setFleetChartData(arr)
           } catch (err) {
             console.error('Error loading fuel consumption chart data:', err)
           }
