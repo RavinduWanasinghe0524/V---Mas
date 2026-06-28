@@ -95,6 +95,8 @@ A full-stack fleet management web application with role-based access control, re
 - **Interactive SVG Visualization Components**:
   - **Live Fleet Utilization Chart** – Pulsing area line chart with animated gradient overlays, neon glow effects, and interactive hover tooltip tracking.
   - **Status Breakdown Donut Chart** – Custom-calculated SVG donut chart representing active, maintenance, and available fleet splits with animated slice transitions and hover highlights.
+  - **Monthly Cost Trend Chart** – Interactive SVG grouped bar chart comparing fuel expenses and maintenance costs month-by-month for the current year.
+  - **User Statistics Donut Chart** – Custom SVG breakdown supporting tab switching between User Roles (Admin, Controller, Driver) and Account Status (Active, Inactive, Suspended, Pending).
 
 ---
 
