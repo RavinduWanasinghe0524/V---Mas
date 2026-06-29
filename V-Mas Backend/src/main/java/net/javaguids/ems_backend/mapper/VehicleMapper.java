@@ -33,7 +33,8 @@ public class VehicleMapper {
                 vehicle.getVehicleImage(),
                 vehicle.isDeleted(),
                 vehicle.getDeletedBy(),
-                vehicle.getDeletedAt()
+                vehicle.getDeletedAt(),
+                vehicle.getFuelCapacity()
         );
     }
 
@@ -63,6 +64,7 @@ public class VehicleMapper {
         vehicle.setDeleted(dto.isDeleted());
         vehicle.setDeletedBy(dto.getDeletedBy());
         vehicle.setDeletedAt(dto.getDeletedAt());
+        vehicle.setFuelCapacity(dto.getFuelCapacity());
         return vehicle;
     }
 }
