@@ -529,7 +529,6 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
     }
 
     @Override
-    @SuppressWarnings("null")
     public net.javaguids.ems_backend.dto.ServiceRecordStatsDto getServiceStatsForDriver(String driverUsername) {
         return vehicleRepository.findByAssigneeUsername(driverUsername)
                 .map(vehicle -> {
@@ -588,7 +587,6 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
     }
 
     @Override
-    @SuppressWarnings("null")
     public org.springframework.core.io.Resource getAttachment(Long id) {
         ServiceRecord record = serviceRecordRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Service record not found with id: " + id));

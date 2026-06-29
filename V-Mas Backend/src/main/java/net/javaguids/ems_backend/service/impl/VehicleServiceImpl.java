@@ -236,7 +236,6 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
-    @SuppressWarnings("null")
     public org.springframework.core.io.Resource getDocument(Long id, String docType) {
         if (id == null) {
             throw new IllegalArgumentException("Id must not be null");
