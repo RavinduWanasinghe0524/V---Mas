@@ -87,6 +87,7 @@ public class VehicleServiceImpl implements VehicleService {
         vehicle.setModel(vehicleDto.getModel());
         vehicle.setYear(vehicleDto.getYear());
         if (vehicleDto.getFuelType() != null) vehicle.setFuelType(vehicleDto.getFuelType());
+        vehicle.setFuelCapacity(vehicleDto.getFuelCapacity());
         if (vehicleDto.getVehicleType() != null) vehicle.setVehicleType(vehicleDto.getVehicleType());
         if (vehicleDto.getCurrentMileageKm() != null) {
             // Find all active completed service records to enforce a minimum boundary
