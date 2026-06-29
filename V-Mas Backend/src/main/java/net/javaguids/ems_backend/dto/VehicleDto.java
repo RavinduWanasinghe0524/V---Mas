@@ -43,4 +43,6 @@ public class VehicleDto {
     private boolean deleted;
     private String deletedBy;
     private java.time.LocalDateTime deletedAt;
+
+    private Double fuelCapacity;
 }
