@@ -788,9 +788,9 @@ const UsersPage = () => {
                           ]
                         } else {
                           statsToShow = [
-                            { value: metrics.trips, label: 'Trips' },
-                            { value: `${metrics.rating}★`, label: 'Rating', isRating: true },
-                            { value: metrics.safety, label: 'Safety', isSafety: true }
+                            { value: 'Standard', label: 'Access' },
+                            { value: u.role === 'DRIVER' ? 'Driver' : (u.role || 'User'), label: 'Role' },
+                            { value: metrics.status || 'Active', label: 'Status' }
                           ]
                         }
 
@@ -1039,28 +1039,7 @@ const UsersPage = () => {
 
               {/* Detail list */}
               <div style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20, overflowY: 'auto', flex: 1, scrollbarWidth: 'thin' }}>
-                {u.role === 'DRIVER' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 8 }}>
-                    <div style={{ background: 'rgba(59, 130, 246, 0.04)', border: `1px solid rgba(59, 130, 246, 0.15)`, borderRadius: 16, padding: '14px 6px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: D.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                        <BarChart2 size={12} /> {metrics.trips}
-                      </div>
-                      <div style={{ fontSize: '0.62rem', fontWeight: 800, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Trips</div>
-                    </div>
-                    <div style={{ background: 'rgba(251, 191, 36, 0.04)', border: `1px solid rgba(251, 191, 36, 0.15)`, borderRadius: 16, padding: '14px 6px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                        <Star size={12} fill="#fbbf24" style={{ stroke: 'none' }} /> {metrics.rating}
-                      </div>
-                      <div style={{ fontSize: '0.62rem', fontWeight: 800, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rating</div>
-                    </div>
-                    <div style={{ background: 'rgba(16, 185, 129, 0.04)', border: `1px solid rgba(16, 185, 129, 0.15)`, borderRadius: 16, padding: '14px 6px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                        <Activity size={12} /> {metrics.safety}
-                      </div>
-                      <div style={{ fontSize: '0.62rem', fontWeight: 800, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Safety</div>
-                    </div>
-                  </div>
-                )}
+
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>
