@@ -840,6 +840,7 @@ const VehiclesPage = () => {
         manufacturer: editFormData.manufacturer,
         year: editFormData.year ? Number(editFormData.year) : null,
         fuelType: editFormData.fuelType ? editFormData.fuelType.toUpperCase() : null,
+        fuelCapacity: editFormData.fuelCapacity ? Number(editFormData.fuelCapacity) : null,
         currentMileageKm: editFormData.currentMileageKm ? Number(editFormData.currentMileageKm) : null,
         insuranceExpiryDate: editFormData.insuranceExpiryDate || null,
         licenseExpiryDate: editFormData.licenseExpiryDate || null,

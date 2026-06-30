@@ -75,6 +75,9 @@ public class Vehicle {
     @Column(name = "fuel_type", length = 50)
     private FuelTypes fuelType;
 
+    @Column(name = "fuel_capacity", nullable = true)
+    private Double fuelCapacity;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "vehicle_type", nullable = false, length = 50)
     private VehicleType vehicleType = VehicleType.CAR;
