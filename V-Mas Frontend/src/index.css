@@ -1774,6 +1774,24 @@ select.form-control option { background: #fff; }
     top: calc(100% + 10px) !important;
   }
 
+  /* ── Service filter bar responsive layout ─────────────────── */
+  .service-filter-bar {
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+    padding: 16px 18px !important;
+  }
+  .service-filter-bar > div:first-child {
+    flex: 1 1 100% !important;
+  }
+  .service-filter-bar > div {
+    flex: 1 1 auto;
+    min-width: 0 !important;
+  }
+  .service-filter-bar > button {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
   /* â”€â”€ Page header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .page-header {
     flex-direction: column;
