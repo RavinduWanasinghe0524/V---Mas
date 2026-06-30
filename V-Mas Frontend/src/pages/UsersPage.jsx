@@ -412,7 +412,7 @@ const UsersPage = () => {
       const submitData = { ...formData }
       if (!submitData.profilePicture)
         submitData.profilePicture = `https://ui-avatars.com/api/?name=${encodeURIComponent(submitData.userName)}&background=2563eb&color=fff&bold=true`
-      
+
       let savedUser = null
       if (editingUser) {
         if (!submitData.password) delete submitData.password
@@ -842,7 +842,7 @@ const UsersPage = () => {
                                   )}
                                 </div>
                               </div>
-                              
+
                               {/* Duty Status Badge */}
                               <div style={{
                                 padding: '4px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 700,
@@ -858,7 +858,7 @@ const UsersPage = () => {
                               {statsToShow.map((st, sidx) => {
                                 let themeStyles = {}
                                 let stIcon = null
-                                
+
                                 if (sidx === 0) {
                                   themeStyles = {
                                     bg: isDark ? 'rgba(59, 130, 246, 0.04)' : 'rgba(59, 130, 246, 0.02)',
@@ -927,11 +927,11 @@ const UsersPage = () => {
                                   <>
                                     <button onClick={(e) => { e.stopPropagation(); handleApprove(u.id, u.userName); }} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: D.green, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.green}30` }}
                                       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                                        <Check size={14} /> Approve
+                                      <Check size={14} /> Approve
                                     </button>
                                     <button onClick={(e) => { e.stopPropagation(); handleReject(u.id, u.userName); }} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: D.red, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.red}30` }}
                                       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                                        <X size={14} /> Reject
+                                      <X size={14} /> Reject
                                     </button>
                                   </>
                                 )}
@@ -972,7 +972,7 @@ const UsersPage = () => {
         const initials = u.userName
           ? u.userName.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
           : 'U'
-          
+
         let dutyStyles = {
           bg: 'rgba(255,255,255,0.05)',
           color: D.textSub,
@@ -1115,7 +1115,7 @@ const UsersPage = () => {
                                     const text = await err.response.data.text()
                                     const errorObj = JSON.parse(text)
                                     errMsg = errorObj.message || errMsg
-                                  } catch (e) {}
+                                  } catch (e) { }
                                 } else if (err.response?.data?.message) {
                                   errMsg = err.response.data.message
                                 }
@@ -1276,7 +1276,7 @@ const UsersPage = () => {
                                     const text = await err.response.data.text()
                                     const errorObj = JSON.parse(text)
                                     errMsg = errorObj.message || errMsg
-                                  } catch (e) {}
+                                  } catch (e) { }
                                 } else if (err.response?.data?.message) {
                                   errMsg = err.response.data.message
                                 }
