@@ -17,7 +17,7 @@ import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import api, { userAPI } from '../services/api'
 import { getDriverMetrics } from '../utils/driverUtils'
-import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car, BarChart2, Star, Activity, CheckCircle, RotateCcw, Archive, Trash2, User, FileText, Upload } from 'lucide-react'
+import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car, BarChart2, Star, Activity, CheckCircle, RotateCcw, Archive, Trash2, User, FileText, Upload, Search } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
@@ -666,17 +666,20 @@ const UsersPage = () => {
 
                 {/* Search and filter row */}
                 <div style={{ padding: '20px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', background: D.surface }}>
-                  <input
-                    type="text"
-                    placeholder="Search by name or email..."
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    style={{
-                      padding: '12px 16px', borderRadius: 12, border: `1px solid ${D.border}`, background: D.bg, color: D.text, fontSize: '0.85rem', outline: 'none', flex: 1, minWidth: 200, transition: 'all 0.2s'
-                    }}
-                    onFocus={e => { e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.boxShadow = `0 0 0 3px ${D.purple}20` }}
-                    onBlur={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = 'none' }}
-                  />
+                  <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+                    <Search size={18} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
+                    <input
+                      type="text"
+                      placeholder="Search by name or email..."
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      style={{
+                        padding: '12px 16px 12px 42px', borderRadius: 12, border: `1px solid ${D.border}`, background: D.bg, color: D.text, fontSize: '0.85rem', outline: 'none', width: '100%', boxSizing: 'border-box', transition: 'all 0.2s'
+                      }}
+                      onFocus={e => { e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.boxShadow = `0 0 0 3px ${D.purple}20` }}
+                      onBlur={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = 'none' }}
+                    />
+                  </div>
                   <select
                     value={roleFilter}
                     onChange={e => setRoleFilter(e.target.value)}
@@ -736,6 +739,7 @@ const UsersPage = () => {
                   ) : filteredUsers.length === 0 ? (
                     <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>No users found matching filters.</div>
                   ) : (
+<<<<<<< HEAD
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 }}>
                       {filteredUsers.map((u, i) => {
                         const metrics = getDriverMetrics(u, [])
@@ -807,9 +811,20 @@ const UsersPage = () => {
                                 {/* Avatar */}
                                 <div style={{ flexShrink: 0 }}>
                                   {u.profilePicture ? (
-                                    <img src={u.profilePicture} alt={u.userName} style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${D.border}` }} onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`; }} />
+                                    <img
+                                      src={u.profilePicture}
+                                      alt={u.userName}
+                                      style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${D.border}`, transition: 'transform 0.2s ease', cursor: 'pointer' }}
+                                      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.12)'}
+                                      onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                      onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`; }}
+                                    />
                                   ) : (
-                                    <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, #38bdf8, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1rem', fontWeight: 800, border: `2px solid ${D.border}` }}>
+                                    <div
+                                      style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, #38bdf8, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1rem', fontWeight: 800, border: `2px solid ${D.border}`, transition: 'transform 0.2s ease', cursor: 'pointer' }}
+                                      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.12)'}
+                                      onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                    >
                                       {initials}
                                     </div>
                                   )}
