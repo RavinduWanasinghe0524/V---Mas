@@ -393,31 +393,6 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
           display: none;
         }
 
-        @media (max-width: 768px) {
-          .topbar-notif-dropdown {
-            position: fixed !important;
-            top: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            max-height: 100vh !important;
-            margin-top: 0 !important;
-            border-radius: 0 !important;
-            z-index: 9999 !important;
-            animation: mobileSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
-          }
-
-          .topbar-notif-dropdown-list {
-            max-height: calc(100vh - 60px) !important;
-            padding-bottom: 60px;
-          }
-
-          .topbar-notif-mobile-close {
-            display: flex !important;
-          }
-        }
       `}</style>
       <header style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
