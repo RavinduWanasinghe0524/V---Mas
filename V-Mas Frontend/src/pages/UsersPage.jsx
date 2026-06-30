@@ -694,7 +694,13 @@ const UsersPage = () => {
                               onMouseLeave={e => { if(u.accountStatus !== 'PENDING') e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>
                             <td style={{ padding: '12px 16px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=fff&bold=true`} alt={u.userName} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                                <img
+                                  src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=fff&bold=true`}
+                                  alt={u.userName}
+                                  style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', transition: 'transform 0.2s ease', cursor: 'pointer' }}
+                                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.12)'}
+                                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                />
                                 <div>
                                   <p style={{ margin: 0, fontWeight: 700, color: D.text }}>{u.userName}</p>
                                   <p style={{ margin: '2px 0 0', fontSize: '0.7rem', color: D.textSub }}>ID #{u.id}</p>
