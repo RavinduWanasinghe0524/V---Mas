@@ -715,7 +715,7 @@ const UsersPage = () => {
                       onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
                       onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
                     >
-                      <X size={16} /> Reset Filters
+                      <RotateCcw size={14} /> Clear Filters
                     </button>
                   )}
                 </div>
@@ -739,7 +739,6 @@ const UsersPage = () => {
                   ) : filteredUsers.length === 0 ? (
                     <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>No users found matching filters.</div>
                   ) : (
-<<<<<<< HEAD
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 }}>
                       {filteredUsers.map((u, i) => {
                         const metrics = getDriverMetrics(u, [])

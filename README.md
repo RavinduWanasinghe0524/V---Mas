@@ -4,8 +4,21 @@ A full-stack fleet management web application with role-based access control, re
 
 ---
 
+## Project Overview
+
+**V-MAS** (Vehicle Management & Authentication System) is an enterprise-grade fleet operations and driver telemetry platform. Designed to bridge the communication gap between fleet owners, managers (controllers), and drivers, V-MAS acts as a centralized dashboard to track vehicle lifecycles, fuel consumption patterns, scheduled maintenance events, real-time-like tracking visualization, and compliance.
+
+### Key Objectives:
+- **Operational Clarity**: Role-specific dashboards presenting immediate operational summaries for Admins, Controllers, and Drivers.
+- **Cost Reduction**: Analytical tracking of fuel efficiency (km/L) and maintenance expenses to highlight fleet inefficiencies.
+- **Safety & Compliance**: Automatic computation of vehicle service thresholds and alerts to prevent overdue maintenance.
+- **Data Portability**: Highly styled, client-side branded PDF and Excel data exports representing fleet utilization and historical trends.
+
+---
+
 ## Table of Contents
 
+- [Project Overview](#project-overview)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Architecture Overview](#architecture-overview)
@@ -18,6 +31,7 @@ A full-stack fleet management web application with role-based access control, re
   - [2. Backend (Spring Boot)](#2-backend-spring-boot)
   - [3. Frontend (React + Vite)](#3-frontend-react--vite)
 - [Configuration](#configuration)
+- [Usage Instructions](#usage-instructions)
 - [User Roles & Navigation](#user-roles--navigation)
 - [Default Credentials](#default-credentials)
 - [API Endpoints](#api-endpoints)
@@ -347,6 +361,33 @@ VITE_API_BASE_URL=http://localhost:8080/api
 ```
 
 For production (Vercel), the `vercel.json` rewrite rule proxies `/api` to the CloudFront distribution, so no separate env var is needed in the deployed build.
+
+---
+
+## Usage Instructions
+
+### 1. User Roles & Login
+The application enforces role-based access control. Log in using the unified auth screen at `/login` with one of the pre-configured default credentials:
+- **Admin**: Log in with username `admin` / password `admin123`. Access all views (Dashboard, Vehicles, Service Records, Users Management, Fuel Analysis, Reports).
+- **Controller**: Log in with username `controller1` / password `controller123`. Access Dashboard, Vehicles, Users, Fuel Management, Service Records.
+- **Driver**: Log in with username `driver1` / password `driver123`. Access Dashboard (driver stats), My Vehicle, Fuel Log (add own logs), Service History.
+
+### 2. Live Vehicle Monitoring
+- Navigate to the **Location** tab (or **Vehicles** → inspect location).
+- Admins and Controllers can view the status of vehicles in real-time via the interactive SVG visualization mockup showing speed, coordinates, and details.
+
+### 3. Fuel Logging & Validation
+- **Drivers**: Add new fill-up logs under the **Fuel Log** page. The system automatically fetches the last recorded mileage. The current odometer mileage must be greater than or equal to the previous reading.
+- **Controllers/Admins**: Access **Fuel Management** to oversee all fleet logs, edit incorrect entries, or restore soft-deleted records. View overall fleet metrics in **Fuel Analysis**.
+
+### 4. Service Scheduling & Alerts
+- Schedule a new maintenance record in the **Service** menu.
+- The system checks mileage progress and date timelines to flag upcoming service windows as `DUE_SOON` or `OVERDUE` on the dashboard.
+
+### 5. Report Generation
+- Navigate to the **Reports** page.
+- Select your target report type (e.g., Cost Analysis, Fuel Consumption, or Master Report).
+- Configure date range filters if desired, then click **Download PDF** or **Export Excel**. Reports are processed client-side and saved immediately.
 
 ---
 
