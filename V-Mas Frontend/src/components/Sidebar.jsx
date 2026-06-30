@@ -12,8 +12,8 @@ const navItems = {
   ADMIN: [
     { label: 'Dashboard',     icon: <LayoutDashboard size={23} strokeWidth={1.5} />, to: '/dashboard'     },
     { label: 'Vehicles',      icon: <Truck size={23} strokeWidth={1.5} />,           to: '/vehicles'      },
-    { label: 'Service',       icon: <Wrench size={23} strokeWidth={1.5} />,          to: '/service'       },
     { label: 'Users',         icon: <Users size={23} strokeWidth={1.5} />,           to: '/users'         },
+    { label: 'Service',       icon: <Wrench size={23} strokeWidth={1.5} />,          to: '/service'       },
     { label: 'Fuel Analysis', icon: <Fuel size={23} strokeWidth={1.5} />,            to: '/fuel-analysis' },
     { label: 'Reports',       icon: <BarChart2 size={23} strokeWidth={1.5} />,       to: '/reports'       },
     { label: 'My Profile',    icon: <User size={23} strokeWidth={1.5} />,            to: '/profile'       },
@@ -22,15 +22,15 @@ const navItems = {
     { label: 'Dashboard',       icon: <LayoutDashboard size={23} strokeWidth={1.5} />, to: '/dashboard'       },
     { label: 'Vehicles',        icon: <Truck size={23} strokeWidth={1.5} />,           to: '/vehicles'        },
     { label: 'Users',           icon: <Users size={23} strokeWidth={1.5} />,           to: '/users'           },
-    { label: 'Fuel Management', icon: <Fuel size={23} strokeWidth={1.5} />,            to: '/fuel-management' },
     { label: 'Service',         icon: <Wrench size={23} strokeWidth={1.5} />,          to: '/service'         },
+    { label: 'Fuel Management', icon: <Fuel size={23} strokeWidth={1.5} />,            to: '/fuel-management' },
     { label: 'My Profile',      icon: <User size={23} strokeWidth={1.5} />,            to: '/profile'         },
   ],
   DRIVER: [
     { label: 'Dashboard',       icon: <LayoutDashboard size={23} strokeWidth={1.5} />, to: '/dashboard' },
     { label: 'Vehicles',        icon: <Truck size={23} strokeWidth={1.5} />,           to: '/vehicles'  },
-    { label: 'Fuel Log',        icon: <Fuel size={23} strokeWidth={1.5} />,            to: '/fuel-log'  },
     { label: 'Service History', icon: <Wrench size={23} strokeWidth={1.5} />,          to: '/service'   },
+    { label: 'Fuel Log',        icon: <Fuel size={23} strokeWidth={1.5} />,            to: '/fuel-log'  },
     { label: 'My Profile',      icon: <User size={23} strokeWidth={1.5} />,            to: '/profile'   },
   ],
 }
