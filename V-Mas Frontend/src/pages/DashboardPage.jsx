@@ -984,7 +984,7 @@ const AlertSection = ({ alerts, navigate, isDark }) => {
   )
 }
 
-const DriverDashboard = ({ navigate, isDark, vehicleCount, fuelLogs }) => {
+const DriverDashboard = ({ navigate, isDark, vehicleCount, fuelLogs, accountStatus }) => {
   const A = useAccents(isDark)
   const logs = fuelLogs || []
   const now = new Date()
@@ -993,6 +993,9 @@ const DriverDashboard = ({ navigate, isDark, vehicleCount, fuelLogs }) => {
   const monthCost = monthLogs.reduce((s, l) => s + (Number(l.totalCost) || 0), 0)
   const last = logs.length ? [...logs].sort((a, b) => new Date(b.date) - new Date(a.date))[0] : null
   const lastDate = last?.date ? new Date(last.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'
+  const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7)
+  const weekCount = logs.filter(l => l.date && new Date(l.date) >= weekAgo).length
+  const statusActive = (accountStatus || 'ACTIVE').toUpperCase() === 'ACTIVE'
   return (
     <>
       <SectionHeader title="My Overview" />
@@ -1001,6 +1004,8 @@ const DriverDashboard = ({ navigate, isDark, vehicleCount, fuelLogs }) => {
         <StatCard icon={<ClipboardList size={20} color={A.blue}/>} label="My Fuel Entries" value={logs.length} colorDim={A.blueDim} colorHex={A.blue} change="Total records logged" onClick={() => navigate('/fuel-log')} />
         <StatCard icon={<Fuel size={20} color={A.green}/>} label="Fuel This Month" value={`${monthLitres.toLocaleString()} L`} colorDim={A.greenDim} colorHex={A.green} change={`Rs. ${monthCost.toLocaleString()} spent`} onClick={() => navigate('/fuel-log')} />
         <StatCard icon={<Clock size={20} color={A.gold}/>} label="Last Fill-up" value={lastDate} colorDim={A.goldDim} colorHex={A.gold} change={last ? last.vehicleRegNumber : 'No records yet'} onClick={() => navigate('/fuel-log')} />
+        <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Completed" value={weekCount} colorDim={A.greenDim} colorHex={A.green} change="Fuel logs this week" onClick={() => navigate('/fuel-log')} />
+        <StatCard icon={<Activity size={20} color={A.green}/>} label="Status" value={statusActive ? 'Active' : (accountStatus || 'Active')} colorDim={A.greenDim} colorHex={A.green} change={statusActive ? 'Ready to drive' : `Account ${(accountStatus || '').toLowerCase()}`} />
       </div>
       <SectionHeader title="Driver Tools" />
       <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
@@ -1170,6 +1175,9 @@ const DashboardPage = () => {
       }
     }
     loadDashboardData()
+    // Real-time refresh: re-fetch dashboard data every 30 seconds
+    const refreshId = setInterval(loadDashboardData, 30000)
+    return () => clearInterval(refreshId)
   }, [isAdmin, user?.role])
 
   const roleLabel = { ADMIN: 'Administrator', CONTROLLER: 'Fleet Controller', DRIVER: 'Vehicle Driver' }
@@ -1236,7 +1244,7 @@ const DashboardPage = () => {
           {/* Role-based content */}
           {user?.role === 'ADMIN' && <AdminDashboard stats={stats} loading={loading} navigate={navigate} isDark={isDark} monthlyCostData={monthlyCostData} />}
           {user?.role === 'CONTROLLER' && <ControllerDashboard navigate={navigate} isDark={isDark} chartData={fleetChartData} statusData={statusData} stats={controllerStats} activities={activities} />}
-          {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} vehicleCount={driverVehicleCount} fuelLogs={driverFuelLogs} />}
+          {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} vehicleCount={driverVehicleCount} fuelLogs={driverFuelLogs} accountStatus={user?.accountStatus} />}
         </div>
       </div>
 
