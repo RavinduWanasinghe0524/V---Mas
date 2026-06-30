@@ -15,7 +15,7 @@ import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useD } from '../context/ThemeContext'
 import { userAPI } from '../services/api'
-import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck } from 'lucide-react'
+import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Search, RotateCcw } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
 
@@ -560,23 +560,26 @@ const UsersPage = () => {
 
                 {/* Search and filter row */}
                 <div style={{ padding: '14px 24px', borderBottom: `1px solid ${D.border}`, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', background: D.surface }}>
-                  <input
-                    type="text"
-                    placeholder="Search by name or email..."
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    style={{
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      border: `1px solid ${D.border}`,
-                      background: D.bg,
-                      color: D.text,
-                      fontSize: '0.8rem',
-                      outline: 'none',
-                      flex: 1,
-                      minWidth: 200
-                    }}
-                  />
+                  <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+                    <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
+                    <input
+                      type="text"
+                      placeholder="Search by name or email..."
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      style={{
+                        padding: '8px 12px 8px 36px',
+                        borderRadius: 8,
+                        border: `1px solid ${D.border}`,
+                        background: D.bg,
+                        color: D.text,
+                        fontSize: '0.8rem',
+                        outline: 'none',
+                        width: '100%',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
                   <select
                     value={roleFilter}
                     onChange={e => setRoleFilter(e.target.value)}
