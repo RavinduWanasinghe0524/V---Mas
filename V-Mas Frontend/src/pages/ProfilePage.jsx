@@ -4,7 +4,7 @@ import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import api, { profileAPI, fuelAPI, serviceAPI, vehicleAPI, userAPI } from '../services/api'
-import { User, Mail, Key, ShieldCheck, Shield, Globe, Fuel, Ruler, Calendar, Car, Wrench, Edit2, AlertCircle, CheckCircle, Eye, EyeOff, Check, Trophy, Activity, Lock, Settings, LogOut, Zap, Bell, Clock, Smartphone, Share2, UserCheck, X, Sun, Moon, FileText, Upload } from 'lucide-react'
+import { User, Mail, Key, ShieldCheck, Shield, Globe, Fuel, Ruler, Calendar, Car, Wrench, Edit2, AlertCircle, CheckCircle, Eye, EyeOff, Check, Trophy, Activity, Lock, Settings, LogOut, Zap, Bell, Clock, Share2, UserCheck, X, Sun, Moon, FileText, Upload } from 'lucide-react'
 import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 const Toggle = ({ checked, onChange, color = '#2563eb' }) => (
@@ -101,9 +101,7 @@ const ProfilePage = () => {
   const [showPasswords, setShowPasswords] = useState(false)
 
   const [fleetForm, setFleetForm] = useState({
-    distanceUnit: 'km',
     timezone: 'Asia/Colombo',
-    speedLimitAlert: '100',
     fuelReportingPeriod: 'monthly',
   })
   const [fleetSaving, setFleetSaving] = useState(false)
@@ -121,7 +119,6 @@ const ProfilePage = () => {
     emailNotifications: true,
     systemAlerts: true,
     alertTypes: ['SERVICE', 'INSURANCE', 'FUEL', 'OVERDUE'],
-    twoFactor: false,
     sessionTimeout: '30',
   })
   const [privacySaving, setPrivacySaving] = useState(false)
@@ -151,9 +148,22 @@ const ProfilePage = () => {
   // Handlers
   const closeModal = () => setActiveModal(null)
 
+  const fleetKey = `vmas-fleet-settings-${user?.id || 'me'}`
+
+  // Load saved fleet settings (timezone, fuel reporting period) on open
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(fleetKey)
+      if (saved) setFleetForm(prev => ({ ...prev, ...JSON.parse(saved) }))
+    } catch { /* ignore malformed storage */ }
+  }, [fleetKey])
+
   const handleFleetSave = async () => {
     setFleetSaving(true)
-    await new Promise(r => setTimeout(r, 800))
+    try {
+      localStorage.setItem(fleetKey, JSON.stringify(fleetForm))
+    } catch { /* ignore storage errors */ }
+    await new Promise(r => setTimeout(r, 400))
     setFleetSaving(false)
     setFleetSaved(true)
     setTimeout(() => setFleetSaved(false), 3000)
@@ -750,7 +760,7 @@ const ProfilePage = () => {
               {activeTab === 'security' && (
                 <div style={{ animation: 'fadeIn 0.3s ease' }}>
                   <h3 style={{ margin: '0 0 8px', fontSize: '1.2rem', fontWeight: 800, color: D.text }}>Security & Passwords</h3>
-                  <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: D.textSub }}>Change your login credentials, configure two-factor authentication, and adjust auto-logout timeout.</p>
+                  <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: D.textSub }}>Change your login credentials and adjust your auto-logout timeout.</p>
 
                   {pwError && <div style={{ padding: '12px 14px', borderRadius: 10, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><AlertCircle size={16} /> {pwError}</div>}
                   {pwSuccess && <div style={{ padding: '12px 14px', borderRadius: 10, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><CheckCircle size={16} /> {pwSuccess}</div>}
@@ -825,21 +835,6 @@ const ProfilePage = () => {
                     <div style={{ borderTop: `1px solid ${D.border}`, marginTop: 12, paddingTop: 20 }}>
                       <h4 style={{ margin: '0 0 16px', fontSize: '0.9rem', fontWeight: 800, color: D.text, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Device Security</h4>
                       
-                      {/* Two-Factor Auth toggle */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: `1px solid ${D.border}` }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                          <div style={{ width: 38, height: 38, borderRadius: 10, background: D.greenDim, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.green }}><Smartphone size={18} /></div>
-                          <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: D.text }}>Two-Factor Auth</div>
-                              {privacy.twoFactor && <span style={{ background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, padding: '1px 8px', borderRadius: 999, fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase' }}>Active</span>}
-                            </div>
-                            <div style={{ fontSize: '0.78rem', color: D.textSub, marginTop: 2 }}>Secure account with SMS/OTP validations</div>
-                          </div>
-                        </div>
-                        <Toggle checked={privacy.twoFactor} onChange={() => setPrivacy(p => ({ ...p, twoFactor: !p.twoFactor }))} color={D.green} />
-                      </div>
-
                       {/* Session Timeout select */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -1017,13 +1012,6 @@ const ProfilePage = () => {
 
                   <form onSubmit={e => { e.preventDefault(); handleFleetSave() }} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 24px' }}>
-                      <div>
-                        <label style={labelStyle}>Default Distance Unit</label>
-                        <select value={fleetForm.distanceUnit} onChange={e => setFleetForm(prev => ({ ...prev, distanceUnit: e.target.value }))} style={inputStyle}>
-                          <option value="km">Kilometers (km)</option>
-                          <option value="mi">Miles (mi)</option>
-                        </select>
-                      </div>
                       <div>
                         <label style={labelStyle}>System Timezone</label>
                         <select value={fleetForm.timezone} onChange={e => setFleetForm(prev => ({ ...prev, timezone: e.target.value }))} style={inputStyle}>
