@@ -7,6 +7,8 @@ import net.javaguids.ems_backend.mapper.NotificationMapper;
 import net.javaguids.ems_backend.repository.NotificationRepository;
 import net.javaguids.ems_backend.service.NotificationService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,9 +20,16 @@ public class NotificationServiceImpl implements NotificationService {
     private NotificationRepository notificationRepository;
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void createNotification(String target, String message, String type) {
-        Notification notification = new Notification(target, message, type);
-        notificationRepository.save(notification);
+        try {
+            Notification notification = new Notification(target, message, type);
+            notificationRepository.save(notification);
+        } catch (Exception e) {
+            // Log but never propagate — a failed notification must never roll back the parent operation
+            org.slf4j.LoggerFactory.getLogger(NotificationServiceImpl.class)
+                    .warn("Failed to create notification for target='{}' type='{}': {}", target, type, e.getMessage());
+        }
     }
 
     @Override
@@ -39,6 +48,9 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public NotificationDto markAsRead(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("Id must not be null");
+        }
         Notification notification = notificationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Notification not found"));
         notification.setIsRead(true);
@@ -51,5 +63,47 @@ public class NotificationServiceImpl implements NotificationService {
         List<Notification> unreadNotifications = notificationRepository.findByIsReadFalseOrderByCreatedAtDesc();
         unreadNotifications.forEach(n -> n.setIsRead(true));
         notificationRepository.saveAll(unreadNotifications);
+    }
+
+    @Override
+    public void resolveServiceAlerts(String vehicleRegNumber, String serviceType) {
+        String target = "VEH-" + vehicleRegNumber;
+        List<Notification> notifications = notificationRepository.findByVehicleRegNumber(target);
+        List<Notification> directNotifications = notificationRepository.findByVehicleRegNumber(vehicleRegNumber);
+        
+        // Also look for service notifications created by the backend (SERVICE-REGNUMBER-SERVICETYPE)
+        String serviceTarget = "SERVICE-" + vehicleRegNumber + "-" + serviceType;
+        List<Notification> serviceNotifications = notificationRepository.findByVehicleRegNumber(serviceTarget);
+        
+        List<Notification> toUpdate = new java.util.ArrayList<>();
+        
+        for (Notification n : notifications) {
+            if (!n.getIsRead() && (n.getType().equals("SERVICE_DUE") || n.getType().equals("OVERDUE_SERVICE"))) {
+                if (n.getMessage().toUpperCase().contains(serviceType.toUpperCase()) || 
+                    n.getMessage().toUpperCase().contains(serviceType.replace("_", " ").toUpperCase())) {
+                    n.setIsRead(true);
+                    toUpdate.add(n);
+                }
+            }
+        }
+        for (Notification n : directNotifications) {
+            if (!n.getIsRead() && (n.getType().equals("SERVICE_DUE") || n.getType().equals("OVERDUE_SERVICE"))) {
+                if (n.getMessage().toUpperCase().contains(serviceType.toUpperCase()) || 
+                    n.getMessage().toUpperCase().contains(serviceType.replace("_", " ").toUpperCase())) {
+                    n.setIsRead(true);
+                    toUpdate.add(n);
+                }
+            }
+        }
+        for (Notification n : serviceNotifications) {
+            if (!n.getIsRead()) {
+                n.setIsRead(true);
+                toUpdate.add(n);
+            }
+        }
+        
+        if (!toUpdate.isEmpty()) {
+            notificationRepository.saveAll(toUpdate);
+        }
     }
 }

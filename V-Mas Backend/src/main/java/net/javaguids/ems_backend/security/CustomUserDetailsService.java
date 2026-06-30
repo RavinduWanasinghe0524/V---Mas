@@ -19,9 +19,13 @@ public class CustomUserDetailsService implements UserDetailsService {
     private UserRepository userRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String userName) throws UsernameNotFoundException {
-        User user = userRepository.findByUserName(userName)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + userName));
+    public UserDetails loadUserByUsername(String usernameOrEmail) throws UsernameNotFoundException {
+        User user = userRepository.findByUserNameOrEmail(usernameOrEmail, usernameOrEmail)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with username or email: " + usernameOrEmail));
+
+        if (user.isDeleted()) {
+            throw new UsernameNotFoundException("User " + usernameOrEmail + " has been deleted.");
+        }
 
         // Use Spring Security's 'enabled' flag as a second-layer guard.
         // Only ACTIVE accounts are considered enabled; PENDING / INACTIVE / SUSPENDED

@@ -10,12 +10,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import net.javaguids.ems_backend.dto.ServiceRecordAuditDto;
 import net.javaguids.ems_backend.dto.ServiceRecordStatsDto;
+import net.javaguids.ems_backend.dto.ServiceIntervalDto;
+import net.javaguids.ems_backend.enums.VehicleType;
+import net.javaguids.ems_backend.service.ServiceIntervalService;
 
 import java.util.List;
 
@@ -26,6 +27,7 @@ import java.util.List;
 public class ServiceRecordController {
 
     private final ServiceRecordService serviceRecordService;
+    private final ServiceIntervalService serviceIntervalService;
 
     // POST /api/services — Add new service record (ADMIN, CONTROLLER, or DRIVER for their own vehicle)
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER', 'DRIVER')")
@@ -90,7 +92,7 @@ public class ServiceRecordController {
     public ResponseEntity<ApiResponse<ServiceRecordStatsDto>> getServiceStats(Authentication authentication) {
         boolean isDriver = authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_DRIVER"));
-        ServiceRecordStatsDto stats = isDriver
+        ServiceRecordStatsDto stats = (isDriver && authentication != null)
                 ? serviceRecordService.getServiceStatsForDriver(authentication.getName())
                 : serviceRecordService.getServiceStats();
         return ApiResponseUtil.success("Service stats fetched successfully", stats, HttpStatus.OK);
@@ -111,7 +113,7 @@ public class ServiceRecordController {
     }
 
     // POST /api/services/{id}/attachment — Upload a bill or document for a service record
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER', 'DRIVER')")
     @PostMapping(value = "/{id}/attachment", consumes = "multipart/form-data")
     public ResponseEntity<ApiResponse<ServiceRecordDto>> uploadAttachment(
             @PathVariable Long id,
@@ -141,5 +143,53 @@ public class ServiceRecordController {
     public ResponseEntity<ApiResponse<List<ServiceRecordAuditDto>>> getServiceHistory(@PathVariable Long id) {
         List<ServiceRecordAuditDto> history = serviceRecordService.getServiceHistory(id);
         return ApiResponseUtil.success("Service record history fetched successfully", history, HttpStatus.OK);
+    }
+
+    // GET /api/services/{id}/attachment — Download or view the attached bill/receipt
+    @GetMapping("/{id}/attachment")
+    public ResponseEntity<org.springframework.core.io.Resource> getAttachment(@PathVariable Long id) {
+        org.springframework.core.io.Resource resource = serviceRecordService.getAttachment(id);
+        String contentType = "application/octet-stream";
+        try {
+            String probed = java.nio.file.Files.probeContentType(java.nio.file.Paths.get(resource.getFile().getAbsolutePath()));
+            if (probed != null) {
+                contentType = probed;
+            }
+        } catch (Exception ignored) {}
+
+        return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
+                .body(resource);
+    }
+
+    // ── Service Intervals Endpoints (moved here to resolve routing clash) ──
+
+    @GetMapping("/intervals")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER', 'DRIVER')")
+    public ResponseEntity<ApiResponse<List<ServiceIntervalDto>>> getAllIntervals() {
+        List<ServiceIntervalDto> intervals = serviceIntervalService.getAllIntervals();
+        return ApiResponseUtil.success("Service intervals retrieved successfully", intervals, HttpStatus.OK);
+    }
+
+    @GetMapping("/intervals/vehicle-type/{type}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER', 'DRIVER')")
+    public ResponseEntity<ApiResponse<List<ServiceIntervalDto>>> getIntervalsByVehicleType(@PathVariable VehicleType type) {
+        List<ServiceIntervalDto> intervals = serviceIntervalService.getIntervalsByVehicleType(type);
+        return ApiResponseUtil.success("Service intervals for " + type + " retrieved successfully", intervals, HttpStatus.OK);
+    }
+
+    @PutMapping("/intervals/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    public ResponseEntity<ApiResponse<ServiceIntervalDto>> updateInterval(@PathVariable Long id, @RequestBody ServiceIntervalDto dto) {
+        ServiceIntervalDto updated = serviceIntervalService.updateInterval(id, dto);
+        return ApiResponseUtil.success("Service interval updated successfully", updated, HttpStatus.OK);
+    }
+
+    @PutMapping("/intervals")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    public ResponseEntity<ApiResponse<List<ServiceIntervalDto>>> updateIntervalsBulk(@RequestBody List<ServiceIntervalDto> dtos) {
+        List<ServiceIntervalDto> updated = serviceIntervalService.updateIntervalsBulk(dtos);
+        return ApiResponseUtil.success("Service intervals updated successfully in bulk", updated, HttpStatus.OK);
     }
 }

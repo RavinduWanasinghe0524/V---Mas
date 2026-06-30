@@ -1,7 +1,6 @@
 package net.javaguids.ems_backend.mapper;
 
 import net.javaguids.ems_backend.dto.VehicleDto;
-import net.javaguids.ems_backend.entity.User;
 import net.javaguids.ems_backend.entity.Vehicle;
 
 public class VehicleMapper {
@@ -13,18 +12,29 @@ public class VehicleMapper {
 //                vehicle.getVehicleName(),
                 vehicle.getRegistrationNo(),
                 vehicle.getChassisNo(),
+                vehicle.getEngineNo(),
                 vehicle.getManufacturer(),
                 vehicle.getModel(),
                 vehicle.getYear(),
                 vehicle.getCurrentMileageKm(),
+                vehicle.getInitialMileageKm(),
                 vehicle.getCreatedAt(),
                 vehicle.getUpdatedAt(),
                 vehicle.getUpdatedBy(),
 
                 vehicle.getStatus(),
                 vehicle.getFuelType(),
+                vehicle.getVehicleType(),
                 vehicle.getInsuranceExpiryDate(),
-                vehicle.getLicenseExpiryDate()
+                vehicle.getLicenseExpiryDate(),
+                vehicle.getInsuranceDocumentPath(),
+                vehicle.getLicenseDocumentPath(),
+                vehicle.getRegistrationBookPath(),
+                vehicle.getVehicleImage(),
+                vehicle.isDeleted(),
+                vehicle.getDeletedBy(),
+                vehicle.getDeletedAt(),
+                vehicle.getFuelCapacity()
         );
     }
 
@@ -39,11 +49,22 @@ public class VehicleMapper {
         vehicle.setModel(dto.getModel());
         vehicle.setYear(dto.getYear());
         vehicle.setCurrentMileageKm(dto.getCurrentMileageKm());
+        vehicle.setInitialMileageKm(dto.getInitialMileageKm() != null ? dto.getInitialMileageKm() : dto.getCurrentMileageKm());
         vehicle.setChassisNo(dto.getChassisNumber());
+        vehicle.setEngineNo(dto.getEngineNumber());
         vehicle.setStatus(dto.getStatus());
         vehicle.setFuelType(dto.getFuelType());
+        vehicle.setVehicleType(dto.getVehicleType() != null ? dto.getVehicleType() : net.javaguids.ems_backend.enums.VehicleType.CAR);
         vehicle.setInsuranceExpiryDate(dto.getInsuranceExpiryDate());
         vehicle.setLicenseExpiryDate(dto.getLicenseExpiryDate());
+        vehicle.setInsuranceDocumentPath(dto.getInsuranceDocumentPath());
+        vehicle.setLicenseDocumentPath(dto.getLicenseDocumentPath());
+        vehicle.setRegistrationBookPath(dto.getRegistrationBookPath());
+        vehicle.setVehicleImage(dto.getVehicleImage());
+        vehicle.setDeleted(dto.isDeleted());
+        vehicle.setDeletedBy(dto.getDeletedBy());
+        vehicle.setDeletedAt(dto.getDeletedAt());
+        vehicle.setFuelCapacity(dto.getFuelCapacity());
         return vehicle;
     }
 }

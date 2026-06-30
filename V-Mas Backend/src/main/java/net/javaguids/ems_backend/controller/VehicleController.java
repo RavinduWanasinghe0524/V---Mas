@@ -7,12 +7,15 @@ import net.javaguids.ems_backend.enums.VehicleSatus;
 import net.javaguids.ems_backend.service.VehicleService;
 import net.javaguids.ems_backend.util.ApiResponseUtil;
 
-import org.apache.coyote.BadRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.core.io.Resource;
 
 import java.util.List;
 
@@ -34,12 +37,31 @@ public class VehicleController {
         return ApiResponseUtil.success("Vehicle created successfully", saved, HttpStatus.CREATED);
     }
 
+    // POST /api/vehicles/bulk-mileage — Bulk update vehicle mileages
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @PostMapping("/bulk-mileage")
+    public ResponseEntity<ApiResponse<Object>> updateBulkMileage(
+            @RequestBody List<net.javaguids.ems_backend.dto.VehicleMileageUpdateDto> updates,
+            @AuthenticationPrincipal UserDetails loggedUser) {
+        vehicleService.updateBulkMileage(updates, loggedUser.getUsername());
+        return ApiResponseUtil.success("Vehicle mileages updated successfully", null, HttpStatus.OK);
+    }
+
+
     // GET /api/vehicles — Get all vehicles
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER', 'DRIVER')")
     @GetMapping
     public ResponseEntity<ApiResponse<List<VehicleDto>>> getAllVehicles() {
         List<VehicleDto> vehicles = vehicleService.getAllVehicles();
         return ApiResponseUtil.success("Vehicles fetched successfully", vehicles, HttpStatus.OK);
+    }
+
+    // GET /api/vehicles/deleted — Get all soft-deleted vehicles (Admin & Controller only)
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @GetMapping("/deleted")
+    public ResponseEntity<ApiResponse<List<VehicleDto>>> getDeletedVehicles() {
+        List<VehicleDto> vehicles = vehicleService.getDeletedVehicles();
+        return ApiResponseUtil.success("Deleted vehicles fetched successfully", vehicles, HttpStatus.OK);
     }
 
     // GET /api/vehicles/{id} — Get vehicle by ID
@@ -69,5 +91,52 @@ public class VehicleController {
         return ApiResponseUtil.success("Vehicle deleted successfully", null, HttpStatus.OK);
     }
 
+    // PATCH /api/vehicles/{id}/restore — Restore a soft-deleted vehicle (Admin & Controller only)
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @PatchMapping("/{id}/restore")
+    public ResponseEntity<ApiResponse<VehicleDto>> restoreVehicle(@PathVariable Long id) {
+        VehicleDto restored = vehicleService.restoreVehicle(id);
+        return ApiResponseUtil.success("Vehicle restored successfully", restored, HttpStatus.OK);
+    }
 
+    // POST /api/vehicles/{id}/document/{docType} — Upload document
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @PostMapping(value = "/{id}/document/{docType}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<VehicleDto>> uploadDocument(
+            @PathVariable Long id,
+            @PathVariable String docType,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "expiryDate", required = false) String expiryDate) {
+        VehicleDto updated = vehicleService.uploadDocument(id, docType, file, expiryDate);
+        return ApiResponseUtil.success("Document uploaded successfully", updated, HttpStatus.OK);
+    }
+
+    // GET /api/vehicles/{id}/document/{docType} — Download/View document
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER', 'DRIVER')")
+    @GetMapping("/{id}/document/{docType}")
+    public ResponseEntity<Resource> getDocument(
+            @PathVariable Long id,
+            @PathVariable String docType) {
+        Resource resource = vehicleService.getDocument(id, docType);
+        
+        String contentType = "application/octet-stream";
+        try {
+            String probed = java.nio.file.Files.probeContentType(java.nio.file.Paths.get(resource.getFile().getAbsolutePath()));
+            if (probed != null) {
+                contentType = probed;
+            }
+        } catch (java.io.IOException e) {
+            // fallback
+        }
+
+        String originalFilename = resource.getFilename();
+        if (originalFilename != null && originalFilename.contains("_")) {
+            originalFilename = originalFilename.substring(originalFilename.indexOf("_") + 1);
+        }
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + originalFilename + "\"")
+                .body(resource);
+    }
 }

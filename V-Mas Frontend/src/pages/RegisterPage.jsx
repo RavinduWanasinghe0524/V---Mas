@@ -5,7 +5,7 @@ import {
   Eye, EyeOff, Mail, Lock, User, Truck, Users, Settings,
   Car, AlertCircle, CheckCircle, ChevronDown, Clock, ArrowLeft
 } from 'lucide-react';
-import bgImage from '../assets/login-bg.jpg';
+import bgImage from '../assets/login-bg-opt.jpg';
 import './RegisterPage.css';
 
 const RegisterPage = () => {
@@ -59,7 +59,7 @@ const RegisterPage = () => {
     setLoading(true);
     const { confirmPassword, ...submitData } = formData;
     if (!submitData.profilePicture) {
-      submitData.profilePicture = `https://ui-avatars.com/api/?name=${encodeURIComponent(submitData.userName)}&background=6366f1&color=fff&size=128&bold=true`;
+      submitData.profilePicture = `https://ui-avatars.com/api/?name=${encodeURIComponent(submitData.userName)}&background=2563eb&color=fff&size=128&bold=true`;
     }
     const result = await register(submitData);
     if (result.success) {

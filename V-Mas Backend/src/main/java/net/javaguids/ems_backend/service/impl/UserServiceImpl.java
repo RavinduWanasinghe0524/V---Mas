@@ -18,12 +18,14 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class UserServiceImpl implements UserService {
 
     @Autowired
@@ -62,6 +64,15 @@ public class UserServiceImpl implements UserService {
         user.setAccountStatus(AccountStatus.PENDING); // ← awaiting admin approval
         user.setProfilePicture(request.getProfilePicture());
 
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setGender(request.getGender());
+        user.setNic(request.getNic());
+        user.setDateOfBirth(request.getDateOfBirth());
+        user.setLicenseNumber(request.getLicenseNumber());
+        user.setLicenseExpiryDate(request.getLicenseExpiryDate());
+        user.setDateJoined(request.getDateJoined());
+        user.setExperience(request.getExperience());
+
         userRepository.save(user);
 
         // Return null token — the frontend checks for this and shows the pending screen
@@ -76,7 +87,7 @@ public class UserServiceImpl implements UserService {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUserName(), request.getPassword()));
 
-        User user = userRepository.findByUserName(request.getUserName())
+        User user = userRepository.findByUserNameOrEmail(request.getUserName(), request.getUserName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         // Status gate — checked AFTER credential validation so we don't leak info
@@ -98,14 +109,14 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserDto> getAllUsers() {
         return userRepository.findAll()
-                .stream().map(this::mapToDto).collect(Collectors.toList());
+                .stream().filter(u -> !u.isDeleted()).map(this::mapToDto).collect(Collectors.toList());
     }
 
     // ── GET PENDING USERS ────────────────────────────────────────────
     @Override
     public List<UserDto> getPendingUsers() {
         return userRepository.findByAccountStatus(AccountStatus.PENDING)
-                .stream().map(this::mapToDto).collect(Collectors.toList());
+                .stream().filter(u -> !u.isDeleted()).map(this::mapToDto).collect(Collectors.toList());
     }
 
     // ── GET USER BY ID ───────────────────────────────────────────────
@@ -135,6 +146,15 @@ public class UserServiceImpl implements UserService {
         user.setAccountStatus(AccountStatus.ACTIVE); // admin creates → directly active
         user.setProfilePicture(request.getProfilePicture());
 
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setGender(request.getGender());
+        user.setNic(request.getNic());
+        user.setDateOfBirth(request.getDateOfBirth());
+        user.setLicenseNumber(request.getLicenseNumber());
+        user.setLicenseExpiryDate(request.getLicenseExpiryDate());
+        user.setDateJoined(request.getDateJoined());
+        user.setExperience(request.getExperience());
+
         User savedUser = userRepository.save(Objects.requireNonNull(user));
         return mapToDto(savedUser);
     }
@@ -152,6 +172,16 @@ public class UserServiceImpl implements UserService {
         user.setAccountStatus(userDto.getAccountStatus());
         user.setProfilePicture(userDto.getProfilePicture());
 
+        user.setPhoneNumber(userDto.getPhoneNumber());
+        user.setGender(userDto.getGender());
+        user.setNic(userDto.getNic());
+        user.setDateOfBirth(userDto.getDateOfBirth());
+        user.setLicenseNumber(userDto.getLicenseNumber());
+        user.setLicenseExpiryDate(userDto.getLicenseExpiryDate());
+        user.setLicenseDocumentPath(userDto.getLicenseDocumentPath());
+        user.setDateJoined(userDto.getDateJoined());
+        user.setExperience(userDto.getExperience());
+
         User updatedUser = userRepository.save(Objects.requireNonNull(user));
         notificationService.createNotification(
                 "USER-" + updatedUser.getUserName(),
@@ -167,7 +197,11 @@ public class UserServiceImpl implements UserService {
         Long requiredId = Objects.requireNonNull(id);
         User user = userRepository.findById(requiredId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
-        userRepository.delete(Objects.requireNonNull(user));
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        user.setDeleted(true);
+        user.setDeletedBy(auth != null && auth.isAuthenticated() ? auth.getName() : "unknown");
+        user.setDeletedAt(java.time.LocalDateTime.now());
+        userRepository.save(user);
     }
 
     // ── MY PROFILE ───────────────────────────────────────────────────
@@ -194,6 +228,15 @@ public class UserServiceImpl implements UserService {
         if (request.getProfilePicture() != null) {
             user.setProfilePicture(request.getProfilePicture());
         }
+
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setGender(request.getGender());
+        user.setNic(request.getNic());
+        user.setDateOfBirth(request.getDateOfBirth());
+        user.setLicenseNumber(request.getLicenseNumber());
+        user.setLicenseExpiryDate(request.getLicenseExpiryDate());
+        user.setDateJoined(request.getDateJoined());
+        user.setExperience(request.getExperience());
 
         User updatedUser = userRepository.save(java.util.Objects.requireNonNull(user));
         return mapToDto(updatedUser);
@@ -255,6 +298,142 @@ public class UserServiceImpl implements UserService {
                 user.getEmail(),
                 user.getRole(),
                 user.getAccountStatus(),
-                user.getProfilePicture());
+                user.getProfilePicture(),
+                user.isDeleted(),
+                user.getDeletedBy(),
+                user.getDeletedAt(),
+                user.getPhoneNumber(),
+                user.getGender(),
+                user.getNic(),
+                user.getDateOfBirth(),
+                user.getLicenseNumber(),
+                user.getLicenseExpiryDate(),
+                user.getLicenseDocumentPath(),
+                user.getDateJoined(),
+                user.getExperience());
+    }
+
+    @Override
+    public List<UserDto> getDeletedUsers() {
+        return userRepository.findAll().stream()
+                .filter(u -> u != null && u.isDeleted())
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public UserDto restoreUser(Long id) {
+        Long requiredId = Objects.requireNonNull(id);
+        User user = userRepository.findById(requiredId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        if (!user.isDeleted()) {
+            throw new RuntimeException("User is not deleted.");
+        }
+        user.setDeleted(false);
+        user.setDeletedBy(null);
+        user.setDeletedAt(null);
+        User restored = userRepository.save(user);
+        return mapToDto(restored);
+    }
+
+    private java.nio.file.Path resolveUploadPath(String relativePath) {
+        if (relativePath == null || relativePath.isBlank()) {
+            return null;
+        }
+        
+        String cleanPath = relativePath;
+        if (cleanPath.startsWith("uploads/")) {
+            cleanPath = cleanPath.substring("uploads/".length());
+        } else if (cleanPath.startsWith("uploads\\")) {
+            cleanPath = cleanPath.substring("uploads\\".length());
+        }
+
+        java.nio.file.Path cwd = java.nio.file.Paths.get("").toAbsolutePath();
+        java.nio.file.Path uploadsDir;
+        
+        if (cwd.getFileName() != null && cwd.getFileName().toString().equals("V-Mas Backend")) {
+            uploadsDir = cwd.resolve("uploads");
+        } else if (java.nio.file.Files.exists(cwd.resolve("V-Mas Backend"))) {
+            uploadsDir = cwd.resolve("V-Mas Backend").resolve("uploads");
+        } else if (java.nio.file.Files.exists(cwd.resolve("V---Mas").resolve("V-Mas Backend"))) {
+            uploadsDir = cwd.resolve("V---Mas").resolve("V-Mas Backend").resolve("uploads");
+        } else {
+            uploadsDir = cwd.resolve("uploads");
+        }
+
+        return uploadsDir.resolve(cleanPath).normalize();
+    }
+
+    @Override
+    @Transactional
+    public UserDto uploadDocument(Long id, String docType, MultipartFile file, String expiryDateStr) {
+        User user = userRepository.findById(java.util.Objects.requireNonNull(id))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+
+        try {
+            // Target folder: uploads/user-documents/{id}
+            String uploadDir = "uploads/user-documents/" + id;
+            java.nio.file.Path uploadPath = resolveUploadPath(uploadDir);
+            java.nio.file.Files.createDirectories(uploadPath);
+
+            // Save filename using UUID prefix
+            String filename = java.util.UUID.randomUUID() + "_" + file.getOriginalFilename();
+            java.nio.file.Path filePath = uploadPath.resolve(filename);
+            java.nio.file.Files.copy(file.getInputStream(), filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+            String savedPath = uploadDir + "/" + filename;
+
+            if ("license".equalsIgnoreCase(docType)) {
+                user.setLicenseDocumentPath(savedPath);
+                if (expiryDateStr != null && !expiryDateStr.isEmpty()) {
+                    user.setLicenseExpiryDate(java.time.LocalDate.parse(expiryDateStr));
+                }
+            } else {
+                throw new RuntimeException("Invalid document type: " + docType);
+            }
+
+            User saved = userRepository.save(user);
+
+            notificationService.createNotification(
+                    "USER-" + saved.getUserName(),
+                    "User document '" + docType + "' was updated for " + saved.getUserName() + ". Filename: " + file.getOriginalFilename(),
+                    "USER_UPDATE"
+            );
+
+            return mapToDto(saved);
+
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Failed to store user document: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public org.springframework.core.io.Resource getDocument(Long id, String docType) {
+        User user = userRepository.findById(java.util.Objects.requireNonNull(id))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+
+        String savedPath;
+        if ("license".equalsIgnoreCase(docType)) {
+            savedPath = user.getLicenseDocumentPath();
+        } else {
+            throw new RuntimeException("Invalid document type: " + docType);
+        }
+
+        if (savedPath == null || savedPath.isBlank()) {
+            throw new ResourceNotFoundException("No " + docType + " document found for user with id: " + id);
+        }
+
+        try {
+            java.nio.file.Path filePath = resolveUploadPath(savedPath);
+            org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(filePath.toUri());
+            if (resource.exists() || resource.isReadable()) {
+                return resource;
+            } else {
+                throw new ResourceNotFoundException("Document file not found or not readable at: " + savedPath);
+            }
+        } catch (java.net.MalformedURLException e) {
+            throw new RuntimeException("Error reading document file path: " + e.getMessage(), e);
+        }
     }
 }

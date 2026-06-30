@@ -21,7 +21,7 @@ public class ServiceRecord {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "vehicle_reg_number", nullable = false, length = 20)
+    @Column(name = "vehicle_reg_number", nullable = false, length = 20, columnDefinition = "VARCHAR(20) DEFAULT ''")
     private String vehicleRegNumber;
 
     @Enumerated(EnumType.STRING)
@@ -66,6 +66,14 @@ public class ServiceRecord {
     /** Optional — stored file path / URL of the uploaded bill attachment */
     @Column(name = "attachment_path", length = 500)
     private String attachmentPath;
+
+    /** Optional — list of parts replaced */
+    @Column(name = "parts_replaced", columnDefinition = "TEXT")
+    private String partsReplaced;
+
+    /** Classification: ROUTINE or AD_HOC */
+    @Column(name = "service_classification", nullable = false, length = 50, columnDefinition = "VARCHAR(50) DEFAULT 'ROUTINE'")
+    private String serviceClassification = "ROUTINE";
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

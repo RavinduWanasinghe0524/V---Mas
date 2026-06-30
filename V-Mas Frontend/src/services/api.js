@@ -30,7 +30,7 @@ api.interceptors.response.use(
     const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register')
     const isProfileEndpoint = url.includes('/users/me')
 
-    if (!isAuthEndpoint && !isProfileEndpoint && (error.response?.status === 401 || error.response?.status === 403)) {
+    if (!isAuthEndpoint && !isProfileEndpoint && error.response?.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.location.href = '/login'
@@ -55,8 +55,20 @@ export const userAPI = {
   getPendingUsers: ()        => api.get('/users/pending'),
   approveUser:    (id)       => api.patch(`/users/${id}/approve`),
   rejectUser:     (id)       => api.patch(`/users/${id}/reject`),
-  // ── Driver list (for assign-driver dropdown) ─────────────────────────
   getAllDrivers:   ()         => api.get('/users/drivers'),
+  getDeletedUsers: ()        => api.get('/users/deleted'),
+  restoreUser:    (id)       => api.patch(`/users/${id}/restore`),
+  uploadDocument: (id, docType, file, expiryDate) => {
+    const form = new FormData()
+    form.append('file', file)
+    if (expiryDate) {
+      form.append('expiryDate', expiryDate)
+    }
+    return api.post(`/users/${id}/document/${docType}`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  getDocumentUrl: (id, docType) => `${API_BASE_URL}/users/${id}/document/${docType}`,
 }
 
 export const profileAPI = {
@@ -79,7 +91,20 @@ export const vehicleAPI = {
   updateVehicle:    (id, data)          => api.put(`/vehicles/${id}`, data),
   deleteVehicle:    (id)                => api.delete(`/vehicles/${id}`),
   registerVehicle:  (data)              => api.post('/vehicles', data),
-
+  uploadDocument: (id, docType, file, expiryDate) => {
+    const form = new FormData()
+    form.append('file', file)
+    if (expiryDate) {
+      form.append('expiryDate', expiryDate)
+    }
+    return api.post(`/vehicles/${id}/document/${docType}`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  getDocumentUrl: (id, docType) => `${API_BASE_URL}/vehicles/${id}/document/${docType}`,
+  getDeletedVehicles: () => api.get('/vehicles/deleted'),
+  restoreVehicle: (id) => api.patch(`/vehicles/${id}/restore`),
+  updateBulkMileage: (payload) => api.post('/vehicles/bulk-mileage', payload)
 }
 
 export const fuelAPI = {
@@ -128,7 +153,11 @@ export const serviceAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
+  getAttachmentBlob:    (id)             => api.get(`/services/${id}/attachment`, { responseType: 'blob' }),
   getServicesByVehicle: (regNo)          => api.get(`/services/vehicle/${encodeURIComponent(regNo)}`),
+  getAllIntervals:      ()               => api.get('/services/intervals'),
+  getIntervalsByVehicleType: (type)      => api.get(`/services/intervals/vehicle-type/${type}`),
+  updateIntervalsBulk:  (payload)        => api.put('/services/intervals', payload),
 }
 
 export const notificationAPI = {

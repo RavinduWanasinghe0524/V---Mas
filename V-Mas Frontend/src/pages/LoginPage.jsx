@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, Mail, Lock, Shield, BarChart3, MapPin, AlertCircle, Moon, Sun } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
+import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
+import logo from '../assets/V-MAS Logo.svg';
+import fleetHero from '../assets/fleet-hero.png';
 import './LoginPage.css';
-import bgImageDark from '../assets/login-bg.jpg';
-import bgImageLight from '../assets/Login bg image (White).png';
-import logo from '../assets/logo.png';
 
 const LoginPage = () => {
   const [userName, setUserName] = useState('');
@@ -14,12 +12,9 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(false);
-  
+
   const { login, isAuthenticated } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
-  const isDark = theme === 'blue';
 
   useEffect(() => {
     if (isAuthenticated) navigate('/dashboard');
@@ -39,181 +34,115 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="split-login-container">
-      {/* Background with user provided image */}
-      <img 
-        src={isDark ? bgImageDark : bgImageLight} 
-        alt="Background image" 
-        className="split-login-bg-image" 
-      />
+    <div className="pay-container">
 
-      {/* Theme Toggle Button */}
-      <button
-        onClick={toggleTheme}
-        className="auth-theme-toggle"
-        title={isDark ? 'Switch to Day Theme' : 'Switch to Night Theme'}
-      >
-        {isDark ? <Sun size={16} /> : <Moon size={16} />}
-        {isDark ? 'Day Theme' : 'Night Theme'}
-      </button>
+      {/* ── LEFT PANEL ── */}
+      <div className="pay-left">
+        {/* Subtle tagline */}
+        <p className="pay-left-tagline">Vehicle fleet management — simplified.</p>
 
-      {/* Main Split Container */}
-      <div className="split-login-main-card">
-        
-        {/* Left Panel - Branding */}
-        <div className="split-login-left">
-          {/* Decorative circles */}
-          <div className="split-login-circle-1" />
-          <div className="split-login-circle-2" />
-
-          <div className="split-login-left-content">
-            <div className="split-login-logo-container">
-              <div className="split-login-logo-box" style={{ background: 'transparent', padding: 0, overflow: 'hidden' }}>
-                <img
-                  src={logo}
-                  alt="V-MAS"
-                  style={{
-                    width: '100%', height: '100%',
-                    objectFit: 'cover', display: 'block',
-                    filter: 'drop-shadow(0 0 10px rgba(99,102,241,0.7))',
-                  }}
-                />
-              </div>
-              <span className="split-login-logo-text">V-MAS</span>
-            </div>
-
-            <h2 className="split-login-heading">
-              Manage Your<br />Fleet Smarter
-            </h2>
-            <p className="split-login-subheading">
-              Real-time tracking, advanced analytics, and complete control over your vehicle operations.
-            </p>
-
-            <div className="split-login-features">
-              <div className="split-login-feature-item">
-                <div className="split-login-feature-icon">
-                  <Shield size={16} />
-                </div>
-                <span className="split-login-feature-text">Enterprise-grade Security</span>
-              </div>
-              <div className="split-login-feature-item">
-                <div className="split-login-feature-icon">
-                  <BarChart3 size={16} />
-                </div>
-                <span className="split-login-feature-text">Real-time Analytics</span>
-              </div>
-              <div className="split-login-feature-item">
-                <div className="split-login-feature-icon">
-                  <MapPin size={16} />
-                </div>
-                <span className="split-login-feature-text">Live GPS Tracking</span>
-              </div>
-            </div>
-          </div>
-
-          <p className="split-login-copyright">© 2026 V-MAS. All rights reserved.</p>
+        {/* Big hero headline */}
+        <div className="pay-left-hero">
+          <h1 className="pay-left-headline">
+            Manage<br />your fleet
+          </h1>
+          <p className="pay-left-sub">
+            Real-time tracking, service records, fuel analytics and complete control — in one platform.
+          </p>
         </div>
 
-        {/* Right Panel - Form */}
-        <div className="split-login-right">
-          <div className="split-login-mobile-logo">
-            <div className="split-login-mobile-logo-box" style={{ background: 'transparent', padding: 0, overflow: 'hidden' }}>
-              <img
-                src={logo}
-                alt="V-MAS"
-                style={{
-                  width: '100%', height: '100%',
-                  objectFit: 'cover', display: 'block',
-                  filter: 'drop-shadow(0 0 8px rgba(99,102,241,0.6))',
-                }}
-              />
-            </div>
-            <span className="split-login-title" style={{ marginBottom: 0 }}>V-MAS</span>
-          </div>
+        {/* Hero mockup image */}
+        <div className="pay-left-img-wrap">
+          <img src={fleetHero} alt="V-MAS Dashboard" className="pay-left-img" />
+        </div>
 
-          <h3 className="split-login-title">Welcome back</h3>
-          <p className="split-login-subtitle">Sign in to your account to continue</p>
+        {/* Copyright */}
+        <p className="pay-left-copy">© 2026 V-MAS. All rights reserved.</p>
+      </div>
+
+      {/* ── RIGHT PANEL ── */}
+      <div className="pay-right">
+        {/* Logo row */}
+        <div className="pay-right-logo-row">
+          <div className="pay-right-logo-box">
+            <img src={logo} alt="V-MAS" className="pay-right-logo-img" />
+          </div>
+          <span className="pay-right-logo-name">V-MAS</span>
+          <Link to="/signup" className="pay-right-signup-link">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Sign Up
+          </Link>
+        </div>
+
+        {/* Form section */}
+        <div className="pay-right-form-wrap">
+          <h2 className="pay-right-heading">Sign In</h2>
 
           {error && (
-            <div className="split-login-error">
-              <AlertCircle size={16} />
+            <div className="pay-right-error">
+              <AlertCircle size={15} />
               {error}
             </div>
           )}
 
-          <form className="split-login-form" onSubmit={handleSubmit}>
-            <div className="split-login-input-wrapper">
-              <label className="split-login-label">Username</label>
-              <div className="split-login-input-group">
-                <Mail className="split-login-input-icon" size={16} />
-                <input 
-                  type="text" 
-                  value={userName}
-                  onChange={(e) => setUserName(e.target.value)}
-                  placeholder="Enter your username"
-                  className="split-login-input" 
-                  required
-                />
-              </div>
+          <form onSubmit={handleSubmit} className="pay-right-form" noValidate>
+            <div className="pay-field">
+              <input
+                id="login-username"
+                type="text"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                placeholder="Username"
+                className="pay-input"
+                required
+                autoComplete="username"
+              />
             </div>
-            
-            <div className="split-login-input-wrapper">
-              <label className="split-login-label">Password</label>
-              <div className="split-login-input-group">
-                <Lock className="split-login-input-icon" size={16} />
-                <input 
-                  type={showPassword ? "text" : "password"} 
+
+            <div className="pay-field">
+              <div className="pay-input-pw-wrap">
+                <input
+                  id="login-password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="split-login-input" 
+                  placeholder="Password"
+                  className="pay-input"
                   required
+                  autoComplete="current-password"
                 />
-                <button 
-                  type="button" 
-                  onClick={() => setShowPassword(!showPassword)} 
-                  className="split-login-input-btn"
+                <button
+                  type="button"
+                  className="pay-pw-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
-            <div className="split-login-options">
-              <label className="split-login-remember" onClick={() => setRemember(!remember)}>
-                <div className={`split-login-checkbox ${remember ? 'checked' : ''}`}>
-                  {remember && <div className="split-login-checkbox-inner" />}
-                </div>
-                <span className="split-login-remember-text">Remember me</span>
-              </label>
-              <a href="#" className="split-login-forgot" onClick={(e) => e.preventDefault()}>Forgot password?</a>
-            </div>
+            <a href="#" className="pay-forgot" onClick={(e) => e.preventDefault()}>
+              Forgot password?
+            </a>
 
-            <button type="submit" className="split-login-submit" disabled={loading}>
-              {loading ? (
-                <span>Signing in...</span>
-              ) : (
-                <span>Sign In to Dashboard</span>
-              )}
+            <button
+              type="submit"
+              className="pay-submit-btn"
+              disabled={loading}
+              id="login-submit"
+            >
+              <LogIn size={17} />
+              {loading ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
+        </div>
 
-          <div className="split-login-divider">
-            <div className="split-login-divider-line" />
-            <span className="split-login-divider-text">or</span>
-            <div className="split-login-divider-line" />
-          </div>
-
-          <div className="split-login-socials">
-            <button className="split-login-social-btn" onClick={() => {}}>Google</button>
-            <button className="split-login-social-btn" onClick={() => {}}>Facebook</button>
-            <button className="split-login-social-btn" onClick={() => {}}>Apple</button>
-          </div>
-
-          <p className="split-login-footer">
-            New to V-MAS?{" "}
-            <Link to="/signup">Create an account</Link>
-          </p>
+        {/* Footer */}
+        <div className="pay-right-footer">
+          <span>© 2026 V-MAS</span>
+          <Link to="/signup">Create account</Link>
         </div>
       </div>
     </div>

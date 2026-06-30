@@ -3,12 +3,13 @@ const CTRL_NOTIF_KEY = 'controller_notifications'
 const DRV_NOTIF_KEY = 'driver_notifications'
 
 // ─── Controller notification helpers ────────────────────────────────────────
-export const addControllerNotification = (message, type = 'INFO') => {
+export const addControllerNotification = (message, type = 'INFO', link = null) => {
   const existing = JSON.parse(localStorage.getItem(CTRL_NOTIF_KEY) || '[]')
   const newNotif = {
     id: Date.now(),
     message,
     type,
+    link,
     isRead: false,
     createdAt: new Date().toISOString(),
   }
@@ -42,12 +43,13 @@ export const clearAllCtrlNotifications = () => {
 }
 
 // ─── Driver notification helpers ─────────────────────────────────────────────
-export const addDriverNotification = (message, type = 'INFO') => {
+export const addDriverNotification = (message, type = 'INFO', link = null) => {
   const existing = JSON.parse(localStorage.getItem(DRV_NOTIF_KEY) || '[]')
   const newNotif = {
     id: Date.now(),
     message,
     type,
+    link,
     isRead: false,
     createdAt: new Date().toISOString(),
   }

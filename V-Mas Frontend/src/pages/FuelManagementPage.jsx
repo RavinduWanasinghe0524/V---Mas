@@ -1,20 +1,27 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
-import { useD } from '../context/ThemeContext'
+import { useD, useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { fuelAPI, vehicleAPI, userAPI } from '../services/api'
 import { addControllerNotification } from '../services/notificationService'
 import { 
-  Fuel, CircleDollarSign, BarChart2, Car, Trash2, ClipboardList, Plus, Search, 
-  Edit2, AlertTriangle, Check, X, Loader2, RotateCcw, FileText, ChevronRight, 
-  Calendar, Clock, User, ArrowRight, MoreVertical
+  Fuel, CircleDollarSign, BarChart2, Car, Trash2, Plus, Search, 
+  Edit2, AlertTriangle, Check, X, Loader2, RotateCcw, FileText, 
+  Calendar, Clock, User, MoreVertical, Archive
 } from 'lucide-react'
+import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 /* ── Fuel Management Page ────────────────────────────────────────────────── */
 const FuelManagementPage = () => {
   const D = useD()
+  const { theme } = useTheme()
+  const isDark = theme === 'blue'
   const { user } = useAuth()
+  const isDriver = user?.role === 'DRIVER'
+  const navigate = useNavigate()
+  const location = useLocation()
 
   // ── Styles ──────────────────────────────────────────────────────────────
   const card = {
@@ -66,13 +73,17 @@ const FuelManagementPage = () => {
   const [deletedLogs, setDeletedLogs] = useState([])
   const [filteredLogs, setFilteredLogs] = useState([])
   const [loading, setLoading] = useState(true)
-  const [loadingDeleted, setLoadingDeleted] = useState(false)
 
-  const [searchTerm, setSearchTerm] = useState('')
+
+  const [filterVehicle, setFilterVehicle] = useState('all')
+  const [filterDriver, setFilterDriver] = useState('all')
   const [filterFuelType, setFilterFuelType] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
 
   const [showAddModal, setShowAddModal] = useState(false)
+  // True only when the Add modal was opened via the dashboard "Record Fuel Fill-up" Quick Command,
+  // so that completing/discarding/closing returns to the controller dashboard.
+  const [fromQuickCommand, setFromQuickCommand] = useState(false)
   const [showDeletedDrawer, setShowDeletedDrawer] = useState(false)
   const [editingLog, setEditingLog] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -99,27 +110,61 @@ const FuelManagementPage = () => {
 
   const [previousMileage, setPreviousMileage] = useState(null)
   const [mileageError, setMileageError] = useState('')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  // ── Effects ─────────────────────────────────────────────────────────────
-  useEffect(() => { loadData() }, [])
-  useEffect(() => { applyFilters() }, [allLogs, searchTerm, filterFuelType, filterStatus])
+  const showToast = useCallback((msg, type = 'success') => {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 3500)
+  }, [])
 
-  const loadData = async () => {
+  const calculateStats = useCallback((logs, vehicleCount) => {
+    const totalFuel = logs.reduce((s, l) => s + l.liters, 0)
+    const totalCost = logs.reduce((s, l) => s + l.totalCost, 0)
+    const eff = logs.filter(l => l.fuelEfficiency && l.fuelEfficiency > 0)
+    const avgEfficiency = eff.length > 0
+      ? eff.reduce((s, l) => s + l.fuelEfficiency, 0) / eff.length : 0
+    setStats({ totalLogs: logs.length, totalFuel, totalCost, avgEfficiency, vehicleCount })
+  }, [])
+
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
-      const [fuelRes, vehRes, driverRes, delRes] = await Promise.all([
+      const [fuelRes, vehRes, driverRes, delRes] = await Promise.allSettled([
         fuelAPI.getAllFuelLogs(),
         vehicleAPI.getAllVehicles(),
         userAPI.getAllDrivers(),
         fuelAPI.getDeletedLogs()
       ])
-      
-      const logs = [...(fuelRes.data.data || [])].sort((a, b) => new Date(b.date) - new Date(a.date))
-      setAllLogs(logs)
-      setVehicles(vehRes.data.data || [])
-      setDriversList(driverRes.data.data || [])
-      setDeletedLogs(delRes.data.data || [])
-      
+
+      let logs = []
+      if (fuelRes.status === 'fulfilled') {
+        const rawLogs = fuelRes.value.data.data || []
+        const vehList = vehRes.status === 'fulfilled' ? (vehRes.value.data.data || []) : []
+        computeLogsEfficiency(rawLogs, vehList)
+        logs = [...rawLogs].sort((a, b) => new Date(b.date) - new Date(a.date))
+        setAllLogs(logs)
+      } else {
+        console.error('Failed to load fuel logs:', fuelRes.reason)
+      }
+
+      if (vehRes.status === 'fulfilled') {
+        setVehicles(vehRes.value.data.data || [])
+      } else {
+        console.error('Failed to load vehicles:', vehRes.reason)
+      }
+
+      if (driverRes.status === 'fulfilled') {
+        setDriversList(driverRes.value.data.data || [])
+      } else {
+        console.error('Failed to load drivers:', driverRes.reason)
+      }
+
+      if (delRes.status === 'fulfilled') {
+        setDeletedLogs(delRes.value.data.data || [])
+      } else {
+        console.error('Failed to load deleted logs:', delRes.reason)
+      }
+
       const activeLogs = logs.filter(l => !l.isDeleted)
       const vehicleCount = [...new Set(activeLogs.map(l => l.vehicleRegNumber))].length
       calculateStats(activeLogs, vehicleCount)
@@ -129,38 +174,12 @@ const FuelManagementPage = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [calculateStats, showToast])
 
-  const loadDeletedLogs = async () => {
-    try {
-      setLoadingDeleted(true)
-      const res = await fuelAPI.getDeletedLogs()
-      setDeletedLogs(res.data.data || [])
-    } catch (err) {
-      console.error('Error loading deleted logs:', err)
-    } finally {
-      setLoadingDeleted(false)
-    }
-  }
-
-  const calculateStats = (logs, vehicleCount) => {
-    const totalFuel = logs.reduce((s, l) => s + l.liters, 0)
-    const totalCost = logs.reduce((s, l) => s + l.totalCost, 0)
-    const eff = logs.filter(l => l.fuelEfficiency && l.fuelEfficiency > 0)
-    const avgEfficiency = eff.length > 0
-      ? eff.reduce((s, l) => s + l.fuelEfficiency, 0) / eff.length : 0
-    setStats({ totalLogs: logs.length, totalFuel, totalCost, avgEfficiency, vehicleCount })
-  }
-
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = allLogs.filter(l => !l.isDeleted)
-    if (searchTerm) {
-      const low = searchTerm.toLowerCase()
-      filtered = filtered.filter(l => 
-        l.vehicleRegNumber.toLowerCase().includes(low) || 
-        (l.driverUsername && l.driverUsername.toLowerCase().includes(low))
-      )
-    }
+    if (filterVehicle !== 'all') filtered = filtered.filter(l => l.vehicleRegNumber === filterVehicle)
+    if (filterDriver !== 'all') filtered = filtered.filter(l => l.driverUsername === filterDriver)
     if (filterFuelType !== 'all') filtered = filtered.filter(l => l.fuelType === filterFuelType)
     if (filterStatus !== 'all') {
       filtered = filtered.filter(l => {
@@ -174,11 +193,27 @@ const FuelManagementPage = () => {
       })
     }
     setFilteredLogs(filtered)
-  }
+  }, [allLogs, filterVehicle, filterDriver, filterFuelType, filterStatus])
 
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3500)
+  // ── Effects ─────────────────────────────────────────────────────────────
+  useEffect(() => { loadData() }, [loadData])
+  useEffect(() => { applyFilters() }, [applyFilters])
+  useEffect(() => {
+    if (!loading && location.state?.openAddFuelLog) {
+      setShowAddModal(true)
+      if (location.state?.fromOneClick) setFromQuickCommand(true)
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [loading, location.state, navigate, location.pathname])
+
+  // Close the Add/Edit modal; return to the controller dashboard only when opened via the Quick Command.
+  const closeAddModal = () => {
+    setShowAddModal(false)
+    setEditingLog(null)
+    if (fromQuickCommand) {
+      setFromQuickCommand(false)
+      navigate('/dashboard')
+    }
   }
 
   // ── Handlers ───────────────────────────────────────────────────────────
@@ -209,33 +244,51 @@ const FuelManagementPage = () => {
       : undefined
 
     const lastLog = allLogs.find(l => !l.isDeleted && l.vehicleRegNumber === regNo)
-    const lastMil = lastLog ? lastLog.mileage : null
+    const lastLogMil = lastLog ? Number(lastLog.mileage) : 0
+    const vehicleMil = selected?.currentMileageKm ? Number(selected.currentMileageKm) : 0
+    
+    // Previous mileage baseline is the maximum of the last fuel log and the live vehicle odometer
+    const lastMil = Math.max(lastLogMil, vehicleMil) || null
     setPreviousMileage(lastMil)
+    setMileageError('') // reset any stale validation error when switching vehicles
+
+    // Auto-fill driver from vehicle's assigned driver
+    const autoDriver = selected?.driverName && selected.driverName !== 'Not Assigned'
+      ? driversList.find(d => d.userName === selected.driverName || d.userName === selected.driverName)?.userName || selected.driverName
+      : ''
 
     setFormData(p => ({
       ...p,
       vehicleRegNumber: regNo,
       ...(fuelType && { fuelType }),
-      mileage: lastMil != null ? String(lastMil) : '',
-      driverUsername: selected?.driverName && selected.driverName !== 'Not Assigned' ? selected.driverName : p.driverUsername,
+      mileage: '', // always clear so controller must enter a new (higher) odometer reading
+      driverUsername: autoDriver || p.driverUsername,
     }))
   }
 
   const handleAddSubmit = async e => {
     e.preventDefault()
+    if (!formData.driverUsername) {
+      showToast('Driver selection is required.', 'error')
+      return
+    }
     if (previousMileage != null && parseFloat(formData.mileage) < previousMileage) {
       setMileageError(`Must be ≥ previous reading (${previousMileage.toFixed(1)} km)`)
       return
     }
 
     setSubmitting(true)
+    const prevMilCapture = previousMileage
+    const milNew = parseFloat(formData.mileage)
+    const litersNew = parseFloat(formData.liters)
+    const regCapture = formData.vehicleRegNumber
     try {
       await fuelAPI.controllerAddLog({
         ...formData,
-        liters: parseFloat(formData.liters),
+        liters: litersNew,
         costPerLiter: parseFloat(formData.costPerLiter),
-        mileage: parseFloat(formData.mileage),
-        driverUsername: formData.driverUsername || undefined,
+        mileage: milNew,
+        driverUsername: formData.driverUsername,
       })
       setShowAddModal(false)
       setFormData({ vehicleRegNumber: '', fuelType: 'Diesel', liters: '', costPerLiter: '', mileage: '', date: new Date().toISOString().split('T')[0], driverUsername: '' })
@@ -243,30 +296,88 @@ const FuelManagementPage = () => {
       setMileageError('')
       await loadData()
       showToast('Fuel log added successfully!')
-      addControllerNotification(`Fuel log added for vehicle ${formData.vehicleRegNumber}`, 'FUEL_ADD')
+      addControllerNotification(`Fuel log added for vehicle ${regCapture}`, 'FUEL_ADD', '/fuel-management')
+      // ── Low efficiency alert ─────────────────────────────────────────────
+      if (prevMilCapture != null && milNew > prevMilCapture && litersNew > 0) {
+        const eff = (milNew - prevMilCapture) / litersNew
+        if (eff < 5) {
+          addControllerNotification(
+            `⚠️ Low Efficiency Alert: ${regCapture} recorded only ${eff.toFixed(2)} km/L (Poor) — consider scheduling an inspection.`,
+            'FUEL_LOW_EFF',
+            '/fuel-analysis'
+          )
+        }
+      }
+      // From the dashboard Quick Command: return to the controller dashboard after completing the entry.
+      if (fromQuickCommand) {
+        setFromQuickCommand(false)
+        navigate('/dashboard')
+      }
     } catch (err) {
-      showToast('Failed to add fuel log', 'error')
+      console.error('Add fuel log error:', err?.response?.data || err);
+      showToast(err?.response?.data?.message || 'Failed to add fuel log', 'error')
     } finally { setSubmitting(false) }
   }
 
   const handleEditSubmit = async e => {
     e.preventDefault()
     if (!editingLog) return
+    if (!editingLog.driverUsername) {
+      showToast('Driver selection is required.', 'error')
+      return
+    }
     setSubmitting(true)
+    const editMilNew = parseFloat(editingLog.mileage)
+    const editLitersNew = parseFloat(editingLog.liters)
+    const editReg = editingLog.vehicleRegNumber
+    const editId = editingLog.id
+    
+    // Find previous and next logs chronologically for validation
+    const vehicleLogs = allLogs.filter(l => !l.isDeleted && l.vehicleRegNumber === editReg)
+    vehicleLogs.sort((a, b) => new Date(a.date) - new Date(b.date) || (a.id || 0) - (b.id || 0))
+    const curIndex = vehicleLogs.findIndex(l => l.id === editId)
+    
+    const prevLogForEdit = curIndex > 0 ? vehicleLogs[curIndex - 1] : null
+    const nextLogForEdit = curIndex !== -1 && curIndex < vehicleLogs.length - 1 ? vehicleLogs[curIndex + 1] : null
+    const prevMilForEdit = prevLogForEdit ? prevLogForEdit.mileage : null
+
+    if (prevLogForEdit && editMilNew < prevLogForEdit.mileage) {
+      showToast(`Mileage cannot be less than previous log's mileage (${prevLogForEdit.mileage.toLocaleString()} km)`, 'error')
+      setSubmitting(false)
+      return
+    }
+    if (nextLogForEdit && editMilNew > nextLogForEdit.mileage) {
+      showToast(`Mileage cannot be greater than subsequent log's mileage (${nextLogForEdit.mileage.toLocaleString()} km)`, 'error')
+      setSubmitting(false)
+      return
+    }
+
     try {
-      await fuelAPI.controllerUpdateLog(editingLog.id, {
+      await fuelAPI.controllerUpdateLog(editId, {
         ...editingLog,
-        liters: parseFloat(editingLog.liters),
+        liters: editLitersNew,
         costPerLiter: parseFloat(editingLog.costPerLiter),
-        mileage: parseFloat(editingLog.mileage),
+        mileage: editMilNew,
         driverUsername: editingLog.driverUsername || undefined,
         updatedBy: user?.username
       })
       setEditingLog(null)
       await loadData()
       showToast('Fuel log updated!')
-      addControllerNotification(`Fuel log #${editingLog.id} updated`, 'FUEL_EDIT')
+      addControllerNotification(`Fuel log #${editId} updated`, 'FUEL_EDIT', '/fuel-management')
+      // ── Low efficiency alert ─────────────────────────────────────────────
+      if (prevMilForEdit != null && editMilNew > prevMilForEdit && editLitersNew > 0) {
+        const eff = (editMilNew - prevMilForEdit) / editLitersNew
+        if (eff < 5) {
+          addControllerNotification(
+            `⚠️ Low Efficiency Alert: ${editReg} updated log shows only ${eff.toFixed(2)} km/L (Poor) — consider scheduling an inspection.`,
+            'FUEL_LOW_EFF',
+            '/fuel-analysis'
+          )
+        }
+      }
     } catch (err) {
+      console.error('Update fuel log error:', err)
       showToast('Failed to update', 'error')
     } finally { setSubmitting(false) }
   }
@@ -279,8 +390,9 @@ const FuelManagementPage = () => {
       setDeletingLog(null)
       await loadData()
       showToast('Fuel log archived.')
-      addControllerNotification(`Fuel log for ${deletingLog?.vehicleRegNumber} archived`, 'FUEL_DELETE')
+      addControllerNotification(`Fuel log for ${deletingLog?.vehicleRegNumber} archived`, 'FUEL_DELETE', '/fuel-management')
     } catch (err) {
+      console.error('Archive fuel log error:', err)
       showToast('Failed to archive', 'error')
     }
   }
@@ -291,8 +403,9 @@ const FuelManagementPage = () => {
       await fuelAPI.restoreLog(id)
       await loadData()
       showToast('Fuel log restored successfully!')
-      addControllerNotification(`Fuel log restored`, 'FUEL_RESTORE')
+      addControllerNotification(`Fuel log restored`, 'FUEL_RESTORE', '/fuel-management')
     } catch (err) {
+      console.error('Restore fuel log error:', err)
       showToast('Failed to restore fuel log', 'error')
     } finally {
       setRestoringId(null)
@@ -307,15 +420,23 @@ const FuelManagementPage = () => {
     return { label: 'Poor', bg: D.redDim, color: D.red, border: 'rgba(248,113,113,0.3)' }
   }
 
+  // Build unique driver list from actual logs (so dropdown always matches filter)
+  const uniqueDriversInLogs = [...new Set(
+    allLogs.filter(l => !l.isDeleted && l.driverUsername).map(l => l.driverUsername)
+  )].map(username => {
+    const found = driversList.find(d => d.userName === username)
+    return { username, displayName: found?.userName || username }
+  })
+
   // ── Loading ─────────────────────────────────────────────────────────────
   if (loading) return (
     <div className="app-shell" style={{ background: D.bg }}>
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: D.bg }}>
-        <Topbar title="Fuel Management" subtitle="Home / Fuel Management" />
+        <Topbar title="Fuel Management" subtitle="Home / Fuel Management" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ width: 52, height: 52, borderRadius: '50%', border: '4px solid rgba(167,139,250,0.2)', borderTopColor: D.purple, animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+            <div style={{ width: 52, height: 52, borderRadius: '50%', border: '4px solid rgba(96, 165, 250,0.2)', borderTopColor: D.purple, animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
             <p style={{ color: D.textSub, fontWeight: 600 }}>Loading fleet data...</p>
           </div>
         </div>
@@ -328,51 +449,48 @@ const FuelManagementPage = () => {
   // ── Main Render ─────────────────────────────────────────────────────────
   return (
     <div className="app-shell" style={{ background: D.bg, minHeight: '100vh' }}>
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: D.bg }}>
-        <Topbar title="Fuel Management" subtitle="Home / Fuel Management" />
+        <Topbar title="Fuel Management" subtitle="Home / Fuel Management" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body">
 
-          {/* -- Hero Section ------------------------------------ */}
+          {/* Hero Banner */}
           <div style={{
-            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
+            background: isDark
+              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
+              : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
             borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.4)', border: `1px solid ${D.border}`
+            boxShadow: isDark
+              ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
+              : '0 16px 48px rgba(0,0,0,0.4)',
+            border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : `1px solid ${D.border}`,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16
           }}>
-            <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 30 }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 16 }}>
-                  <div style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(12px)', borderRadius: 20, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
-                    <Fuel size={32} strokeWidth={1.5} />
-                  </div>
-                  <div>
-                    <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Fleet Fuel Intelligence</h1>
-                    <p style={{ margin: '6px 0 0', color: '#a5b4fc', fontSize: '1rem', fontWeight: 500, opacity: 0.9 }}>Centralized monitoring, cost analysis & efficiency tracking</p>
-                  </div>
-                </div>
+            {/* decorative circles */}
+            {[['80%', '-20px', '220px', 'rgba(59,130,246,0.04)'], ['20%', '60%', '150px', 'rgba(99,102,241,0.04)'], ['55%', '80%', '100px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
+              <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
+            ))}
+            {/* Neon radial glow for dark */}
+            {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
+              <div style={{ background: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', backdropFilter: 'blur(8px)', border: isDark ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(255,255,255,0.15)', boxShadow: isDark ? '0 0 20px rgba(59,130,246,0.3), 0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.2)' }}>
+                <Fuel size={32} strokeWidth={1.5} />
               </div>
-              <div style={{ display: 'flex', gap: 16, flexShrink: 0 }}>
-                <button onClick={() => setShowAddModal(true)} style={{ 
-                  padding: '14px 28px', borderRadius: 16, border: 'none', 
-                  background: '#fff', color: '#312e81', cursor: 'pointer', 
-                  fontWeight: 800, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 10,
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.25)', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
-                }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}>
-                  <Plus size={20} strokeWidth={3} /> Add Fuel Log
-                </button>
-                <button onClick={() => setShowDeletedDrawer(true)} style={{ 
-                  padding: '14px 24px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.25)', 
-                  background: 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', 
-                  fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 10,
-                  backdropFilter: 'blur(10px)', transition: 'all 0.2s ease'
-                }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}>
-                  <Trash2 size={20} /> Archive {deletedCount > 0 && <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: 8, marginLeft: 4, fontWeight: 900 }}>{deletedCount}</span>}
-                </button>
+              <div>
+                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Fleet Fuel Intelligence</h1>
+                <p style={{ margin: '4px 0 0', color: '#60a5fa', fontSize: '0.9rem' }}>Centralized monitoring, cost analysis &amp; efficiency tracking</p>
               </div>
             </div>
-            {/* decoration */}
-            <div style={{ position: 'absolute', top: '-40%', right: '-10%', width: 400, height: 400, background: 'radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%)', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', bottom: '-20%', left: '10%', width: 250, height: 250, background: 'radial-gradient(circle, rgba(165,180,252,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'relative', display: 'flex', gap: 16, flexShrink: 0 }}>
+              <button onClick={() => setShowAddModal(true)} style={{ 
+                padding: '14px 28px', borderRadius: 16, border: 'none', 
+                background: '#fff', color: '#1e3a8a', cursor: 'pointer', 
+                fontWeight: 800, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 10,
+                boxShadow: '0 8px 30px rgba(0,0,0,0.25)', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+              }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}>
+                <Plus size={20} strokeWidth={3} /> Add Fuel Log
+              </button>
+            </div>
           </div>
 
           {/* -- Stats Grid -------------------------------------- */}
@@ -400,35 +518,100 @@ const FuelManagementPage = () => {
 
           {/* -- Controls & List ---------------------------------- */}
           <div style={{ ...card, padding: 0 }}>
-            <div style={{ padding: '28px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: D.surfaceHi }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 28, flex: 1 }}>
-                <div style={{ position: 'relative', width: 380 }}>
-                  <Search size={20} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: D.textSub, opacity: 0.7 }} />
-                  <input type="text" placeholder="Search by vehicle or driver..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ ...inputStyle, paddingLeft: 48 }} onFocus={onFocus} onBlur={onBlur} />
+            <div style={{ padding: '22px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, background: D.surfaceHi, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, flexWrap: 'wrap' }}>
+
+                {/* Vehicle Dropdown */}
+                <div style={{ position: 'relative', minWidth: 190 }}>
+                  <Car size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.blue, pointerEvents: 'none', opacity: 0.8 }} />
+                  <select
+                    value={filterVehicle}
+                    onChange={e => setFilterVehicle(e.target.value)}
+                    style={{ ...inputStyle, paddingLeft: 38, appearance: 'none', paddingRight: 32, cursor: 'pointer' }}
+                    onFocus={onFocus} onBlur={onBlur}
+                  >
+                    <option value="all">All Vehicles</option>
+                    {vehicles.map(v => (
+                      <option key={v.id} value={v.registrationNo}>{v.registrationNo}</option>
+                    ))}
+                  </select>
+                  <MoreVertical size={13} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
                 </div>
-                <div style={{ display: 'flex', gap: 14 }}>
-                  <div style={{ position: 'relative' }}>
-                    <select value={filterFuelType} onChange={e => setFilterFuelType(e.target.value)} style={{ ...inputStyle, width: 170, appearance: 'none' }} onFocus={onFocus} onBlur={onBlur}>
-                      <option value="all">All Fuel Types</option>
-                      <option value="Diesel">Diesel</option>
-                      <option value="Petrol">Petrol</option>
-                    </select>
-                    <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }}><MoreVertical size={14} /></div>
-                  </div>
-                  <div style={{ position: 'relative' }}>
-                    <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inputStyle, width: 190, appearance: 'none' }} onFocus={onFocus} onBlur={onBlur}>
-                      <option value="all">All Efficiency</option>
-                      <option value="excellent">Excellent (&gt;10)</option>
-                      <option value="good">Good (7-10)</option>
-                      <option value="average">Average (5-7)</option>
-                      <option value="poor">Poor (&lt;5)</option>
-                    </select>
-                    <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }}><MoreVertical size={14} /></div>
-                  </div>
+
+                {/* Driver Dropdown */}
+                <div style={{ position: 'relative', minWidth: 190 }}>
+                  <User size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.purple, pointerEvents: 'none', opacity: 0.8 }} />
+                  <select
+                    value={filterDriver}
+                    onChange={e => setFilterDriver(e.target.value)}
+                    style={{ ...inputStyle, paddingLeft: 38, appearance: 'none', paddingRight: 32, cursor: 'pointer' }}
+                    onFocus={onFocus} onBlur={onBlur}
+                  >
+                    <option value="all">All Drivers</option>
+                    {uniqueDriversInLogs.map(d => (
+                      <option key={d.username} value={d.username}>{d.displayName}</option>
+                    ))}
+                  </select>
+                  <MoreVertical size={13} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
                 </div>
+
+                {/* Fuel Type Dropdown */}
+                <div style={{ position: 'relative', minWidth: 160 }}>
+                  <select value={filterFuelType} onChange={e => setFilterFuelType(e.target.value)} style={{ ...inputStyle, appearance: 'none', paddingRight: 32, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
+                    <option value="all">All Fuel Types</option>
+                    <option value="Diesel">Diesel</option>
+                    <option value="Petrol">Petrol</option>
+                  </select>
+                  <MoreVertical size={13} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
+                </div>
+
+                {/* Efficiency Dropdown */}
+                <div style={{ position: 'relative', minWidth: 175 }}>
+                  <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inputStyle, appearance: 'none', paddingRight: 32, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
+                    <option value="all">All Efficiency</option>
+                    <option value="excellent">Excellent (&gt;10)</option>
+                    <option value="good">Good (7–10)</option>
+                    <option value="average">Average (5–7)</option>
+                    <option value="poor">Poor (&lt;5)</option>
+                  </select>
+                  <MoreVertical size={13} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
+                </div>
+
+                {/* Clear Filters */}
+                {(filterVehicle !== 'all' || filterDriver !== 'all' || filterFuelType !== 'all' || filterStatus !== 'all') && (
+                  <button
+                    onClick={() => { setFilterVehicle('all'); setFilterDriver('all'); setFilterFuelType('all'); setFilterStatus('all') }}
+                    style={{ padding: '10px 16px', borderRadius: 12, border: `1px solid ${D.red}40`, background: D.redDim, color: D.red, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', whiteSpace: 'nowrap' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
+                  >
+                    <X size={14} /> Clear
+                  </button>
+                )}
               </div>
-              <div style={{ fontSize: '0.9rem', color: D.textSub, fontWeight: 700, background: D.surface, padding: '8px 16px', borderRadius: 12, border: `1px solid ${D.border}` }}>
-                <span style={{ color: D.purple }}>{filteredLogs.length}</span> Active Logs
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                {!isDriver && (
+                  <button
+                    onClick={() => setShowDeletedDrawer(true)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '10px 16px', borderRadius: 12,
+                      background: D.surfaceHi, border: `1px solid ${D.border}`,
+                      color: D.textSub, fontSize: '0.8rem', fontWeight: 800,
+                      cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.28)'; e.currentTarget.style.color = '#f87171' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.textSub }}
+                  >
+                    <Archive size={14} />
+                    Deleted Records {deletedCount > 0 && <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: 8, marginLeft: 4, fontWeight: 900 }}>{deletedCount}</span>}
+                  </button>
+                )}
+
+                <div style={{ fontSize: '0.9rem', color: D.textSub, fontWeight: 700, background: D.surface, padding: '8px 16px', borderRadius: 12, border: `1px solid ${D.border}`, whiteSpace: 'nowrap' }}>
+                  <span style={{ color: D.purple }}>{filteredLogs.length}</span> Active Logs
+                </div>
               </div>
             </div>
 
@@ -518,80 +701,181 @@ const FuelManagementPage = () => {
 
       {/* ── ADD/EDIT MODAL ────────────────────────────────────── */}
       {(showAddModal || editingLog) && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={() => { if (!submitting) { setShowAddModal(false); setEditingLog(null) } }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={() => { if (!submitting) closeAddModal() }}>
           <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-            <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
                 <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
                   {editingLog ? <Edit2 size={24} /> : <Plus size={24} />}
                 </div>
                 <div>
                   <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>{editingLog ? 'Edit Fuel Record' : 'Record Fuel Entry'}</h2>
-                  <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#a5b4fc', fontWeight: 600, opacity: 0.9 }}>{editingLog ? `Refining details for ${editingLog.vehicleRegNumber}` : 'Enter the latest fill-up data for analysis'}</p>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600, opacity: 0.9 }}>{editingLog ? `Refining details for ${editingLog.vehicleRegNumber}` : 'Enter the latest fill-up data for analysis'}</p>
                 </div>
               </div>
-              <button onClick={() => { setShowAddModal(false); setEditingLog(null) }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
+              <button onClick={closeAddModal} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
             </div>
 
             <form onSubmit={editingLog ? handleEditSubmit : handleAddSubmit} style={{ padding: '36px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 40 }}>
-                {!editingLog ? (
-                  <div>
-                    <label style={labelStyle}>Vehicle Identification <span style={{ color: D.red }}>*</span></label>
-                    <select name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={handleVehicleSelect} required style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
-                      <option value="">Select a Vehicle</option>
-                      {vehicles.map(v => <option key={v.id} value={v.registrationNo}>{v.registrationNo}</option>)}
-                    </select>
+              {/* derive selected vehicle for info strip */}
+              {(() => {
+                const selectedVehicle = !editingLog && formData.vehicleRegNumber
+                  ? vehicles.find(v => v.registrationNo === formData.vehicleRegNumber)
+                  : null
+                const fuelTypeValue = editingLog ? editingLog.fuelType : formData.fuelType
+                const fuelColor = fuelTypeValue === 'Diesel' ? D.indigo : D.gold
+                const fuelBg = fuelTypeValue === 'Diesel' ? D.indigoDim : D.goldDim
+
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 40 }}>
+
+                    {/* Vehicle Select / Read-only reg */}
+                    {!editingLog ? (
+                      <div style={{ gridColumn: selectedVehicle ? '1' : '1' }}>
+                        <label style={labelStyle}>Vehicle Identification <span style={{ color: D.red }}>*</span></label>
+                        <select name="vehicleRegNumber" value={formData.vehicleRegNumber} onChange={handleVehicleSelect} required style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
+                          <option value="">Select a Vehicle</option>
+                          {vehicles.map(v => <option key={v.id} value={v.registrationNo}>{v.registrationNo}</option>)}
+                        </select>
+                      </div>
+                    ) : (
+                      <div>
+                        <label style={labelStyle}>Vehicle Identification</label>
+                        <input type="text" value={editingLog.vehicleRegNumber} readOnly style={{ ...inputStyle, background: D.surfaceHi, color: D.textSub, cursor: 'not-allowed', opacity: 0.7 }} />
+                      </div>
+                    )}
+
+                    {/* Date */}
+                    <div>
+                      <label style={labelStyle}>Transaction Date <span style={{ color: D.red }}>*</span></label>
+                      <input type="date" name="date" value={editingLog ? editingLog.date : formData.date} onChange={handleInputChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                    </div>
+
+                    {/* Vehicle Info Strip — shown when a vehicle is selected (add mode only) */}
+                    {selectedVehicle && (
+                      <div style={{ gridColumn: 'span 2', background: 'rgba(37, 99, 235,0.06)', border: '1px solid rgba(37, 99, 235,0.2)', borderRadius: 14, padding: '14px 18px', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', animation: 'fadeIn 0.2s ease' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 900, color: D.indigo, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.7 }}>Vehicle Info</span>
+                        <div style={{ width: 1, height: 16, background: D.border }} />
+                        {selectedVehicle.manufacturer && (
+                          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.text }}>{selectedVehicle.manufacturer} {selectedVehicle.model}</span>
+                        )}
+                        {selectedVehicle.year && (
+                          <span style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600 }}>· {selectedVehicle.year}</span>
+                        )}
+                        {/* Locked fuel type badge */}
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', background: fuelBg, color: fuelColor, padding: '3px 10px', borderRadius: 20, border: `1px solid ${fuelColor}30`, display: 'flex', alignItems: 'center', gap: 5 }}>
+                          🔒 {fuelTypeValue}
+                        </span>
+                        {selectedVehicle.currentMileageKm && (
+                          <span style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600 }}>· {Number(selectedVehicle.currentMileageKm).toLocaleString()} km on odometer</span>
+                        )}
+                        {selectedVehicle.driverName && selectedVehicle.driverName !== 'Not Assigned' && (
+                          <span style={{ fontSize: '0.78rem', color: D.purple, fontWeight: 700, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <User size={12} /> {selectedVehicle.driverName}
+                          </span>
+                        )}
+                        {/* Status chip */}
+                        {selectedVehicle.status && (
+                          <span style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 20,
+                            background: selectedVehicle.status === 'ACTIVE' ? D.greenDim : selectedVehicle.status === 'AVAILABLE' ? D.blueDim : D.orangeDim,
+                            color: selectedVehicle.status === 'ACTIVE' ? D.green : selectedVehicle.status === 'AVAILABLE' ? D.blue : D.orange,
+                          }}>{selectedVehicle.status}</span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Fuel Grade — locked read-only when vehicle selected (add mode), editable in edit mode */}
+                    <div>
+                      <label style={labelStyle}>Fuel Grade <span style={{ color: D.red }}>*</span></label>
+                      {selectedVehicle ? (
+                        // Locked: vehicle dictates fuel type
+                        <div style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: 10, background: D.surfaceHi, cursor: 'not-allowed', opacity: 0.85, padding: '14px 18px' }}>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', background: fuelBg, color: fuelColor, padding: '3px 10px', borderRadius: 20, border: `1px solid ${fuelColor}30` }}>{fuelTypeValue}</span>
+                          <span style={{ fontSize: '0.75rem', color: D.textFaint, fontWeight: 600 }}>Auto-set from vehicle</span>
+                          <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: D.textFaint }}>🔒</span>
+                        </div>
+                      ) : (
+                        <select name="fuelType" value={editingLog ? editingLog.fuelType : formData.fuelType} onChange={handleInputChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
+                          <option value="Diesel">Diesel</option>
+                          <option value="Petrol">Petrol</option>
+                        </select>
+                      )}
+                    </div>
+
+                    {/* Volume */}
+                    <div>
+                      <label style={labelStyle}>Volume Dispensed (L) <span style={{ color: D.red }}>*</span></label>
+                      <input type="number" name="liters" value={editingLog ? editingLog.liters : formData.liters} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                    </div>
+
+                    {/* Unit Price */}
+                    <div>
+                      <label style={labelStyle}>Unit Price (LKR/L) <span style={{ color: D.red }}>*</span></label>
+                      <input type="number" name="costPerLiter" value={editingLog ? editingLog.costPerLiter : formData.costPerLiter} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                    </div>
+
+                    {/* Odometer */}
+                    <div>
+                      <label style={labelStyle}>Odometer Reading (km) <span style={{ color: D.red }}>*</span></label>
+                      <input type="number" name="mileage" value={editingLog ? editingLog.mileage : formData.mileage} onChange={handleMileageChange} step="0.1" required placeholder="0.0" style={{ ...inputStyle, ...(mileageError ? { borderColor: D.red, boxShadow: `0 0 0 4px ${D.red}20` } : {}) }} onFocus={onFocus} onBlur={onBlur} />
+                      {mileageError ? (
+                        <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.red, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>⚠ {mileageError}</p>
+                      ) : previousMileage != null && !editingLog && (
+                        <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.textFaint, fontWeight: 600 }}>Last reading: <span style={{ color: D.purple }}>{previousMileage.toLocaleString()} km</span></p>
+                      )}
+                    </div>
+
+                    {/* Driver Assignment */}
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <label style={labelStyle}>
+                        Driver <span style={{ color: D.red }}>*</span>
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <User size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.purple, pointerEvents: 'none', opacity: 0.8 }} />
+                        <select
+                          name="driverUsername"
+                          value={editingLog ? (editingLog.driverUsername || '') : (formData.driverUsername || '')}
+                          onChange={handleInputChange}
+                          required
+                          style={{ ...inputStyle, paddingLeft: 40, appearance: 'none', paddingRight: 32, cursor: 'pointer' }}
+                          onFocus={onFocus}
+                          onBlur={onBlur}
+                        >
+                          <option value="" disabled>— Select a Driver —</option>
+                          {driversList.length === 0 ? (
+                            <option value="" disabled>No drivers available</option>
+                          ) : (
+                            driversList.map(d => (
+                              <option key={d.id} value={d.userName}>
+                                {d.userName}
+                              </option>
+                            ))
+                          )}
+                        </select>
+                        <svg style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                      </div>
+                      {(() => {
+                        const selectedVehicle = !editingLog && formData.vehicleRegNumber
+                          ? vehicles.find(v => v.registrationNo === formData.vehicleRegNumber)
+                          : null
+                        return selectedVehicle?.driverName && selectedVehicle.driverName !== 'Not Assigned' && (
+                          <p style={{ margin: '7px 0 0', fontSize: '0.72rem', color: D.purple, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <User size={11} /> Auto-filled from vehicle assignment
+                          </p>
+                        )
+                      })()}
+                    </div>
+
                   </div>
-                ) : (
-                  <div>
-                    <label style={labelStyle}>Vehicle Identification</label>
-                    <input type="text" value={editingLog.vehicleRegNumber} readOnly style={{ ...inputStyle, background: D.surfaceHi, color: D.textSub, cursor: 'not-allowed', opacity: 0.7 }} />
-                  </div>
-                )}
-                <div>
-                  <label style={labelStyle}>Transaction Date <span style={{ color: D.red }}>*</span></label>
-                  <input type="date" name="date" value={editingLog ? editingLog.date : formData.date} onChange={handleInputChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Fuel Grade <span style={{ color: D.red }}>*</span></label>
-                  <select name="fuelType" value={editingLog ? editingLog.fuelType : formData.fuelType} onChange={handleInputChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
-                    <option value="Diesel">Diesel</option>
-                    <option value="Petrol">Petrol</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle}>Volume Dispensed (L) <span style={{ color: D.red }}>*</span></label>
-                  <input type="number" name="liters" value={editingLog ? editingLog.liters : formData.liters} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Unit Price (LKR/L) <span style={{ color: D.red }}>*</span></label>
-                  <input type="number" name="costPerLiter" value={editingLog ? editingLog.costPerLiter : formData.costPerLiter} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Odometer Reading (km) <span style={{ color: D.red }}>*</span></label>
-                  <input type="number" name="mileage" value={editingLog ? editingLog.mileage : formData.mileage} onChange={handleMileageChange} step="0.1" required placeholder="0.0" style={{ ...inputStyle, ...(mileageError ? { borderColor: D.red, boxShadow: `0 0 0 4px ${D.red}20` } : {}) }} onFocus={onFocus} onBlur={onBlur} />
-                  {mileageError ? (
-                     <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.red, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>⚠ {mileageError}</p>
-                  ) : previousMileage != null && !editingLog && (
-                     <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: D.textFaint, fontWeight: 600 }}>Last reading: <span style={{ color: D.purple }}>{previousMileage.toLocaleString()} km</span></p>
-                  )}
-                </div>
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={labelStyle}>Assigned Operator <span style={{ textTransform: 'none', color: D.textFaint, fontWeight: 500, marginLeft: 6, opacity: 0.8 }}>(Optional)</span></label>
-                  <select name="driverUsername" value={editingLog ? (editingLog.driverUsername || '') : (formData.driverUsername || '')} onChange={handleInputChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
-                    <option value="">System Generated / Unassigned</option>
-                    {driversList.map(d => <option key={d.id} value={d.username}>{d.fullName || d.username}</option>)}
-                  </select>
-                </div>
-              </div>
+                )
+              })()}
 
               <div style={{ display: 'flex', gap: 20 }}>
-                <button type="submit" disabled={submitting} style={{ flex: 2, padding: '16px', borderRadius: 18, border: 'none', background: submitting ? 'rgba(99,102,241,0.5)' : 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff', fontSize: '1.05rem', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: submitting ? 'none' : '0 10px 25px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }} onMouseEnter={e => { if(!submitting) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 15px 35px rgba(99,102,241,0.5)' } }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 10px 25px rgba(99,102,241,0.4)' }}>
+                <button type="submit" disabled={submitting} style={{ flex: 2, padding: '16px', borderRadius: 18, border: 'none', background: submitting ? 'rgba(37, 99, 235,0.5)' : 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', fontSize: '1.05rem', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: submitting ? 'none' : '0 10px 25px rgba(37, 99, 235,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }} onMouseEnter={e => { if(!submitting) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 15px 35px rgba(37, 99, 235,0.5)' } }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 10px 25px rgba(37, 99, 235,0.4)' }}>
                   {submitting ? <Loader2 size={22} className="animate-spin" /> : editingLog ? <Check size={22} /> : <FileText size={22} />}
                   {submitting ? (editingLog ? 'Updating Analysis...' : 'Processing Entry...') : (editingLog ? 'Update Analysis' : 'Complete Fuel Entry')}
                 </button>
-                <button type="button" disabled={submitting} onClick={() => { setShowAddModal(false); setEditingLog(null) }} style={{ flex: 1, padding: '16px', borderRadius: 18, border: `1px solid ${D.border}`, background: D.surfaceHi, color: D.textSub, fontSize: '1.05rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = D.border} onMouseLeave={e => e.currentTarget.style.background = D.surfaceHi}>Discard</button>
+                <button type="button" disabled={submitting} onClick={closeAddModal} style={{ flex: 1, padding: '16px', borderRadius: 18, border: `1px solid ${D.border}`, background: D.surfaceHi, color: D.textSub, fontSize: '1.05rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = D.border} onMouseLeave={e => e.currentTarget.style.background = D.surfaceHi}>Discard</button>
               </div>
             </form>
           </div>
@@ -618,7 +902,7 @@ const FuelManagementPage = () => {
 
             {/* Drawer Body */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '32px 36px', background: 'rgba(0,0,0,0.02)' }}>
-              {loadingDeleted ? (
+              {loading ? (
                 <div style={{ textAlign: 'center', padding: '60px 0' }}>
                   <Loader2 size={40} className="animate-spin" color={D.purple} style={{ margin: '0 auto 20px' }} />
                   <p style={{ color: D.textSub, fontWeight: 700, fontSize: '1rem' }}>Synchronizing archive...</p>

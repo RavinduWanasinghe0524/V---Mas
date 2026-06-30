@@ -1,38 +1,41 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
-import { useTheme } from '../context/ThemeContext'
-import { userAPI } from '../services/api'
-import { Users, Shield, Gamepad2, Car, CheckCircle, Ban, Wrench, Fuel, MapPin, BarChart3, UserCog, ClipboardList, Activity, AlertTriangle } from 'lucide-react'
+import { useTheme, useD } from '../context/ThemeContext'
+import { userAPI, fuelAPI, serviceAPI, vehicleAPI, alertAPI, notificationAPI } from '../services/api'
+import * as notifService from '../services/notificationService'
+import { Users, Shield, Gamepad2, Car, CheckCircle, Ban, Wrench, Fuel, MapPin, BarChart3, UserCog, ClipboardList, Activity, AlertTriangle, FileText, ShieldAlert, Clock, TrendingUp, Settings2, Info, Gauge, X } from 'lucide-react'
 
 const StatCard = ({ icon, label, value, colorDim, colorHex, change, onClick }) => (
   <div onClick={onClick} style={{
-    background: 'var(--surface)', borderRadius: 16,
+    background: 'var(--surface)', borderRadius: 24,
     border: '1px solid var(--surface-border)',
-    padding: '20px 22px', transition: 'all 0.25s ease',
-    boxShadow: 'var(--shadow-sm)', cursor: onClick ? 'pointer' : 'default',
+    boxShadow: '0 4px 24px rgba(0,0,0,0.25)', overflow: 'hidden',
+    padding: '28px', display: 'flex', alignItems: 'center', gap: 24,
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    cursor: onClick ? 'pointer' : 'default',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
   }}
     onMouseEnter={e => {
-      e.currentTarget.style.transform = 'translateY(-3px)'
-      e.currentTarget.style.borderColor = 'var(--surface-border-hi)'
-      e.currentTarget.style.boxShadow = `0 8px 24px ${colorDim}`
+      e.currentTarget.style.transform = 'translateY(-6px)'
+      e.currentTarget.style.borderColor = colorHex + '50'
+      e.currentTarget.style.boxShadow = `0 16px 40px rgba(0,0,0,0.35), 0 0 24px ${colorHex}22`
     }}
     onMouseLeave={e => {
       e.currentTarget.style.transform = 'translateY(0)'
       e.currentTarget.style.borderColor = 'var(--surface-border)'
-      e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
+      e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)'
     }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-      <div>
-        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>{label}</p>
-        <p style={{ fontSize: '1.55rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif", lineHeight: 1 }}>{value}</p>
-        {change && <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 6 }}>{change}</p>}
-      </div>
-      <div style={{ width: 44, height: 44, borderRadius: 12, background: colorDim, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', flexShrink: 0, border: `1px solid ${colorHex}30` }}>
-        {icon}
-      </div>
+    <div style={{ width: 60, height: 60, borderRadius: 18, background: colorDim, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${colorHex}30`, flexShrink: 0, boxShadow: `0 4px 12px ${colorHex}20` }}>
+      {icon}
+    </div>
+    <div>
+      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.1 }}>{value}</div>
+      {change && <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 6, fontWeight: 600 }}>{change}</div>}
     </div>
   </div>
 )
@@ -46,38 +49,47 @@ const SectionHeader = ({ title }) => (
 
 const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "Open →" }) => (
   <div onClick={disabled ? undefined : onClick} style={{
-    background: 'var(--surface)', borderRadius: 16,
+    background: 'var(--surface)', borderRadius: 20,
     border: '1px solid var(--surface-border)',
-    padding: '24px', cursor: disabled ? 'default' : 'pointer',
-    transition: 'all 0.2s', opacity: disabled ? 0.6 : 1,
+    padding: '28px', cursor: disabled ? 'default' : 'pointer',
+    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', opacity: disabled ? 0.6 : 1,
     display: 'flex', flexDirection: 'column', height: '100%',
+    boxShadow: '0 4px 24px rgba(0,0,0,0.25)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
   }}
     onMouseEnter={e => {
       if (!disabled) {
-        e.currentTarget.style.borderColor = 'var(--surface-border-hi)'
+        e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.45)'
         e.currentTarget.style.background = 'var(--surface-hi)'
+        e.currentTarget.style.transform = 'translateY(-5px)'
+        e.currentTarget.style.boxShadow = '0 20px 50px rgba(0,0,0,0.35), 0 0 30px rgba(59,130,246,0.1)'
       }
     }}
     onMouseLeave={e => {
       if (!disabled) {
         e.currentTarget.style.borderColor = 'var(--surface-border)'
         e.currentTarget.style.background = 'var(--surface)'
+        e.currentTarget.style.transform = 'translateY(0)'
+        e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)'
       }
     }}>
-    <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--primary-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', marginBottom: 16, border: '1px solid var(--border)', color: 'var(--primary)' }}>
+    <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--primary-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, border: '1px solid rgba(59, 130, 246, 0.25)', color: 'var(--primary)', flexShrink: 0, boxShadow: '0 4px 12px rgba(59,130,246,0.15)' }}>
       {icon}
     </div>
-    <h3 style={{ margin: '0 0 8px', fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 700 }}>{title}</h3>
-    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5, flex: 1 }}>{desc}</p>
+    <h3 style={{ margin: '0 0 10px', fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{title}</h3>
+    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6, flex: 1 }}>{desc}</p>
 
-    <div style={{ marginTop: 20 }}>
+    <div style={{ marginTop: 22 }}>
       {disabled ? (
-        <span style={{ padding: '4px 10px', borderRadius: 8, background: 'var(--warning-bg)', color: 'var(--warning)', fontSize: '0.75rem', fontWeight: 700, border: '1px solid rgba(251,191,36,0.3)' }}>Coming Soon</span>
+        <span style={{ padding: '5px 12px', borderRadius: 8, background: 'var(--warning-bg)', color: 'var(--warning)', fontSize: '0.75rem', fontWeight: 700, border: '1px solid rgba(251,191,36,0.3)' }}>Coming Soon</span>
       ) : (
         <button style={{
-          padding: '8px 18px', borderRadius: 10, border: 'none',
-          background: 'linear-gradient(135deg, #6366f1, #3b82f6)',
-          color: '#fff', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+          padding: '10px 20px', borderRadius: 12, border: 'none',
+          background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+          color: '#fff', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
+          boxShadow: '0 4px 16px rgba(59, 130, 246, 0.35)',
+          transition: 'all 0.2s ease',
         }}>
           {btnText}
         </button>
@@ -86,23 +98,168 @@ const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "
   </div>
 )
 
-/* ── Accent colors (theme-aware) ─────────────────────────────── */
+/* ── Accent colors (theme-aware) ──────────────────────── */
 const useAccents = (isDark) => ({
-  purple:    isDark ? '#a78bfa' : '#7c3aed',
-  purpleDim: isDark ? 'rgba(167,139,250,0.15)' : 'rgba(124,58,237,0.1)',
-  indigo:    isDark ? '#818cf8' : '#4f46e5',
-  indigoDim: isDark ? 'rgba(129,140,248,0.15)' : 'rgba(79,70,229,0.1)',
-  blue:      isDark ? '#60a5fa' : '#2563eb',
-  blueDim:   isDark ? 'rgba(96,165,250,0.15)' : 'rgba(37,99,235,0.1)',
-  green:     isDark ? '#4ade80' : '#16a34a',
-  greenDim:  isDark ? 'rgba(74,222,128,0.15)' : 'rgba(22,163,74,0.1)',
+  purple:    isDark ? '#60a5fa' : '#1d4ed8',
+  purpleDim: isDark ? 'rgba(59, 130, 246, 0.18)' : 'rgba(29, 78, 216, 0.1)',
+  indigo:    isDark ? '#818cf8' : '#1e40af',
+  indigoDim: isDark ? 'rgba(99, 102, 241, 0.18)' : 'rgba(29, 78, 216, 0.1)',
+  blue:      isDark ? '#38bdf8' : '#0284c7',
+  blueDim:   isDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(2, 132, 199, 0.1)',
+  green:     isDark ? '#34d399' : '#059669',
+  greenDim:  isDark ? 'rgba(52, 211, 153, 0.15)' : 'rgba(5, 150, 105, 0.1)',
   red:       isDark ? '#f87171' : '#dc2626',
-  redDim:    isDark ? 'rgba(248,113,113,0.15)' : 'rgba(220,38,38,0.1)',
+  redDim:    isDark ? 'rgba(248, 113, 113, 0.15)' : 'rgba(220, 38, 38, 0.1)',
   gold:      isDark ? '#fbbf24' : '#d97706',
-  goldDim:   isDark ? 'rgba(251,191,36,0.15)' : 'rgba(217,119,6,0.1)',
+  goldDim:   isDark ? 'rgba(251, 191, 36, 0.15)' : 'rgba(217, 119, 6, 0.1)',
 })
 
-const AdminDashboard = ({ stats, loading, navigate, isDark }) => {
+/* ── Monthly Cost Trend (Maintenance vs Fuel) — SVG line chart ── */
+const MonthlyCostTrendChart = ({ data = [], isDark }) => {
+  const [hover, setHover] = useState(null)
+  const blue = '#3b82f6', green = '#34d399'
+  const pts = (data && data.length) ? data : [{ label: '—', maintenance: 0, fuel: 0 }]
+  const W = 580, H = 220, padL = 52, padR = 24, padT = 20, padB = 36
+  const plotW = W - padL - padR, plotH = H - padT - padB
+  const rawMax = Math.max(1, ...pts.flatMap(p => [Number(p.maintenance) || 0, Number(p.fuel) || 0]))
+  const stepPow = Math.pow(10, Math.floor(Math.log10(rawMax)))
+  const niceMax = Math.max(stepPow, Math.ceil(rawMax / stepPow) * stepPow)
+  const X = i => padL + (pts.length === 1 ? plotW / 2 : (i / (pts.length - 1)) * plotW)
+  const Y = v => padT + plotH - ((Number(v) || 0) / niceMax) * plotH
+  const grid = 4
+  const fmtK = v => `${Math.round((Number(v) || 0) / 1000)}k`
+  const linePath = key => pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${X(i)} ${Y(p[key])}`).join(' ')
+  const axis = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'
+  const axisText = isDark ? '#64748b' : '#94a3b8'
+
+  return (
+    <div style={{ background: 'var(--surface)', borderRadius: 24, border: '1px solid var(--surface-border)', boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '20px 28px' }}>
+      <div style={{ marginBottom: 8 }}>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Monthly Cost Trend</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Maintenance vs fuel (LKR thousands)</div>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', maxHeight: '250px', overflow: 'visible' }} onMouseLeave={() => setHover(null)}>
+        {Array.from({ length: grid + 1 }).map((_, i) => {
+          const v = (niceMax / grid) * i, yy = Y(v)
+          return (
+            <g key={`g${i}`}>
+              <line x1={padL} y1={yy} x2={W - padR} y2={yy} stroke={axis} strokeDasharray="4 4" />
+              <text x={padL - 10} y={yy + 4} fontSize="11" fill={axisText} textAnchor="end" fontWeight="600">{fmtK(v)}</text>
+            </g>
+          )
+        })}
+        {pts.map((p, i) => (
+          <g key={`x${i}`}>
+            <text x={X(i)} y={H - padB + 22} fontSize="11" fill={axisText} textAnchor="middle" fontWeight="600">{p.label}</text>
+            <rect x={X(i) - plotW / (pts.length * 2)} y={padT} width={plotW / Math.max(1, pts.length)} height={plotH} fill="transparent" onMouseEnter={() => setHover(i)} />
+          </g>
+        ))}
+        <path d={linePath('fuel')} fill="none" stroke={green} strokeWidth="2.5" strokeDasharray="6 5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={linePath('maintenance')} fill="none" stroke={blue} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        {pts.map((p, i) => (
+          <g key={`p${i}`}>
+            <circle cx={X(i)} cy={Y(p.fuel)} r={hover === i ? 5 : 3.5} fill="var(--surface)" stroke={green} strokeWidth="2.5" />
+            <circle cx={X(i)} cy={Y(p.maintenance)} r={hover === i ? 5 : 3.5} fill="var(--surface)" stroke={blue} strokeWidth="2.5" />
+          </g>
+        ))}
+        {hover !== null && (() => {
+          const p = pts[hover], hx = X(hover), boxW = 152, boxH = 72
+          let bx = hx + 12; if (bx + boxW > W) bx = hx - boxW - 12
+          const by = padT + 6
+          return (
+            <g style={{ pointerEvents: 'none' }}>
+              <line x1={hx} y1={padT} x2={hx} y2={padT + plotH} stroke={axisText} strokeDasharray="3 3" opacity="0.6" />
+              <rect x={bx} y={by} width={boxW} height={boxH} rx="10" fill={isDark ? '#0e1529' : '#ffffff'} stroke="var(--surface-border)" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.25))' }} />
+              <text x={bx + 14} y={by + 22} fontSize="12" fontWeight="800" fill="var(--text-primary)">{p.label}</text>
+              <text x={bx + 14} y={by + 43} fontSize="11.5" fill="var(--text-primary)">Maintenance: {fmtK(p.maintenance)}</text>
+              <text x={bx + 14} y={by + 61} fontSize="11.5" fill={green} fontWeight="600">Fuel: {fmtK(p.fuel)}</text>
+            </g>
+          )
+        })()}
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 8 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+          <span style={{ width: 18, height: 3, borderRadius: 2, background: blue }} /> Maintenance (LKR k)
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+          <span style={{ width: 18, borderTop: `3px dashed ${green}` }} /> Fuel (LKR k)
+        </span>
+      </div>
+    </div>
+  )
+}
+
+/* ── User Statistics donut with Role / Status toggle ── */
+const UserStatsPieChart = ({ stats }) => {
+  const [mode, setMode] = useState('role')
+  const roleData = [
+    { label: 'Admins', value: stats.admins || 0, color: '#3b82f6' },
+    { label: 'Controllers', value: stats.controllers || 0, color: '#fbbf24' },
+    { label: 'Drivers', value: stats.drivers || 0, color: '#34d399' },
+  ]
+  const statusData = [
+    { label: 'Active', value: stats.activeUsers || 0, color: '#34d399' },
+    { label: 'Inactive', value: stats.inactiveUsers || 0, color: '#f87171' },
+    { label: 'Suspended', value: stats.suspendedUsers || 0, color: '#94a3b8' },
+    { label: 'Pending', value: stats.pendingUsers || 0, color: '#fbbf24' },
+  ]
+  const data = mode === 'role' ? roleData : statusData
+  const total = data.reduce((s, d) => s + d.value, 0)
+  const cx = 110, cy = 110, R = 86, r = 56
+  let angle = -Math.PI / 2
+  const slices = data.map(d => {
+    const sweep = (d.value / (total || 1)) * 2 * Math.PI
+    const x1 = cx + R * Math.cos(angle), y1 = cy + R * Math.sin(angle)
+    const x2 = cx + R * Math.cos(angle + sweep), y2 = cy + R * Math.sin(angle + sweep)
+    const ix1 = cx + r * Math.cos(angle), iy1 = cy + r * Math.sin(angle)
+    const ix2 = cx + r * Math.cos(angle + sweep), iy2 = cy + r * Math.sin(angle + sweep)
+    const large = sweep > Math.PI ? 1 : 0
+    const path = `M ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${r} ${r} 0 ${large} 0 ${ix1} ${iy1} Z`
+    const mid = angle + sweep / 2, midR = (R + r) / 2
+    const lx = cx + midR * Math.cos(mid), ly = cy + midR * Math.sin(mid)
+    angle += sweep
+    return { ...d, path, sweep, lx, ly }
+  })
+  const tabBtn = (active) => ({ flex: 1, padding: '7px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: '0.76rem', fontWeight: 800, fontFamily: 'inherit', transition: 'all 0.15s', background: active ? 'var(--primary)' : 'transparent', color: active ? '#fff' : 'var(--text-muted)' })
+
+  return (
+    <div style={{ background: 'var(--surface)', borderRadius: 24, border: '1px solid var(--surface-border)', boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>User Statistics</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>{mode === 'role' ? 'Distribution by role' : 'Distribution by account status'}</div>
+      </div>
+      <div style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--surface-hi)', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 20 }}>
+        <button style={tabBtn(mode === 'role')} onClick={() => setMode('role')}>Role based</button>
+        <button style={tabBtn(mode === 'status')} onClick={() => setMode('status')}>Status based</button>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, flex: 1 }}>
+        <svg viewBox="0 0 220 220" style={{ width: 150, height: 150, flexShrink: 0 }}>
+          {total === 0 ? (
+            <circle cx={cx} cy={cy} r={(R + r) / 2} fill="none" stroke="var(--border)" strokeWidth={R - r} />
+          ) : slices.map((s, i) => s.sweep > 0 && (
+            <g key={i}>
+              <path d={s.path} fill={s.color} style={{ transition: 'opacity 0.2s', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.35))' }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.8'} onMouseLeave={e => e.currentTarget.style.opacity = '1'} />
+              <text x={s.lx} y={s.ly + 5} fontSize="15" fontWeight="900" fill="#fff" textAnchor="middle" style={{ pointerEvents: 'none' }}>{s.value}</text>
+            </g>
+          ))}
+          <text x={cx} y={cy - 4} fontSize="26" fontWeight="900" fill="var(--text-primary)" textAnchor="middle" fontFamily="'Plus Jakarta Sans',sans-serif">{total}</text>
+          <text x={cx} y={cy + 15} fontSize="11" fill="var(--text-muted)" textAnchor="middle" fontWeight="700" letterSpacing="0.05em">USERS</text>
+        </svg>
+        <div style={{ display: 'grid', gridTemplateColumns: mode === 'role' ? '1fr 1fr 1fr' : '1fr 1fr', width: '100%', gap: 10, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+          {data.map((d, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+              <div style={{ width: 9, height: 9, borderRadius: '50%', background: d.color, flexShrink: 0, boxShadow: `0 0 8px ${d.color}70` }} />
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700 }}>{d.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const AdminDashboard = ({ stats, loading, navigate, isDark, monthlyCostData }) => {
   const A = useAccents(isDark)
   if (loading) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
@@ -113,48 +270,639 @@ const AdminDashboard = ({ stats, loading, navigate, isDark }) => {
   return (
     <>
       <SectionHeader title="User Statistics" />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
         <StatCard icon={<Users size={20} color={A.purple}/>} label="Total Users" value={stats.totalUsers} colorDim={A.purpleDim} colorHex={A.purple} change="Registered in system" onClick={() => navigate('/users')} />
-        <StatCard icon={<Shield size={20} color={A.indigo}/>} label="Admins" value={stats.admins} colorDim={A.indigoDim} colorHex={A.indigo} change="System administrators" onClick={() => navigate('/users')} />
-        <StatCard icon={<Gamepad2 size={20} color={A.blue}/>} label="Controllers" value={stats.controllers} colorDim={A.blueDim} colorHex={A.blue} change="Fleet controllers" onClick={() => navigate('/users')} />
-        <StatCard icon={<Car size={20} color={A.green}/>} label="Drivers" value={stats.drivers} colorDim={A.greenDim} colorHex={A.green} change="Vehicle operators" onClick={() => navigate('/users')} />
-        <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Active" value={stats.activeUsers} colorDim={A.greenDim} colorHex={A.green} change="Currently active accounts" onClick={() => navigate('/users')} />
-        <StatCard icon={<Ban size={20} color={A.red}/>} label="Inactive" value={stats.inactiveUsers} colorDim={A.redDim} colorHex={A.red} change="Disabled accounts" onClick={() => navigate('/users')} />
+        <StatCard icon={<Shield size={20} color={A.indigo}/>} label="Admins" value={stats.admins} colorDim={A.indigoDim} colorHex={A.indigo} change="System administrators" onClick={() => navigate('/users', { state: { roleFilter: 'ADMIN' } })} />
+        <StatCard icon={<Gamepad2 size={20} color={A.blue}/>} label="Controllers" value={stats.controllers} colorDim={A.blueDim} colorHex={A.blue} change="Fleet controllers" onClick={() => navigate('/users', { state: { roleFilter: 'CONTROLLER' } })} />
+        <StatCard icon={<Car size={20} color={A.green}/>} label="Drivers" value={stats.drivers} colorDim={A.greenDim} colorHex={A.green} change="Vehicle operators" onClick={() => navigate('/users', { state: { roleFilter: 'DRIVER' } })} />
+        <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Active" value={stats.activeUsers} colorDim={A.greenDim} colorHex={A.green} change="Currently active accounts" onClick={() => navigate('/users', { state: { statusFilter: 'ACTIVE' } })} />
+        <StatCard icon={<Ban size={20} color={A.red}/>} label="Inactive" value={stats.inactiveUsers} colorDim={A.redDim} colorHex={A.red} change="Disabled accounts" onClick={() => navigate('/users', { state: { statusFilter: 'INACTIVE' } })} />
+      </div>
+
+      <div className="dashboard-columns-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start', marginBottom: 36 }}>
+        {/* Left Column: cost trend chart */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <MonthlyCostTrendChart data={monthlyCostData} isDark={isDark} />
+        </div>
+
+        {/* Right Column: user statistics donut */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <UserStatsPieChart stats={stats} />
+        </div>
       </div>
 
       <SectionHeader title="Quick Actions" />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+      <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
         <FeatureCard icon={<Car size={24}/>} title="Vehicles" desc="Manage and monitor all fleet vehicles, statuses, assignments and details." onClick={() => navigate('/vehicles')} />
         <FeatureCard icon={<Wrench size={24}/>} title="Service" desc="Schedule and track vehicle service appointments and maintenance records." onClick={() => navigate('/service')} />
         <FeatureCard icon={<Users size={24}/>} title="Users" desc="Create, view, edit, and delete users. Manage roles and account status." onClick={() => navigate('/users')} />
         <FeatureCard icon={<Fuel size={24}/>} title="Fuel Analysis" desc="Monitor fuel consumption trends and cost analysis across the entire fleet." onClick={() => navigate('/fuel-analysis')} />
-        <FeatureCard icon={<MapPin size={24}/>} title="Location" desc="Real-time GPS tracking for all fleet vehicles. Monitor routes and positions." onClick={() => navigate('/location')} />
         <FeatureCard icon={<BarChart3 size={24}/>} title="Reports" desc="Generate comprehensive reports on fleet performance and system activity." onClick={() => navigate('/reports')} />
       </div>
+
+      <style>{`
+        @media (max-width: 1024px) {
+          .dashboard-columns-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </>
   )
 }
 
-const ControllerDashboard = ({ navigate, isDark }) => {
-  const A = useAccents(isDark)
+/* ── Live Fleet Utilization + Status Breakdown ─────────────────── */
+
+/* ── Mapped activities from system alerts/notifications ── */
+const mapNotificationToActivity = (n) => {
+  let color = '#3b82f6'
+  let icon = <Info size={16} color="#3b82f6" />
+  let action = 'System Update'
+  
+  const typeUpper = (n.type || '').toUpperCase()
+  if (typeUpper.startsWith('FUEL')) {
+    color = '#38bdf8'
+    icon = <Fuel size={16} color="#38bdf8" />
+    if (typeUpper === 'FUEL_ADD') action = 'Fuel Log Added'
+    else if (typeUpper === 'FUEL_EDIT') action = 'Fuel Log Updated'
+    else if (typeUpper === 'FUEL_DELETE') action = 'Fuel Log Deleted'
+    else if (typeUpper === 'FUEL_RESTORE') action = 'Fuel Log Restored'
+    else if (typeUpper === 'FUEL_LOW_EFF' || typeUpper === 'LOW_EFFICIENCY' || typeUpper === 'LOW_EFF') {
+      color = '#ef4444'
+      icon = <AlertTriangle size={16} color="#ef4444" />
+      action = 'Low Fuel Efficiency Alert'
+    } else action = 'Fuel Management Update'
+  } else if (typeUpper.startsWith('SERVICE') || typeUpper.startsWith('OVERDUE') || typeUpper === 'WARNING') {
+    color = '#fbbf24'
+    icon = <Wrench size={16} color="#fbbf24" />
+    if (typeUpper === 'SERVICE_DUE') action = 'Service Due'
+    else if (typeUpper === 'OVERDUE_SERVICE') {
+      color = '#ef4444'
+      icon = <AlertTriangle size={16} color="#ef4444" />
+      action = 'Service Overdue'
+    } else {
+      action = 'Maintenance Update'
+    }
+  } else if (typeUpper.startsWith('USER')) {
+    color = '#10b981'
+    icon = <Users size={16} color="#10b981" />
+    if (typeUpper === 'USER_APPROVAL') action = 'User Account Approved'
+    else if (typeUpper === 'USER_REJECTION') {
+      color = '#ef4444'
+      action = 'User Account Rejected'
+    } else {
+      action = 'User Profile Updated'
+    }
+  } else if (typeUpper === 'ASSIGN') {
+    color = '#a855f7'
+    icon = <Car size={16} color="#a855f7" />
+    action = 'Driver Assigned'
+  } else if (typeUpper === 'UNASSIGN') {
+    color = '#64748b'
+    icon = <Car size={16} color="#64748b" />
+    action = 'Driver Unassigned'
+  } else if (typeUpper === 'VEHICLE' || typeUpper === 'UPDATE') {
+    color = '#2563eb'
+    icon = <Car size={16} color="#2563eb" />
+    action = 'Vehicle Updated'
+  }
+
+  return {
+    id: n.id,
+    color,
+    icon,
+    action,
+    detail: n.message,
+    timestamp: new Date(n.createdAt)
+  }
+}
+
+const FleetFuelChart = ({ isDark, chartData }) => {
+  const [hover, setHover] = useState(null) // { i, type: 'diesel' | 'petrol' }
+  const svgRef = useRef(null)
+
+  const pts0 = Array.isArray(chartData) ? chartData : []
+  const hasData = pts0.length > 0
+
+  const dieselC = '#f59e0b', petrolC = '#3b82f6'
+  const W = 520, H = 180, padL = 46, padR = 16, padT = 16, padB = 36
+  const chartW = W - padL - padR, chartH = H - padT - padB
+  const rawMax = Math.max(1, ...pts0.flatMap(p => [p.diesel || 0, p.petrol || 0]))
+  const stepPow = Math.pow(10, Math.floor(Math.log10(rawMax)))
+  const maxVal = Math.max(stepPow, Math.ceil(rawMax / stepPow) * stepPow)
+  const X = i => padL + (pts0.length <= 1 ? chartW / 2 : (i / (pts0.length - 1)) * chartW)
+  const Y = v => padT + chartH - ((Number(v) || 0) / maxVal) * chartH
+  const grid = 4
+  const axis = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'
+  const axisText = isDark ? '#64748b' : '#94a3b8'
+  const fmtL = v => { const n = Number(v) || 0; return n >= 1000 ? `${Math.round(n / 1000)}k` : `${Math.round(n)}` }
+  const smooth = key => {
+    if (!pts0.length) return ''
+    let d = `M ${X(0)} ${Y(pts0[0][key])}`
+    for (let i = 1; i < pts0.length; i++) {
+      const px = X(i - 1), py = Y(pts0[i - 1][key]), nx = X(i), ny = Y(pts0[i][key])
+      d += ` C ${px + (nx - px) * 0.4} ${py} ${nx - (nx - px) * 0.4} ${ny} ${nx} ${ny}`
+    }
+    return d
+  }
+
+  return (
+    <div style={{
+      background: 'var(--surface)', borderRadius: 24,
+      border: '1px solid var(--surface-border)',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px',
+      position: 'relative', overflow: 'hidden',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.35)'
+        e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.35), 0 0 20px rgba(99, 102, 241, 0.1)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = 'var(--surface-border)'
+        e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)'
+      }}
+    >
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel Consumption</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Monthly litres by fuel type — hover a point for vehicles</div>
+      </div>
+      {hasData ? (
+        <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
+          style={{ width: '100%', height: 'auto', display: 'block' }}
+          onMouseLeave={() => setHover(null)}>
+          {Array.from({ length: grid + 1 }).map((_, i) => {
+            const v = (maxVal / grid) * i, y = Y(v)
+            return (
+              <g key={i}>
+                <line x1={padL} x2={W - padR} y1={y} y2={y} stroke={axis} strokeDasharray="4 4" />
+                <text x={padL - 8} y={y + 4} fontSize="9" fill={axisText} textAnchor="end">{fmtL(v)}</text>
+              </g>
+            )
+          })}
+          {pts0.map((p, i) => (<text key={i} x={X(i)} y={H - 6} fontSize="9" fill={axisText} textAnchor="middle" fontWeight="600">{p.label}</text>))}
+          {/* x-axis hover strips → show month summary of both fuels */}
+          {pts0.map((p, i) => {
+            const colW = pts0.length > 1 ? chartW / (pts0.length - 1) : chartW
+            return <rect key={`mh${i}`} x={X(i) - colW / 2} y={padT + chartH} width={colW} height={padB} fill="transparent" style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ i, type: 'month' })} />
+          })}
+          <path d={smooth('diesel')} fill="none" stroke={dieselC} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={smooth('petrol')} fill="none" stroke={petrolC} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          {pts0.map((p, i) => (
+            <g key={i}>
+              <circle cx={X(i)} cy={Y(p.diesel)} r={hover && hover.i === i && hover.type === 'diesel' ? 5 : 3} fill="var(--surface)" stroke={dieselC} strokeWidth="2" />
+              <circle cx={X(i)} cy={Y(p.diesel)} r="10" fill="transparent" style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ i, type: 'diesel' })} />
+              <circle cx={X(i)} cy={Y(p.petrol)} r={hover && hover.i === i && hover.type === 'petrol' ? 5 : 3} fill="var(--surface)" stroke={petrolC} strokeWidth="2" />
+              <circle cx={X(i)} cy={Y(p.petrol)} r="10" fill="transparent" style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ i, type: 'petrol' })} />
+            </g>
+          ))}
+          {hover && pts0[hover.i] && (() => {
+            const p = pts0[hover.i], hx = X(hover.i)
+
+            // Month summary — both fuels' totals
+            if (hover.type === 'month') {
+              const bw = 132, bh = 58
+              let bx = hx + 12; if (bx + bw > W) bx = hx - bw - 12; if (bx < 2) bx = 2
+              const by = padT + 4
+              return (
+                <g style={{ pointerEvents: 'none' }}>
+                  <line x1={hx} y1={padT} x2={hx} y2={padT + chartH} stroke={axisText} strokeDasharray="3 3" opacity="0.5" />
+                  <rect x={bx} y={by} width={bw} height={bh} rx="8" fill={isDark ? '#0e1529' : '#ffffff'} stroke="var(--surface-border)" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.45))' }} />
+                  <text x={bx + 12} y={by + 18} fontSize="10" fontWeight="800" fill="var(--text-primary)">{p.label}</text>
+                  <text x={bx + 12} y={by + 35} fontSize="9" fill={dieselC} fontWeight="700">Diesel: {Math.round(p.diesel).toLocaleString()} L</text>
+                  <text x={bx + 12} y={by + 49} fontSize="9" fill={petrolC} fontWeight="700">Petrol: {Math.round(p.petrol).toLocaleString()} L</text>
+                </g>
+              )
+            }
+
+            // Per-fuel vehicle breakdown (compact, centered)
+            const list = hover.type === 'diesel' ? (p.dieselVehicles || []) : (p.petrolVehicles || [])
+            const color = hover.type === 'diesel' ? dieselC : petrolC
+            const fuelName = hover.type === 'diesel' ? 'Diesel' : 'Petrol'
+            const shown = list.slice(0, 7)
+            const rowH = 11, headH = 32 // header + gap before first vehicle
+            const rows = Math.max(1, shown.length) + (list.length > 7 ? 1 : 0)
+            const bw = 160, bh = headH + rows * rowH + 6
+            const cy = Y(hover.type === 'diesel' ? p.diesel : p.petrol)
+            let bx = hx + 12; if (bx + bw > W) bx = hx - bw - 12; if (bx < 2) bx = 2
+            let by = cy - bh - 8; if (by < 2) by = cy + 12; if (by + bh > H) by = Math.max(2, H - bh - 2)
+            const cx = bx + bw / 2
+            return (
+              <g style={{ pointerEvents: 'none' }}>
+                <line x1={hx} y1={padT} x2={hx} y2={padT + chartH} stroke={color} strokeDasharray="3 3" opacity="0.5" />
+                <rect x={bx} y={by} width={bw} height={bh} rx="8" fill={isDark ? '#0e1529' : '#ffffff'} stroke="var(--surface-border)" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.45))' }} />
+                <text x={cx} y={by + 16} fontSize="9" fontWeight="800" fill={color} textAnchor="middle">{p.label} · {fuelName}</text>
+                {list.length === 0
+                  ? <text x={cx} y={by + headH} fontSize="7.5" fill={axisText} textAnchor="middle">No {fuelName.toLowerCase()} vehicles</text>
+                  : shown.map((v, k) => (
+                    <text key={k} x={cx} y={by + headH + k * rowH} fontSize="7.5" fill="var(--text-primary)" textAnchor="middle">
+                      <tspan fontWeight="700">{v.reg}</tspan>
+                      <tspan fill={axisText}>  ·  {Math.round(v.liters).toLocaleString()} L</tspan>
+                    </text>
+                  ))}
+                {list.length > 7 && (
+                  <text x={cx} y={by + headH + shown.length * rowH} fontSize="6.5" fill={axisText} textAnchor="middle">+{list.length - 7} more</text>
+                )}
+              </g>
+            )
+          })()}
+        </svg>
+      ) : (
+        <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No fuel data yet</div>
+      )}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 10 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+          <span style={{ width: 18, height: 3, borderRadius: 2, background: dieselC }} /> Diesel (L)
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+          <span style={{ width: 18, height: 3, borderRadius: 2, background: petrolC }} /> Petrol (L)
+        </span>
+      </div>
+    </div>
+  )
+}
+
+const StatusBreakdown = ({ isDark, statusData, stats }) => {
+  const [animProgress, setAnimProgress] = useState(0)
+
+  useEffect(() => {
+    let frame
+    let start = null
+    const duration = 1200
+    const animate = (ts) => {
+      if (!start) start = ts
+      const p = Math.min((ts - start) / duration, 1)
+      setAnimProgress(p)
+      if (p < 1) frame = requestAnimationFrame(animate)
+    }
+    frame = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(frame)
+  }, [statusData])
+
+  const donutData = [
+    { label: 'Active',      value: stats.active || 0, color: '#34d399' },
+    { label: 'Maintenance', value: stats.maintenance || 0,  color: '#fbbf24' },
+    { label: 'Available',   value: stats.available || 0,  color: '#3b82f6' },
+  ]
+  const total = donutData.reduce((s, d) => s + d.value, 0)
+  
+  const cx = 110, cy = 110, R = 86, r = 56
+  let angle = -Math.PI / 2
+  const slices = donutData.map(d => {
+    const sweep = (d.value / (total || 1)) * 2 * Math.PI * animProgress
+    const x1 = cx + R * Math.cos(angle), y1 = cy + R * Math.sin(angle)
+    const x2 = cx + R * Math.cos(angle + sweep), y2 = cy + R * Math.sin(angle + sweep)
+    const ix1 = cx + r * Math.cos(angle), iy1 = cy + r * Math.sin(angle)
+    const ix2 = cx + r * Math.cos(angle + sweep), iy2 = cy + r * Math.sin(angle + sweep)
+    const large = sweep > Math.PI ? 1 : 0
+    const path = `M ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${r} ${r} 0 ${large} 0 ${ix1} ${iy1} Z`
+    angle += sweep
+    return { ...d, path, sweep }
+  })
+
+  return (
+    <div style={{
+      background: 'var(--surface)', borderRadius: 24,
+      border: '1px solid var(--surface-border)',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px',
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Status Breakdown</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Current fleet split</div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, flex: 1 }}>
+        <svg viewBox="0 0 220 220" style={{ width: 140, height: 140, flexShrink: 0 }}>
+          {slices.map((s, i) => (
+            s.sweep > 0 && (
+              <path key={i} d={s.path} fill={s.color}
+                style={{ transition: 'opacity 0.2s', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.35))' }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+              />
+            )
+          ))}
+          <text x={cx} y={cy - 6} fontSize="28" fontWeight="900" fill="var(--text-primary)" textAnchor="middle" fontFamily="'Plus Jakarta Sans',sans-serif">{total}</text>
+          <text x={cx} y={cy + 14} fontSize="11" fill="var(--text-muted)" textAnchor="middle" fontWeight="700" fontFamily="inherit" style={{ textTransform: 'uppercase' }} letterSpacing="0.05em">Total</text>
+        </svg>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', width: '100%', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+          {donutData.map((d, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: d.color, flexShrink: 0, boxShadow: `0 0 8px ${d.color}70` }} />
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700 }}>{d.label}</span>
+              </div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>{d.value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const QuickActionsPanel = ({ navigate }) => {
+  const quickActions = [
+    { icon: <Wrench size={18} color="#fbbf24" />, bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.25)', label: 'Add Service Record', onClick: () => navigate('/service', { state: { openAddServiceModal: true, fromOneClick: true } }) },
+    { icon: <Gauge size={18} color="#a855f7" />, bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.25)', label: 'Daily Mileage Update', onClick: () => navigate('/service', { state: { activeTab: 'update' } }) },
+    { icon: <UserCog size={18} color="#34d399" />, bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', label: 'Driver Check-in', onClick: () => navigate('/users', { state: { roleFilter: 'DRIVER' } }) },
+    { icon: <Car size={18} color="#3b82f6" />, bg: 'rgba(59, 130, 246,0.12)', border: 'rgba(59, 130, 246,0.25)', label: 'Register Vehicle', onClick: () => navigate('/vehicles', { state: { openAddVehicle: true, fromOneClick: true } }) },
+    { icon: <Fuel size={18} color="#38bdf8" />, bg: 'rgba(56,189,248,0.12)', border: 'rgba(56,189,248,0.25)', label: 'Record Fuel Fill-up', onClick: () => navigate('/fuel-management', { state: { openAddFuelLog: true, fromOneClick: true } }) },
+  ]
+
+  return (
+    <div style={{
+      background: 'var(--surface)', borderRadius: 24,
+      border: '1px solid var(--surface-border)',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px',
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Quick Commands</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>One-click fleet entries</div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {quickActions.map((qa, i) => (
+          <button key={i} onClick={qa.onClick} style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '12px 14px', borderRadius: 14,
+            background: qa.bg, border: `1px solid ${qa.border}`,
+            cursor: 'pointer', transition: 'all 0.2s',
+            textAlign: 'left',
+            outline: 'none',
+            fontFamily: 'inherit',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.boxShadow = `0 4px 12px ${qa.border}` }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.boxShadow = 'none' }}
+          >
+            <div style={{
+              width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+              background: 'rgba(0,0,0,0.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>{qa.icon}</div>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>{qa.label}</span>
+            <span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 300 }}>→</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ── Recent Activity ─────────────────────────────────────────── */
+const formatTimeAgo = (date) => {
+  if (!date || isNaN(date.getTime())) return ''
+  const now = new Date()
+  const diffMs = now - date
+  const diffMins = Math.floor(diffMs / 60000)
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`
+  const diffHrs = Math.floor(diffMins / 60)
+  if (diffHrs < 24) return `${diffHrs} hr${diffHrs > 1 ? 's' : ''} ago`
+  const diffDays = Math.floor(diffHrs / 24)
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 7) return `${diffDays} days ago`
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+}
+
+const RecentActivitySection = ({ activities = [], navigate }) => (
+  <div style={{ marginTop: 10 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+      <h2 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text-primary)', fontWeight: 700 }}>Recent Fleet Activity</h2>
+      <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+    </div>
+    <div style={{
+      background: 'var(--surface)', borderRadius: 24,
+      border: '1px solid var(--surface-border)',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.25)',
+      overflow: 'hidden',
+    }}>
+      {activities.length === 0 ? (
+        <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+          No recent activity found.
+        </div>
+      ) : (
+        activities.map((a, i) => (
+          <div key={a.id || i} style={{
+            display: 'flex', alignItems: 'center', gap: 18,
+            padding: '16px 28px',
+            borderBottom: i < activities.length - 1 ? '1px solid var(--border)' : 'none',
+            transition: 'background 0.18s',
+            cursor: 'default',
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hi)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <div style={{
+              width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+              background: `${a.color}15`, border: `1px solid ${a.color}30`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>{a.icon}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '0.87rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{a.action}</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.detail}</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+              <Clock size={12} color="var(--text-muted)" />
+              <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)', fontWeight: 600 }}>{formatTimeAgo(a.timestamp)}</span>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+)
+
+/* ── Daily Mileage Update Modal ──────────────────────────────── */
+const DailyMileageModal = ({ open, onClose }) => {
+  const D = useD()
+  const [vehicles, setVehicles] = useState([])
+  const [loadingVehicles, setLoadingVehicles] = useState(false)
+  const [selectedId, setSelectedId] = useState('')
+  const [newMileage, setNewMileage] = useState('')
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  // Load vehicles when opened; reset everything when closed
+  useEffect(() => {
+    if (!open) {
+      setSelectedId(''); setNewMileage(''); setError(''); setSuccess(''); setSaving(false)
+      return
+    }
+    setLoadingVehicles(true)
+    vehicleAPI.getAllVehicles()
+      .then(res => setVehicles((res.data.data || []).filter(v => !v.isDeleted)))
+      .catch(() => setError('Failed to load vehicles.'))
+      .finally(() => setLoadingVehicles(false))
+  }, [open])
+
+  // Lock background scroll while the modal is open
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [open])
+
+  if (!open) return null
+
+  const selected = vehicles.find(v => String(v.id) === String(selectedId))
+  const currentVal = selected ? (selected.currentMileageKm || 0) : 0
+  // Lower limit mirrors the bulk Daily Mileage Update guardrail: not below the vehicle's initial reading.
+  const lowerLimit = selected && selected.initialMileageKm != null ? Number(selected.initialMileageKm) : 0
+
+  const labelStyle = { display: 'block', fontSize: '0.74rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 6 }
+  const inputStyle = { width: '100%', padding: '10px 14px', background: D.inputBg, border: `1px solid ${D.inputBorder}`, borderRadius: 8, color: D.text, fontSize: '0.88rem', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }
+
+  const handleSave = async () => {
+    setError(''); setSuccess('')
+    if (!selected) { setError('Please select a vehicle.'); return }
+    if (newMileage === '' || isNaN(Number(newMileage))) { setError('Enter a valid mileage reading.'); return }
+    const val = Number(newMileage)
+    if (val < lowerLimit) { setError(`Reading cannot be less than ${lowerLimit.toLocaleString()} km.`); return }
+    if (val === currentVal) { setError('New reading matches the current mileage.'); return }
+    if (val < currentVal) {
+      const ok = window.confirm(`You are decreasing the mileage for ${selected.registrationNo}: ${currentVal.toLocaleString()} km → ${val.toLocaleString()} km.\n\nProceed with this correction?`)
+      if (!ok) return
+    }
+    setSaving(true)
+    try {
+      await vehicleAPI.updateBulkMileage([{ id: selected.id, currentMileageKm: val }])
+      setVehicles(prev => prev.map(v => v.id === selected.id ? { ...v, currentMileageKm: val } : v))
+      setSuccess(`${selected.registrationNo} updated to ${val.toLocaleString()} km.`)
+      setNewMileage('')
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update mileage.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: 460, background: D.surface, border: `1px solid ${D.border}`, borderRadius: 18, boxShadow: '0 24px 60px rgba(0,0,0,0.45)', overflow: 'hidden', animation: 'fadeIn 0.2s ease' }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }}>
+          <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(168,85,247,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a855f7', flexShrink: 0 }}>
+            <Gauge size={20} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Daily Mileage Update</h3>
+            <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: D.textSub }}>Record today's odometer reading</p>
+          </div>
+          <button onClick={onClose} aria-label="Close" style={{ background: 'transparent', border: 'none', color: D.textSub, cursor: 'pointer', padding: 4, display: 'flex' }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '22px 24px' }}>
+          {error && (
+            <div style={{ background: D.redDim, border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, padding: '9px 14px', marginBottom: 16, color: D.red, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <AlertTriangle size={16} /> {error}
+            </div>
+          )}
+          {success && (
+            <div style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, padding: '9px 14px', marginBottom: 16, color: '#22c55e', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <CheckCircle size={16} /> {success}
+            </div>
+          )}
+
+          <label style={labelStyle}>Vehicle *</label>
+          <select
+            value={selectedId}
+            onChange={e => { setSelectedId(e.target.value); setNewMileage(''); setError(''); setSuccess('') }}
+            disabled={loadingVehicles}
+            style={{ ...inputStyle, cursor: 'pointer', marginBottom: 18 }}
+          >
+            <option value="">{loadingVehicles ? 'Loading vehicles...' : 'Select a vehicle'}</option>
+            {vehicles.map(v => (
+              <option key={v.id} value={v.id}>{v.registrationNo} — {v.manufacturer} {v.model}</option>
+            ))}
+          </select>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div>
+              <label style={labelStyle}>Current Mileage</label>
+              <div style={{ ...inputStyle, background: D.surfaceHi, color: D.textSub, display: 'flex', alignItems: 'center' }}>
+                {selected ? `${currentVal.toLocaleString()} km` : '—'}
+              </div>
+            </div>
+            <div>
+              <label style={labelStyle}>New Reading (km) *</label>
+              <input
+                type="number"
+                value={newMileage}
+                onChange={e => { setNewMileage(e.target.value); setError('') }}
+                placeholder={selected ? currentVal.toString() : 'e.g. 45200'}
+                disabled={!selected}
+                style={{ ...inputStyle, opacity: selected ? 1 : 0.6 }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', padding: '16px 24px', borderTop: `1px solid ${D.border}`, background: D.surfaceHi }}>
+          <button
+            onClick={onClose}
+            style={{ padding: '10px 22px', borderRadius: 8, border: `1px solid ${D.border}`, background: 'transparent', color: D.text, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving || !selected}
+            style={{ padding: '10px 24px', borderRadius: 8, border: 'none', display: 'flex', alignItems: 'center', gap: 8, background: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#fff', fontSize: '0.85rem', fontWeight: 700, boxShadow: '0 4px 14px rgba(168,85,247,0.35)', opacity: (saving || !selected) ? 0.6 : 1, cursor: (saving || !selected) ? 'not-allowed' : 'pointer' }}
+          >
+            {saving ? 'Saving...' : <><CheckCircle size={15} /> Update Mileage</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, activities }) => {
+  const [mileageOpen, setMileageOpen] = useState(false)
   return (
     <>
       <SectionHeader title="Fleet Overview" />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
-        <StatCard icon={<Car size={20} color={A.purple}/>} label="Total Vehicles" value="24" colorDim={A.purpleDim} colorHex={A.purple} change="Under your management" onClick={() => navigate('/vehicles')} />
-        <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Active" value="18" colorDim={A.greenDim} colorHex={A.green} change="Currently in use" onClick={() => navigate('/vehicles')} />
-        <StatCard icon={<Wrench size={20} color={A.gold}/>} label="Maintenance" value="4" colorDim={A.goldDim} colorHex={A.gold} change="Being serviced" onClick={() => navigate('/service')} />
-        <StatCard icon={<Activity size={20} color={A.blue}/>} label="Available" value="2" colorDim={A.blueDim} colorHex={A.blue} change="Ready to assign" onClick={() => navigate('/vehicles')} />
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 32 }}>
+        <StatCard icon={<Car size={20} color="var(--primary)"/>} label="Total Vehicles" value={stats.total} colorDim="var(--primary-muted)" colorHex="var(--primary)" change="Under fleet management" onClick={() => navigate('/vehicles')} />
+        <StatCard icon={<CheckCircle size={20} color="var(--success)"/>} label="Active" value={stats.active} colorDim="var(--success-bg)" colorHex="var(--success)" change="Currently active" onClick={() => navigate('/vehicles')} />
+        <StatCard icon={<Wrench size={20} color="var(--warning)"/>} label="In Service" value={stats.maintenance} colorDim="var(--warning-bg)" colorHex="var(--warning)" change="Under maintenance" onClick={() => navigate('/service')} />
+        <StatCard icon={<Activity size={20} color="var(--info)"/>} label="Available" value={stats.available} colorDim="var(--info-bg)" colorHex="var(--info)" change="Ready to assign" onClick={() => navigate('/vehicles')} />
       </div>
-      <SectionHeader title="Controller Tools" />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
-        <FeatureCard icon={<Car size={24}/>} title="Vehicle Management" desc="Monitor, track, and manage all fleet vehicles." onClick={() => navigate('/vehicles')} />
-        <FeatureCard icon={<UserCog size={24}/>} title="Driver Assignment" desc="Assign and manage drivers to vehicles and routes." onClick={() => navigate('/users')} />
-        <FeatureCard icon={<MapPin size={24}/>} title="Live Tracking" desc="Real-time GPS tracking and vehicle monitoring." onClick={() => navigate('/location')} />
-        <FeatureCard icon={<Wrench size={24}/>} title="Maintenance Schedule" desc="Schedule and track vehicle service appointments." onClick={() => navigate('/service')} />
-        <FeatureCard icon={<Fuel size={24}/>} title="Fuel Management" desc="Record and track fuel consumption and costs." onClick={() => navigate('/fuel-management')} />
-        <FeatureCard icon={<AlertTriangle size={24}/>} title="Alerts & Incidents" desc="Monitor vehicle alerts and emergency incidents." onClick={() => navigate('/reports')} />
+
+      <div className="dashboard-columns-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start', marginBottom: 36 }}>
+        {/* Left Column: Utilization & Activity */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <FleetFuelChart isDark={isDark} chartData={chartData} />
+          <RecentActivitySection activities={activities} navigate={navigate} />
+        </div>
+
+        {/* Right Column: Breakdown & Quick Actions */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <StatusBreakdown isDark={isDark} statusData={statusData} stats={stats} />
+          <QuickActionsPanel navigate={navigate} />
+        </div>
       </div>
+
+      <style>{`
+        @media (max-width: 1024px) {
+          .dashboard-columns-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </>
   )
 }
@@ -176,7 +924,7 @@ const AlertSection = ({ alerts, navigate, isDark }) => {
               gap: 16,
               padding: '16px 20px',
               borderRadius: 12,
-              background: alert.severity === 'OVERDUE' ? 'var(--error-bg)' : 'var(--warning-bg)',
+              background: alert.severity === 'OVERDUE' ? 'var(--danger-bg)' : 'var(--warning-bg)',
               border: `1px solid ${alert.severity === 'OVERDUE' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`,
               boxShadow: 'var(--shadow-sm)',
               animation: alert.severity === 'OVERDUE' ? 'pulse-border 2s infinite' : 'none'
@@ -184,7 +932,7 @@ const AlertSection = ({ alerts, navigate, isDark }) => {
           >
             <div style={{ 
               width: 40, height: 40, borderRadius: 10, 
-              background: alert.severity === 'OVERDUE' ? '#ef4444' : '#f59e0b',
+              background: alert.severity === 'OVERDUE' ? 'var(--danger)' : 'var(--warning)',
               color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
             }}>
               <AlertTriangle size={20} />
@@ -194,7 +942,7 @@ const AlertSection = ({ alerts, navigate, isDark }) => {
                 <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>{alert.title}</h4>
                 <span style={{ 
                   fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, 
-                  background: alert.severity === 'OVERDUE' ? '#ef4444' : '#f59e0b', 
+                  background: alert.severity === 'OVERDUE' ? 'var(--danger)' : 'var(--warning)', 
                   color: '#fff', textTransform: 'uppercase' 
                 }}>
                   {alert.severity}
@@ -205,14 +953,20 @@ const AlertSection = ({ alerts, navigate, isDark }) => {
               </p>
             </div>
             <button 
-              onClick={() => navigate(alert.type === 'SERVICE_DUE' ? '/service' : '/vehicles')}
+              onClick={() => {
+                if (alert.type === 'SERVICE_DUE') {
+                  navigate('/service')
+                } else {
+                  navigate('/vehicles', { state: { openVehicleProfile: alert.vehicleRegNumber } })
+                }
+              }}
               style={{
-                padding: '6px 14px', borderRadius: 8, border: 'none',
-                background: 'rgba(255,255,255,0.1)', color: 'var(--text-primary)',
+                padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)',
+                background: 'rgba(255,255,255,0.15)', color: 'var(--text-primary)',
                 fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
               }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.28)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
             >
               View Details
             </button>
@@ -230,25 +984,35 @@ const AlertSection = ({ alerts, navigate, isDark }) => {
   )
 }
 
-const DriverDashboard = ({ navigate, isDark }) => {
+const DriverDashboard = ({ navigate, isDark, vehicleCount, fuelLogs, accountStatus }) => {
   const A = useAccents(isDark)
+  const logs = fuelLogs || []
+  const now = new Date()
+  const monthLogs = logs.filter(l => { const d = new Date(l.date); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() })
+  const monthLitres = monthLogs.reduce((s, l) => s + (Number(l.liters) || 0), 0)
+  const monthCost = monthLogs.reduce((s, l) => s + (Number(l.totalCost) || 0), 0)
+  const last = logs.length ? [...logs].sort((a, b) => new Date(b.date) - new Date(a.date))[0] : null
+  const lastDate = last?.date ? new Date(last.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'
+  const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7)
+  const weekCount = logs.filter(l => l.date && new Date(l.date) >= weekAgo).length
+  const statusActive = (accountStatus || 'ACTIVE').toUpperCase() === 'ACTIVE'
   return (
     <>
       <SectionHeader title="My Overview" />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
-        <StatCard icon={<Car size={20} color={A.purple}/>} label="Assigned Vehicle" value="1" colorDim={A.purpleDim} colorHex={A.purple} change="VH-2024-087" onClick={() => navigate('/vehicles')} />
-        <StatCard icon={<ClipboardList size={20} color={A.blue}/>} label="Today's Tasks" value="3" colorDim={A.blueDim} colorHex={A.blue} change="Pending deliveries" />
-        <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Completed" value="12" colorDim={A.greenDim} colorHex={A.green} change="This week" />
-        <StatCard icon={<Activity size={20} color={A.green}/>} label="Status" value="Active" colorDim={A.greenDim} colorHex={A.green} change="Ready to drive" />
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
+        <StatCard icon={<Car size={20} color={A.purple}/>} label="Fleet Vehicles" value={vehicleCount} colorDim={A.purpleDim} colorHex={A.purple} change="Available to use" onClick={() => navigate('/vehicles')} />
+        <StatCard icon={<ClipboardList size={20} color={A.blue}/>} label="My Fuel Entries" value={logs.length} colorDim={A.blueDim} colorHex={A.blue} change="Total records logged" onClick={() => navigate('/fuel-log')} />
+        <StatCard icon={<Fuel size={20} color={A.green}/>} label="Fuel This Month" value={`${monthLitres.toLocaleString()} L`} colorDim={A.greenDim} colorHex={A.green} change={`Rs. ${monthCost.toLocaleString()} spent`} onClick={() => navigate('/fuel-log')} />
+        <StatCard icon={<Clock size={20} color={A.gold}/>} label="Last Fill-up" value={lastDate} colorDim={A.goldDim} colorHex={A.gold} change={last ? last.vehicleRegNumber : 'No records yet'} onClick={() => navigate('/fuel-log')} />
+        <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Completed" value={weekCount} colorDim={A.greenDim} colorHex={A.green} change="Fuel logs this week" onClick={() => navigate('/fuel-log')} />
+        <StatCard icon={<Activity size={20} color={A.green}/>} label="Status" value={statusActive ? 'Active' : (accountStatus || 'Active')} colorDim={A.greenDim} colorHex={A.green} change={statusActive ? 'Ready to drive' : `Account ${(accountStatus || '').toLowerCase()}`} />
       </div>
       <SectionHeader title="Driver Tools" />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
-        <FeatureCard icon={<Car size={24}/>} title="My Vehicle" desc="View status and information about your assigned vehicle." onClick={() => navigate('/vehicles')} />
-        <FeatureCard icon={<ClipboardList size={24}/>} title="Task List" desc="View and manage your assigned tasks and schedules." disabled />
-        <FeatureCard icon={<MapPin size={24}/>} title="Location" desc="View your current location relative to fleet bounds." onClick={() => navigate('/location')} />
-        <FeatureCard icon={<Fuel size={24}/>} title="Fuel Log" desc="Record fuel consumption and view usage history." onClick={() => navigate('/fuel-log')} />
-        <FeatureCard icon={<Wrench size={24}/>} title="Service History" desc="View maintenance history for your vehicle." onClick={() => navigate('/service')} />
-        <FeatureCard icon={<BarChart3 size={24}/>} title="My Performance" desc="View driving stats, performance metrics, and history." onClick={() => navigate('/profile')} />
+      <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+        <FeatureCard icon={<Fuel size={24}/>} title="Add Fuel Log" desc="Record a new fuel fill-up with the latest mileage and cost." onClick={() => navigate('/fuel-log')} />
+        <FeatureCard icon={<Wrench size={24}/>} title="Service History" desc="View maintenance and service records across the fleet." onClick={() => navigate('/service')} />
+        <FeatureCard icon={<Car size={24}/>} title="Vehicle Details" desc="Browse fleet vehicles and view their full details." onClick={() => navigate('/vehicles')} />
+        <FeatureCard icon={<UserCog size={24}/>} title="My Profile" desc="Manage your personal details and account settings." onClick={() => navigate('/profile')} />
       </div>
     </>
   )
@@ -259,35 +1023,149 @@ const DashboardPage = () => {
   const { theme } = useTheme()
   const navigate = useNavigate()
   const isDark = theme === 'blue'
-  const [stats, setStats] = useState({ totalUsers: 0, admins: 0, controllers: 0, drivers: 0, activeUsers: 0, inactiveUsers: 0 })
+  const [stats, setStats] = useState({ totalUsers: 0, admins: 0, controllers: 0, drivers: 0, activeUsers: 0, inactiveUsers: 0, suspendedUsers: 0, pendingUsers: 0 })
+  const [monthlyCostData, setMonthlyCostData] = useState([])
+  const [controllerStats, setControllerStats] = useState({ total: 0, active: 0, maintenance: 0, available: 0 })
+  const [driverVehicleCount, setDriverVehicleCount] = useState(0)
+  const [driverFuelLogs, setDriverFuelLogs] = useState([])
+  const [fleetChartData, setFleetChartData] = useState([])
+  const [statusData, setStatusData] = useState([])
   const [alerts, setAlerts] = useState([])
+  const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
         if (isAdmin || user?.role === 'CONTROLLER') {
-          // Fetch stats for Admin
-          if (isAdmin) {
-            const response = await userAPI.getAllUsers()
-            const users = response.data.data || []
-            setStats({
-              totalUsers: users.length,
-              admins: users.filter(u => u.role === 'ADMIN').length,
-              controllers: users.filter(u => u.role === 'CONTROLLER').length,
-              drivers: users.filter(u => u.role === 'DRIVER').length,
-              activeUsers: users.filter(u => u.accountStatus === 'ACTIVE').length,
-              inactiveUsers: users.filter(u => u.accountStatus === 'INACTIVE').length,
-            })
-          }
-
           // Fetch alerts for Admin and Controller
           try {
-            const { alertAPI } = await import('../services/api')
             const alertRes = await alertAPI.getDashboardAlerts()
-            setAlerts(alertRes.data.data.alerts || [])
+            const alertList = alertRes.data.data?.alerts || (Array.isArray(alertRes.data.data) ? alertRes.data.data : [])
+            setAlerts(alertList)
           } catch (err) {
-            console.error('Error loading alerts:', err)
+            console.error('Error loading dashboard alerts:', err)
+          }
+
+          // Fetch stats for Admin
+          if (isAdmin) {
+            try {
+              const response = await userAPI.getAllUsers()
+              const users = response.data.data || []
+              setStats({
+                totalUsers: users.length,
+                admins: users.filter(u => u.role === 'ADMIN').length,
+                controllers: users.filter(u => u.role === 'CONTROLLER').length,
+                drivers: users.filter(u => u.role === 'DRIVER').length,
+                activeUsers: users.filter(u => u.accountStatus === 'ACTIVE').length,
+                inactiveUsers: users.filter(u => u.accountStatus === 'INACTIVE').length,
+                suspendedUsers: users.filter(u => u.accountStatus === 'SUSPENDED').length,
+                pendingUsers: users.filter(u => u.accountStatus === 'PENDING').length,
+              })
+            } catch (err) {
+              console.error('Error loading admin user stats:', err)
+            }
+
+            // Monthly cost trend (current year): fuel cost vs maintenance cost per month
+            try {
+              const [fuelRes, serviceRes] = await Promise.all([
+                fuelAPI.getAllFuelLogs(),
+                serviceAPI.getAllServices(),
+              ])
+              const fuelLogs = (fuelRes.data.data || []).filter(l => !l.isDeleted && !l.deleted)
+              const serviceRecords = (serviceRes.data.data || []).filter(s => !s.isDeleted && !s.deleted)
+              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+              const now = new Date(), yr = now.getFullYear(), upto = now.getMonth()
+              const fuelByMonth = Array(12).fill(0), maintByMonth = Array(12).fill(0)
+              fuelLogs.forEach(l => { const d = new Date(l.date); if (d.getFullYear() === yr) fuelByMonth[d.getMonth()] += (l.totalCost || 0) })
+              serviceRecords.forEach(s => { const d = new Date(s.serviceDate); if (d.getFullYear() === yr) maintByMonth[d.getMonth()] += (parseFloat(s.serviceCost) || 0) })
+              const mcd = []
+              for (let m = 0; m <= upto; m++) mcd.push({ label: monthNames[m], maintenance: maintByMonth[m], fuel: fuelByMonth[m] })
+              setMonthlyCostData(mcd)
+            } catch (err) {
+              console.error('Error loading monthly cost trend:', err)
+            }
+          }
+
+          // Fetch data for Controller
+          if (user?.role === 'CONTROLLER') {
+            try {
+              // 1. Fetch vehicles for stats calculation
+              const response = await vehicleAPI.getAllVehicles()
+              const vehicles = response.data.data || []
+              setControllerStats({
+                total: vehicles.length,
+                active: vehicles.filter(v => v.status === 'ACTIVE').length,
+                maintenance: vehicles.filter(v => v.status === 'SERVICE').length,
+                available: vehicles.filter(v => v.status === 'AVAILABLE').length,
+              })
+
+              // 2. Fetch notifications & merge with local notifications for activities
+              const notifsRes = await notificationAPI.getAll()
+              const backendNotifs = notifsRes.data.data || []
+              const localNotifs = notifService.getControllerNotifications() || []
+              
+              const merged = [...backendNotifs, ...localNotifs]
+              merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+              
+              const top10 = merged.slice(0, 10)
+              const mappedActivities = top10.map(mapNotificationToActivity)
+              setActivities(mappedActivities)
+            } catch (err) {
+              console.error('Error fetching controller dashboard data:', err)
+            }
+          }
+
+          // Monthly fuel consumption (Diesel vs Petrol) with per-vehicle breakdown — from real fuel logs
+          try {
+            const logsRes = await fuelAPI.getAllFuelLogs()
+            const logs = (logsRes.data.data || []).filter(l => !l.isDeleted && !l.deleted)
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            const now = new Date(), yr = now.getFullYear(), upto = now.getMonth()
+            const agg = Array.from({ length: 12 }, () => ({ diesel: 0, petrol: 0, dieselMap: {}, petrolMap: {} }))
+            logs.forEach(l => {
+              const d = new Date(l.date)
+              if (d.getFullYear() !== yr) return
+              const m = d.getMonth(), ft = (l.fuelType || '').toLowerCase()
+              const liters = Number(l.liters) || 0
+              const reg = l.vehicleRegNumber || 'Unknown'
+              if (ft.includes('diesel')) { agg[m].diesel += liters; agg[m].dieselMap[reg] = (agg[m].dieselMap[reg] || 0) + liters }
+              else if (ft.includes('petrol')) { agg[m].petrol += liters; agg[m].petrolMap[reg] = (agg[m].petrolMap[reg] || 0) + liters }
+            })
+            const toList = map => Object.entries(map).map(([reg, liters]) => ({ reg, liters })).sort((a, b) => b.liters - a.liters)
+            const arr = []
+            for (let m = 0; m <= upto; m++) {
+              arr.push({ label: monthNames[m], diesel: agg[m].diesel, petrol: agg[m].petrol, dieselVehicles: toList(agg[m].dieselMap), petrolVehicles: toList(agg[m].petrolMap) })
+            }
+            setFleetChartData(arr)
+          } catch (err) {
+            console.error('Error loading fuel consumption chart data:', err)
+          }
+
+          // Fetch real-time vehicle status breakdown data
+          try {
+            const statusRes = await fuelAPI.getVehicleStats()
+            setStatusData(statusRes.data.data || [])
+          } catch (err) {
+            console.error('Error loading status data:', err)
+          }
+        } else if (user?.role === 'DRIVER') {
+          // Fetch total fleet vehicle count for driver dashboard (drivers can use any vehicle)
+          try {
+            const vehicleRes = await vehicleAPI.getAllVehicles()
+            const vehicles = vehicleRes.data.data || []
+            setDriverVehicleCount(vehicles.filter(v => !v.isDeleted).length)
+          } catch (err) {
+            console.error('Error loading fleet vehicle count for driver:', err)
+          }
+          // Fetch the driver's own fuel logs for overview metrics
+          try {
+            const logsRes = await fuelAPI.getMyLogs()
+            const logs = (logsRes.data.data || []).filter(l => !l.isDeleted && !l.deleted)
+            setDriverFuelLogs(logs)
+          } catch (err) {
+            console.error('Error loading driver fuel logs:', err)
           }
         }
       } catch (err) {
@@ -297,6 +1175,9 @@ const DashboardPage = () => {
       }
     }
     loadDashboardData()
+    // Real-time refresh: re-fetch dashboard data every 30 seconds
+    const refreshId = setInterval(loadDashboardData, 30000)
+    return () => clearInterval(refreshId)
   }, [isAdmin, user?.role])
 
   const roleLabel = { ADMIN: 'Administrator', CONTROLLER: 'Fleet Controller', DRIVER: 'Vehicle Driver' }
@@ -304,32 +1185,52 @@ const DashboardPage = () => {
 
   return (
     <div className="app-shell" style={{ background: 'var(--bg-body)' }}>
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: 'var(--bg-body)' }}>
-        <Topbar title="Dashboard" subtitle="Home / Dashboard" />
+        <Topbar title="Dashboard" subtitle="Home / Dashboard" onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body">
 
-          {/* Hero Banner */}
+          {/* Hero Banner — Dynamic glassmorphic design */}
           <div style={{
-            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)',
-            borderRadius: 20, padding: '32px 36px', marginBottom: 32,
+            background: isDark
+              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
+              : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+            borderRadius: 28, padding: '40px', marginBottom: 32,
             position: 'relative', overflow: 'hidden',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            boxShadow: isDark
+              ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
+              : '0 16px 48px rgba(0,0,0,0.4)',
+            border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid rgba(37, 99, 235, 0.2)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16,
           }}>
-            {[['80%', '-20px', '180px', 'rgba(255,255,255,0.04)'], ['20%', '60%', '120px', 'rgba(255,255,255,0.05)'], ['55%', '80%', '90px', 'rgba(255,255,255,0.03)']].map(([t, l, s, bg], i) => (
+            {/* Decorative circles */}
+            {[['80%', '-20px', '220px', 'rgba(59,130,246,0.04)'], ['20%', '60%', '150px', 'rgba(99,102,241,0.04)'], ['55%', '80%', '100px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
               <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
             ))}
+            {/* Neon glow accent for dark mode */}
+            {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-              <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)' }}>
-                {roleEmoji[user?.role] || <Car size={32} color="#fff"/>}
+              <div style={{
+                background: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.1)',
+                borderRadius: 16, width: 64, height: 64,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', backdropFilter: 'blur(8px)',
+                border: isDark ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(255,255,255,0.15)',
+                boxShadow: isDark ? '0 0 20px rgba(59,130,246,0.3), 0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.2)',
+              }}>
+                {roleEmoji[user?.role] || <Car size={32} color="#fff" />}
               </div>
               <div>
-                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  Good day, {user?.userName}!
-                </h1>
-                <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.75)', fontSize: '0.9rem' }}>
-                  Logged in as <strong style={{ color: '#fff' }}>{roleLabel[user?.role] || user?.role}</strong> · Here's your personalized overview
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                    Good day, {user?.userName}!
+                  </h1>
+                  <span style={{ background: isDark ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.15)', color: '#dbeafe', padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: isDark ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(255,255,255,0.2)' }}>
+                    {roleLabel[user?.role] || user?.role}
+                  </span>
+                </div>
+                <p style={{ margin: '6px 0 0', color: isDark ? '#93c5fd' : '#60a5fa', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  Here's how your fleet is doing today.
                 </p>
               </div>
             </div>
@@ -341,9 +1242,9 @@ const DashboardPage = () => {
           )}
 
           {/* Role-based content */}
-          {user?.role === 'ADMIN' && <AdminDashboard stats={stats} loading={loading} navigate={navigate} isDark={isDark} />}
-          {user?.role === 'CONTROLLER' && <ControllerDashboard navigate={navigate} isDark={isDark} />}
-          {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} />}
+          {user?.role === 'ADMIN' && <AdminDashboard stats={stats} loading={loading} navigate={navigate} isDark={isDark} monthlyCostData={monthlyCostData} />}
+          {user?.role === 'CONTROLLER' && <ControllerDashboard navigate={navigate} isDark={isDark} chartData={fleetChartData} statusData={statusData} stats={controllerStats} activities={activities} />}
+          {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} vehicleCount={driverVehicleCount} fuelLogs={driverFuelLogs} accountStatus={user?.accountStatus} />}
         </div>
       </div>
 

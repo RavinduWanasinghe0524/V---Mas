@@ -1,73 +1,92 @@
-# React + TypeScript + Vite
+# 🚗 V-MAS: Smart Vehicle Service Management System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> A premium, modern, and feature-rich fleet management platform designed to streamline vehicle tracking, maintenance services, fuel analytics, and user administration.
 
-Currently, two official plugins are available:
+***
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🌐 Live Application
 
-## React Compiler
+### 🔗 **[👉 CLICK HERE TO LAUNCH V-MAS LIVE SITE 👈](https://v-mas.vercel.app)**
+*(Use credentials: **admin** / **admin123** to test)*
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+***
 
-## Expanding the ESLint configuration
+## 🌟 Key Modules & Features
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+| Module | Icon | Description | Key Capabilities |
+| :--- | :---: | :--- | :--- |
+| **Interactive Dashboard** | 📊 | Real-time system monitoring | Overview of fleet metrics, service statuses, fuel logs, and system health widgets. |
+| **Fleet Management** | 🚗 | Comprehensive vehicle logging | Register, update, and manage vehicle details including model, status, and assignments. |
+| **Service & Maintenance** | 🛠️ | Service lifecycle tracking | Track servicing records, schedule maintenance, and monitor status updates (Pending/In Progress/Completed). |
+| **Fuel Management** | ⛽ | Consumption and analytics | Log fuel usage, analyze fuel efficiency (km/L metrics), and track monthly expenditures. |
+| **Location Tracking** | 📍 | Route visualization | Real-time visual tracking of vehicles across registered service routes. |
+| **User Administration** | 👥 | Role and permission management | Admin controls to view, register, edit, and control system access for users and drivers. |
+| **Reports & Logs** | 📈 | Data export and summary | Generate historical data summaries, export logs, and compile fleet-wide analytics. |
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+***
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## ⚙️ Technology Stack & Architecture
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 💻 Frontend
+* **Core:** React (Vite-powered build tool)
+* **Performance:** Eagerly & lazily code-split components for fast initial load times
+* **Styling:** Custom Modern Vanilla CSS (tailored HSL colors, sleek dark mode, glassmorphism, responsive grid layouts)
+* **Hosting:** [Vercel](https://v-mas.vercel.app)
+
+### ⚙️ Backend & Database
+* **Backend Framework:** Spring Boot (Java) running on Corretto 17
+* **Database:** AWS RDS (MySQL)
+* **Deployment:** AWS Elastic Beanstalk (Single-Instance Environment)
+
+### 🔒 Secure Proxy Chain & Architecture
+To ensure secure HTTPS communication, prevent CORS issues, and route traffic efficiently, requests follow this flow:
+
+```
+[ Browser / Client ]  ---(HTTPS)--->  [ Vercel (v-mas.vercel.app) ]
+                                                   |
+                                            (Server-side Proxy)
+                                                   v
+[ Spring Boot Backend ] <---(HTTP)--- [ AWS CloudFront (d3dqxbt72t73lz) ]
+          |
+     (JDBC Connection)
+          v
+[ AWS RDS MySQL Database ]
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+***
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 🛠️ Local Development & Setup
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### Prerequisites
+* **Node.js** v18 or later
+* **npm** v9 or later
+
+### Getting Started
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/RavinduWanasinghe0524/V---Mas.git
+   cd V---Mas/V-Mas Frontend
+   ```
+
+2. **Install all dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Launch the development server:**
+   ```bash
+   npm run dev
+   ```
+   *The local app will run at `http://localhost:3000`.*
+
+4. **API Configuration:**
+   * In local development, the Vite dev server proxies API requests to the backend.
+   * In production, Vercel routes `/api/*` requests to the CloudFront distribution endpoint.
+
+***
+
+## 🌐 Production URL Summary
+* **Live Web App:** [https://v-mas.vercel.app](https://v-mas.vercel.app)
+* **Production API Gateway (CloudFront):** `https://d3dqxbt72t73lz.cloudfront.net`
+* **Elastic Beanstalk Backend Instance:** `http://vmas-backend-env.eba-arpg3c5y.ap-southeast-1.elasticbeanstalk.com`
