@@ -461,7 +461,7 @@ const UsersPage = () => {
       <div className="app-shell" style={{ background: D.bg }}>
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="main-content" style={{ background: D.bg }}>
-          <Topbar title="User Management" subtitle="Dashboard / User Management" onMenuToggle={() => setSidebarOpen(o => !o)} />
+          <Topbar title="System User Management" subtitle="Admin / User Management" onMenuToggle={() => setSidebarOpen(o => !o)} />
           <div className="page-body">
 
             {/* Hero Banner */}
