@@ -259,7 +259,7 @@ const UserStatsPieChart = ({ stats }) => {
   )
 }
 
-const AdminDashboard = ({ stats, loading, navigate, isDark, monthlyCostData }) => {
+const AdminDashboard = ({ stats, loading, navigate, isDark, monthlyCostData, activities }) => {
   const A = useAccents(isDark)
   if (loading) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
@@ -290,6 +290,8 @@ const AdminDashboard = ({ stats, loading, navigate, isDark, monthlyCostData }) =
           <UserStatsPieChart stats={stats} />
         </div>
       </div>
+
+      <RecentActivitySection activities={activities || []} navigate={navigate} />
 
       <SectionHeader title="Quick Actions" />
       <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
@@ -896,6 +898,14 @@ const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, a
         </div>
       </div>
 
+      <SectionHeader title="Quick Navigation" />
+      <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20, marginBottom: 36 }}>
+        <FeatureCard icon={<Car size={24}/>} title="Vehicles" desc="Manage and monitor all fleet vehicles, statuses, assignments and details." onClick={() => navigate('/vehicles')} />
+        <FeatureCard icon={<Wrench size={24}/>} title="Service" desc="Schedule and track vehicle service appointments and maintenance records." onClick={() => navigate('/service')} />
+        <FeatureCard icon={<Fuel size={24}/>} title="Fuel Analysis" desc="Monitor fuel consumption trends and cost analysis across the entire fleet." onClick={() => navigate('/fuel-analysis')} />
+        <FeatureCard icon={<BarChart3 size={24}/>} title="Reports" desc="Generate comprehensive reports on fleet performance and system activity." onClick={() => navigate('/reports')} />
+      </div>
+
       <style>{`
         @media (max-width: 1024px) {
           .dashboard-columns-grid {
@@ -908,51 +918,104 @@ const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, a
 }
 
 const AlertSection = ({ alerts, navigate, isDark }) => {
-  const A = useAccents(isDark)
+  const [expanded, setExpanded] = useState(false)
   if (!alerts || alerts.length === 0) return null
+
+  // Sort: OVERDUE first, then SERVICE_DUE
+  const sorted = [...alerts].sort((a, b) => {
+    if (a.severity === 'OVERDUE' && b.severity !== 'OVERDUE') return -1
+    if (b.severity === 'OVERDUE' && a.severity !== 'OVERDUE') return 1
+    return 0
+  })
+
+  const overdueCount = sorted.filter(a => a.severity === 'OVERDUE').length
+  const dueSoonCount = sorted.filter(a => a.severity !== 'OVERDUE').length
+  const PREVIEW = 5
+  const visible = expanded ? sorted : sorted.slice(0, PREVIEW)
+  const hasMore = sorted.length > PREVIEW
 
   return (
     <div style={{ marginBottom: 32 }}>
-      <SectionHeader title="System Alerts" />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {alerts.map((alert, idx) => (
-          <div 
+      {/* Header row with summary chips */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text-primary)', fontWeight: 700 }}>System Alerts</h2>
+        <div style={{ height: 1, background: 'var(--border)', width: 32, flexShrink: 0 }} />
+        {overdueCount > 0 && (
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            padding: '4px 12px', borderRadius: 999,
+            background: 'var(--danger)', color: '#fff',
+            fontSize: '0.74rem', fontWeight: 800,
+            boxShadow: '0 2px 8px rgba(239,68,68,0.35)',
+          }}>
+            <AlertTriangle size={12} /> {overdueCount} OVERDUE
+          </span>
+        )}
+        {dueSoonCount > 0 && (
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            padding: '4px 12px', borderRadius: 999,
+            background: 'var(--warning)', color: '#fff',
+            fontSize: '0.74rem', fontWeight: 800,
+            boxShadow: '0 2px 8px rgba(245,158,11,0.35)',
+          }}>
+            <Clock size={12} /> {dueSoonCount} DUE SOON
+          </span>
+        )}
+        <div style={{ flex: 1 }} />
+        <button
+          onClick={() => navigate('/service')}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '6px 14px', borderRadius: 8,
+            background: 'transparent', border: '1px solid var(--border)',
+            color: 'var(--primary)', fontSize: '0.78rem', fontWeight: 700,
+            cursor: 'pointer', transition: 'all 0.18s', fontFamily: 'inherit',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--primary-muted)'; e.currentTarget.style.borderColor = 'var(--primary)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border)' }}
+        >
+          <ShieldAlert size={13} /> Manage in Service →
+        </button>
+      </div>
+
+      {/* Alert list — limited to PREVIEW rows until expanded */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {visible.map((alert, idx) => (
+          <div
             key={idx}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 16,
-              padding: '16px 20px',
-              borderRadius: 12,
+              display: 'flex', alignItems: 'center', gap: 16,
+              padding: '13px 18px', borderRadius: 12,
               background: alert.severity === 'OVERDUE' ? 'var(--danger-bg)' : 'var(--warning-bg)',
               border: `1px solid ${alert.severity === 'OVERDUE' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`,
               boxShadow: 'var(--shadow-sm)',
-              animation: alert.severity === 'OVERDUE' ? 'pulse-border 2s infinite' : 'none'
+              animation: alert.severity === 'OVERDUE' ? 'pulse-border 2s infinite' : 'none',
             }}
           >
-            <div style={{ 
-              width: 40, height: 40, borderRadius: 10, 
+            <div style={{
+              width: 36, height: 36, borderRadius: 9,
               background: alert.severity === 'OVERDUE' ? 'var(--danger)' : 'var(--warning)',
               color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
             }}>
-              <AlertTriangle size={20} />
+              <AlertTriangle size={17} />
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>{alert.title}</h4>
-                <span style={{ 
-                  fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, 
-                  background: alert.severity === 'OVERDUE' ? 'var(--danger)' : 'var(--warning)', 
-                  color: '#fff', textTransform: 'uppercase' 
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2, flexWrap: 'wrap' }}>
+                <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>{alert.title}</h4>
+                <span style={{
+                  fontSize: '0.62rem', fontWeight: 800, padding: '2px 7px', borderRadius: 5,
+                  background: alert.severity === 'OVERDUE' ? 'var(--danger)' : 'var(--warning)',
+                  color: '#fff', textTransform: 'uppercase', flexShrink: 0
                 }}>
                   {alert.severity}
                 </span>
               </div>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 <strong>{alert.vehicleRegNumber}</strong>: {alert.message}
               </p>
             </div>
-            <button 
+            <button
               onClick={() => {
                 if (alert.type === 'SERVICE_DUE') {
                   navigate('/service')
@@ -961,25 +1024,134 @@ const AlertSection = ({ alerts, navigate, isDark }) => {
                 }
               }}
               style={{
-                padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)',
-                background: 'rgba(255,255,255,0.15)', color: 'var(--text-primary)',
-                fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
+                padding: '5px 12px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.2)',
+                background: 'rgba(255,255,255,0.13)', color: 'var(--text-primary)',
+                fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s',
+                flexShrink: 0, fontFamily: 'inherit',
               }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.28)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.13)'}
             >
-              View Details
+              View
             </button>
           </div>
         ))}
       </div>
+
+      {/* Expand / Collapse footer */}
+      {hasMore && (
+        <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            onClick={() => setExpanded(e => !e)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '8px 18px', borderRadius: 10,
+              background: 'var(--surface)', border: '1px solid var(--border)',
+              color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 700,
+              cursor: 'pointer', transition: 'all 0.18s', fontFamily: 'inherit',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-hi)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+          >
+            {expanded ? '▲ Show less' : `▼ Show ${sorted.length - PREVIEW} more alert${sorted.length - PREVIEW !== 1 ? 's' : ''}`}
+          </button>
+          {!expanded && (
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+              Showing {Math.min(PREVIEW, sorted.length)} of {sorted.length} — most critical shown first
+            </span>
+          )}
+        </div>
+      )}
+
       <style>{`
         @keyframes pulse-border {
-          0% { border-color: rgba(239,68,68,0.2); }
-          50% { border-color: rgba(239,68,68,0.6); }
+          0%   { border-color: rgba(239,68,68,0.2); }
+          50%  { border-color: rgba(239,68,68,0.6); }
           100% { border-color: rgba(239,68,68,0.2); }
         }
       `}</style>
+    </div>
+  )
+}
+
+
+/* ── Driver personal monthly fuel bar chart ─────────────────── */
+const DriverFuelChart = ({ logs = [], isDark }) => {
+  const now = new Date()
+  const yr = now.getFullYear()
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const byMonth = Array.from({ length: 12 }, () => ({ litres: 0, cost: 0 }))
+  logs.forEach(l => {
+    const d = new Date(l.date)
+    if (d.getFullYear() === yr) {
+      byMonth[d.getMonth()].litres += Number(l.liters) || 0
+      byMonth[d.getMonth()].cost += Number(l.totalCost) || 0
+    }
+  })
+  const data = monthNames.slice(0, now.getMonth() + 1).map((label, i) => ({ label, litres: byMonth[i].litres, cost: byMonth[i].cost }))
+  const hasData = data.some(d => d.litres > 0)
+  const maxL = Math.max(1, ...data.map(d => d.litres))
+  const barColor = '#3b82f6'
+  const axisText = isDark ? '#64748b' : '#94a3b8'
+  const axis = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'
+  const W = 560, H = 180, padL = 48, padR = 16, padT = 20, padB = 36
+  const chartH = H - padT - padB
+  const chartW = W - padL - padR
+  const barW = Math.max(8, Math.min(28, (chartW / Math.max(data.length, 1)) - 8))
+  const X = i => padL + (data.length <= 1 ? chartW / 2 : (i / (data.length - 1)) * chartW)
+  return (
+    <div style={{
+      background: 'var(--surface)', borderRadius: 24,
+      border: '1px solid var(--surface-border)',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(59,130,246,0.35)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.35), 0 0 20px rgba(59,130,246,0.1)' }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--surface-border)'; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)' }}
+    >
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>My Fuel Usage</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Monthly litres filled — {yr}</div>
+      </div>
+      {hasData ? (
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+          {[0, 0.25, 0.5, 0.75, 1].map((f, i) => {
+            const y = padT + chartH - f * chartH
+            return (
+              <g key={i}>
+                <line x1={padL} x2={W - padR} y1={y} y2={y} stroke={axis} strokeDasharray="4 4" />
+                <text x={padL - 8} y={y + 4} fontSize="9" fill={axisText} textAnchor="end">{Math.round(f * maxL)}</text>
+              </g>
+            )
+          })}
+          {data.map((d, i) => {
+            const bh = Math.max(d.litres > 0 ? 4 : 0, (d.litres / maxL) * chartH)
+            const bx = X(i) - barW / 2
+            const by = padT + chartH - bh
+            return (
+              <g key={i}>
+                <rect x={bx} y={by} width={barW} height={bh} rx="4"
+                  fill={barColor} opacity="0.82"
+                  style={{ transition: 'opacity 0.2s', cursor: 'default' }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '0.82'}
+                />
+                <text x={X(i)} y={H - 6} fontSize="9" fill={axisText} textAnchor="middle" fontWeight="600">{d.label}</text>
+                {d.litres > 0 && (
+                  <text x={X(i)} y={Math.max(by - 5, padT + 11)} fontSize="8.5" fill={barColor} textAnchor="middle" fontWeight="700">{Math.round(d.litres)}L</text>
+                )}
+              </g>
+            )
+          })}
+        </svg>
+      ) : (
+        <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No fuel data yet for {yr}</div>
+      )}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 10 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+          <span style={{ width: 18, height: 3, borderRadius: 2, background: barColor }} /> Litres (L)
+        </span>
+      </div>
     </div>
   )
 }
@@ -1007,6 +1179,12 @@ const DriverDashboard = ({ navigate, isDark, vehicleCount, fuelLogs, accountStat
         <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Completed" value={weekCount} colorDim={A.greenDim} colorHex={A.green} change="Fuel logs this week" onClick={() => navigate('/fuel-log')} />
         <StatCard icon={<Activity size={20} color={A.green}/>} label="Status" value={statusActive ? 'Active' : (accountStatus || 'Active')} colorDim={A.greenDim} colorHex={A.green} change={statusActive ? 'Ready to drive' : `Account ${(accountStatus || '').toLowerCase()}`} />
       </div>
+
+      <SectionHeader title="My Fuel Usage" />
+      <div style={{ marginBottom: 36 }}>
+        <DriverFuelChart logs={logs} isDark={isDark} />
+      </div>
+
       <SectionHeader title="Driver Tools" />
       <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
         <FeatureCard icon={<Fuel size={24}/>} title="Add Fuel Log" desc="Record a new fuel fill-up with the latest mileage and cost." onClick={() => navigate('/fuel-log')} />
@@ -1085,6 +1263,18 @@ const DashboardPage = () => {
               setMonthlyCostData(mcd)
             } catch (err) {
               console.error('Error loading monthly cost trend:', err)
+            }
+
+            // Fetch recent activity feed for Admin (same notification source as Controller)
+            try {
+              const notifsRes = await notificationAPI.getAll()
+              const backendNotifs = notifsRes.data.data || []
+              const localNotifs = notifService.getControllerNotifications() || []
+              const merged = [...backendNotifs, ...localNotifs]
+              merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+              setActivities(merged.slice(0, 10).map(mapNotificationToActivity))
+            } catch (err) {
+              console.error('Error loading admin recent activity:', err)
             }
           }
 
@@ -1242,7 +1432,7 @@ const DashboardPage = () => {
           )}
 
           {/* Role-based content */}
-          {user?.role === 'ADMIN' && <AdminDashboard stats={stats} loading={loading} navigate={navigate} isDark={isDark} monthlyCostData={monthlyCostData} />}
+          {user?.role === 'ADMIN' && <AdminDashboard stats={stats} loading={loading} navigate={navigate} isDark={isDark} monthlyCostData={monthlyCostData} activities={activities} />}
           {user?.role === 'CONTROLLER' && <ControllerDashboard navigate={navigate} isDark={isDark} chartData={fleetChartData} statusData={statusData} stats={controllerStats} activities={activities} />}
           {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} vehicleCount={driverVehicleCount} fuelLogs={driverFuelLogs} accountStatus={user?.accountStatus} />}
         </div>

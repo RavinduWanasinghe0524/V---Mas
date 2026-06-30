@@ -966,6 +966,7 @@ const ServicePage = () => {
   const location = useLocation()
   const isDriver = user?.role === 'DRIVER'
   const isAdmin = user?.role === 'ADMIN'
+  const isController = user?.role === 'CONTROLLER'
 
   const [services, setServices] = useState([])
   const [activeTab, setActiveTab] = useState('status')
@@ -1071,9 +1072,13 @@ const ServicePage = () => {
 
   useEffect(() => {
     if (location.state?.activeTab) {
-      setActiveTab(location.state.activeTab)
+      if (location.state.activeTab === 'update' && !isController) {
+        // block
+      } else {
+        setActiveTab(location.state.activeTab)
+      }
     }
-  }, [location.state])
+  }, [location.state, isController])
 
   useEffect(() => {
     const handleOutsideClick = (e) => {
@@ -2782,9 +2787,11 @@ const ServicePage = () => {
                 }}>
                   {[
                     { id: 'status', label: 'Active Status / Milestones', icon: <Gauge size={16} /> },
+                    ...(isController ? [
+                      { id: 'update', label: 'Daily Mileage Update', icon: <Gauge size={16} /> }
+                    ] : []),
                     ...(!isDriver ? [
-                      { id: 'update', label: 'Daily Mileage Update', icon: <Gauge size={16} /> },
-                      { id: 'intervals', label: 'Intervals Settings', icon: <Settings size={16} /> },
+                      { id: 'intervals', label: 'Intervals Settings', icon: <Settings size={16} /> }
                     ] : []),
                     { id: 'history', label: 'Service History Logs', icon: <ClipboardList size={16} /> }
                   ].map(tab => {
@@ -3094,7 +3101,7 @@ const ServicePage = () => {
                 )}
 
                 {/* ── Daily Mileage Update Tab ── */}
-                {displayTab === 'update' && (
+                {displayTab === 'update' && isController && (
                   <div style={{ animation: 'fadeIn 0.3s ease', background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.12)' }}>
                     {/* Header and Bulk Save Actions */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14, padding: '22px 26px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }}>
@@ -3331,26 +3338,28 @@ const ServicePage = () => {
                           Configure default mileage interval thresholds (km) per service type for each vehicle type category
                         </p>
                       </div>
-                      <button
-                        onClick={handleSaveIntervals}
-                        disabled={formLoading}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 6,
-                          padding: '10px 20px', borderRadius: 12,
-                          background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
-                          color: '#fff', fontSize: '0.88rem', fontWeight: 800,
-                          border: 'none', cursor: formLoading ? 'not-allowed' : 'pointer',
-                          boxShadow: '0 4px 14px rgba(99,102,241,0.35)',
-                          opacity: formLoading ? 0.7 : 1
-                        }}
-                      >
-                        {formLoading ? (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
-                        ) : (
-                          <CheckCircle size={15} />
-                        )}
-                        Save Configuration
-                      </button>
+                      {!isAdmin && (
+                        <button
+                          onClick={handleSaveIntervals}
+                          disabled={formLoading}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '10px 20px', borderRadius: 12,
+                            background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+                            color: '#fff', fontSize: '0.88rem', fontWeight: 800,
+                            border: 'none', cursor: formLoading ? 'not-allowed' : 'pointer',
+                            boxShadow: '0 4px 14px rgba(99,102,241,0.35)',
+                            opacity: formLoading ? 0.7 : 1
+                          }}
+                        >
+                          {formLoading ? (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                          ) : (
+                            <CheckCircle size={15} />
+                          )}
+                          Save Configuration
+                        </button>
+                      )}
                     </div>
 
                     {/* Grid of 4 categories: CAR, VAN, LORRY, BUS */}
@@ -3388,10 +3397,13 @@ const ServicePage = () => {
                                       value={val === 0 ? '' : val}
                                       placeholder="0"
                                       onChange={e => handleIntervalChange(vType, sType.value, e.target.value)}
+                                      disabled={isAdmin}
                                       style={{
                                         flex: 1, padding: '8px 10px',
                                         background: D.inputBg, border: `1px solid ${D.inputBorder}`,
-                                        borderRadius: 8, color: D.text, fontSize: '0.85rem', outline: 'none'
+                                        borderRadius: 8, color: D.text, fontSize: '0.85rem', outline: 'none',
+                                        opacity: isAdmin ? 0.7 : 1,
+                                        cursor: isAdmin ? 'not-allowed' : 'text'
                                       }}
                                     />
                                     <span style={{ fontSize: '0.78rem', color: D.textFaint, fontWeight: 600 }}>km</span>
@@ -3751,7 +3763,7 @@ const ServicePage = () => {
                       </div>
 
                       {/* Search + Export */}
-                       <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '14px 26px', borderBottom: `1px solid ${D.border}` }}>
+                       <div className="service-filter-bar" style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '14px 26px', borderBottom: `1px solid ${D.border}` }}>
                         <div style={{ position: 'relative', flex: 1 }}>
                           <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, opacity: 0.8 }} />
                           <input

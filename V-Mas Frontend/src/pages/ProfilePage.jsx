@@ -1033,15 +1033,7 @@ const ProfilePage = () => {
                           <option value="GMT">Greenwich Mean Time (GMT)</option>
                         </select>
                       </div>
-                      <div>
-                        <label style={labelStyle}>Speed Limit Warning Alert</label>
-                        <select value={fleetForm.speedLimitAlert} onChange={e => setFleetForm(prev => ({ ...prev, speedLimitAlert: e.target.value }))} style={inputStyle}>
-                          <option value="80">Over 80 km/h</option>
-                          <option value="100">Over 100 km/h</option>
-                          <option value="120">Over 120 km/h</option>
-                          <option value="never">Disabled</option>
-                        </select>
-                      </div>
+
                       <div>
                         <label style={labelStyle}>Fuel Inefficiency Reporting</label>
                         <select value={fleetForm.fuelReportingPeriod} onChange={e => setFleetForm(prev => ({ ...prev, fuelReportingPeriod: e.target.value }))} style={inputStyle}>

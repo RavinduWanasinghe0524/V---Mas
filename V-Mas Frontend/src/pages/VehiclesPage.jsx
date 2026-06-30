@@ -547,7 +547,7 @@ const VehiclesPage = () => {
           openProfile(v)
           navigate(location.pathname, { replace: true, state: {} })
         }
-      } else if (location.state?.openAddVehicle) {
+      } else if (location.state?.openAddVehicle && isController) {
         openModal()
         if (location.state?.fromOneClick) setFromQuickCommand(true)
         navigate(location.pathname, { replace: true, state: {} })
@@ -676,7 +676,9 @@ const VehiclesPage = () => {
     }
   }
 
-  const openModal = () => setIsModalOpen(true)
+  const openModal = () => {
+    if (isController) setIsModalOpen(true)
+  }
 
   const closeModal = () => {
     setIsModalOpen(false)
@@ -1036,17 +1038,19 @@ const VehiclesPage = () => {
                     onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)' }}>
                     <Download size={18} /> Export Excel
                   </button>
-                  <button onClick={openModal} style={{
-                    position: 'relative', padding: '14px 28px', borderRadius: 16, border: 'none',
-                    background: '#fff', color: '#1e3a8a', fontSize: '0.95rem', fontWeight: 800,
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
-                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.25)', whiteSpace: 'nowrap'
-                  }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}>
-                    <Plus size={20} strokeWidth={3} /> Add Vehicle
-                  </button>
+                  {isController && (
+                    <button onClick={openModal} style={{
+                      position: 'relative', padding: '14px 28px', borderRadius: 16, border: 'none',
+                      background: '#fff', color: '#1e3a8a', fontSize: '0.95rem', fontWeight: 800,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                      boxShadow: '0 8px 30px rgba(0,0,0,0.25)', whiteSpace: 'nowrap'
+                    }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}>
+                      <Plus size={20} strokeWidth={3} /> Add Vehicle
+                    </button>
+                  )}
                 </div>
               )}
 

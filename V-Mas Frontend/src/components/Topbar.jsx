@@ -156,6 +156,44 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
   const [showNotifications, setShowNotifications] = useState(false)
   const dropdownRef = useRef(null)
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
+  const [showHeader, setShowHeader] = useState(true)
+  const lastScrollYRef = useRef(0)
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY
+      const lastScrollY = lastScrollYRef.current
+      
+      if (isMobile) {
+        if (currentScrollY < 0) return // Skip elastic bounce
+        
+        if (currentScrollY <= 10) {
+          setShowHeader(true)
+        } else if (currentScrollY > lastScrollY) {
+          setShowHeader(false)
+        } else if (currentScrollY < lastScrollY) {
+          setShowHeader(true)
+        }
+      } else {
+        setShowHeader(true)
+      }
+      
+      lastScrollYRef.current = currentScrollY
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [isMobile])
+
   // Controller / Driver (localStorage)
   const [ctrlNotifs, setCtrlNotifs] = useState([])
   const [ctrlUnread, setCtrlUnread] = useState(0)
@@ -393,38 +431,23 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
           display: none;
         }
 
-        @media (max-width: 768px) {
-          .topbar-notif-dropdown {
-            position: fixed !important;
-            top: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            max-height: 100vh !important;
-            margin-top: 0 !important;
-            border-radius: 0 !important;
-            z-index: 9999 !important;
-            animation: mobileSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
-          }
-
-          .topbar-notif-dropdown-list {
-            max-height: calc(100vh - 60px) !important;
-            padding-bottom: 60px;
-          }
-
-          .topbar-notif-mobile-close {
-            display: flex !important;
-          }
-        }
       `}</style>
-      <header style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 32px', background: 'var(--topbar-bg)',
-        borderBottom: '1px solid var(--topbar-border)', height: 'var(--navbar-h)', boxSizing: 'border-box', width: '100%',
-        gap: 12,
-      }}>
+      <header 
+        className="topbar"
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 32px', background: 'var(--topbar-bg)',
+          borderBottom: '1px solid var(--topbar-border)', height: 'var(--navbar-h)', boxSizing: 'border-box', width: '100%',
+          gap: 12,
+          position: isMobile ? 'fixed' : 'sticky',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          transform: showHeader ? 'translateY(0)' : 'translateY(-100%)',
+        }}
+      >
       {/* Hamburger menu button (mobile only) */}
       {onMenuToggle && (
         <button
@@ -860,6 +883,9 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
         </a>
       </div>
     </header>
+    {isMobile && (
+      <div style={{ height: 'var(--navbar-h)', flexShrink: 0 }} />
+    )}
     </>
   )
 }
