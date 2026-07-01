@@ -784,13 +784,13 @@ const UsersPage = () => {
                           statsToShow = [
                             { value: 'Full', label: 'Access' },
                             { value: 'Admin', label: 'Role' },
-                            { value: 'Active', label: 'Status' }
+                            { value: metrics.status || 'Active', label: 'Status' }
                           ]
                         } else if (u.role === 'CONTROLLER') {
                           statsToShow = [
                             { value: 'High', label: 'Access' },
                             { value: 'Controller', label: 'Role' },
-                            { value: 'Active', label: 'Status' }
+                            { value: metrics.status || 'Active', label: 'Status' }
                           ]
                         } else {
                           statsToShow = [
