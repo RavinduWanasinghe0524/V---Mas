@@ -1416,7 +1416,9 @@ const VehiclesPage = () => {
                       >
                         <option value="ALL" style={{ background: D.surface, color: D.text }}>All Fuel Types</option>
                         <option value="PETROL" style={{ background: D.surface, color: D.text }}>Petrol</option>
+                        <option value="SUPER_PETROL" style={{ background: D.surface, color: D.text }}>Super Petrol</option>
                         <option value="DIESEL" style={{ background: D.surface, color: D.text }}>Diesel</option>
+                        <option value="SUPER_DIESEL" style={{ background: D.surface, color: D.text }}>Super Diesel</option>
                         <option value="HYBRID" style={{ background: D.surface, color: D.text }}>Hybrid</option>
                         <option value="ELECTRIC" style={{ background: D.surface, color: D.text }}>Electric</option>
                       </select>
@@ -1930,7 +1932,9 @@ const VehiclesPage = () => {
                     <select name="fuelType" value={formData.fuelType} onChange={handleChange} required style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
                       <option value="" style={{ background: D.surfaceHi }}>Select Fuel Type</option>
                       <option value="PETROL" style={{ background: D.surfaceHi }}>Petrol</option>
+                      <option value="SUPER_PETROL" style={{ background: D.surfaceHi }}>Super Petrol</option>
                       <option value="DIESEL" style={{ background: D.surfaceHi }}>Diesel</option>
+                      <option value="SUPER_DIESEL" style={{ background: D.surfaceHi }}>Super Diesel</option>
                       <option value="ELECTRIC" style={{ background: D.surfaceHi }}>Electric</option>
                       <option value="HYBRID" style={{ background: D.surfaceHi }}>Hybrid</option>
                     </select>
@@ -2120,7 +2124,9 @@ const VehiclesPage = () => {
                     <select name="fuelType" value={editFormData.fuelType} onChange={handleEditChange} required style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
                       <option value="" style={{ background: D.surfaceHi }}>Select Fuel Type</option>
                       <option value="PETROL" style={{ background: D.surfaceHi }}>Petrol</option>
+                      <option value="SUPER_PETROL" style={{ background: D.surfaceHi }}>Super Petrol</option>
                       <option value="DIESEL" style={{ background: D.surfaceHi }}>Diesel</option>
+                      <option value="SUPER_DIESEL" style={{ background: D.surfaceHi }}>Super Diesel</option>
                       <option value="ELECTRIC" style={{ background: D.surfaceHi }}>Electric</option>
                       <option value="HYBRID" style={{ background: D.surfaceHi }}>Hybrid</option>
                     </select>
@@ -3652,7 +3658,9 @@ const VehiclesPage = () => {
                   >
                     <option value="" style={{ background: D.surfaceHi }}>Select Fuel Type</option>
                     <option value="PETROL" style={{ background: D.surfaceHi }}>Petrol</option>
+                    <option value="SUPER_PETROL" style={{ background: D.surfaceHi }}>Super Petrol</option>
                     <option value="DIESEL" style={{ background: D.surfaceHi }}>Diesel</option>
+                    <option value="SUPER_DIESEL" style={{ background: D.surfaceHi }}>Super Diesel</option>
                     <option value="ELECTRIC" style={{ background: D.surfaceHi }}>Electric</option>
                     <option value="HYBRID" style={{ background: D.surfaceHi }}>Hybrid</option>
                   </select>
