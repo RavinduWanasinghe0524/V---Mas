@@ -4,7 +4,7 @@ import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import api, { profileAPI, fuelAPI, serviceAPI, vehicleAPI, userAPI } from '../services/api'
-import { User, Mail, Key, ShieldCheck, Shield, Globe, Fuel, Ruler, Calendar, Car, Wrench, Edit2, AlertCircle, CheckCircle, Eye, EyeOff, Check, Trophy, Activity, Lock, Settings, LogOut, Zap, Bell, Clock, Share2, UserCheck, X, Sun, Moon, FileText, Upload } from 'lucide-react'
+import { User, Key, ShieldCheck, Shield, Globe, Fuel, Ruler, Calendar, Car, Wrench, Edit2, AlertCircle, CheckCircle, Eye, EyeOff, Check, Trophy, Activity, Lock, Settings, LogOut, Zap, Bell, Clock, Share2, UserCheck, X, Sun, Moon, FileText, Upload } from 'lucide-react'
 import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 const Toggle = ({ checked, onChange, color = '#2563eb' }) => (
@@ -19,6 +19,8 @@ const ALERT_TYPES = [
   { key: 'FUEL', label: 'Fuel Inefficiency', icon: <Fuel size={13} /> },
   { key: 'OVERDUE', label: 'Overdue Service', icon: <AlertCircle size={13} /> },
 ]
+
+
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'
@@ -149,6 +151,7 @@ const ProfilePage = () => {
   const closeModal = () => setActiveModal(null)
 
   const fleetKey = `vmas-fleet-settings-${user?.id || 'me'}`
+  const privacyKey = `vmas-privacy-settings-${user?.id || 'me'}`
 
   // Load saved fleet settings (timezone, fuel reporting period) on open
   useEffect(() => {
@@ -157,6 +160,14 @@ const ProfilePage = () => {
       if (saved) setFleetForm(prev => ({ ...prev, ...JSON.parse(saved) }))
     } catch { /* ignore malformed storage */ }
   }, [fleetKey])
+
+  // Load saved privacy/notification settings on open
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(privacyKey)
+      if (saved) setPrivacy(prev => ({ ...prev, ...JSON.parse(saved) }))
+    } catch { /* ignore malformed storage */ }
+  }, [privacyKey])
 
   const handleFleetSave = async () => {
     setFleetSaving(true)
@@ -171,6 +182,9 @@ const ProfilePage = () => {
 
   const handlePrivacySave = async () => {
     setPrivacySaving(true)
+    try {
+      localStorage.setItem(privacyKey, JSON.stringify(privacy))
+    } catch { /* ignore storage errors */ }
     await new Promise(r => setTimeout(r, 800))
     setPrivacySaving(false)
     setPrivacySaved(true)
@@ -179,6 +193,9 @@ const ProfilePage = () => {
 
   const handleNotifSave = async () => {
     setNotifSaving(true)
+    try {
+      localStorage.setItem(privacyKey, JSON.stringify(privacy))
+    } catch { /* ignore storage errors */ }
     await new Promise(r => setTimeout(r, 800))
     setNotifSaving(false)
     setNotifSaved(true)
@@ -225,7 +242,6 @@ const ProfilePage = () => {
     }
     setLicenseFile(null)
   }
-
   const toggleAlertType = key => setPrivacy(p => ({
     ...p,
     alertTypes: p.alertTypes.includes(key) ? p.alertTypes.filter(k => k !== key) : [...p.alertTypes, key],
@@ -396,11 +412,6 @@ const ProfilePage = () => {
     }
   }
 
-  const previewEmail = () => {
-    const preview = window.open('', '_blank', 'width=620,height=520')
-    preview.document.write(`<html><body style="font-family:sans-serif;background:#0b132b;color:#f3f4f6;padding:32px"><div style="max-width:560px;margin:0 auto;background:#1c2541;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08)"><div style="padding:28px 32px;background:linear-gradient(135deg,#172554,#1e3a8a,#1e40af)"><h1 style="margin:0;color:#fff;font-size:1.4rem">V-MAS Fleet Alert</h1><p style="margin:8px 0 0;color:#60a5fa;font-size:0.88rem">Fleet Management System</p></div><div style="padding:28px 32px"><h2 style="color:#3b82f6;font-size:1rem;margin:0 0 16px">⚠ Service Due Reminder</h2><p style="margin:0 0 8px"><b>Vehicle:</b> WP-CAA-1234</p><p style="margin:0 0 8px"><b>Alert:</b> Scheduled service due in 7 days</p><p style="margin:0 0 8px"><b>Due Date:</b> 2026-06-05</p><p style="margin:0 0 24px;color:#9ca3af">Please schedule a service appointment as soon as possible to avoid operational delays.</p><div style="background:#212b4a;padding:16px;border-radius:10px;border-left:3px solid #2563eb"><b style="color:#3b82f6">Action Required:</b><br><span style="font-size:0.88rem;color:#94a3b8">Contact your fleet controller to arrange service.</span></div></div><div style="padding:16px 32px;border-top:1px solid rgba(255,255,255,0.07);color:#4b5563;font-size:0.75rem">V-MAS Fleet Management · This is an automated alert</div></div></body></html>`)
-    preview.document.close()
-  }
 
   const saveBtn = (label, saving, onClick) => (
     <button
@@ -866,7 +877,7 @@ const ProfilePage = () => {
               {activeTab === 'notifications' && (
                 <div style={{ animation: 'fadeIn 0.3s ease' }}>
                   <h3 style={{ margin: '0 0 8px', fontSize: '1.2rem', fontWeight: 800, color: D.text }}>Notification Settings</h3>
-                  <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: D.textSub }}>Control what alerts are sent to your email and which system status updates pop up in the app shell.</p>
+                  <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: D.textSub }}>Control which system status updates pop up in the app shell.</p>
 
                   {notifSaved && (
                     <div style={{ padding: '12px 14px', borderRadius: 10, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 20, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -875,20 +886,20 @@ const ProfilePage = () => {
                   )}
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                    {/* Email notifications */}
+                    {/* System Alerts */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0', borderBottom: `1px solid ${D.border}` }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div style={{ width: 42, height: 42, borderRadius: 12, background: D.indigoDim, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.indigo }}><Mail size={20} /></div>
+                        <div style={{ width: 42, height: 42, borderRadius: 12, background: D.orangeDim, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.orange }}><Bell size={20} /></div>
                         <div>
-                          <div style={{ fontSize: '0.95rem', fontWeight: 700, color: D.text }}>Email Notifications</div>
-                          <div style={{ fontSize: '0.8rem', color: D.textSub, marginTop: 2 }}>Receive service reminders, insurance renewals, and fuel inefficiency alerts</div>
+                          <div style={{ fontSize: '0.95rem', fontWeight: 700, color: D.text }}>System Push Notifications</div>
+                          <div style={{ fontSize: '0.8rem', color: D.textSub, marginTop: 2 }}>In-app alerts that notify you instantly of critical activities</div>
                         </div>
                       </div>
-                      <Toggle checked={privacy.emailNotifications} onChange={() => setPrivacy(p => ({ ...p, emailNotifications: !p.emailNotifications }))} color={D.indigo} />
+                      <Toggle checked={privacy.systemAlerts} onChange={() => setPrivacy(p => ({ ...p, systemAlerts: !p.systemAlerts }))} color={D.orange} />
                     </div>
 
                     {/* Preferences options */}
-                    {privacy.emailNotifications && (
+                    {privacy.systemAlerts && (
                       <div style={{ padding: '20px 0', borderBottom: `1px solid ${D.border}`, animation: 'fadeIn 0.25s ease' }}>
                         <label style={{ ...labelStyle, marginBottom: 12 }}>Filter Alert Types</label>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -911,27 +922,7 @@ const ProfilePage = () => {
                       </div>
                     )}
 
-                    {/* System Alerts */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0', borderBottom: `1px solid ${D.border}` }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div style={{ width: 42, height: 42, borderRadius: 12, background: D.orangeDim, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.orange }}><Bell size={20} /></div>
-                        <div>
-                          <div style={{ fontSize: '0.95rem', fontWeight: 700, color: D.text }}>System Push Notifications</div>
-                          <div style={{ fontSize: '0.8rem', color: D.textSub, marginTop: 2 }}>In-app alerts that notify you instantly of critical activities</div>
-                        </div>
-                      </div>
-                      <Toggle checked={privacy.systemAlerts} onChange={() => setPrivacy(p => ({ ...p, systemAlerts: !p.systemAlerts }))} color={D.orange} />
-                    </div>
-
-                    {/* Preview Sample Email */}
-                    <div style={{ padding: '20px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, borderTop: `1px solid ${D.border}`, marginTop: 24 }}>
-                      <button onClick={previewEmail} type="button"
-                        style={{ padding: '12px 20px', borderRadius: 12, border: `1px solid ${D.indigo}40`, background: D.indigoDim, color: D.indigo, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.15s ease' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = D.indigo; e.currentTarget.style.color = '#fff' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = D.indigoDim; e.currentTarget.style.color = D.indigo }}
-                      >
-                        <Mail size={15} /> Preview Sample Email Template
-                      </button>
+                    <div style={{ padding: '20px 0 0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap', gap: 12, borderTop: `1px solid ${D.border}`, marginTop: 24 }}>
                       {saveBtn('Save Notification Settings', notifSaving, handleNotifSave)}
                     </div>
                   </div>
