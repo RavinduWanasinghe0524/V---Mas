@@ -1087,7 +1087,7 @@ const FuelAnalysisPage = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 16, marginBottom: 20 }}>
 
                 {/* Fuel Consumption Chart */}
-                <div style={{ ...card(D), gridColumn: '1 / -1' }}>
+                <div style={{ ...card(D) }}>
                   <FleetFuelConsumptionChart logs={allFuelLogs} D={D} isDark={isDark} />
                 </div>
 
