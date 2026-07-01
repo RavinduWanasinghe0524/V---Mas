@@ -4,7 +4,7 @@ import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import api, { profileAPI, fuelAPI, serviceAPI, vehicleAPI, userAPI } from '../services/api'
-import { User, Mail, Key, ShieldCheck, Shield, Globe, Fuel, Ruler, Calendar, Car, Wrench, Edit2, AlertCircle, CheckCircle, Eye, EyeOff, Check, Trophy, Activity, Lock, Settings, LogOut, Zap, Bell, Clock, Smartphone, Share2, UserCheck, X, Sun, Moon, FileText, Upload } from 'lucide-react'
+import { User, Key, ShieldCheck, Shield, Globe, Fuel, Ruler, Calendar, Car, Wrench, Edit2, AlertCircle, CheckCircle, Eye, EyeOff, Check, Trophy, Activity, Lock, Settings, LogOut, Zap, Bell, Clock, Share2, UserCheck, X, Sun, Moon, FileText, Upload } from 'lucide-react'
 import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 const Toggle = ({ checked, onChange, color = '#2563eb' }) => (
@@ -19,6 +19,8 @@ const ALERT_TYPES = [
   { key: 'FUEL', label: 'Fuel Inefficiency', icon: <Fuel size={13} /> },
   { key: 'OVERDUE', label: 'Overdue Service', icon: <AlertCircle size={13} /> },
 ]
+
+
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'
@@ -101,9 +103,7 @@ const ProfilePage = () => {
   const [showPasswords, setShowPasswords] = useState(false)
 
   const [fleetForm, setFleetForm] = useState({
-    distanceUnit: 'km',
     timezone: 'Asia/Colombo',
-    speedLimitAlert: '100',
     fuelReportingPeriod: 'monthly',
   })
   const [fleetSaving, setFleetSaving] = useState(false)
@@ -121,7 +121,6 @@ const ProfilePage = () => {
     emailNotifications: true,
     systemAlerts: true,
     alertTypes: ['SERVICE', 'INSURANCE', 'FUEL', 'OVERDUE'],
-    twoFactor: false,
     sessionTimeout: '30',
   })
   const [privacySaving, setPrivacySaving] = useState(false)
@@ -151,9 +150,31 @@ const ProfilePage = () => {
   // Handlers
   const closeModal = () => setActiveModal(null)
 
+  const fleetKey = `vmas-fleet-settings-${user?.id || 'me'}`
+  const privacyKey = `vmas-privacy-settings-${user?.id || 'me'}`
+
+  // Load saved fleet settings (timezone, fuel reporting period) on open
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(fleetKey)
+      if (saved) setFleetForm(prev => ({ ...prev, ...JSON.parse(saved) }))
+    } catch { /* ignore malformed storage */ }
+  }, [fleetKey])
+
+  // Load saved privacy/notification settings on open
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(privacyKey)
+      if (saved) setPrivacy(prev => ({ ...prev, ...JSON.parse(saved) }))
+    } catch { /* ignore malformed storage */ }
+  }, [privacyKey])
+
   const handleFleetSave = async () => {
     setFleetSaving(true)
-    await new Promise(r => setTimeout(r, 800))
+    try {
+      localStorage.setItem(fleetKey, JSON.stringify(fleetForm))
+    } catch { /* ignore storage errors */ }
+    await new Promise(r => setTimeout(r, 400))
     setFleetSaving(false)
     setFleetSaved(true)
     setTimeout(() => setFleetSaved(false), 3000)
@@ -161,6 +182,9 @@ const ProfilePage = () => {
 
   const handlePrivacySave = async () => {
     setPrivacySaving(true)
+    try {
+      localStorage.setItem(privacyKey, JSON.stringify(privacy))
+    } catch { /* ignore storage errors */ }
     await new Promise(r => setTimeout(r, 800))
     setPrivacySaving(false)
     setPrivacySaved(true)
@@ -169,6 +193,9 @@ const ProfilePage = () => {
 
   const handleNotifSave = async () => {
     setNotifSaving(true)
+    try {
+      localStorage.setItem(privacyKey, JSON.stringify(privacy))
+    } catch { /* ignore storage errors */ }
     await new Promise(r => setTimeout(r, 800))
     setNotifSaving(false)
     setNotifSaved(true)
@@ -215,7 +242,6 @@ const ProfilePage = () => {
     }
     setLicenseFile(null)
   }
-
   const toggleAlertType = key => setPrivacy(p => ({
     ...p,
     alertTypes: p.alertTypes.includes(key) ? p.alertTypes.filter(k => k !== key) : [...p.alertTypes, key],
@@ -386,11 +412,6 @@ const ProfilePage = () => {
     }
   }
 
-  const previewEmail = () => {
-    const preview = window.open('', '_blank', 'width=620,height=520')
-    preview.document.write(`<html><body style="font-family:sans-serif;background:#0b132b;color:#f3f4f6;padding:32px"><div style="max-width:560px;margin:0 auto;background:#1c2541;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08)"><div style="padding:28px 32px;background:linear-gradient(135deg,#172554,#1e3a8a,#1e40af)"><h1 style="margin:0;color:#fff;font-size:1.4rem">V-MAS Fleet Alert</h1><p style="margin:8px 0 0;color:#60a5fa;font-size:0.88rem">Fleet Management System</p></div><div style="padding:28px 32px"><h2 style="color:#3b82f6;font-size:1rem;margin:0 0 16px">⚠ Service Due Reminder</h2><p style="margin:0 0 8px"><b>Vehicle:</b> WP-CAA-1234</p><p style="margin:0 0 8px"><b>Alert:</b> Scheduled service due in 7 days</p><p style="margin:0 0 8px"><b>Due Date:</b> 2026-06-05</p><p style="margin:0 0 24px;color:#9ca3af">Please schedule a service appointment as soon as possible to avoid operational delays.</p><div style="background:#212b4a;padding:16px;border-radius:10px;border-left:3px solid #2563eb"><b style="color:#3b82f6">Action Required:</b><br><span style="font-size:0.88rem;color:#94a3b8">Contact your fleet controller to arrange service.</span></div></div><div style="padding:16px 32px;border-top:1px solid rgba(255,255,255,0.07);color:#4b5563;font-size:0.75rem">V-MAS Fleet Management · This is an automated alert</div></div></body></html>`)
-    preview.document.close()
-  }
 
   const saveBtn = (label, saving, onClick) => (
     <button
@@ -750,7 +771,7 @@ const ProfilePage = () => {
               {activeTab === 'security' && (
                 <div style={{ animation: 'fadeIn 0.3s ease' }}>
                   <h3 style={{ margin: '0 0 8px', fontSize: '1.2rem', fontWeight: 800, color: D.text }}>Security & Passwords</h3>
-                  <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: D.textSub }}>Change your login credentials, configure two-factor authentication, and adjust auto-logout timeout.</p>
+                  <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: D.textSub }}>Change your login credentials and adjust your auto-logout timeout.</p>
 
                   {pwError && <div style={{ padding: '12px 14px', borderRadius: 10, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><AlertCircle size={16} /> {pwError}</div>}
                   {pwSuccess && <div style={{ padding: '12px 14px', borderRadius: 10, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><CheckCircle size={16} /> {pwSuccess}</div>}
@@ -825,21 +846,6 @@ const ProfilePage = () => {
                     <div style={{ borderTop: `1px solid ${D.border}`, marginTop: 12, paddingTop: 20 }}>
                       <h4 style={{ margin: '0 0 16px', fontSize: '0.9rem', fontWeight: 800, color: D.text, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Device Security</h4>
                       
-                      {/* Two-Factor Auth toggle */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: `1px solid ${D.border}` }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                          <div style={{ width: 38, height: 38, borderRadius: 10, background: D.greenDim, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.green }}><Smartphone size={18} /></div>
-                          <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: D.text }}>Two-Factor Auth</div>
-                              {privacy.twoFactor && <span style={{ background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, padding: '1px 8px', borderRadius: 999, fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase' }}>Active</span>}
-                            </div>
-                            <div style={{ fontSize: '0.78rem', color: D.textSub, marginTop: 2 }}>Secure account with SMS/OTP validations</div>
-                          </div>
-                        </div>
-                        <Toggle checked={privacy.twoFactor} onChange={() => setPrivacy(p => ({ ...p, twoFactor: !p.twoFactor }))} color={D.green} />
-                      </div>
-
                       {/* Session Timeout select */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -871,7 +877,7 @@ const ProfilePage = () => {
               {activeTab === 'notifications' && (
                 <div style={{ animation: 'fadeIn 0.3s ease' }}>
                   <h3 style={{ margin: '0 0 8px', fontSize: '1.2rem', fontWeight: 800, color: D.text }}>Notification Settings</h3>
-                  <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: D.textSub }}>Control what alerts are sent to your email and which system status updates pop up in the app shell.</p>
+                  <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: D.textSub }}>Control which system status updates pop up in the app shell.</p>
 
                   {notifSaved && (
                     <div style={{ padding: '12px 14px', borderRadius: 10, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 20, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -880,20 +886,20 @@ const ProfilePage = () => {
                   )}
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                    {/* Email notifications */}
+                    {/* System Alerts */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0', borderBottom: `1px solid ${D.border}` }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div style={{ width: 42, height: 42, borderRadius: 12, background: D.indigoDim, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.indigo }}><Mail size={20} /></div>
+                        <div style={{ width: 42, height: 42, borderRadius: 12, background: D.orangeDim, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.orange }}><Bell size={20} /></div>
                         <div>
-                          <div style={{ fontSize: '0.95rem', fontWeight: 700, color: D.text }}>Email Notifications</div>
-                          <div style={{ fontSize: '0.8rem', color: D.textSub, marginTop: 2 }}>Receive service reminders, insurance renewals, and fuel inefficiency alerts</div>
+                          <div style={{ fontSize: '0.95rem', fontWeight: 700, color: D.text }}>System Push Notifications</div>
+                          <div style={{ fontSize: '0.8rem', color: D.textSub, marginTop: 2 }}>In-app alerts that notify you instantly of critical activities</div>
                         </div>
                       </div>
-                      <Toggle checked={privacy.emailNotifications} onChange={() => setPrivacy(p => ({ ...p, emailNotifications: !p.emailNotifications }))} color={D.indigo} />
+                      <Toggle checked={privacy.systemAlerts} onChange={() => setPrivacy(p => ({ ...p, systemAlerts: !p.systemAlerts }))} color={D.orange} />
                     </div>
 
                     {/* Preferences options */}
-                    {privacy.emailNotifications && (
+                    {privacy.systemAlerts && (
                       <div style={{ padding: '20px 0', borderBottom: `1px solid ${D.border}`, animation: 'fadeIn 0.25s ease' }}>
                         <label style={{ ...labelStyle, marginBottom: 12 }}>Filter Alert Types</label>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -916,27 +922,7 @@ const ProfilePage = () => {
                       </div>
                     )}
 
-                    {/* System Alerts */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0', borderBottom: `1px solid ${D.border}` }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div style={{ width: 42, height: 42, borderRadius: 12, background: D.orangeDim, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.orange }}><Bell size={20} /></div>
-                        <div>
-                          <div style={{ fontSize: '0.95rem', fontWeight: 700, color: D.text }}>System Push Notifications</div>
-                          <div style={{ fontSize: '0.8rem', color: D.textSub, marginTop: 2 }}>In-app alerts that notify you instantly of critical activities</div>
-                        </div>
-                      </div>
-                      <Toggle checked={privacy.systemAlerts} onChange={() => setPrivacy(p => ({ ...p, systemAlerts: !p.systemAlerts }))} color={D.orange} />
-                    </div>
-
-                    {/* Preview Sample Email */}
-                    <div style={{ padding: '20px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, borderTop: `1px solid ${D.border}`, marginTop: 24 }}>
-                      <button onClick={previewEmail} type="button"
-                        style={{ padding: '12px 20px', borderRadius: 12, border: `1px solid ${D.indigo}40`, background: D.indigoDim, color: D.indigo, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.15s ease' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = D.indigo; e.currentTarget.style.color = '#fff' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = D.indigoDim; e.currentTarget.style.color = D.indigo }}
-                      >
-                        <Mail size={15} /> Preview Sample Email Template
-                      </button>
+                    <div style={{ padding: '20px 0 0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap', gap: 12, borderTop: `1px solid ${D.border}`, marginTop: 24 }}>
                       {saveBtn('Save Notification Settings', notifSaving, handleNotifSave)}
                     </div>
                   </div>
@@ -1018,13 +1004,6 @@ const ProfilePage = () => {
                   <form onSubmit={e => { e.preventDefault(); handleFleetSave() }} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 24px' }}>
                       <div>
-                        <label style={labelStyle}>Default Distance Unit</label>
-                        <select value={fleetForm.distanceUnit} onChange={e => setFleetForm(prev => ({ ...prev, distanceUnit: e.target.value }))} style={inputStyle}>
-                          <option value="km">Kilometers (km)</option>
-                          <option value="mi">Miles (mi)</option>
-                        </select>
-                      </div>
-                      <div>
                         <label style={labelStyle}>System Timezone</label>
                         <select value={fleetForm.timezone} onChange={e => setFleetForm(prev => ({ ...prev, timezone: e.target.value }))} style={inputStyle}>
                           <option value="Asia/Colombo">Sri Lanka (Asia/Colombo) - GMT+5:30</option>
@@ -1033,15 +1012,7 @@ const ProfilePage = () => {
                           <option value="GMT">Greenwich Mean Time (GMT)</option>
                         </select>
                       </div>
-                      <div>
-                        <label style={labelStyle}>Speed Limit Warning Alert</label>
-                        <select value={fleetForm.speedLimitAlert} onChange={e => setFleetForm(prev => ({ ...prev, speedLimitAlert: e.target.value }))} style={inputStyle}>
-                          <option value="80">Over 80 km/h</option>
-                          <option value="100">Over 100 km/h</option>
-                          <option value="120">Over 120 km/h</option>
-                          <option value="never">Disabled</option>
-                        </select>
-                      </div>
+
                       <div>
                         <label style={labelStyle}>Fuel Inefficiency Reporting</label>
                         <select value={fleetForm.fuelReportingPeriod} onChange={e => setFleetForm(prev => ({ ...prev, fuelReportingPeriod: e.target.value }))} style={inputStyle}>

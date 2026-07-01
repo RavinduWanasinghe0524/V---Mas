@@ -113,6 +113,8 @@ const UsersPage = () => {
   const [deletedLoading, setDeletedLoading] = useState(false)
   const [restoringId, setRestoringId] = useState(null)
   const [deletedDetail, setDeletedDetail] = useState(null)
+  const [userToDelete, setUserToDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   const loadDeletedUsers = useCallback(async () => {
     setDeletedLoading(true)
@@ -283,18 +285,22 @@ const UsersPage = () => {
     setShowModal(true)
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return
+  const confirmDelete = async () => {
+    if (!userToDelete) return
     setError('')
     setActionMsg('')
+    setDeleting(true)
     try {
-      await userAPI.deleteUser(id)
+      await userAPI.deleteUser(userToDelete.id)
       setActionMsg('User has been deleted successfully.')
       setTimeout(() => setActionMsg(''), 4000)
       if (isAdmin || isController) loadUsers()
       loadPending()
+      setUserToDelete(null)
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to delete user')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -412,7 +418,7 @@ const UsersPage = () => {
       const submitData = { ...formData }
       if (!submitData.profilePicture)
         submitData.profilePicture = `https://ui-avatars.com/api/?name=${encodeURIComponent(submitData.userName)}&background=2563eb&color=fff&bold=true`
-      
+
       let savedUser = null
       if (editingUser) {
         if (!submitData.password) delete submitData.password
@@ -778,19 +784,19 @@ const UsersPage = () => {
                           statsToShow = [
                             { value: 'Full', label: 'Access' },
                             { value: 'Admin', label: 'Role' },
-                            { value: 'Active', label: 'Status' }
+                            { value: metrics.status || 'Active', label: 'Status' }
                           ]
                         } else if (u.role === 'CONTROLLER') {
                           statsToShow = [
                             { value: 'High', label: 'Access' },
                             { value: 'Controller', label: 'Role' },
-                            { value: 'Active', label: 'Status' }
+                            { value: metrics.status || 'Active', label: 'Status' }
                           ]
                         } else {
                           statsToShow = [
-                            { value: metrics.trips, label: 'Trips' },
-                            { value: `${metrics.rating}★`, label: 'Rating', isRating: true },
-                            { value: metrics.safety, label: 'Safety', isSafety: true }
+                            { value: 'Standard', label: 'Access' },
+                            { value: u.role === 'DRIVER' ? 'Driver' : (u.role || 'User'), label: 'Role' },
+                            { value: metrics.status || 'Active', label: 'Status' }
                           ]
                         }
 
@@ -842,7 +848,7 @@ const UsersPage = () => {
                                   )}
                                 </div>
                               </div>
-                              
+
                               {/* Duty Status Badge */}
                               <div style={{
                                 padding: '4px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 700,
@@ -858,7 +864,7 @@ const UsersPage = () => {
                               {statsToShow.map((st, sidx) => {
                                 let themeStyles = {}
                                 let stIcon = null
-                                
+
                                 if (sidx === 0) {
                                   themeStyles = {
                                     bg: isDark ? 'rgba(59, 130, 246, 0.04)' : 'rgba(59, 130, 246, 0.02)',
@@ -927,11 +933,11 @@ const UsersPage = () => {
                                   <>
                                     <button onClick={(e) => { e.stopPropagation(); handleApprove(u.id, u.userName); }} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: D.green, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.green}30` }}
                                       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                                        <Check size={14} /> Approve
+                                      <Check size={14} /> Approve
                                     </button>
                                     <button onClick={(e) => { e.stopPropagation(); handleReject(u.id, u.userName); }} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: D.red, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.red}30` }}
                                       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                                        <X size={14} /> Reject
+                                      <X size={14} /> Reject
                                     </button>
                                   </>
                                 )}
@@ -942,7 +948,7 @@ const UsersPage = () => {
                                       onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
                                       Edit
                                     </button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleDelete(u.id); }} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
+                                    <button onClick={(e) => { e.stopPropagation(); setUserToDelete(u); }} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
                                       onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
                                       onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = D.red }}>
                                       Delete
@@ -972,7 +978,7 @@ const UsersPage = () => {
         const initials = u.userName
           ? u.userName.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
           : 'U'
-          
+
         let dutyStyles = {
           bg: 'rgba(255,255,255,0.05)',
           color: D.textSub,
@@ -1039,28 +1045,7 @@ const UsersPage = () => {
 
               {/* Detail list */}
               <div style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20, overflowY: 'auto', flex: 1, scrollbarWidth: 'thin' }}>
-                {u.role === 'DRIVER' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 8 }}>
-                    <div style={{ background: 'rgba(59, 130, 246, 0.04)', border: `1px solid rgba(59, 130, 246, 0.15)`, borderRadius: 16, padding: '14px 6px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: D.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                        <BarChart2 size={12} /> {metrics.trips}
-                      </div>
-                      <div style={{ fontSize: '0.62rem', fontWeight: 800, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Trips</div>
-                    </div>
-                    <div style={{ background: 'rgba(251, 191, 36, 0.04)', border: `1px solid rgba(251, 191, 36, 0.15)`, borderRadius: 16, padding: '14px 6px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                        <Star size={12} fill="#fbbf24" style={{ stroke: 'none' }} /> {metrics.rating}
-                      </div>
-                      <div style={{ fontSize: '0.62rem', fontWeight: 800, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rating</div>
-                    </div>
-                    <div style={{ background: 'rgba(16, 185, 129, 0.04)', border: `1px solid rgba(16, 185, 129, 0.15)`, borderRadius: 16, padding: '14px 6px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                        <Activity size={12} /> {metrics.safety}
-                      </div>
-                      <div style={{ fontSize: '0.62rem', fontWeight: 800, color: D.textSub, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Safety</div>
-                    </div>
-                  </div>
-                )}
+
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>
@@ -1136,7 +1121,7 @@ const UsersPage = () => {
                                     const text = await err.response.data.text()
                                     const errorObj = JSON.parse(text)
                                     errMsg = errorObj.message || errMsg
-                                  } catch (e) {}
+                                  } catch (e) { }
                                 } else if (err.response?.data?.message) {
                                   errMsg = err.response.data.message
                                 }
@@ -1297,7 +1282,7 @@ const UsersPage = () => {
                                     const text = await err.response.data.text()
                                     const errorObj = JSON.parse(text)
                                     errMsg = errorObj.message || errMsg
-                                  } catch (e) {}
+                                  } catch (e) { }
                                 } else if (err.response?.data?.message) {
                                   errMsg = err.response.data.message
                                 }
@@ -1418,6 +1403,99 @@ const UsersPage = () => {
           </div>
         </div>
       )}
+      {/* ── Delete (Archive) Confirmation Modal ──────────────────── */}
+      {userToDelete && (
+        <div onClick={() => !deleting && setUserToDelete(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20, animation: 'fadeIn 0.2s ease' }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ position: 'relative', width: '100%', maxWidth: 440, background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 32px 80px rgba(0,0,0,0.5)', padding: '36px 32px', textAlign: 'center', animation: 'scaleIn 0.25s cubic-bezier(0.16,1,0.3,1)' }}>
+            <button 
+              type="button"
+              onClick={() => !deleting && setUserToDelete(null)} 
+              disabled={deleting}
+              style={{ 
+                position: 'absolute',
+                top: 20,
+                right: 20,
+                background: 'transparent', 
+                border: 'none', 
+                borderRadius: 10, 
+                padding: 8, 
+                color: D.textSub, 
+                cursor: deleting ? 'not-allowed' : 'pointer', 
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }} 
+              onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }} 
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <X size={18} />
+            </button>
+            <div style={{ width: 64, height: 64, borderRadius: 18, background: D.redDim, border: `1px solid ${D.red}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.red, margin: '0 auto 20px' }}>
+              <Trash2 size={28} />
+            </div>
+            <h3 style={{ margin: '0 0 10px', fontSize: '1.3rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+              Are you sure to delete "{userToDelete.userName}"?
+            </h3>
+            <p style={{ margin: '0 0 28px', fontSize: '0.9rem', color: D.textSub, lineHeight: 1.6 }}>
+              This account will be moved to Deleted Users. It will be removed from the active list but can be restored at any time.
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button 
+                type="button" 
+                onClick={() => setUserToDelete(null)} 
+                disabled={deleting}
+                style={{ 
+                  flex: 1, 
+                  maxWidth: 170,
+                  padding: '11px 20px', 
+                  borderRadius: 12, 
+                  border: `1px solid ${D.border}`, 
+                  background: 'transparent', 
+                  color: D.text, 
+                  cursor: deleting ? 'not-allowed' : 'pointer', 
+                  fontSize: '0.88rem', 
+                  fontWeight: 700, 
+                  transition: 'all 0.2s',
+                  fontFamily: 'inherit'
+                }} 
+                onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }} 
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={confirmDelete} 
+                disabled={deleting}
+                style={{ 
+                  flex: 1, 
+                  maxWidth: 170,
+                  padding: '11px 20px', 
+                  borderRadius: 12, 
+                  border: 'none', 
+                  background: D.red, 
+                  color: '#fff', 
+                  fontSize: '0.88rem', 
+                  fontWeight: 700, 
+                  cursor: deleting ? 'not-allowed' : 'pointer', 
+                  transition: 'all 0.2s', 
+                  boxShadow: isDark ? '0 4px 12px rgba(239,68,68,0.3)' : '0 4px 12px rgba(239,68,68,0.2)',
+                  fontFamily: 'inherit',
+                  opacity: deleting ? 0.7 : 1
+                }} 
+                onMouseEnter={e => { if (!deleting) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = isDark ? '0 6px 16px rgba(239,68,68,0.4)' : '0 6px 16px rgba(239,68,68,0.3)' } }} 
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isDark ? '0 4px 12px rgba(239,68,68,0.3)' : '0 4px 12px rgba(239,68,68,0.2)' }}
+              >
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Deleted Users Drawer ─────────────────────────────────── */}
       {deletedDrawer && (
         <div

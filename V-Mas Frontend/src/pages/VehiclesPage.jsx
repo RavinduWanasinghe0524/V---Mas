@@ -242,6 +242,11 @@ const VehiclesPage = () => {
   const [newOdometerValue, setNewOdometerValue] = useState('')
   const [odometerError, setOdometerError] = useState('')
 
+  const [isFuelModalOpen, setIsFuelModalOpen] = useState(false)
+  const [fuelModalVehicle, setFuelModalVehicle] = useState(null)
+  const [newFuelValue, setNewFuelValue] = useState('')
+  const [fuelModalError, setFuelModalError] = useState('')
+
   const [deletedDrawer, setDeletedDrawer] = useState(false)
   const [deletedVehicles, setDeletedVehicles] = useState([])
   const [deletedLoading, setDeletedLoading] = useState(false)
@@ -296,6 +301,54 @@ const VehiclesPage = () => {
     setIsOdometerModalOpen(true)
   }
 
+  const openFuelModal = (e, vehicle) => {
+    e.stopPropagation()
+    setFuelModalVehicle(vehicle)
+    setNewFuelValue(vehicle.fuelType?.toUpperCase() || '')
+    setFuelModalError('')
+    setIsFuelModalOpen(true)
+  }
+
+  const handleFuelSubmit = async (e) => {
+    e.preventDefault()
+    setFuelModalError('')
+    if (!newFuelValue) {
+      setFuelModalError('Please select a fuel type.')
+      return
+    }
+    try {
+      await vehicleAPI.updateVehicle(fuelModalVehicle.id, {
+        model: fuelModalVehicle.model,
+        registrationNo: fuelModalVehicle.registrationNo,
+        chassisNumber: fuelModalVehicle.chassisNumber,
+        manufacturer: fuelModalVehicle.manufacturer,
+        year: fuelModalVehicle.year,
+        fuelType: newFuelValue.toUpperCase(),
+        currentMileageKm: fuelModalVehicle.currentMileageKm,
+        fuelCapacity: fuelModalVehicle.fuelCapacity ? Number(fuelModalVehicle.fuelCapacity) : null,
+        insuranceExpiryDate: fuelModalVehicle.insuranceExpiryDate || null,
+        licenseExpiryDate: fuelModalVehicle.licenseExpiryDate || null,
+        status: fuelModalVehicle.status
+      })
+      const response = await vehicleAPI.getAllVehicles()
+      const updatedList = response.data.data || []
+      setVehicles(updatedList)
+
+      const updatedVeh = updatedList.find(v => v.id === fuelModalVehicle.id)
+      if (selectedProfileVehicle && selectedProfileVehicle.id === fuelModalVehicle.id && updatedVeh) {
+        setSelectedProfileVehicle(updatedVeh)
+      }
+
+      setIsFuelModalOpen(false)
+      setFuelModalVehicle(null)
+      setNewFuelValue('')
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Failed to update fuel type.'
+      setFuelModalError(msg)
+      console.error('Error updating fuel type:', err)
+    }
+  }
+
 
   // --- VEHICLE PROFILE STATE ---
   const [selectedProfileVehicle, setSelectedProfileVehicle] = useState(null)
@@ -313,9 +366,9 @@ const VehiclesPage = () => {
     }
   }
 
-  const openProfile = async (vehicle) => {
+  const openProfile = async (vehicle, initialTab = 'overview') => {
     setSelectedProfileVehicle(vehicle)
-    setProfileActiveTab('overview')
+    setProfileActiveTab(initialTab)
     setIsProfileOpen(true)
     setLoadingProfileFuel(true)
     try {
@@ -547,7 +600,7 @@ const VehiclesPage = () => {
           openProfile(v)
           navigate(location.pathname, { replace: true, state: {} })
         }
-      } else if (location.state?.openAddVehicle) {
+      } else if (location.state?.openAddVehicle && isController) {
         openModal()
         if (location.state?.fromOneClick) setFromQuickCommand(true)
         navigate(location.pathname, { replace: true, state: {} })
@@ -676,7 +729,9 @@ const VehiclesPage = () => {
     }
   }
 
-  const openModal = () => setIsModalOpen(true)
+  const openModal = () => {
+    if (isController) setIsModalOpen(true)
+  }
 
   const closeModal = () => {
     setIsModalOpen(false)
@@ -1036,17 +1091,19 @@ const VehiclesPage = () => {
                     onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)' }}>
                     <Download size={18} /> Export Excel
                   </button>
-                  <button onClick={openModal} style={{
-                    position: 'relative', padding: '14px 28px', borderRadius: 16, border: 'none',
-                    background: '#fff', color: '#1e3a8a', fontSize: '0.95rem', fontWeight: 800,
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
-                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.25)', whiteSpace: 'nowrap'
-                  }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}>
-                    <Plus size={20} strokeWidth={3} /> Add Vehicle
-                  </button>
+                  {isController && (
+                    <button onClick={openModal} style={{
+                      position: 'relative', padding: '14px 28px', borderRadius: 16, border: 'none',
+                      background: '#fff', color: '#1e3a8a', fontSize: '0.95rem', fontWeight: 800,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                      boxShadow: '0 8px 30px rgba(0,0,0,0.25)', whiteSpace: 'nowrap'
+                    }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}>
+                      <Plus size={20} strokeWidth={3} /> Add Vehicle
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -1476,10 +1533,9 @@ const VehiclesPage = () => {
                               style={{
                                 borderBottom: `1px solid ${D.border}`,
                                 transition: 'background 0.2s ease',
-                                cursor: 'pointer',
+                                cursor: 'default',
                                 background: D.surface
                               }}
-                              onClick={() => openProfile(v)}
                               onMouseEnter={e => { e.currentTarget.style.background = D.surfaceHi }}
                               onMouseLeave={e => { e.currentTarget.style.background = D.surface }}
                             >
@@ -1617,9 +1673,8 @@ const VehiclesPage = () => {
                           style={{
                             background: D.surface, border: `1px solid ${defaultBorderColor}`, borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column', gap: 20,
                             transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                            cursor: 'pointer'
+                            cursor: 'default'
                           }}
-                          onClick={() => openProfile(v)}
                           onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.2)' }}
                           onMouseLeave={e => { e.currentTarget.style.borderColor = defaultBorderColor; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)' }}>
 
@@ -1638,16 +1693,11 @@ const VehiclesPage = () => {
                               </div>
                               {/* Name and Subtitle */}
                               <div>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); openProfile(v); }}
+                                <div
                                   style={{
-                                    background: 'none', border: 'none', padding: 0, margin: 0,
                                     fontSize: '1.05rem', fontWeight: 955, color: D.blue, letterSpacing: '0.02em',
-                                    cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
-                                    transition: 'color 0.15s ease', display: 'flex', alignItems: 'center', gap: 6
+                                    display: 'flex', alignItems: 'center', gap: 6
                                   }}
-                                  onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'}
-                                  onMouseLeave={e => e.currentTarget.style.color = D.blue}
                                 >
                                   {v.registrationNo ?? 'N/A'}
                                   {(isInsExpired || isLicExpired) ? (
@@ -1655,7 +1705,7 @@ const VehiclesPage = () => {
                                   ) : (isInsAlert || isLicAlert) ? (
                                     <AlertTriangle size={14} style={{ color: D.orange }} title={isInsAlert ? "Insurance Expiring Soon" : "License Expiring Soon"} />
                                   ) : null}
-                                </button>
+                                </div>
                                 <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500 }}>
                                   {v.manufacturer ?? 'N/A'} {v.model ?? ''}
                                 </p>
@@ -1697,33 +1747,57 @@ const VehiclesPage = () => {
                               </div>
                             </div>
 
-                            <div style={{
-                              background: isDark ? 'rgba(245, 158, 11, 0.03)' : 'rgba(245, 158, 11, 0.02)',
-                              border: isDark ? '1px solid rgba(245, 158, 11, 0.15)' : '1px solid rgba(245, 158, 11, 0.1)',
-                              borderRadius: 16, padding: '14px 6px', textAlign: 'center',
-                              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
-                            }}>
+                            <div 
+                              onClick={(e) => { e.stopPropagation(); openFuelModal(e, v); }}
+                              style={{
+                                background: isDark ? 'rgba(245, 158, 11, 0.04)' : 'rgba(245, 158, 11, 0.02)',
+                                border: isDark ? '1px solid rgba(245, 158, 11, 0.15)' : '1px solid rgba(245, 158, 11, 0.1)',
+                                borderRadius: 16, padding: '14px 6px', textAlign: 'center',
+                                position: 'relative', cursor: 'pointer', transition: 'all 0.25s ease',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.borderColor = '#f59e0b'; e.currentTarget.style.background = 'rgba(245, 158, 11, 0.08)'; e.currentTarget.style.transform = 'scale(1.03)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.borderColor = isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.1)'; e.currentTarget.style.background = isDark ? 'rgba(245, 158, 11, 0.04)' : 'rgba(245, 158, 11, 0.02)'; e.currentTarget.style.transform = 'scale(1)'; }}
+                              title="Quick Update Fuel Type"
+                            >
                               <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
                                 <Fuel size={11} style={{ color: '#f59e0b', opacity: 0.8 }} />
                                 <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Fuel</span>
                               </div>
-                              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: D.text }}>
+                              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: D.text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                                 {v.fuelType ?? 'N/A'}
+                                <Edit2 size={10} style={{ opacity: 0.6, color: '#f59e0b' }} />
                               </div>
                             </div>
 
-                            <div style={{
-                              background: ac ? (ac.label === 'Overdue' ? 'rgba(239, 68, 68, 0.03)' : 'rgba(16, 185, 129, 0.03)') : 'rgba(16, 185, 129, 0.03)',
-                              border: `1px solid ${ac ? (ac.label === 'Overdue' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)') : 'rgba(16, 185, 129, 0.15)'}`,
-                              borderRadius: 16, padding: '14px 6px', textAlign: 'center',
-                              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
-                            }}>
+                            <div 
+                              onClick={(e) => { e.stopPropagation(); openProfile(v, 'services'); }}
+                              style={{
+                                background: ac ? (ac.label === 'Overdue' ? 'rgba(239, 68, 68, 0.04)' : 'rgba(16, 185, 129, 0.04)') : 'rgba(16, 185, 129, 0.04)',
+                                border: `1px solid ${ac ? (ac.label === 'Overdue' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)') : 'rgba(16, 185, 129, 0.15)'}`,
+                                borderRadius: 16, padding: '14px 6px', textAlign: 'center',
+                                position: 'relative', cursor: 'pointer', transition: 'all 0.25s ease',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+                              }}
+                              onMouseEnter={e => { 
+                                e.currentTarget.style.borderColor = ac ? ac.color : '#10b981'; 
+                                e.currentTarget.style.background = ac ? (ac.label === 'Overdue' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)') : 'rgba(16, 185, 129, 0.08)'; 
+                                e.currentTarget.style.transform = 'scale(1.03)'; 
+                              }}
+                              onMouseLeave={e => { 
+                                e.currentTarget.style.borderColor = ac ? (ac.label === 'Overdue' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)') : 'rgba(16, 185, 129, 0.15)'; 
+                                e.currentTarget.style.background = ac ? (ac.label === 'Overdue' ? 'rgba(239, 68, 68, 0.04)' : 'rgba(16, 185, 129, 0.04)') : 'rgba(16, 185, 129, 0.04)'; 
+                                e.currentTarget.style.transform = 'scale(1)'; 
+                              }}
+                              title="View Service Target"
+                            >
                               <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
                                 <Wrench size={11} style={{ color: ac ? ac.color : '#10b981', opacity: 0.8 }} />
                                 <span style={{ fontSize: '0.62rem', fontWeight: 800, color: ac ? ac.color : '#10b981', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Service</span>
                               </div>
-                              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: ac ? ac.color : D.text }}>
+                              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: ac ? ac.color : D.text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                                 {ac ? ac.label : 'OK'}
+                                <ArrowUpRight size={10} style={{ opacity: 0.6, color: ac ? ac.color : '#10b981' }} />
                               </div>
                             </div>
                           </div>
@@ -3539,6 +3613,65 @@ const VehiclesPage = () => {
                     <Check size={16} /> Save Mileage
                   </button>
                   <button type="button" onClick={() => { setIsOdometerModalOpen(false); setOdometerVehicle(null); }} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ── Fuel Quick Update Modal ────────────────────────────── */}
+        {isFuelModalOpen && fuelModalVehicle && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1250, animation: 'fadeIn 0.25s ease' }} onClick={() => { setIsFuelModalOpen(false); setFuelModalVehicle(null); }}>
+            <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 440, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+              <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#fff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0 }}>
+                    <Fuel size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Update Fuel Type</h3>
+                    <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#60a5fa', fontWeight: 600 }}>{fuelModalVehicle.registrationNo}</p>
+                  </div>
+                </div>
+                <button onClick={() => { setIsFuelModalOpen(false); setFuelModalVehicle(null); }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 8, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }}><X size={18} /></button>
+              </div>
+
+              <form onSubmit={handleFuelSubmit} style={{ padding: '28px 32px' }}>
+                <div style={{ marginBottom: 24 }}>
+                  <label style={labelStyle}>Fuel Type</label>
+                  <select
+                    value={newFuelValue}
+                    onChange={e => setNewFuelValue(e.target.value)}
+                    required
+                    style={{ ...inputStyle, cursor: 'pointer' }}
+                    onFocus={onFocus}
+                    onBlur={onBlur}
+                    autoFocus
+                  >
+                    <option value="" style={{ background: D.surfaceHi }}>Select Fuel Type</option>
+                    <option value="PETROL" style={{ background: D.surfaceHi }}>Petrol</option>
+                    <option value="DIESEL" style={{ background: D.surfaceHi }}>Diesel</option>
+                    <option value="ELECTRIC" style={{ background: D.surfaceHi }}>Electric</option>
+                    <option value="HYBRID" style={{ background: D.surfaceHi }}>Hybrid</option>
+                  </select>
+                  <p style={{ margin: '6px 0 0', fontSize: '0.7rem', color: D.textSub }}>
+                    Previous: <strong style={{ color: D.text }}>{fuelModalVehicle.fuelType || 'N/A'}</strong>
+                  </p>
+                </div>
+
+                {fuelModalError && (
+                  <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', color: D.red, fontSize: '0.8rem', fontWeight: 600 }}>
+                    ⚠ {fuelModalError}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(37, 99, 235,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Check size={16} /> Save Fuel Type
+                  </button>
+                  <button type="button" onClick={() => { setIsFuelModalOpen(false); setFuelModalVehicle(null); }} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
                     Cancel
                   </button>
                 </div>
