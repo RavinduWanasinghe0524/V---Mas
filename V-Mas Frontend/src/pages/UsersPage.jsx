@@ -1412,18 +1412,60 @@ const UsersPage = () => {
             <div style={{ width: 64, height: 64, borderRadius: 18, background: D.redDim, border: `1px solid ${D.red}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.red, margin: '0 auto 20px' }}>
               <Trash2 size={28} />
             </div>
-            <h3 style={{ margin: '0 0 10px', fontSize: '1.3rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Delete this user?</h3>
+            <h3 style={{ margin: '0 0 10px', fontSize: '1.3rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+              Are you sure to delete "{userToDelete.userName}"?
+            </h3>
             <p style={{ margin: '0 0 28px', fontSize: '0.9rem', color: D.textSub, lineHeight: 1.6 }}>
-              This account for <span style={{ color: D.text, fontWeight: 700 }}>{userToDelete.userName}</span> will be moved to Deleted Users. It will be removed from the active list but can be restored at any time.
+              This account will be moved to Deleted Users. It will be removed from the active list but can be restored at any time.
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-              <button onClick={() => setUserToDelete(null)} disabled={deleting}
-                style={{ flex: 1, maxWidth: 170, padding: '13px', borderRadius: 14, border: `1px solid ${D.border}`, background: D.surfaceHi, color: D.text, fontSize: '0.95rem', fontWeight: 800, cursor: deleting ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-                Keep User
+              <button 
+                type="button" 
+                onClick={() => setUserToDelete(null)} 
+                disabled={deleting}
+                style={{ 
+                  flex: 1, 
+                  maxWidth: 170,
+                  padding: '11px 20px', 
+                  borderRadius: 12, 
+                  border: `1px solid ${D.border}`, 
+                  background: 'transparent', 
+                  color: D.text, 
+                  cursor: deleting ? 'not-allowed' : 'pointer', 
+                  fontSize: '0.88rem', 
+                  fontWeight: 700, 
+                  transition: 'all 0.2s',
+                  fontFamily: 'inherit'
+                }} 
+                onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }} 
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                Cancel
               </button>
-              <button onClick={confirmDelete} disabled={deleting}
-                style={{ flex: 1, maxWidth: 170, padding: '13px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#f87171,#ef4444)', color: '#fff', fontSize: '0.95rem', fontWeight: 800, cursor: deleting ? 'not-allowed' : 'pointer', boxShadow: '0 8px 24px rgba(239,68,68,0.4)', opacity: deleting ? 0.7 : 1, fontFamily: 'inherit' }}>
-                {deleting ? 'Deleting…' : 'Delete User'}
+              <button 
+                type="button" 
+                onClick={confirmDelete} 
+                disabled={deleting}
+                style={{ 
+                  flex: 1, 
+                  maxWidth: 170,
+                  padding: '11px 20px', 
+                  borderRadius: 12, 
+                  border: 'none', 
+                  background: D.red, 
+                  color: '#fff', 
+                  fontSize: '0.88rem', 
+                  fontWeight: 700, 
+                  cursor: deleting ? 'not-allowed' : 'pointer', 
+                  transition: 'all 0.2s', 
+                  boxShadow: isDark ? '0 4px 12px rgba(239,68,68,0.3)' : '0 4px 12px rgba(239,68,68,0.2)',
+                  fontFamily: 'inherit',
+                  opacity: deleting ? 0.7 : 1
+                }} 
+                onMouseEnter={e => { if (!deleting) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = isDark ? '0 6px 16px rgba(239,68,68,0.4)' : '0 6px 16px rgba(239,68,68,0.3)' } }} 
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isDark ? '0 4px 12px rgba(239,68,68,0.3)' : '0 4px 12px rgba(239,68,68,0.2)' }}
+              >
+                {deleting ? 'Deleting…' : 'Delete'}
               </button>
             </div>
           </div>
