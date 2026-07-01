@@ -954,6 +954,121 @@ const getVehicleMilestones = (vehicle, services, intervals) => {
 }
 
 
+/* ── Service Cost Trend Chart (Area / Line) ─────────────────────── */
+const ServiceCostTrendChart = ({ services, D }) => {
+  const completedOnly = services.filter(s => s.serviceDate && s.serviceCost)
+  const monthMap = {}
+  completedOnly.forEach(s => {
+    const d = new Date(s.serviceDate)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const label = d.toLocaleString('default', { month: 'short' })
+    if (!monthMap[key]) monthMap[key] = { label, cost: 0 }
+    monthMap[key].cost += Number(s.serviceCost || 0)
+  })
+  const entries = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).slice(-6)
+  if (entries.length === 0) return (
+    <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.textSub, fontSize: '0.85rem' }}>No completed service data</div>
+  )
+
+  const W = 600, H = 160, PAD = { t: 10, b: 30, l: 50, r: 10 }
+  const costs = entries.map(([, v]) => v.cost)
+  const maxC = Math.max(...costs, 1)
+  const range = maxC || 1
+
+  const pts = costs.map((c, i) => ({
+    x: costs.length === 1
+      ? (W - PAD.l - PAD.r) / 2 + PAD.l
+      : PAD.l + (i / (costs.length - 1)) * (W - PAD.l - PAD.r),
+    y: PAD.t + (1 - c / range) * (H - PAD.t - PAD.b),
+  }))
+  const polyline = pts.map(p => `${p.x},${p.y}`).join(' ')
+  const area = costs.length === 1
+    ? `${pts[0].x - 20},${H - PAD.b} ${pts[0].x},${pts[0].y} ${pts[0].x + 20},${H - PAD.b}`
+    : `${pts[0].x},${H - PAD.b} ` + pts.map(p => `${p.x},${p.y}`).join(' ') + ` ${pts[pts.length - 1].x},${H - PAD.b}`
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map(f => ({ y: PAD.t + (1 - f) * (H - PAD.t - PAD.b), val: Math.round(f * maxC / 1000) + 'k' }))
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', overflow: 'visible' }}>
+      <defs>
+        <linearGradient id="svcCostGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      {yTicks.map(({ y, val }, i) => (
+        <g key={i}>
+          <line x1={PAD.l} y1={y} x2={W - PAD.r} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
+          <text x={PAD.l - 6} y={y + 4} textAnchor="end" fill="rgba(148,163,184,0.7)" fontSize={9} fontWeight={600}>{val}</text>
+        </g>
+      ))}
+      <polygon points={area} fill="url(#svcCostGrad)" />
+      <polyline points={polyline} fill="none" stroke="#06b6d4" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+      {pts.map((p, i) => (
+        <g key={i}>
+          <circle cx={p.x} cy={p.y} r={4} fill="#0b132b" stroke="#06b6d4" strokeWidth={2.5}>
+            <title>{`LKR ${Math.round(costs[i]).toLocaleString()}`}</title>
+          </circle>
+          <text x={p.x} y={H - 8} textAnchor="middle" fill="rgba(148,163,184,0.8)" fontSize={10} fontWeight={600}>{entries[i][1].label}</text>
+        </g>
+      ))}
+    </svg>
+  )
+}
+
+/* ── Service Cost by Vehicle Bar Chart ───────────────────────────── */
+const ServiceVehicleCostChart = ({ services, D }) => {
+  const vMap = {}
+  services.forEach(s => {
+    if (!s.vehicleRegNumber || !s.serviceCost) return
+    if (!vMap[s.vehicleRegNumber]) vMap[s.vehicleRegNumber] = 0
+    vMap[s.vehicleRegNumber] += Number(s.serviceCost || 0)
+  })
+  const entries = Object.entries(vMap).sort((a, b) => b[1] - a[1]).slice(0, 7)
+  if (entries.length === 0) return (
+    <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.textSub, fontSize: '0.85rem' }}>No cost data</div>
+  )
+
+  const W = 540, H = 180, PAD = { t: 10, b: 40, l: 10, r: 10 }
+  const maxC = Math.max(...entries.map(([, v]) => v), 1)
+  const barW = Math.min(36, (W - PAD.l - PAD.r) / entries.length - 12)
+  const gap = (W - PAD.l - PAD.r - entries.length * barW) / (entries.length + 1)
+  const topVal = Math.ceil(maxC / 1000) * 1000
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map(f => ({ y: PAD.t + (1 - f) * (H - PAD.t - PAD.b), val: Math.round(f * topVal / 1000) + 'k' }))
+  const colors = ['#3b82f6', '#60a5fa', '#818cf8', '#a78bfa', '#7dd3fc', '#38bdf8', '#6366f1']
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', overflow: 'visible' }}>
+      <defs>
+        {entries.map((_, i) => (
+          <linearGradient key={i} id={`svbg${i}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={colors[i % colors.length]} stopOpacity="1" />
+            <stop offset="100%" stopColor={colors[i % colors.length]} stopOpacity="0.4" />
+          </linearGradient>
+        ))}
+      </defs>
+      {yTicks.map(({ y, val }, i) => (
+        <g key={i}>
+          <line x1={PAD.l} y1={y} x2={W - PAD.r} y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth={1} />
+          <text x={PAD.l} y={y - 3} fill="rgba(148,163,184,0.6)" fontSize={9} fontWeight={600}>{val}</text>
+        </g>
+      ))}
+      {entries.map(([reg, cost], i) => {
+        const bH = Math.max((cost / maxC) * (H - PAD.t - PAD.b), cost > 0 ? 4 : 0)
+        const x = PAD.l + gap + i * (barW + gap)
+        const shortReg = reg.replace(/^[A-Z]+-/, '').slice(-7)
+        return (
+          <g key={reg}>
+            <rect x={x} y={H - PAD.b - bH} width={barW} height={bH} rx={4} fill={`url(#svbg${i})`}>
+              <title>{`${reg}: LKR ${Math.round(cost).toLocaleString()}`}</title>
+            </rect>
+            <text x={x + barW / 2} y={H - PAD.b + 12} textAnchor="middle" fill="rgba(148,163,184,0.75)" fontSize={8} fontWeight={700}>{shortReg}</text>
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
 /* ══════════════════════════════════════════════════════════════════
    MAIN PAGE
 ══════════════════════════════════════════════════════════════════ */
@@ -2767,6 +2882,47 @@ const ServicePage = () => {
                     )
                   })}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Analytics Charts Row (Admin / Controller only) ── */}
+          {!isDriver && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 24,
+              marginBottom: 28,
+              animation: 'fadeSlideUp 0.4s ease 0.2s both',
+            }}>
+              {/* Service Cost Trend */}
+              <div style={{
+                background: D.surface,
+                borderRadius: 20,
+                border: `1px solid ${D.border}`,
+                padding: '24px 28px',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+              }}>
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>Service Cost Trend</div>
+                  <div style={{ fontSize: '0.75rem', color: D.textSub, marginTop: 2 }}>Monthly spend (LKR thousands)</div>
+                </div>
+                <ServiceCostTrendChart services={services} D={D} />
+              </div>
+
+              {/* Cost by Vehicle */}
+              <div style={{
+                background: D.surface,
+                borderRadius: 20,
+                border: `1px solid ${D.border}`,
+                padding: '24px 28px',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+              }}>
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>Cost by Vehicle</div>
+                  <div style={{ fontSize: '0.75rem', color: D.textSub, marginTop: 2 }}>Lifetime service spend per reg no.</div>
+                </div>
+                <ServiceVehicleCostChart services={services} D={D} />
               </div>
             </div>
           )}
