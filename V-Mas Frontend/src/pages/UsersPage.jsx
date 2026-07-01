@@ -1408,7 +1408,31 @@ const UsersPage = () => {
         <div onClick={() => !deleting && setUserToDelete(null)}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20, animation: 'fadeIn 0.2s ease' }}>
           <div onClick={e => e.stopPropagation()}
-            style={{ width: '100%', maxWidth: 440, background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 32px 80px rgba(0,0,0,0.5)', padding: '36px 32px', textAlign: 'center', animation: 'scaleIn 0.25s cubic-bezier(0.16,1,0.3,1)' }}>
+            style={{ position: 'relative', width: '100%', maxWidth: 440, background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 32px 80px rgba(0,0,0,0.5)', padding: '36px 32px', textAlign: 'center', animation: 'scaleIn 0.25s cubic-bezier(0.16,1,0.3,1)' }}>
+            <button 
+              type="button"
+              onClick={() => !deleting && setUserToDelete(null)} 
+              disabled={deleting}
+              style={{ 
+                position: 'absolute',
+                top: 20,
+                right: 20,
+                background: 'transparent', 
+                border: 'none', 
+                borderRadius: 10, 
+                padding: 8, 
+                color: D.textSub, 
+                cursor: deleting ? 'not-allowed' : 'pointer', 
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }} 
+              onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }} 
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <X size={18} />
+            </button>
             <div style={{ width: 64, height: 64, borderRadius: 18, background: D.redDim, border: `1px solid ${D.red}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.red, margin: '0 auto 20px' }}>
               <Trash2 size={28} />
             </div>
