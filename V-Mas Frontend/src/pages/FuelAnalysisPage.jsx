@@ -882,7 +882,7 @@ const FuelAnalysisPage = () => {
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
                         <tr>
-                          {['DATE', 'VEHICLE', 'DRIVER', 'STATION', 'LITERS', 'COST', 'KM/L'].map(h => (
+                          {['DATE', 'VEHICLE', 'DRIVER', 'LITERS', 'COST', 'KM/L'].map(h => (
                             <th key={h} style={hStyle}>{h}</th>
                           ))}
                         </tr>
@@ -906,12 +906,6 @@ const FuelAnalysisPage = () => {
                               </td>
                               <td style={{ ...colStyle('130px'), color: D.text }}>
                                 {log.driverUsername || log.uploadedBy || '—'}
-                              </td>
-                              <td style={{ ...colStyle('150px'), color: D.textSub }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                  <MapPin size={12} style={{ opacity: 0.5 }} />
-                                  {station}
-                                </span>
                               </td>
                               <td style={{ ...colStyle('80px'), color: D.text }}>
                                 {log.liters != null ? log.liters.toFixed(1) : '—'} L
