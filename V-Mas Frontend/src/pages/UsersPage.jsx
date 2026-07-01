@@ -115,6 +115,7 @@ const UsersPage = () => {
   const [deletedDetail, setDeletedDetail] = useState(null)
   const [userToDelete, setUserToDelete] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [confirmAction, setConfirmAction] = useState(null) // { type: 'approve'|'reject', id, username }
 
   const loadDeletedUsers = useCallback(async () => {
     setDeletedLoading(true)
@@ -221,33 +222,33 @@ const UsersPage = () => {
     }
   }
 
-  const handleApprove = async (id, username) => {
-    if (!window.confirm(`Approve user "${username}" and activate their account?`)) return
-    setError('')
-    setActionMsg('')
-    try {
-      await userAPI.approveUser(id)
-      setActionMsg(`${username} has been approved.`)
-      setTimeout(() => setActionMsg(''), 4000)
-      loadPending()
-      if (isAdmin || isController) loadUsers()
-    } catch (e) {
-      setError(e.response?.data?.message || 'Failed to approve user')
-    }
+  const handleApprove = (id, username) => {
+    setConfirmAction({ type: 'approve', id, username })
   }
 
-  const handleReject = async (id, username) => {
-    if (!window.confirm(`Reject "${username}"? Their account will be set to Inactive.`)) return
+  const handleReject = (id, username) => {
+    setConfirmAction({ type: 'reject', id, username })
+  }
+
+  const executeConfirmAction = async () => {
+    if (!confirmAction) return
+    const { type, id, username } = confirmAction
+    setConfirmAction(null)
     setError('')
     setActionMsg('')
     try {
-      await userAPI.rejectUser(id)
-      setActionMsg(`${username}'s account has been rejected.`)
+      if (type === 'approve') {
+        await userAPI.approveUser(id)
+        setActionMsg(`${username} has been approved.`)
+      } else {
+        await userAPI.rejectUser(id)
+        setActionMsg(`${username}'s account has been rejected.`)
+      }
       setTimeout(() => setActionMsg(''), 4000)
       loadPending()
       if (isAdmin || isController) loadUsers()
     } catch (e) {
-      setError(e.response?.data?.message || 'Failed to reject user')
+      setError(e.response?.data?.message || (type === 'approve' ? 'Failed to approve user' : 'Failed to reject user'))
     }
   }
 
@@ -1490,6 +1491,84 @@ const UsersPage = () => {
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isDark ? '0 4px 12px rgba(239,68,68,0.3)' : '0 4px 12px rgba(239,68,68,0.2)' }}
               >
                 {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Approve / Reject Confirmation Modal ───────────────────── */}
+      {confirmAction && (
+        <div
+          onClick={() => setConfirmAction(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20, animation: 'fadeIn 0.2s ease' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ position: 'relative', width: '100%', maxWidth: 440, background: D.surface, borderRadius: 28, border: `1px solid ${D.border}`, boxShadow: isDark ? '0 32px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.04)' : '0 32px 80px rgba(0,0,0,0.25)', padding: '40px 36px 32px', textAlign: 'center', animation: 'scaleIn 0.28s cubic-bezier(0.16,1,0.3,1)' }}
+          >
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => setConfirmAction(null)}
+              style={{ position: 'absolute', top: 18, right: 18, background: 'transparent', border: 'none', borderRadius: 10, padding: 8, color: D.textSub, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <X size={18} />
+            </button>
+
+            {/* Icon */}
+            <div style={{ width: 72, height: 72, borderRadius: 22, background: confirmAction.type === 'approve' ? D.greenDim : D.redDim, border: `1px solid ${confirmAction.type === 'approve' ? D.green : D.red}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: confirmAction.type === 'approve' ? D.green : D.red, margin: '0 auto 22px' }}>
+              {confirmAction.type === 'approve' ? <UserCheck size={32} /> : <X size={32} />}
+            </div>
+
+            {/* Avatar + name */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 16 }}>
+              <img
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(confirmAction.username)}&background=2563eb&color=fff&bold=true`}
+                alt={confirmAction.username}
+                style={{ width: 40, height: 40, borderRadius: '50%', border: `2px solid ${D.border}` }}
+              />
+              <span style={{ fontWeight: 800, fontSize: '1.05rem', color: D.text }}>{confirmAction.username}</span>
+            </div>
+
+            <h3 style={{ margin: '0 0 10px', fontSize: '1.25rem', fontWeight: 900, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: '-0.02em' }}>
+              {confirmAction.type === 'approve' ? 'Approve Account?' : 'Reject Account?'}
+            </h3>
+            <p style={{ margin: '0 0 30px', fontSize: '0.9rem', color: D.textSub, lineHeight: 1.65 }}>
+              {confirmAction.type === 'approve'
+                ? <>Activating <strong style={{ color: D.text }}>{confirmAction.username}</strong>'s account will grant them full system access based on their assigned role.</>  
+                : <>Rejecting <strong style={{ color: D.text }}>{confirmAction.username}</strong>'s request will set their account to <strong style={{ color: D.red }}>Inactive</strong>. They will not be able to log in.</>}
+            </p>
+
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setConfirmAction(null)}
+                style={{ flex: 1, maxWidth: 160, padding: '12px 20px', borderRadius: 14, border: `1px solid ${D.border}`, background: 'transparent', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s', fontFamily: 'inherit' }}
+                onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={executeConfirmAction}
+                style={{
+                  flex: 1, maxWidth: 200, padding: '12px 20px', borderRadius: 14, border: 'none',
+                  background: confirmAction.type === 'approve'
+                    ? 'linear-gradient(135deg,#10b981,#059669)'
+                    : 'linear-gradient(135deg,#ef4444,#dc2626)',
+                  color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 800,
+                  transition: 'all 0.2s', fontFamily: 'inherit',
+                  boxShadow: confirmAction.type === 'approve' ? '0 6px 20px rgba(16,185,129,0.35)' : '0 6px 20px rgba(239,68,68,0.35)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = confirmAction.type === 'approve' ? '0 10px 28px rgba(16,185,129,0.45)' : '0 10px 28px rgba(239,68,68,0.45)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = confirmAction.type === 'approve' ? '0 6px 20px rgba(16,185,129,0.35)' : '0 6px 20px rgba(239,68,68,0.35)' }}
+              >
+                {confirmAction.type === 'approve' ? <><Check size={16} /> Approve</> : <><X size={16} /> Reject</>}
               </button>
             </div>
           </div>
