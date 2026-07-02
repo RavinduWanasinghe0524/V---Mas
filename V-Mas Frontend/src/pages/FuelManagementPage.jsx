@@ -126,6 +126,13 @@ const FuelManagementPage = () => {
   const [mileageError, setMileageError] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  // Lock body scroll when any modal/drawer is open
+  useEffect(() => {
+    const isOpen = showAddModal || !!editingLog || showDeleteConfirm || showDeletedDrawer
+    document.body.style.overflow = isOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [showAddModal, editingLog, showDeleteConfirm, showDeletedDrawer])
+
   const showToast = useCallback((msg, type = 'success') => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3500)
@@ -730,21 +737,21 @@ const FuelManagementPage = () => {
       {/* ── ADD/EDIT MODAL ────────────────────────────────────── */}
       {(showAddModal || editingLog) && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={() => { if (!submitting) closeAddModal() }}>
-          <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-            <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: D.surface, borderRadius: 24, width: '92%', maxWidth: 520, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+            <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-                <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
-                  {editingLog ? <Edit2 size={24} /> : <Plus size={24} />}
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
+                  {editingLog ? <Edit2 size={18} /> : <Plus size={18} />}
                 </div>
                 <div>
-                  <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>{editingLog ? 'Edit Fuel Record' : 'Record Fuel Entry'}</h2>
+                  <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>{editingLog ? 'Edit Fuel Record' : 'Record Fuel Entry'}</h2>
                   <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600, opacity: 0.9 }}>{editingLog ? `Refining details for ${editingLog.vehicleRegNumber}` : 'Enter the latest fill-up data for analysis'}</p>
                 </div>
               </div>
               <button onClick={closeAddModal} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
             </div>
 
-            <form onSubmit={editingLog ? handleEditSubmit : handleAddSubmit} style={{ padding: '36px' }}>
+            <form onSubmit={editingLog ? handleEditSubmit : handleAddSubmit} style={{ padding: '20px 24px' }}>
               {/* derive selected vehicle for info strip */}
               {(() => {
                 const selectedVehicle = !editingLog && formData.vehicleRegNumber
@@ -755,7 +762,7 @@ const FuelManagementPage = () => {
                 const { color: fuelColor, bg: fuelBg } = fuelBadge(fuelTypeValue, D)
 
                 return (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 40 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 20px', marginBottom: 24 }}>
 
                     {/* Vehicle Select / Read-only reg */}
                     {!editingLog ? (
