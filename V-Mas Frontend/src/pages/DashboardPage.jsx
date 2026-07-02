@@ -378,18 +378,23 @@ const mapNotificationToActivity = (n) => {
     timestamp: new Date(n.createdAt)
   }
 }
-
 const FleetFuelChart = ({ isDark, chartData }) => {
-  const [hover, setHover] = useState(null) // { i, type: 'diesel' | 'petrol' }
+  const [hover, setHover] = useState(null) // { i, type: 'diesel' | 'superDiesel' | 'petrol' | 'superPetrol' | 'electric' | 'month' }
   const svgRef = useRef(null)
 
   const pts0 = Array.isArray(chartData) ? chartData : []
   const hasData = pts0.length > 0
 
-  const dieselC = '#f59e0b', petrolC = '#3b82f6'
+  const dieselC = '#f59e0b', superDieselC = '#7c3aed', petrolC = '#3b82f6', superPetrolC = '#ea580c', electricC = '#10b981'
   const W = 520, H = 180, padL = 46, padR = 16, padT = 16, padB = 36
   const chartW = W - padL - padR, chartH = H - padT - padB
-  const rawMax = Math.max(1, ...pts0.flatMap(p => [p.diesel || 0, p.petrol || 0]))
+  const rawMax = Math.max(1, ...pts0.flatMap(p => [
+    p.diesel || 0,
+    p.superDiesel || 0,
+    p.petrol || 0,
+    p.superPetrol || 0,
+    (p.electric || 0) / 100
+  ]))
   const stepPow = Math.pow(10, Math.floor(Math.log10(rawMax)))
   const maxVal = Math.max(stepPow, Math.ceil(rawMax / stepPow) * stepPow)
   const X = i => padL + (pts0.length <= 1 ? chartW / 2 : (i / (pts0.length - 1)) * chartW)
@@ -398,11 +403,11 @@ const FleetFuelChart = ({ isDark, chartData }) => {
   const axis = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'
   const axisText = isDark ? '#64748b' : '#94a3b8'
   const fmtL = v => { const n = Number(v) || 0; return n >= 1000 ? `${Math.round(n / 1000)}k` : `${Math.round(n)}` }
-  const smooth = key => {
+  const smooth = (key, divisor = 1) => {
     if (!pts0.length) return ''
-    let d = `M ${X(0)} ${Y(pts0[0][key])}`
+    let d = `M ${X(0)} ${Y(pts0[0][key] / divisor)}`
     for (let i = 1; i < pts0.length; i++) {
-      const px = X(i - 1), py = Y(pts0[i - 1][key]), nx = X(i), ny = Y(pts0[i][key])
+      const px = X(i - 1), py = Y(pts0[i - 1][key] / divisor), nx = X(i), ny = Y(pts0[i][key] / divisor)
       d += ` C ${px + (nx - px) * 0.4} ${py} ${nx - (nx - px) * 0.4} ${ny} ${nx} ${ny}`
     }
     return d
@@ -426,8 +431,8 @@ const FleetFuelChart = ({ isDark, chartData }) => {
       }}
     >
       <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel Consumption</div>
-        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Monthly litres by fuel type — hover a point for vehicles</div>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel & Energy Consumption</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Monthly litres & electric cost (LKR/100) — hover a point for details</div>
       </div>
       {hasData ? (
         <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
@@ -443,67 +448,96 @@ const FleetFuelChart = ({ isDark, chartData }) => {
             )
           })}
           {pts0.map((p, i) => (<text key={i} x={X(i)} y={H - 6} fontSize="9" fill={axisText} textAnchor="middle" fontWeight="600">{p.label}</text>))}
-          {/* x-axis hover strips → show month summary of both fuels */}
           {pts0.map((p, i) => {
             const colW = pts0.length > 1 ? chartW / (pts0.length - 1) : chartW
             return <rect key={`mh${i}`} x={X(i) - colW / 2} y={padT + chartH} width={colW} height={padB} fill="transparent" style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ i, type: 'month' })} />
           })}
           <path d={smooth('diesel')} fill="none" stroke={dieselC} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={smooth('superDiesel')} fill="none" stroke={superDieselC} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           <path d={smooth('petrol')} fill="none" stroke={petrolC} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={smooth('superPetrol')} fill="none" stroke={superPetrolC} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={smooth('electric', 100)} fill="none" stroke={electricC} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           {pts0.map((p, i) => (
             <g key={i}>
               <circle cx={X(i)} cy={Y(p.diesel)} r={hover && hover.i === i && hover.type === 'diesel' ? 5 : 3} fill="var(--surface)" stroke={dieselC} strokeWidth="2" />
               <circle cx={X(i)} cy={Y(p.diesel)} r="10" fill="transparent" style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ i, type: 'diesel' })} />
+              
+              <circle cx={X(i)} cy={Y(p.superDiesel)} r={hover && hover.i === i && hover.type === 'superDiesel' ? 5 : 3} fill="var(--surface)" stroke={superDieselC} strokeWidth="2" />
+              <circle cx={X(i)} cy={Y(p.superDiesel)} r="10" fill="transparent" style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ i, type: 'superDiesel' })} />
+
               <circle cx={X(i)} cy={Y(p.petrol)} r={hover && hover.i === i && hover.type === 'petrol' ? 5 : 3} fill="var(--surface)" stroke={petrolC} strokeWidth="2" />
               <circle cx={X(i)} cy={Y(p.petrol)} r="10" fill="transparent" style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ i, type: 'petrol' })} />
+
+              <circle cx={X(i)} cy={Y(p.superPetrol)} r={hover && hover.i === i && hover.type === 'superPetrol' ? 5 : 3} fill="var(--surface)" stroke={superPetrolC} strokeWidth="2" />
+              <circle cx={X(i)} cy={Y(p.superPetrol)} r="10" fill="transparent" style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ i, type: 'superPetrol' })} />
+
+              <circle cx={X(i)} cy={Y(p.electric / 100)} r={hover && hover.i === i && hover.type === 'electric' ? 5 : 3} fill="var(--surface)" stroke={electricC} strokeWidth="2" />
+              <circle cx={X(i)} cy={Y(p.electric / 100)} r="10" fill="transparent" style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ i, type: 'electric' })} />
             </g>
           ))}
           {hover && pts0[hover.i] && (() => {
             const p = pts0[hover.i], hx = X(hover.i)
-
-            // Month summary — both fuels' totals
             if (hover.type === 'month') {
-              const bw = 132, bh = 58
+              const bw = 150, bh = 98
               let bx = hx + 12; if (bx + bw > W) bx = hx - bw - 12; if (bx < 2) bx = 2
               const by = padT + 4
               return (
                 <g style={{ pointerEvents: 'none' }}>
                   <line x1={hx} y1={padT} x2={hx} y2={padT + chartH} stroke={axisText} strokeDasharray="3 3" opacity="0.5" />
                   <rect x={bx} y={by} width={bw} height={bh} rx="8" fill={isDark ? '#0e1529' : '#ffffff'} stroke="var(--surface-border)" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.45))' }} />
-                  <text x={bx + 12} y={by + 18} fontSize="10" fontWeight="800" fill="var(--text-primary)">{p.label}</text>
-                  <text x={bx + 12} y={by + 35} fontSize="9" fill={dieselC} fontWeight="700">Diesel: {Math.round(p.diesel).toLocaleString()} L</text>
-                  <text x={bx + 12} y={by + 49} fontSize="9" fill={petrolC} fontWeight="700">Petrol: {Math.round(p.petrol).toLocaleString()} L</text>
+                  <text x={bx + 12} y={by + 16} fontSize="10" fontWeight="800" fill="var(--text-primary)">{p.label}</text>
+                  <text x={bx + 12} y={by + 32} fontSize="9" fill={dieselC} fontWeight="700">Diesel: {Math.round(p.diesel).toLocaleString()} L</text>
+                  <text x={bx + 12} y={by + 46} fontSize="9" fill={superDieselC} fontWeight="700">Super Diesel: {Math.round(p.superDiesel).toLocaleString()} L</text>
+                  <text x={bx + 12} y={by + 60} fontSize="9" fill={petrolC} fontWeight="700">Petrol: {Math.round(p.petrol).toLocaleString()} L</text>
+                  <text x={bx + 12} y={by + 74} fontSize="9" fill={superPetrolC} fontWeight="700">Super Petrol: {Math.round(p.superPetrol).toLocaleString()} L</text>
+                  <text x={bx + 12} y={by + 88} fontSize="9" fill={electricC} fontWeight="700">Electric: Rs. {Math.round(p.electric).toLocaleString()}</text>
                 </g>
               )
             }
-
-            // Per-fuel vehicle breakdown (compact, centered)
-            const list = hover.type === 'diesel' ? (p.dieselVehicles || []) : (p.petrolVehicles || [])
-            const color = hover.type === 'diesel' ? dieselC : petrolC
-            const fuelName = hover.type === 'diesel' ? 'Diesel' : 'Petrol'
+            const list = hover.type === 'diesel' ? (p.dieselVehicles || [])
+                       : hover.type === 'superDiesel' ? (p.superDieselVehicles || [])
+                       : hover.type === 'petrol' ? (p.petrolVehicles || [])
+                       : hover.type === 'superPetrol' ? (p.superPetrolVehicles || [])
+                       : (p.electricVehicles || [])
+            const color = hover.type === 'diesel' ? dieselC
+                        : hover.type === 'superDiesel' ? superDieselC
+                        : hover.type === 'petrol' ? petrolC
+                        : hover.type === 'superPetrol' ? superPetrolC
+                        : electricC
+            const fuelName = hover.type === 'diesel' ? 'Diesel'
+                           : hover.type === 'superDiesel' ? 'Super Diesel'
+                           : hover.type === 'petrol' ? 'Petrol'
+                           : hover.type === 'superPetrol' ? 'Super Petrol'
+                           : 'Electric'
+            const isElectric = hover.type === 'electric'
             const shown = list.slice(0, 7)
-            const rowH = 11, headH = 32 // header + gap before first vehicle
+            const rowH = 11, headH = 32
             const rows = Math.max(1, shown.length) + (list.length > 7 ? 1 : 0)
-            const bw = 160, bh = headH + rows * rowH + 6
-            const cy = Y(hover.type === 'diesel' ? p.diesel : p.petrol)
+            const bw = 170, bh = headH + rows * rowH + 6
+            const rawVal = hover.type === 'diesel' ? p.diesel
+                         : hover.type === 'superDiesel' ? p.superDiesel
+                         : hover.type === 'petrol' ? p.petrol
+                         : hover.type === 'superPetrol' ? p.superPetrol
+                         : p.electric
+            const cy = Y(isElectric ? rawVal / 100 : rawVal)
             let bx = hx + 12; if (bx + bw > W) bx = hx - bw - 12; if (bx < 2) bx = 2
             let by = cy - bh - 8; if (by < 2) by = cy + 12; if (by + bh > H) by = Math.max(2, H - bh - 2)
-            const cx = bx + bw / 2
+            const cx2 = bx + bw / 2
             return (
               <g style={{ pointerEvents: 'none' }}>
                 <line x1={hx} y1={padT} x2={hx} y2={padT + chartH} stroke={color} strokeDasharray="3 3" opacity="0.5" />
                 <rect x={bx} y={by} width={bw} height={bh} rx="8" fill={isDark ? '#0e1529' : '#ffffff'} stroke="var(--surface-border)" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.45))' }} />
-                <text x={cx} y={by + 16} fontSize="9" fontWeight="800" fill={color} textAnchor="middle">{p.label} · {fuelName}</text>
+                <text x={cx2} y={by + 16} fontSize="9" fontWeight="800" fill={color} textAnchor="middle">{p.label} · {fuelName}</text>
                 {list.length === 0
-                  ? <text x={cx} y={by + headH} fontSize="7.5" fill={axisText} textAnchor="middle">No {fuelName.toLowerCase()} vehicles</text>
+                  ? <text x={cx2} y={by + headH} fontSize="7.5" fill={axisText} textAnchor="middle">No records found</text>
                   : shown.map((v, k) => (
-                    <text key={k} x={cx} y={by + headH + k * rowH} fontSize="7.5" fill="var(--text-primary)" textAnchor="middle">
+                    <text key={k} x={cx2} y={by + headH + k * rowH} fontSize="7.5" fill="var(--text-primary)" textAnchor="middle">
                       <tspan fontWeight="700">{v.reg}</tspan>
-                      <tspan fill={axisText}>  ·  {Math.round(v.liters).toLocaleString()} L</tspan>
+                      <tspan fill={axisText}>  ·  {isElectric ? `Rs. ${Math.round(v.liters).toLocaleString()}` : `${Math.round(v.liters).toLocaleString()} L`}</tspan>
                     </text>
                   ))}
                 {list.length > 7 && (
-                  <text x={cx} y={by + headH + shown.length * rowH} fontSize="6.5" fill={axisText} textAnchor="middle">+{list.length - 7} more</text>
+                  <text x={cx2} y={by + headH + shown.length * rowH} fontSize="6.5" fill={axisText} textAnchor="middle">+{list.length - 7} more</text>
                 )}
               </g>
             )
@@ -512,18 +546,26 @@ const FleetFuelChart = ({ isDark, chartData }) => {
       ) : (
         <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No fuel data yet</div>
       )}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 10 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-          <span style={{ width: 18, height: 3, borderRadius: 2, background: dieselC }} /> Diesel (L)
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 10, flexWrap: 'wrap' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+          <span style={{ width: 14, height: 3, borderRadius: 2, background: dieselC }} /> Diesel (L)
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-          <span style={{ width: 18, height: 3, borderRadius: 2, background: petrolC }} /> Petrol (L)
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+          <span style={{ width: 14, height: 3, borderRadius: 2, background: superDieselC }} /> Super Diesel (L)
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+          <span style={{ width: 14, height: 3, borderRadius: 2, background: petrolC }} /> Petrol (L)
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+          <span style={{ width: 14, height: 3, borderRadius: 2, background: superPetrolC }} /> Super Petrol (L)
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+          <span style={{ width: 14, height: 3, borderRadius: 2, background: electricC }} /> Electric (LKR/100)
         </span>
       </div>
     </div>
   )
 }
-
 const StatusBreakdown = ({ isDark, statusData, stats }) => {
   const [animProgress, setAnimProgress] = useState(0)
 
@@ -1180,11 +1222,6 @@ const DriverDashboard = ({ navigate, isDark, vehicleCount, fuelLogs, accountStat
         <StatCard icon={<Activity size={20} color={A.green}/>} label="Status" value={statusActive ? 'Active' : (accountStatus || 'Active')} colorDim={A.greenDim} colorHex={A.green} change={statusActive ? 'Ready to drive' : `Account ${(accountStatus || '').toLowerCase()}`} />
       </div>
 
-      <SectionHeader title="My Fuel Usage" />
-      <div style={{ marginBottom: 36 }}>
-        <DriverFuelChart logs={logs} isDark={isDark} />
-      </div>
-
       <SectionHeader title="Driver Tools" />
       <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
         <FeatureCard icon={<Fuel size={24}/>} title="Add Fuel Log" desc="Record a new fuel fill-up with the latest mileage and cost." onClick={() => navigate('/fuel-log')} />
@@ -1306,27 +1343,54 @@ const DashboardPage = () => {
               console.error('Error fetching controller dashboard data:', err)
             }
           }
-
-          // Monthly fuel consumption (Diesel vs Petrol) with per-vehicle breakdown — from real fuel logs
+          // Monthly fuel consumption (Diesel, Super Diesel, Petrol, Super Petrol, Electric) with per-vehicle breakdown — from real fuel logs
           try {
             const logsRes = await fuelAPI.getAllFuelLogs()
             const logs = (logsRes.data.data || []).filter(l => !l.isDeleted && !l.deleted)
             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
             const now = new Date(), yr = now.getFullYear(), upto = now.getMonth()
-            const agg = Array.from({ length: 12 }, () => ({ diesel: 0, petrol: 0, dieselMap: {}, petrolMap: {} }))
+            const agg = Array.from({ length: 12 }, () => ({
+              diesel: 0,
+              superDiesel: 0,
+              petrol: 0,
+              superPetrol: 0,
+              electric: 0,
+              dieselMap: {},
+              superDieselMap: {},
+              petrolMap: {},
+              superPetrolMap: {},
+              electricMap: {}
+            }))
             logs.forEach(l => {
               const d = new Date(l.date)
               if (d.getFullYear() !== yr) return
-              const m = d.getMonth(), ft = (l.fuelType || '').toLowerCase()
+              const m = d.getMonth()
+              const ft = (l.fuelType || '').toLowerCase().replace('_', ' ')
               const liters = Number(l.liters) || 0
+              const cost = Number(l.totalCost) || 0
               const reg = l.vehicleRegNumber || 'Unknown'
-              if (ft.includes('diesel')) { agg[m].diesel += liters; agg[m].dieselMap[reg] = (agg[m].dieselMap[reg] || 0) + liters }
-              else if (ft.includes('petrol')) { agg[m].petrol += liters; agg[m].petrolMap[reg] = (agg[m].petrolMap[reg] || 0) + liters }
+              if (ft === 'diesel') { agg[m].diesel += liters; agg[m].dieselMap[reg] = (agg[m].dieselMap[reg] || 0) + liters }
+              else if (ft === 'super diesel') { agg[m].superDiesel += liters; agg[m].superDieselMap[reg] = (agg[m].superDieselMap[reg] || 0) + liters }
+              else if (ft === 'petrol') { agg[m].petrol += liters; agg[m].petrolMap[reg] = (agg[m].petrolMap[reg] || 0) + liters }
+              else if (ft === 'super petrol') { agg[m].superPetrol += liters; agg[m].superPetrolMap[reg] = (agg[m].superPetrolMap[reg] || 0) + liters }
+              else if (ft === 'electric') { agg[m].electric += cost; agg[m].electricMap[reg] = (agg[m].electricMap[reg] || 0) + cost }
             })
             const toList = map => Object.entries(map).map(([reg, liters]) => ({ reg, liters })).sort((a, b) => b.liters - a.liters)
             const arr = []
             for (let m = 0; m <= upto; m++) {
-              arr.push({ label: monthNames[m], diesel: agg[m].diesel, petrol: agg[m].petrol, dieselVehicles: toList(agg[m].dieselMap), petrolVehicles: toList(agg[m].petrolMap) })
+              arr.push({
+                label: monthNames[m],
+                diesel: agg[m].diesel,
+                superDiesel: agg[m].superDiesel,
+                petrol: agg[m].petrol,
+                superPetrol: agg[m].superPetrol,
+                electric: agg[m].electric,
+                dieselVehicles: toList(agg[m].dieselMap),
+                superDieselVehicles: toList(agg[m].superDieselMap),
+                petrolVehicles: toList(agg[m].petrolMap),
+                superPetrolVehicles: toList(agg[m].superPetrolMap),
+                electricVehicles: toList(agg[m].electricMap)
+              })
             }
             setFleetChartData(arr)
           } catch (err) {

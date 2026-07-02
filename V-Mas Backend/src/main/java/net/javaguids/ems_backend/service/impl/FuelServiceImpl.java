@@ -130,8 +130,10 @@ public class FuelServiceImpl implements FuelService {
         int month = now.getMonthValue();
         int year = now.getYear();
 
-        Double totalDiesel = fuelLogRepository.getTotalLitersByFuelType("Diesel", month, year);
-        Double totalPetrol = fuelLogRepository.getTotalLitersByFuelType("Petrol", month, year);
+        Double totalDiesel = fuelLogRepository.getTotalLitersByFuelType("Diesel", month, year)
+                + fuelLogRepository.getTotalLitersByFuelType("Super Diesel", month, year);
+        Double totalPetrol = fuelLogRepository.getTotalLitersByFuelType("Petrol", month, year)
+                + fuelLogRepository.getTotalLitersByFuelType("Super Petrol", month, year);
         Double totalCost = fuelLogRepository.getTotalCostForMonth(month, year);
         Double totalVolume = totalDiesel + totalPetrol;
 
@@ -167,11 +169,12 @@ public class FuelServiceImpl implements FuelService {
             Double totalLiters = ((Number) result[2]).doubleValue();
 
             String fuelType = rawFuelType != null ? rawFuelType.trim() : "";
-            if (fuelType.equalsIgnoreCase("Petrol")) fuelType = "Petrol";
-            else if (fuelType.equalsIgnoreCase("Diesel")) fuelType = "Diesel";
+            if (fuelType.equalsIgnoreCase("Petrol") || fuelType.equalsIgnoreCase("Super Petrol")) fuelType = "Petrol";
+            else if (fuelType.equalsIgnoreCase("Diesel") || fuelType.equalsIgnoreCase("Super Diesel")) fuelType = "Diesel";
 
             if (data.containsKey(fuelType)) {
-                data.get(fuelType).set(monthNum - 1, totalLiters);
+                double existing = data.get(fuelType).get(monthNum - 1);
+                data.get(fuelType).set(monthNum - 1, existing + totalLiters);
             }
         }
 

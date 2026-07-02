@@ -9,9 +9,22 @@ import { addControllerNotification } from '../services/notificationService'
 import { 
   Fuel, CircleDollarSign, BarChart2, Car, Trash2, Plus, Search, 
   Edit2, AlertTriangle, Check, X, Loader2, RotateCcw, FileText, 
-  Calendar, Clock, User, MoreVertical, Archive
+  Calendar, Clock, User, MoreVertical, Archive, Zap
 } from 'lucide-react'
 import { computeLogsEfficiency } from '../utils/fuelUtils'
+
+// ── Shared fuel-type badge helper ───────────────────────────────────────
+const fuelBadge = (ft, D) => {
+  switch ((ft || '').toUpperCase()) {
+    case 'DIESEL':        return { color: D.indigo,   bg: D.indigoDim }
+    case 'SUPER DIESEL':  return { color: '#7c3aed',   bg: 'rgba(124,58,237,0.12)' }
+    case 'PETROL':        return { color: D.gold,     bg: D.goldDim }
+    case 'SUPER PETROL':  return { color: '#ea580c',   bg: 'rgba(234,88,12,0.12)' }
+    case 'ELECTRIC':      return { color: D.green,    bg: D.greenDim }
+    case 'HYBRID':        return { color: D.purple,   bg: D.purpleDim }
+    default:              return { color: D.textSub,  bg: D.surfaceHi }
+  }
+}
 
 /* ── Fuel Management Page ────────────────────────────────────────────────── */
 const FuelManagementPage = () => {
@@ -95,6 +108,7 @@ const FuelManagementPage = () => {
     fuelType: 'Diesel',
     liters: '',
     costPerLiter: '',
+    chargingCost: '',
     mileage: '',
     date: new Date().toISOString().split('T')[0],
     driverUsername: '',
@@ -111,6 +125,13 @@ const FuelManagementPage = () => {
   const [previousMileage, setPreviousMileage] = useState(null)
   const [mileageError, setMileageError] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Lock body scroll when any modal/drawer is open
+  useEffect(() => {
+    const isOpen = showAddModal || !!editingLog || showDeleteConfirm || showDeletedDrawer
+    document.body.style.overflow = isOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [showAddModal, editingLog, showDeleteConfirm, showDeletedDrawer])
 
   const showToast = useCallback((msg, type = 'success') => {
     setToast({ msg, type })
@@ -282,8 +303,18 @@ const FuelManagementPage = () => {
     const milNew = parseFloat(formData.mileage)
     const litersNew = parseFloat(formData.liters)
     const regCapture = formData.vehicleRegNumber
+    const isEV = formData.fuelType?.toUpperCase() === 'ELECTRIC'
     try {
-      await fuelAPI.controllerAddLog({
+      await fuelAPI.controllerAddLog(isEV ? {
+        vehicleRegNumber: formData.vehicleRegNumber,
+        fuelType: formData.fuelType,
+        liters: 0,
+        costPerLiter: 0,
+        totalCost: parseFloat(formData.chargingCost) || 0,
+        mileage: milNew,
+        date: formData.date,
+        driverUsername: formData.driverUsername,
+      } : {
         ...formData,
         liters: litersNew,
         costPerLiter: parseFloat(formData.costPerLiter),
@@ -291,14 +322,14 @@ const FuelManagementPage = () => {
         driverUsername: formData.driverUsername,
       })
       setShowAddModal(false)
-      setFormData({ vehicleRegNumber: '', fuelType: 'Diesel', liters: '', costPerLiter: '', mileage: '', date: new Date().toISOString().split('T')[0], driverUsername: '' })
+      setFormData({ vehicleRegNumber: '', fuelType: 'Diesel', liters: '', costPerLiter: '', chargingCost: '', mileage: '', date: new Date().toISOString().split('T')[0], driverUsername: '' })
       setPreviousMileage(null)
       setMileageError('')
       await loadData()
       showToast('Fuel log added successfully!')
       addControllerNotification(`Fuel log added for vehicle ${regCapture}`, 'FUEL_ADD', '/fuel-management')
-      // ── Low efficiency alert ─────────────────────────────────────────────
-      if (prevMilCapture != null && milNew > prevMilCapture && litersNew > 0) {
+      // ── Low efficiency alert (non-EV only) ────────────────────────────
+      if (!isEV && prevMilCapture != null && milNew > prevMilCapture && litersNew > 0) {
         const eff = (milNew - prevMilCapture) / litersNew
         if (eff < 5) {
           addControllerNotification(
@@ -560,7 +591,10 @@ const FuelManagementPage = () => {
                   <select value={filterFuelType} onChange={e => setFilterFuelType(e.target.value)} style={{ ...inputStyle, appearance: 'none', paddingRight: 32, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
                     <option value="all">All Fuel Types</option>
                     <option value="Diesel">Diesel</option>
+                    <option value="Super Diesel">Super Diesel</option>
                     <option value="Petrol">Petrol</option>
+                    <option value="Super Petrol">Super Petrol</option>
+                    <option value="Electric">Electric</option>
                   </select>
                   <MoreVertical size={13} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
                 </div>
@@ -641,7 +675,8 @@ const FuelManagementPage = () => {
                         <div style={{ width: 130, flexShrink: 0 }}>
                           <div style={{ fontSize: '1.05rem', fontWeight: 950, color: D.blue, letterSpacing: '0.02em' }}>{log.vehicleRegNumber}</div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                             <span style={{ fontSize: '0.72rem', color: log.fuelType === 'Diesel' ? D.indigo : D.gold, fontWeight: 800, textTransform: 'uppercase', background: log.fuelType === 'Diesel' ? D.indigoDim : D.goldDim, padding: '2px 8px', borderRadius: 6, border: `1px solid ${log.fuelType === 'Diesel' ? D.indigo : D.gold}30` }}>{log.fuelType}</span>
+                           {(() => { const fb = fuelBadge(log.fuelType, D); return <span style={{ fontSize: '0.72rem', color: fb.color, fontWeight: 800, textTransform: 'uppercase', background: fb.bg, padding: '2px 8px', borderRadius: 6, border: `1px solid ${fb.color}30`, display: 'flex', alignItems: 'center', gap: 3 }}>{log.fuelType?.toUpperCase() === 'ELECTRIC' && <Zap size={9} />}{log.fuelType}</span> })()
+                           }
                           </div>
                         </div>
 
@@ -702,32 +737,32 @@ const FuelManagementPage = () => {
       {/* ── ADD/EDIT MODAL ────────────────────────────────────── */}
       {(showAddModal || editingLog) && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={() => { if (!submitting) closeAddModal() }}>
-          <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-            <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: D.surface, borderRadius: 24, width: '92%', maxWidth: 520, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+            <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-                <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
-                  {editingLog ? <Edit2 size={24} /> : <Plus size={24} />}
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
+                  {editingLog ? <Edit2 size={18} /> : <Plus size={18} />}
                 </div>
                 <div>
-                  <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>{editingLog ? 'Edit Fuel Record' : 'Record Fuel Entry'}</h2>
+                  <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>{editingLog ? 'Edit Fuel Record' : 'Record Fuel Entry'}</h2>
                   <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600, opacity: 0.9 }}>{editingLog ? `Refining details for ${editingLog.vehicleRegNumber}` : 'Enter the latest fill-up data for analysis'}</p>
                 </div>
               </div>
               <button onClick={closeAddModal} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
             </div>
 
-            <form onSubmit={editingLog ? handleEditSubmit : handleAddSubmit} style={{ padding: '36px' }}>
+            <form onSubmit={editingLog ? handleEditSubmit : handleAddSubmit} style={{ padding: '20px 24px' }}>
               {/* derive selected vehicle for info strip */}
               {(() => {
                 const selectedVehicle = !editingLog && formData.vehicleRegNumber
                   ? vehicles.find(v => v.registrationNo === formData.vehicleRegNumber)
                   : null
                 const fuelTypeValue = editingLog ? editingLog.fuelType : formData.fuelType
-                const fuelColor = fuelTypeValue === 'Diesel' ? D.indigo : D.gold
-                const fuelBg = fuelTypeValue === 'Diesel' ? D.indigoDim : D.goldDim
+                const isElectricForm = fuelTypeValue?.toUpperCase() === 'ELECTRIC'
+                const { color: fuelColor, bg: fuelBg } = fuelBadge(fuelTypeValue, D)
 
                 return (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 40 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 20px', marginBottom: 24 }}>
 
                     {/* Vehicle Select / Read-only reg */}
                     {!editingLog ? (
@@ -790,29 +825,51 @@ const FuelManagementPage = () => {
                       {selectedVehicle ? (
                         // Locked: vehicle dictates fuel type
                         <div style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: 10, background: D.surfaceHi, cursor: 'not-allowed', opacity: 0.85, padding: '14px 18px' }}>
-                          <span style={{ fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', background: fuelBg, color: fuelColor, padding: '3px 10px', borderRadius: 20, border: `1px solid ${fuelColor}30` }}>{fuelTypeValue}</span>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', background: fuelBg, color: fuelColor, padding: '3px 10px', borderRadius: 20, border: `1px solid ${fuelColor}30`, display: 'flex', alignItems: 'center', gap: 5 }}>{isElectricForm && <Zap size={12} />}{fuelTypeValue}</span>
                           <span style={{ fontSize: '0.75rem', color: D.textFaint, fontWeight: 600 }}>Auto-set from vehicle</span>
                           <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: D.textFaint }}>🔒</span>
                         </div>
                       ) : (
                         <select name="fuelType" value={editingLog ? editingLog.fuelType : formData.fuelType} onChange={handleInputChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
                           <option value="Diesel">Diesel</option>
+                          <option value="Super Diesel">Super Diesel</option>
                           <option value="Petrol">Petrol</option>
+                          <option value="Super Petrol">Super Petrol</option>
+                          <option value="Electric">Electric</option>
                         </select>
                       )}
                     </div>
 
-                    {/* Volume */}
-                    <div>
-                      <label style={labelStyle}>Volume Dispensed (L) <span style={{ color: D.red }}>*</span></label>
-                      <input type="number" name="liters" value={editingLog ? editingLog.liters : formData.liters} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
-                    </div>
+                    {/* EV banner */}
+                    {isElectricForm && (
+                      <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 12, padding: '12px 16px', animation: 'fadeIn 0.2s ease' }}>
+                        <Zap size={18} color={D.green} />
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: D.green }}>Electric Vehicle</span>
+                        <span style={{ fontSize: '0.8rem', color: D.textSub }}>— Enter charging cost only. Volume and unit price are not applicable.</span>
+                      </div>
+                    )}
 
-                    {/* Unit Price */}
-                    <div>
-                      <label style={labelStyle}>Unit Price (LKR/L) <span style={{ color: D.red }}>*</span></label>
-                      <input type="number" name="costPerLiter" value={editingLog ? editingLog.costPerLiter : formData.costPerLiter} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
-                    </div>
+                    {/* Volume / Unit Price / Charging Cost */}
+                    {isElectricForm ? (
+                      <div style={{ gridColumn: 'span 2' }}>
+                        <label style={labelStyle}>Charging Cost (LKR) <span style={{ color: D.red }}>*</span></label>
+                        <input type="number" name="chargingCost" value={editingLog ? (editingLog.chargingCost || editingLog.totalCost || '') : formData.chargingCost} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={{ ...inputStyle, borderColor: D.green + '60' }} onFocus={onFocus} onBlur={onBlur} />
+                        <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: D.textSub, fontWeight: 600 }}>Enter the total electricity cost for this charge session</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Volume */}
+                        <div>
+                          <label style={labelStyle}>Volume Dispensed (L) <span style={{ color: D.red }}>*</span></label>
+                          <input type="number" name="liters" value={editingLog ? editingLog.liters : formData.liters} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                        </div>
+                        {/* Unit Price */}
+                        <div>
+                          <label style={labelStyle}>Unit Price (LKR/L) <span style={{ color: D.red }}>*</span></label>
+                          <input type="number" name="costPerLiter" value={editingLog ? editingLog.costPerLiter : formData.costPerLiter} onChange={handleInputChange} step="0.01" min="0" required placeholder="0.00" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                        </div>
+                      </>
+                    )}
 
                     {/* Odometer */}
                     <div>

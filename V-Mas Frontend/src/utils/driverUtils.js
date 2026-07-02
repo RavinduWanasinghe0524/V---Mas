@@ -19,14 +19,8 @@ export const getDriverMetrics = (u, vehicles = []) => {
   
   const id = u.id || 0
   
-  let status = 'On Duty'
-  if (u.role === 'DRIVER') {
-    const statuses = ['On Duty', 'Off Duty', 'On Leave']
-    status = statuses[id % 3]
-  } else {
-    const rawStatus = u.accountStatus || 'ACTIVE'
-    status = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase()
-  }
+  const rawStatus = u.accountStatus || 'ACTIVE'
+  const status = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase()
   
   const trips = u.role === 'DRIVER' ? (id * 17) % 150 + 12 : 0
   const rating = u.role === 'DRIVER' ? (4.0 + (id % 10) / 10).toFixed(1) : '5.0'
