@@ -1222,11 +1222,6 @@ const DriverDashboard = ({ navigate, isDark, vehicleCount, fuelLogs, accountStat
         <StatCard icon={<Activity size={20} color={A.green}/>} label="Status" value={statusActive ? 'Active' : (accountStatus || 'Active')} colorDim={A.greenDim} colorHex={A.green} change={statusActive ? 'Ready to drive' : `Account ${(accountStatus || '').toLowerCase()}`} />
       </div>
 
-      <SectionHeader title="My Fuel Usage" />
-      <div style={{ marginBottom: 36 }}>
-        <DriverFuelChart logs={logs} isDark={isDark} />
-      </div>
-
       <SectionHeader title="Driver Tools" />
       <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
         <FeatureCard icon={<Fuel size={24}/>} title="Add Fuel Log" desc="Record a new fuel fill-up with the latest mileage and cost." onClick={() => navigate('/fuel-log')} />
