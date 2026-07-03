@@ -620,9 +620,9 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
 
-  // Drivers cannot edit or delete records
-  const canEdit = !isDriver
-  const canDelete = !isDriver
+  // Drivers and admins cannot edit or delete records
+  const canEdit = !isDriver && !isAdmin
+  const canDelete = !isDriver && !isAdmin
 
   return (
     <div
@@ -1400,6 +1400,7 @@ const ServicePage = () => {
   }
 
   const openAddModal = (prefill = {}) => {
+    if (isAdmin) return
     const isEvent = prefill && (prefill.nativeEvent || prefill.target)
     const actualPrefill = isEvent ? {} : prefill
     const regNo = actualPrefill.vehicleRegNumber || ''
@@ -1609,6 +1610,7 @@ const ServicePage = () => {
   }
 
   const openEditModal = (id) => {
+    if (isAdmin) return
     const record = services.find(s => s.id === id)
     if (!record) return
     setEditingServiceId(id)
@@ -2017,6 +2019,7 @@ const ServicePage = () => {
   }
 
   const confirmDelete = (id) => {
+    if (isAdmin) return
     setDeleteModal({ isOpen: true, id })
   }
 
@@ -2699,7 +2702,7 @@ const ServicePage = () => {
 
                         {/* Actions Row */}
                         <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
-                          {!isDriver && (
+                          {!isDriver && !isAdmin && (
                             <button
                               onClick={e => { e.stopPropagation(); openAddModal({ vehicleRegNumber: r.vehicleRegNumber, serviceType: r.serviceType }) }}
                               style={{
@@ -3036,7 +3039,7 @@ const ServicePage = () => {
                                               }}>
                                                 {statusConfig.label}
                                               </span>
-                                              {(isOverdue || isDueSoon) && !isDriver && (
+                                              {(isOverdue || isDueSoon) && !isDriver && !isAdmin && (
                                                 <button
                                                   onClick={() => openAddModal({ vehicleRegNumber: v.registrationNo, serviceType: m.serviceType })}
                                                   title={`Log completed ${m.serviceType.replace(/_/g, ' ')}`}
@@ -3162,7 +3165,7 @@ const ServicePage = () => {
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
                           <tr style={{ background: D.surfaceHi, borderBottom: `1px solid ${D.border}` }}>
-                            {['Vehicle Reg Number', 'Model / Type', 'Driver Assignee', 'Current Mileage (km)', 'New Mileage Entry (km)'].map(h => (
+                            {['Vehicle Reg Number', 'Model / Type', 'Current Mileage (km)', 'New Mileage Entry (km)'].map(h => (
                               <th key={h} style={{ padding: '16px 26px', fontSize: '0.82rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                 {h}
                               </th>
@@ -3189,9 +3192,6 @@ const ServicePage = () => {
                                   <td style={{ padding: '16px 26px', fontSize: '0.85rem', color: D.textSub }}>
                                     <span style={{ fontWeight: 600, color: D.text }}>{v.manufacturer} {v.model}</span>
                                     <span style={{ display: 'block', fontSize: '0.75rem', color: D.textFaint, marginTop: 2 }}>{v.vehicleType || '—'}</span>
-                                  </td>
-                                  <td style={{ padding: '16px 26px', fontSize: '0.85rem', color: D.textSub, fontWeight: 500 }}>
-                                    {v.driverName || 'Unassigned'}
                                   </td>
                                   <td style={{ padding: '16px 26px', fontSize: '0.92rem', fontWeight: 800, color: D.text }}>
                                     {currentVal.toLocaleString()} km
@@ -3271,12 +3271,9 @@ const ServicePage = () => {
                                 </span>
                               </div>
 
-                              {/* Row 2: Details & Assignee */}
+                              {/* Row 2: Details */}
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: D.textSub }}>
                                 <span>{v.manufacturer} {v.model}</span>
-                                <span style={{ fontWeight: 600, color: v.driverName ? D.text : D.textFaint }}>
-                                  Assignee: {v.driverName || 'Unassigned'}
-                                </span>
                               </div>
 
                               {/* Row 3: Current Mileage vs New Entry */}
@@ -4892,8 +4889,8 @@ const ServicePage = () => {
 
               {/* Footer */}
               <div style={{ padding: '16px 28px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 10, background: D.surfaceHi, flexShrink: 0 }}>
-                 {/* Controller & Admin: show Edit + Delete */}
-                 {!isDriver && !r._isPseudo && (
+                 {/* Controller: show Edit + Delete */}
+                 {!isDriver && !isAdmin && !r._isPseudo && (
                    <>
                      <button
                        onClick={() => { closeDetail(); openEditModal(r.id) }}
@@ -4918,7 +4915,7 @@ const ServicePage = () => {
                      <Edit2 size={15} /> Edit Record
                    </button>
                  )}
-                 {r._isPseudo && (
+                 {r._isPseudo && !isAdmin && (
                    <button
                      onClick={() => { closeDetail(); openAddModal({ vehicleRegNumber: r.vehicleRegNumber, serviceType: r.serviceType }) }}
                      style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}

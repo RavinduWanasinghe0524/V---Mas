@@ -60,6 +60,12 @@ const AddServicePage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
+    if (user?.role === 'ADMIN') {
+      navigate('/service')
+    }
+  }, [user, navigate])
+
+  useEffect(() => {
     if (!isEditing) return
     serviceAPI.getServiceById(id)
       .then(res => {
