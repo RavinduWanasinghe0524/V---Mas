@@ -303,7 +303,10 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const totalUnread = unreadCount + (user?.role === 'CONTROLLER' ? ctrlUnread : 0) + (user?.role === 'DRIVER' ? drvUnread : 0)
+  const totalUnread = unreadCount + 
+    (user?.role === 'CONTROLLER' ? ctrlUnread : 0) + 
+    (user?.role === 'DRIVER' ? drvUnread : 0) +
+    ((user?.role === 'ADMIN' || user?.role === 'CONTROLLER') ? alertCount : 0)
   const hasUnreadNotifs = unreadCount > 0 || (user?.role === 'CONTROLLER' ? ctrlUnread > 0 : false) || (user?.role === 'DRIVER' ? drvUnread > 0 : false)
 
   return (

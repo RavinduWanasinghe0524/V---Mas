@@ -386,7 +386,7 @@ const FleetFuelChart = ({ isDark, chartData }) => {
   const hasData = pts0.length > 0
 
   const dieselC = '#f59e0b', superDieselC = '#7c3aed', petrolC = '#3b82f6', superPetrolC = '#ea580c', electricC = '#10b981'
-  const W = 520, H = 180, padL = 46, padR = 16, padT = 16, padB = 36
+  const W = 720, H = 160, padL = 46, padR = 16, padT = 16, padB = 36
   const chartW = W - padL - padR, chartH = H - padT - padB
   const rawMax = Math.max(1, ...pts0.flatMap(p => [
     p.diesel || 0,
@@ -436,7 +436,7 @@ const FleetFuelChart = ({ isDark, chartData }) => {
       </div>
       {hasData ? (
         <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
-          style={{ width: '100%', height: 'auto', display: 'block' }}
+          style={{ width: '100%', height: 'auto', maxHeight: '160px', display: 'block' }}
           onMouseLeave={() => setHover(null)}>
           {Array.from({ length: grid + 1 }).map((_, i) => {
             const v = (maxVal / grid) * i, y = Y(v)
@@ -563,6 +563,213 @@ const FleetFuelChart = ({ isDark, chartData }) => {
           <span style={{ width: 14, height: 3, borderRadius: 2, background: electricC }} /> Electric (LKR/100)
         </span>
       </div>
+    </div>
+  )
+}
+const MaintenanceCostDonutChart = ({ isDark, services = [] }) => {
+  const [selectedMonth, setSelectedMonth] = useState('ALL')
+  const [selectedVehicle, setSelectedVehicle] = useState('ALL')
+
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+  // Get unique months and vehicles from services to populate select options
+  const uniqueMonths = Array.from(new Set(services.map(s => {
+    if (!s.serviceDate) return null
+    return new Date(s.serviceDate).getMonth()
+  }).filter(m => m !== null))).sort((a, b) => a - b)
+
+  const uniqueVehicles = Array.from(new Set(services.map(s => s.vehicleRegNumber).filter(Boolean))).sort()
+
+  // Filter services
+  const filteredServices = services.filter(s => {
+    if (!s.serviceDate || !s.serviceCost) return false
+    
+    // Month filter
+    if (selectedMonth !== 'ALL') {
+      const m = new Date(s.serviceDate).getMonth()
+      if (m !== Number(selectedMonth)) return false
+    }
+
+    // Vehicle filter
+    if (selectedVehicle !== 'ALL') {
+      if (s.vehicleRegNumber !== selectedVehicle) return false
+    }
+
+    return true
+  })
+
+  // Group by serviceType
+  const grouped = {}
+  let totalCost = 0
+  filteredServices.forEach(s => {
+    const type = s.serviceType || 'OTHER'
+    const cost = Number(s.serviceCost) || 0
+    grouped[type] = (grouped[type] || 0) + cost
+    totalCost += cost
+  })
+
+  const donutColors = {
+    GENERAL_INSPECTION: '#3b82f6',
+    TIRE_REPLACEMENT: '#fbbf24',
+    BRAKE_SERVICE: '#f87171',
+    ENGINE_TUNE_UP: '#a78bfa',
+    AC_SERVICE: '#06b6d4',
+    OIL_CHANGE: '#34d399',
+    BATTERY_REPLACEMENT: '#ec4899',
+    OTHER: '#94a3b8'
+  }
+
+  const data = Object.entries(grouped).map(([type, value]) => ({
+    label: type.replace(/_/g, ' '),
+    value,
+    color: donutColors[type] || donutColors.OTHER
+  })).sort((a, b) => b.value - a.value)
+
+  // Pie chart path calculations (Donut)
+  const cx = 80, cy = 80, R = 72, r = 46
+  let angle = -Math.PI / 2
+  const slices = data.map(d => {
+    const sweep = (d.value / (totalCost || 1)) * 2 * Math.PI
+    const x1 = cx + R * Math.cos(angle), y1 = cy + R * Math.sin(angle)
+    const x2 = cx + R * Math.cos(angle + sweep), y2 = cy + R * Math.sin(angle + sweep)
+    const ix1 = cx + r * Math.cos(angle), iy1 = cy + r * Math.sin(angle)
+    const ix2 = cx + r * Math.cos(angle + sweep), iy2 = cy + r * Math.sin(angle + sweep)
+    const large = sweep > Math.PI ? 1 : 0
+    const path = `M ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${r} ${r} 0 ${large} 0 ${ix1} ${iy1} Z`
+    angle += sweep
+    return { path, ...d }
+  })
+
+  const D = {
+    surface: 'var(--surface)',
+    border: 'var(--surface-border)',
+    text: 'var(--text-primary)',
+    textSub: 'var(--text-muted)'
+  }
+
+  const selectStyle = {
+    background: 'rgba(255, 255, 255, 0.05)',
+    border: `1px solid ${D.border}`,
+    borderRadius: 12,
+    color: D.text,
+    padding: '8px 14px',
+    fontSize: '0.8rem',
+    fontWeight: 700,
+    outline: 'none',
+    cursor: 'pointer',
+    fontFamily: "'Plus Jakarta Sans', sans-serif"
+  }
+
+  return (
+    <div style={{
+      background: D.surface,
+      borderRadius: 24,
+      border: `1px solid ${D.border}`,
+      boxShadow: '0 4px 24px rgba(0,0,0,0.25)',
+      padding: '28px',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.35)'
+        e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.35), 0 0 20px rgba(99, 102, 241, 0.1)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = D.border
+        e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)'
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
+        <div>
+          <div style={{ fontSize: '1rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Cost by Service Type</div>
+          <div style={{ fontSize: '0.78rem', color: D.textSub, marginTop: 4, fontWeight: 500 }}>Distribution of maintenance expenses</div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} style={selectStyle}>
+            <option value="ALL">All Months</option>
+            {uniqueMonths.map(m => (
+              <option key={m} value={m}>{monthNames[m]}</option>
+            ))}
+          </select>
+
+          <select value={selectedVehicle} onChange={e => setSelectedVehicle(e.target.value)} style={selectStyle}>
+            <option value="ALL">All Vehicles</option>
+            {uniqueVehicles.map(reg => (
+              <option key={reg} value={reg}>{reg}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {totalCost > 0 ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'center' }}>
+          <div style={{ position: 'relative', width: 140, height: 140, margin: '0 auto', flexShrink: 0 }}>
+            <svg width="140" height="140" viewBox="0 0 160 160">
+              {slices.map((slice, i) => (
+                <path
+                  key={i}
+                  d={slice.path}
+                  fill={slice.color}
+                  style={{
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.opacity = '0.85'
+                    e.currentTarget.style.transform = 'scale(1.02)'
+                    e.currentTarget.style.transformOrigin = '80px 80px'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.opacity = '1'
+                    e.currentTarget.style.transform = 'none'
+                  }}
+                />
+              ))}
+            </svg>
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              textAlign: 'center',
+              pointerEvents: 'none'
+            }}>
+              <div style={{ fontSize: '0.62rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Cost</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: D.text, marginTop: 1, fontFamily: "'Plus Jakarta Sans',sans-serif", whiteSpace: 'nowrap' }}>
+                Rs. {Math.round(totalCost).toLocaleString()}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 180, overflowY: 'auto', paddingRight: 6 }}>
+            {data.map((item, i) => {
+              const pct = ((item.value / totalCost) * 100).toFixed(1)
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: D.textSub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.label}>
+                      {item.label}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: D.text }}>
+                      Rs. {Math.round(item.value).toLocaleString()}
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: D.textSub, fontWeight: 600 }}>
+                      ({pct}%)
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ) : (
+        <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.textSub, fontSize: '0.85rem' }}>
+          No service expenses found for this selection
+        </div>
+      )}
     </div>
   )
 }
@@ -914,7 +1121,7 @@ const DailyMileageModal = ({ open, onClose }) => {
   )
 }
 
-const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, activities }) => {
+const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, activities, services }) => {
   const [mileageOpen, setMileageOpen] = useState(false)
   return (
     <>
@@ -929,7 +1136,10 @@ const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, a
       <div className="dashboard-columns-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start', marginBottom: 36 }}>
         {/* Left Column: Utilization & Activity */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <FleetFuelChart isDark={isDark} chartData={chartData} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
+            <FleetFuelChart isDark={isDark} chartData={chartData} />
+            <MaintenanceCostDonutChart isDark={isDark} services={services} />
+          </div>
           <RecentActivitySection activities={activities} navigate={navigate} />
         </div>
 
@@ -1247,6 +1457,7 @@ const DashboardPage = () => {
   const [statusData, setStatusData] = useState([])
   const [alerts, setAlerts] = useState([])
   const [activities, setActivities] = useState([])
+  const [services, setServices] = useState([])
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -1261,6 +1472,14 @@ const DashboardPage = () => {
             setAlerts(alertList)
           } catch (err) {
             console.error('Error loading dashboard alerts:', err)
+          }
+
+          // Fetch service records for dashboard widgets
+          try {
+            const servRes = await serviceAPI.getAllServices()
+            setServices(servRes.data.data || [])
+          } catch (err) {
+            console.error('Error loading service records for dashboard:', err)
           }
 
           // Fetch stats for Admin
@@ -1497,7 +1716,7 @@ const DashboardPage = () => {
 
           {/* Role-based content */}
           {user?.role === 'ADMIN' && <AdminDashboard stats={stats} loading={loading} navigate={navigate} isDark={isDark} monthlyCostData={monthlyCostData} activities={activities} />}
-          {user?.role === 'CONTROLLER' && <ControllerDashboard navigate={navigate} isDark={isDark} chartData={fleetChartData} statusData={statusData} stats={controllerStats} activities={activities} />}
+          {user?.role === 'CONTROLLER' && <ControllerDashboard navigate={navigate} isDark={isDark} chartData={fleetChartData} statusData={statusData} stats={controllerStats} activities={activities} services={services} />}
           {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} vehicleCount={driverVehicleCount} fuelLogs={driverFuelLogs} accountStatus={user?.accountStatus} />}
         </div>
       </div>

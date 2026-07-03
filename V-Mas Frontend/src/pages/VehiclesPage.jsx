@@ -1001,31 +1001,44 @@ const VehiclesPage = () => {
   }
 
   // ── Compute service due alerts per vehicle ──
-  const vehicleAlerts = vehicles.reduce((acc, v) => {
-    if (v.isDeleted) return acc
+  const alertVehicles = []
+  const vehicleAlerts = {}
+  vehicles.forEach(v => {
+    if (v.isDeleted) return
     const milestones = getVehicleMilestones(v, serviceRecords, intervals)
     const alertMilestones = milestones.filter(m => m.status === 'OVERDUE' || m.status === 'DUE_SOON')
-    if (alertMilestones.length === 0) return acc
-
-    // Prioritize OVERDUE milestones over DUE_SOON, then sort by smallest remaining km (most urgent first)
-    alertMilestones.sort((a, b) => {
-      if (a.status === 'OVERDUE' && b.status !== 'OVERDUE') return -1
-      if (a.status !== 'OVERDUE' && b.status === 'OVERDUE') return 1
-      return a.remainingKm - b.remainingKm
+    
+    alertMilestones.forEach(m => {
+      alertVehicles.push({
+        reg: v.registrationNo,
+        record: m.record,
+        level: m.status,
+        vehicleKm: v.currentMileageKm || 0,
+        remainingKm: m.remainingKm
+      })
     })
 
-    const worstMilestone = alertMilestones[0]
-    acc[v.registrationNo] = {
-      record: worstMilestone.record,
-      level: worstMilestone.status,
-      vehicleKm: v.currentMileageKm || 0
+    if (alertMilestones.length > 0) {
+      const sorted = [...alertMilestones].sort((a, b) => {
+        if (a.status === 'OVERDUE' && b.status !== 'OVERDUE') return -1
+        if (a.status !== 'OVERDUE' && b.status === 'OVERDUE') return 1
+        return a.remainingKm - b.remainingKm
+      })
+      const worstMilestone = sorted[0]
+      vehicleAlerts[v.registrationNo] = {
+        record: worstMilestone.record,
+        level: worstMilestone.status,
+        vehicleKm: v.currentMileageKm || 0
+      }
     }
-    return acc
-  }, {})
+  })
 
-  const alertVehicles = Object.entries(vehicleAlerts)
-    .filter(([, info]) => info.level === 'DUE_SOON' || info.level === 'OVERDUE')
-    .map(([reg, info]) => ({ reg, ...info }))
+  // Sort: OVERDUE first, then sort by smallest remaining km (most urgent first)
+  alertVehicles.sort((a, b) => {
+    if (a.level === 'OVERDUE' && b.level !== 'OVERDUE') return -1
+    if (a.level !== 'OVERDUE' && b.level === 'OVERDUE') return 1
+    return a.remainingKm - b.remainingKm
+  })
 
 
 
@@ -1159,7 +1172,7 @@ const VehiclesPage = () => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 16, padding: '10px 4px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
-                  {alertVehicles.map(({ reg, record, level, vehicleKm }) => {
+                   {alertVehicles.map(({ reg, record, level, vehicleKm }, idx) => {
                     const isOverdue = level === 'OVERDUE'
                     const accentColor = isOverdue ? '#f87171' : '#fbbf24'
                     const accentBg = isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'rgba(251, 191, 36, 0.1)'
@@ -1179,7 +1192,7 @@ const VehiclesPage = () => {
                     }
 
                     return (
-                      <div key={reg} style={{
+                      <div key={`${reg}-${record.serviceType}-${idx}`} style={{
                         flexShrink: 0, minWidth: 290, maxWidth: 320,
                         background: D.surfaceHi, border: `1px solid ${accentBorder}`,
                         borderRadius: 16, padding: '20px',
@@ -1276,7 +1289,7 @@ const VehiclesPage = () => {
 
                         {/* Actions Row */}
                         <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
-                          {!isDriver && (
+                          {!isDriver && !isAdmin && (
                             <button
                               onClick={e => {
                                 e.stopPropagation();
