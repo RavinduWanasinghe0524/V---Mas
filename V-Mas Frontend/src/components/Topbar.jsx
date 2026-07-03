@@ -303,7 +303,10 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const totalUnread = unreadCount + alertCount + (user?.role === 'CONTROLLER' ? ctrlUnread : 0) + (user?.role === 'DRIVER' ? drvUnread : 0)
+  const totalUnread = unreadCount + 
+    (user?.role === 'CONTROLLER' ? ctrlUnread : 0) + 
+    (user?.role === 'DRIVER' ? drvUnread : 0) +
+    ((user?.role === 'ADMIN' || user?.role === 'CONTROLLER') ? alertCount : 0)
   const hasUnreadNotifs = unreadCount > 0 || (user?.role === 'CONTROLLER' ? ctrlUnread > 0 : false) || (user?.role === 'DRIVER' ? drvUnread > 0 : false)
 
   return (
@@ -411,20 +414,13 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
         .topbar-notif-dropdown-list {
           max-height: 380px;
           overflow-y: auto;
+          overflow-x: hidden;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
         }
 
         .topbar-notif-dropdown-list::-webkit-scrollbar {
-          width: 6px;
-        }
-        .topbar-notif-dropdown-list::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .topbar-notif-dropdown-list::-webkit-scrollbar-thumb {
-          background: ${isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'};
-          border-radius: 99px;
-        }
-        .topbar-notif-dropdown-list::-webkit-scrollbar-thumb:hover {
-          background: ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'};
+          display: none;
         }
 
         .topbar-notif-mobile-close {
@@ -525,7 +521,14 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
         {user && (
           <div ref={dropdownRef} style={{ position: 'relative', cursor: 'pointer' }}>
             <div 
-              onClick={() => setShowNotifications(!showNotifications)} 
+              onClick={() => {
+                const nextShow = !showNotifications;
+                setShowNotifications(nextShow);
+                if (nextShow) {
+                  fetchData();
+                  refreshLocalNotifs();
+                }
+              }} 
               className="topbar-bell-container"
               style={{ 
                 position: 'relative', 
@@ -669,35 +672,7 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
                             <p style={{ margin: 0, fontSize: '0.85rem', color: n.isRead ? (isDark ? '#94a3b8' : '#64748b') : (isDark ? '#f3f4f6' : '#1e293b'), fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
                             <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{parseBackendDate(n.createdAt).toLocaleString()}</span>
                           </div>
-                          {!n.isRead && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleMarkAsRead(n.id);
-                              }}
-                              title="Mark as read"
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                padding: 4,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: 'var(--primary)',
-                                borderRadius: '50%',
-                                transition: 'background 0.2s',
-                                flexShrink: 0,
-                                alignSelf: 'center',
-                                marginLeft: 4
-                              }}
-                              onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.1)'}
-                              onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                            >
-                              <Check size={14} />
-                            </button>
-                          )}
-                          {dest && n.isRead && <ChevronRight size={14} color="#94a3b8" style={{ flexShrink: 0, marginTop: 2 }} />}
+                          {dest && <ChevronRight size={14} color="#94a3b8" style={{ flexShrink: 0, alignSelf: 'center', marginLeft: 4 }} />}
                         </div>
                       )
                     })
@@ -724,35 +699,7 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
                                   <p style={{ margin: 0, fontSize: '0.85rem', color: n.isRead ? (isDark ? '#94a3b8' : '#64748b') : (isDark ? '#f3f4f6' : '#1e293b'), fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
                                   <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{parseBackendDate(n.createdAt).toLocaleString()}</span>
                                 </div>
-                                {!n.isRead && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleMarkAsRead(n.id);
-                                    }}
-                                    title="Mark as read"
-                                    style={{
-                                      background: 'none',
-                                      border: 'none',
-                                      padding: 4,
-                                      cursor: 'pointer',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      color: 'var(--primary)',
-                                      borderRadius: '50%',
-                                      transition: 'background 0.2s',
-                                      flexShrink: 0,
-                                      alignSelf: 'center',
-                                      marginLeft: 4
-                                    }}
-                                    onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.1)'}
-                                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                                  >
-                                    <Check size={14} />
-                                  </button>
-                                )}
-                                {dest && n.isRead && <ChevronRight size={14} color="#94a3b8" style={{ flexShrink: 0, marginTop: 2 }} />}
+                                {dest && <ChevronRight size={14} color="#94a3b8" style={{ flexShrink: 0, alignSelf: 'center', marginLeft: 4 }} />}
                               </div>
                             )
                           })}
@@ -779,35 +726,7 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
                               <p style={{ margin: 0, fontSize: '0.82rem', color: n.isRead ? (isDark ? '#94a3b8' : '#64748b') : (isDark ? '#f3f4f6' : '#1e293b'), fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
                               <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{parseBackendDate(n.createdAt).toLocaleString()}</span>
                             </div>
-                            {!n.isRead && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCtrlMarkRead(n.id);
-                                }}
-                                title="Mark as read"
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  padding: 4,
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  color: 'var(--primary)',
-                                  borderRadius: '50%',
-                                  transition: 'background 0.2s',
-                                  flexShrink: 0,
-                                  alignSelf: 'center',
-                                  marginLeft: 4
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.1)'}
-                                onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                              >
-                                <Check size={14} />
-                              </button>
-                            )}
-                            {n.link && n.isRead && <ChevronRight size={14} color="#94a3b8" style={{ flexShrink: 0, marginTop: 2 }} />}
+                            {n.link && <ChevronRight size={14} color="#94a3b8" style={{ flexShrink: 0, alignSelf: 'center', marginLeft: 4 }} />}
                           </div>
                         ))
                       )}
@@ -827,35 +746,7 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
                           <p style={{ margin: 0, fontSize: '0.82rem', color: n.isRead ? (isDark ? '#94a3b8' : '#64748b') : (isDark ? '#f3f4f6' : '#1e293b'), fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4 }}>{n.message}</p>
                           <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 4, display: 'block' }}>{parseBackendDate(n.createdAt).toLocaleString()}</span>
                         </div>
-                        {!n.isRead && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDrvMarkRead(n.id);
-                            }}
-                            title="Mark as read"
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              padding: 4,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: 'var(--primary)',
-                              borderRadius: '50%',
-                              transition: 'background 0.2s',
-                              flexShrink: 0,
-                              alignSelf: 'center',
-                              marginLeft: 4
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.1)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                          >
-                            <Check size={14} />
-                          </button>
-                        )}
-                        {n.link && n.isRead && <ChevronRight size={14} color="#94a3b8" style={{ flexShrink: 0, marginTop: 2 }} />}
+                        {n.link && <ChevronRight size={14} color="#94a3b8" style={{ flexShrink: 0, alignSelf: 'center', marginLeft: 4 }} />}
                       </div>
                     ))
                   )}

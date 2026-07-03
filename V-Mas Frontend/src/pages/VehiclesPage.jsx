@@ -1001,31 +1001,44 @@ const VehiclesPage = () => {
   }
 
   // ── Compute service due alerts per vehicle ──
-  const vehicleAlerts = vehicles.reduce((acc, v) => {
-    if (v.isDeleted) return acc
+  const alertVehicles = []
+  const vehicleAlerts = {}
+  vehicles.forEach(v => {
+    if (v.isDeleted) return
     const milestones = getVehicleMilestones(v, serviceRecords, intervals)
     const alertMilestones = milestones.filter(m => m.status === 'OVERDUE' || m.status === 'DUE_SOON')
-    if (alertMilestones.length === 0) return acc
-
-    // Prioritize OVERDUE milestones over DUE_SOON, then sort by smallest remaining km (most urgent first)
-    alertMilestones.sort((a, b) => {
-      if (a.status === 'OVERDUE' && b.status !== 'OVERDUE') return -1
-      if (a.status !== 'OVERDUE' && b.status === 'OVERDUE') return 1
-      return a.remainingKm - b.remainingKm
+    
+    alertMilestones.forEach(m => {
+      alertVehicles.push({
+        reg: v.registrationNo,
+        record: m.record,
+        level: m.status,
+        vehicleKm: v.currentMileageKm || 0,
+        remainingKm: m.remainingKm
+      })
     })
 
-    const worstMilestone = alertMilestones[0]
-    acc[v.registrationNo] = {
-      record: worstMilestone.record,
-      level: worstMilestone.status,
-      vehicleKm: v.currentMileageKm || 0
+    if (alertMilestones.length > 0) {
+      const sorted = [...alertMilestones].sort((a, b) => {
+        if (a.status === 'OVERDUE' && b.status !== 'OVERDUE') return -1
+        if (a.status !== 'OVERDUE' && b.status === 'OVERDUE') return 1
+        return a.remainingKm - b.remainingKm
+      })
+      const worstMilestone = sorted[0]
+      vehicleAlerts[v.registrationNo] = {
+        record: worstMilestone.record,
+        level: worstMilestone.status,
+        vehicleKm: v.currentMileageKm || 0
+      }
     }
-    return acc
-  }, {})
+  })
 
-  const alertVehicles = Object.entries(vehicleAlerts)
-    .filter(([, info]) => info.level === 'DUE_SOON' || info.level === 'OVERDUE')
-    .map(([reg, info]) => ({ reg, ...info }))
+  // Sort: OVERDUE first, then sort by smallest remaining km (most urgent first)
+  alertVehicles.sort((a, b) => {
+    if (a.level === 'OVERDUE' && b.level !== 'OVERDUE') return -1
+    if (a.level !== 'OVERDUE' && b.level === 'OVERDUE') return 1
+    return a.remainingKm - b.remainingKm
+  })
 
 
 
@@ -1159,7 +1172,7 @@ const VehiclesPage = () => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 16, padding: '10px 4px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
-                  {alertVehicles.map(({ reg, record, level, vehicleKm }) => {
+                   {alertVehicles.map(({ reg, record, level, vehicleKm }, idx) => {
                     const isOverdue = level === 'OVERDUE'
                     const accentColor = isOverdue ? '#f87171' : '#fbbf24'
                     const accentBg = isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'rgba(251, 191, 36, 0.1)'
@@ -1179,7 +1192,7 @@ const VehiclesPage = () => {
                     }
 
                     return (
-                      <div key={reg} style={{
+                      <div key={`${reg}-${record.serviceType}-${idx}`} style={{
                         flexShrink: 0, minWidth: 290, maxWidth: 320,
                         background: D.surfaceHi, border: `1px solid ${accentBorder}`,
                         borderRadius: 16, padding: '20px',
@@ -1276,7 +1289,7 @@ const VehiclesPage = () => {
 
                         {/* Actions Row */}
                         <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
-                          {!isDriver && (
+                          {!isDriver && !isAdmin && (
                             <button
                               onClick={e => {
                                 e.stopPropagation();
@@ -1462,7 +1475,7 @@ const VehiclesPage = () => {
                     </div>
 
                     {/* Deleted Vehicles Button */}
-                    {!isDriver && (
+                    {isController && (
                       <button
                         onClick={() => setDeletedDrawer(true)}
                         style={{
@@ -1574,20 +1587,33 @@ const VehiclesPage = () => {
                               </td>
                               <td style={{ padding: '14px 20px' }}>
                                 <div
-                                  onClick={(e) => { e.stopPropagation(); openOdometerModal(e, v); }}
+                                  onClick={(e) => { 
+                                    if (!isController) return;
+                                    e.stopPropagation(); 
+                                    openOdometerModal(e, v); 
+                                  }}
                                   style={{
                                     display: 'inline-flex', alignItems: 'center', gap: 6,
                                     padding: '4px 8px', borderRadius: 8, border: `1px solid transparent`,
+                                    cursor: isController ? 'pointer' : 'default',
                                     transition: 'all 0.15s ease'
                                   }}
-                                  onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.background = D.purpleDim; }}
-                                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }}
-                                  title="Quick Update Mileage"
+                                  onMouseEnter={e => { 
+                                    if (!isController) return;
+                                    e.currentTarget.style.borderColor = D.purple; 
+                                    e.currentTarget.style.background = D.purpleDim; 
+                                  }}
+                                  onMouseLeave={e => { 
+                                    if (!isController) return;
+                                    e.currentTarget.style.borderColor = 'transparent'; 
+                                    e.currentTarget.style.background = 'transparent'; 
+                                  }}
+                                  title={isController ? "Quick Update Mileage" : ""}
                                 >
                                   <span style={{ fontWeight: 750, color: D.text }}>
                                     {v.currentMileageKm ? `${v.currentMileageKm.toLocaleString()} km` : '0 km'}
                                   </span>
-                                  <Edit2 size={10} style={{ opacity: 0.6 }} />
+                                  {isController && <Edit2 size={10} style={{ opacity: 0.6 }} />}
                                 </div>
                               </td>
               <td style={{ padding: '14px 20px', fontWeight: 600, color: D.textSub }}>
@@ -1607,7 +1633,7 @@ const VehiclesPage = () => {
                                   >
                                     <Eye size={13} />
                                   </button>
-                                  {!isDriver && (
+                                  {isController && (
                                     <button
                                       onClick={() => openEditModal(v)}
                                       style={{
@@ -1727,17 +1753,31 @@ const VehiclesPage = () => {
                           {/* Stats Cards Row */}
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                             <div 
-                              onClick={(e) => { e.stopPropagation(); openOdometerModal(e, v); }}
+                              onClick={(e) => { 
+                                if (!isController) return;
+                                e.stopPropagation(); 
+                                openOdometerModal(e, v); 
+                              }}
                               style={{
                                 background: isDark ? 'rgba(168, 85, 247, 0.04)' : 'rgba(168, 85, 247, 0.02)',
                                 border: isDark ? '1px solid rgba(168, 85, 247, 0.15)' : '1px solid rgba(168, 85, 247, 0.1)',
                                 borderRadius: 16, padding: '14px 6px', textAlign: 'center',
-                                position: 'relative', cursor: 'pointer', transition: 'all 0.25s ease',
+                                position: 'relative', cursor: isController ? 'pointer' : 'default', transition: 'all 0.25s ease',
                                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
                               }}
-                              onMouseEnter={e => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.background = 'rgba(168, 85, 247, 0.08)'; e.currentTarget.style.transform = 'scale(1.03)'; }}
-                              onMouseLeave={e => { e.currentTarget.style.borderColor = isDark ? 'rgba(168, 85, 247, 0.15)' : 'rgba(168, 85, 247, 0.1)'; e.currentTarget.style.background = isDark ? 'rgba(168, 85, 247, 0.03)' : 'rgba(168, 85, 247, 0.02)'; e.currentTarget.style.transform = 'scale(1)'; }}
-                              title="Quick Update Odometer"
+                              onMouseEnter={e => { 
+                                if (!isController) return;
+                                e.currentTarget.style.borderColor = '#a855f7'; 
+                                e.currentTarget.style.background = 'rgba(168, 85, 247, 0.08)'; 
+                                e.currentTarget.style.transform = 'scale(1.03)'; 
+                              }}
+                              onMouseLeave={e => { 
+                                if (!isController) return;
+                                e.currentTarget.style.borderColor = isDark ? 'rgba(168, 85, 247, 0.15)' : 'rgba(168, 85, 247, 0.1)'; 
+                                e.currentTarget.style.background = isDark ? 'rgba(168, 85, 247, 0.03)' : 'rgba(168, 85, 247, 0.02)'; 
+                                e.currentTarget.style.transform = 'scale(1)'; 
+                              }}
+                              title={isController ? "Quick Update Odometer" : ""}
                             >
                               <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
                                 <Gauge size={11} style={{ color: '#a855f7', opacity: 0.8 }} />
@@ -1745,22 +1785,36 @@ const VehiclesPage = () => {
                               </div>
                               <div style={{ fontSize: '1.1rem', fontWeight: 900, color: D.text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                                 {v.currentMileageKm ? v.currentMileageKm.toLocaleString() : '0'}
-                                <Edit2 size={10} style={{ opacity: 0.6, color: '#a855f7' }} />
+                                {isController && <Edit2 size={10} style={{ opacity: 0.6, color: '#a855f7' }} />}
                               </div>
                             </div>
 
                             <div 
-                              onClick={(e) => { e.stopPropagation(); openFuelModal(e, v); }}
+                              onClick={(e) => { 
+                                if (!isController) return;
+                                e.stopPropagation(); 
+                                openFuelModal(e, v); 
+                              }}
                               style={{
                                 background: isDark ? 'rgba(245, 158, 11, 0.04)' : 'rgba(245, 158, 11, 0.02)',
                                 border: isDark ? '1px solid rgba(245, 158, 11, 0.15)' : '1px solid rgba(245, 158, 11, 0.1)',
                                 borderRadius: 16, padding: '14px 6px', textAlign: 'center',
-                                position: 'relative', cursor: 'pointer', transition: 'all 0.25s ease',
+                                position: 'relative', cursor: isController ? 'pointer' : 'default', transition: 'all 0.25s ease',
                                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
                               }}
-                              onMouseEnter={e => { e.currentTarget.style.borderColor = '#f59e0b'; e.currentTarget.style.background = 'rgba(245, 158, 11, 0.08)'; e.currentTarget.style.transform = 'scale(1.03)'; }}
-                              onMouseLeave={e => { e.currentTarget.style.borderColor = isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.1)'; e.currentTarget.style.background = isDark ? 'rgba(245, 158, 11, 0.04)' : 'rgba(245, 158, 11, 0.02)'; e.currentTarget.style.transform = 'scale(1)'; }}
-                              title="Quick Update Fuel Type"
+                              onMouseEnter={e => { 
+                                if (!isController) return;
+                                e.currentTarget.style.borderColor = '#f59e0b'; 
+                                e.currentTarget.style.background = 'rgba(245, 158, 11, 0.08)'; 
+                                e.currentTarget.style.transform = 'scale(1.03)'; 
+                              }}
+                              onMouseLeave={e => { 
+                                if (!isController) return;
+                                e.currentTarget.style.borderColor = isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.1)'; 
+                                e.currentTarget.style.background = isDark ? 'rgba(245, 158, 11, 0.04)' : 'rgba(245, 158, 11, 0.02)'; 
+                                e.currentTarget.style.transform = 'scale(1)'; 
+                              }}
+                              title={isController ? "Quick Update Fuel Type" : ""}
                             >
                               <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
                                 <Fuel size={11} style={{ color: '#f59e0b', opacity: 0.8 }} />
@@ -1768,7 +1822,7 @@ const VehiclesPage = () => {
                               </div>
                               <div style={{ fontSize: '1.1rem', fontWeight: 900, color: D.text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                                 {v.fuelType ?? 'N/A'}
-                                <Edit2 size={10} style={{ opacity: 0.6, color: '#f59e0b' }} />
+                                {isController && <Edit2 size={10} style={{ opacity: 0.6, color: '#f59e0b' }} />}
                               </div>
                             </div>
 
@@ -1835,7 +1889,7 @@ const VehiclesPage = () => {
                               onMouseEnter={e => { e.currentTarget.style.background = D.blue; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = D.blue }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = D.blue; e.currentTarget.style.borderColor = D.border }}>
                               <Eye size={14} /> {isDriver ? 'View Details' : 'Profile'}
                             </button>
-                            {!isDriver && (
+                            {isController && (
                               <button onClick={(e) => { e.stopPropagation(); openEditModal(v); }} title="Edit" style={{ padding: '8px 14px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontFamily: 'inherit' }}
                                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.15)'; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.color = '#60a5fa' }}
                                 onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
@@ -2868,11 +2922,11 @@ const VehiclesPage = () => {
                         value: (
                           <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             {selectedProfileVehicle.currentMileageKm ? `${selectedProfileVehicle.currentMileageKm.toLocaleString()} km` : 'N/A'}
-                            <Edit2 size={12} style={{ opacity: 0.6 }} />
+                            {isController && <Edit2 size={12} style={{ opacity: 0.6 }} />}
                           </span>
                         ), 
                         icon: <Gauge size={14} color={D.green} />,
-                        onClick: (e) => openOdometerModal(e, selectedProfileVehicle)
+                        onClick: isController ? (e) => openOdometerModal(e, selectedProfileVehicle) : undefined
                       },
                       { label: 'Tank Capacity', value: selectedProfileVehicle.fuelCapacity ? `${selectedProfileVehicle.fuelCapacity} Liters` : 'N/A', icon: <Fuel size={14} color={D.gold} /> },
                       { label: 'Chassis Number', value: selectedProfileVehicle.chassisNumber || 'N/A', icon: <Shield size={14} color={D.blue} /> },
@@ -3550,7 +3604,7 @@ const VehiclesPage = () => {
             </div>
 
             {/* Footer */}
-            {!isDriver && (
+            {isController && (
               <div style={{ padding: '16px 32px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 10, background: D.surfaceHi, flexShrink: 0 }}>
                 <button
                   onClick={() => { closeProfile(); openEditModal(selectedProfileVehicle); }}
