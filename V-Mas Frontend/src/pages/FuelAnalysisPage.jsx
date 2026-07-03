@@ -484,6 +484,147 @@ const AdminVehicleUsageChart = ({ logs, D }) => {
   )
 }
 
+/* ── Fuel Type Distribution Donut Chart ──────────────────────────────── */
+const FuelTypeDonutChart = ({ logs, D }) => {
+  const [activeIdx, setActiveIdx] = useState(null)
+  const [view, setView] = useState('volume') // 'volume' | 'cost'
+
+  const FUEL_META = [
+    { key: 'diesel',       label: 'Diesel',       color: '#f59e0b' },
+    { key: 'super diesel', label: 'Super Diesel',  color: '#7c3aed' },
+    { key: 'petrol',       label: 'Petrol',        color: '#3b82f6' },
+    { key: 'super petrol', label: 'Super Petrol',  color: '#ea580c' },
+    { key: 'electric',     label: 'Electric',      color: '#10b981' },
+    { key: 'hybrid',       label: 'Hybrid',        color: '#a855f7' },
+  ]
+
+  const totals = {}
+  ;(logs || []).forEach(l => {
+    const ft = (l.fuelType || '').toLowerCase().replace('_', ' ')
+    if (!totals[ft]) totals[ft] = { volume: 0, cost: 0, count: 0 }
+    totals[ft].volume += Number(l.liters) || 0
+    totals[ft].cost   += Number(l.totalCost) || 0
+    totals[ft].count  += 1
+  })
+
+  const slices = FUEL_META
+    .map(m => ({ ...m, volume: totals[m.key]?.volume || 0, cost: totals[m.key]?.cost || 0, count: totals[m.key]?.count || 0 }))
+    .filter(s => (view === 'volume' ? s.volume : s.cost) > 0)
+    .sort((a, b) => (view === 'volume' ? b.volume - a.volume : b.cost - a.cost))
+
+  const totalVal = slices.reduce((s, sl) => s + (view === 'volume' ? sl.volume : sl.cost), 0)
+
+  if (slices.length === 0) return (
+    <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.textSub, fontSize: '0.82rem' }}>No data</div>
+  )
+
+  // Build SVG donut arcs
+  const CX = 90, CY = 90, R = 72, IR = 46
+  let cumAngle = -Math.PI / 2
+  const arcSlices = slices.map((sl, i) => {
+    const val = view === 'volume' ? sl.volume : sl.cost
+    const frac = totalVal > 0 ? val / totalVal : 0
+    const sweep = frac * 2 * Math.PI
+    const startA = cumAngle
+    cumAngle += sweep
+    const endA = cumAngle
+    const gap = 0.025
+    const s1 = startA + gap, e1 = endA - gap
+    const large = e1 - s1 > Math.PI ? 1 : 0
+    const ox = (r, a) => CX + r * Math.cos(a)
+    const oy = (r, a) => CY + r * Math.sin(a)
+    const isActive = activeIdx === i
+    const scale = isActive ? 1.045 : 1
+    const midA = (s1 + e1) / 2
+    const tx = CX + (Math.cos(midA) * (isActive ? 6 : 0))
+    const ty = CY + (Math.sin(midA) * (isActive ? 6 : 0))
+    const path = e1 <= s1 ? null : [
+      `M ${ox(IR, s1)} ${oy(IR, s1)}`,
+      `A ${IR} ${IR} 0 ${large} 1 ${ox(IR, e1)} ${oy(IR, e1)}`,
+      `L ${ox(R, e1)} ${oy(R, e1)}`,
+      `A ${R} ${R} 0 ${large} 0 ${ox(R, s1)} ${oy(R, s1)}`,
+      'Z'
+    ].join(' ')
+    return { ...sl, path, frac, isActive, tx, ty, midA }
+  })
+
+  const active = activeIdx != null ? arcSlices[activeIdx] : null
+  const fmtVal = (v) => view === 'volume'
+    ? `${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v.toFixed(1)} L`
+    : `LKR ${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : Math.round(v).toLocaleString()}`
+  const fmtCenter = (v) => view === 'volume'
+    ? (v >= 1000 ? (v / 1000).toFixed(1) + 'k L' : v.toFixed(0) + ' L')
+    : (v >= 100000 ? 'Rs.' + (v / 1000).toFixed(0) + 'k' : 'Rs.' + Math.round(v / 1000) + 'k')
+
+  return (
+    <div>
+      {/* Toggle */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+        {[['volume', 'By Volume'], ['cost', 'By Cost']].map(([v, label]) => (
+          <button key={v} onClick={() => { setView(v); setActiveIdx(null) }} style={{
+            padding: '4px 14px', borderRadius: 999, border: 'none', cursor: 'pointer',
+            fontSize: '0.72rem', fontWeight: 700, transition: 'all 0.15s',
+            background: view === v ? 'rgba(59,130,246,0.22)' : 'rgba(255,255,255,0.05)',
+            color: view === v ? '#60a5fa' : D.textSub,
+          }}>{label}</button>
+        ))}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+        {/* SVG donut */}
+        <svg viewBox="0 0 180 180" style={{ width: 180, minWidth: 180, height: 180, overflow: 'visible', flexShrink: 0 }}>
+          {arcSlices.map((sl, i) => sl.path && (
+            <path
+              key={sl.key}
+              d={sl.path}
+              fill={sl.color}
+              opacity={activeIdx == null || sl.isActive ? 1 : 0.35}
+              style={{ cursor: 'pointer', transition: 'opacity 0.2s, transform 0.2s', transformOrigin: `${CX}px ${CY}px`, transform: sl.isActive ? 'scale(1.045)' : 'scale(1)' }}
+              onMouseEnter={() => setActiveIdx(i)}
+              onMouseLeave={() => setActiveIdx(null)}
+            />
+          ))}
+          {/* Center label */}
+          <text x={CX} y={CY - 10} textAnchor="middle" fontSize="9" fontWeight="700" fill={D.textSub}>
+            {active ? active.label : 'Total'}
+          </text>
+          <text x={CX} y={CY + 6} textAnchor="middle" fontSize="13" fontWeight="900" fill={active ? active.color : D.text}>
+            {active ? fmtCenter(view === 'volume' ? active.volume : active.cost) : fmtCenter(totalVal)}
+          </text>
+          <text x={CX} y={CY + 20} textAnchor="middle" fontSize="8.5" fontWeight="600" fill={D.textSub}>
+            {active ? `${(active.frac * 100).toFixed(1)}% of fleet` : `${slices.length} fuel type${slices.length !== 1 ? 's' : ''}`}
+          </text>
+        </svg>
+        {/* Legend */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 9 }}>
+          {arcSlices.map((sl, i) => {
+            const val = view === 'volume' ? sl.volume : sl.cost
+            const pct = totalVal > 0 ? (val / totalVal) * 100 : 0
+            return (
+              <div key={sl.key}
+                onMouseEnter={() => setActiveIdx(i)}
+                onMouseLeave={() => setActiveIdx(null)}
+                style={{ cursor: 'pointer', opacity: activeIdx == null || activeIdx === i ? 1 : 0.45, transition: 'opacity 0.2s' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 3, background: sl.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: D.text }}>{sl.label}</span>
+                    <span style={{ fontSize: '0.67rem', color: D.textSub }}>{sl.count} log{sl.count !== 1 ? 's' : ''}</span>
+                  </div>
+                  <span style={{ fontSize: '0.73rem', fontWeight: 800, color: sl.color }}>{fmtVal(val)}</span>
+                </div>
+                <div style={{ height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 999, overflow: 'hidden' }}>
+                  <div style={{ width: `${pct}%`, height: '100%', background: sl.color, borderRadius: 999, transition: 'width 0.5s ease' }} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const FuelAnalysisPage = () => {
   const D = useD()
   const isDark = D.bg === '#060b18' || D.bg === '#080d1a'
@@ -593,14 +734,15 @@ const FuelAnalysisPage = () => {
         })
 
         const statsArr = Object.entries(vehicleMap).map(([reg, { logs, totalSpending }]) => {
-          // Sort logs by date desc, efficiency = (latestMileage - prevMileage) / latestLiters
-          const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date))
-          let fuelEfficiency = null
-          if (sorted.length >= 2) {
-            const diff = sorted[0].mileage - sorted[1].mileage
-            const lit = sorted[0].liters
-            if (lit > 0) fuelEfficiency = Math.round((diff / lit) * 100) / 100
-          }
+          // Use the per-log fuelEfficiency values already set by computeLogsEfficiency.
+          // Average all valid (non-null, positive) readings for this vehicle so that
+          // even vehicles with a single log show a real value instead of N/A.
+          const validEffs = logs
+            .map(l => l.fuelEfficiency)
+            .filter(e => e != null && e > 0)
+          const fuelEfficiency = validEffs.length > 0
+            ? Math.round((validEffs.reduce((s, e) => s + e, 0) / validEffs.length) * 100) / 100
+            : null
           const efficiencyStatus = fuelEfficiency == null ? 'Insufficient Data'
             : fuelEfficiency < 5 ? 'Poor'
               : fuelEfficiency < 10 ? 'Good'
@@ -1091,13 +1233,13 @@ const FuelAnalysisPage = () => {
                   <FleetFuelConsumptionChart logs={allFuelLogs} D={D} isDark={isDark} />
                 </div>
 
-                {/* Usage by Vehicle */}
+                {/* Fuel Type Distribution */}
                 <div style={{ ...card(D), padding: '22px 24px' }}>
-                  <div style={{ marginBottom: 16 }}>
-                    <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Usage by Vehicle</h3>
-                    <p style={{ margin: '3px 0 0', fontSize: '0.73rem', color: D.textSub }}>Lifetime fuel per reg no.</p>
+                  <div style={{ marginBottom: 4 }}>
+                    <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel Type Distribution</h3>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.73rem', color: D.textSub }}>Fleet-wide breakdown by volume &amp; spend</p>
                   </div>
-                  <AdminVehicleUsageChart logs={allFuelLogs} D={D} />
+                  <FuelTypeDonutChart logs={allFuelLogs} D={D} />
                 </div>
               </div>
             )}
@@ -1106,7 +1248,7 @@ const FuelAnalysisPage = () => {
             {(isAdmin || isController) && allFuelLogs.length > 0 && (() => {
               const recentLogs = allFuelLogs.slice(0, 10)
               const colStyle = (w) => ({ padding: '13px 14px', fontSize: '0.82rem', color: D.text, fontWeight: 600, width: w, whiteSpace: 'nowrap' })
-              const hStyle = { padding: '10px 14px', fontSize: '0.67rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }
+              const hStyle = { padding: '10px 14px', fontSize: '0.67rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, textAlign: 'left' }
               return (
                 <div style={{ ...card(D), padding: 0, marginBottom: 20 }}>
                   <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${D.border}` }}>
