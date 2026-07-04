@@ -195,6 +195,8 @@ const ProfilePage = () => {
     setNotifSaving(true)
     try {
       localStorage.setItem(privacyKey, JSON.stringify(privacy))
+      // Notify the Topbar to re-apply the alert-type filter immediately
+      window.dispatchEvent(new Event('vmas-notif-settings-update'))
     } catch { /* ignore storage errors */ }
     await new Promise(r => setTimeout(r, 800))
     setNotifSaving(false)

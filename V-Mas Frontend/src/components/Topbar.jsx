@@ -106,6 +106,17 @@ const getLinkFromType = (type) => {
   }
 }
 
+// Map a notification/alert type → the profile "Alert Types" filter category (null = not an alert, always shown)
+const alertCategoryOf = (type) => {
+  if (!type) return null
+  const t = String(type).toUpperCase()
+  if (t.includes('OVERDUE')) return 'OVERDUE'
+  if (t === 'SERVICE_DUE' || t === 'SERVICE' || t === 'WARNING') return 'SERVICE'
+  if (t === 'LOW_EFFICIENCY' || t === 'FUEL_LOW_EFF' || t === 'LOW_EFF') return 'FUEL'
+  if (t.includes('INSURANCE') || t.includes('LICENSE') || t.includes('DOCUMENT') || t.includes('EXPIRY')) return 'INSURANCE'
+  return null
+}
+
 // Icon per notification type
 const ctrlNotifIcon = (type, isDark) => {
   const base = { borderRadius: '50%', padding: 6, display: 'flex', color: '#fff' }
@@ -199,6 +210,25 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
   const [ctrlUnread, setCtrlUnread] = useState(0)
   const [drvNotifs, setDrvNotifs] = useState([])
   const [drvUnread, setDrvUnread] = useState(0)
+
+  // Selected alert-type filter from Profile → Notification Settings (persisted per user)
+  const [alertFilter, setAlertFilter] = useState(['SERVICE', 'INSURANCE', 'FUEL', 'OVERDUE'])
+  useEffect(() => {
+    const load = () => {
+      try {
+        const saved = localStorage.getItem(`vmas-privacy-settings-${user?.id || 'me'}`)
+        const parsed = saved ? JSON.parse(saved) : null
+        setAlertFilter(Array.isArray(parsed?.alertTypes) ? parsed.alertTypes : ['SERVICE', 'INSURANCE', 'FUEL', 'OVERDUE'])
+      } catch { /* keep default */ }
+    }
+    load()
+    window.addEventListener('focus', load)
+    window.addEventListener('vmas-notif-settings-update', load)
+    return () => {
+      window.removeEventListener('focus', load)
+      window.removeEventListener('vmas-notif-settings-update', load)
+    }
+  }, [user?.id, showNotifications])
 
   const fetchData = async () => {
     if (!user) return
@@ -303,11 +333,20 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const totalUnread = unreadCount + 
-    (user?.role === 'CONTROLLER' ? ctrlUnread : 0) + 
-    (user?.role === 'DRIVER' ? drvUnread : 0) +
+  // Apply the alert-type filter: hide notifications whose alert category is deselected (non-alert types always show)
+  const passAlert = (n) => { const c = alertCategoryOf(n?.type); return c === null || alertFilter.includes(c) }
+  const fNotifications = notifications.filter(passAlert)
+  const fCtrlNotifs = ctrlNotifs.filter(passAlert)
+  const fDrvNotifs = drvNotifs.filter(passAlert)
+  const fUnread = fNotifications.filter(n => !n.isRead).length
+  const fCtrlUnread = fCtrlNotifs.filter(n => !n.isRead).length
+  const fDrvUnread = fDrvNotifs.filter(n => !n.isRead).length
+
+  const totalUnread = fUnread +
+    (user?.role === 'CONTROLLER' ? fCtrlUnread : 0) +
+    (user?.role === 'DRIVER' ? fDrvUnread : 0) +
     ((user?.role === 'ADMIN' || user?.role === 'CONTROLLER') ? alertCount : 0)
-  const hasUnreadNotifs = unreadCount > 0 || (user?.role === 'CONTROLLER' ? ctrlUnread > 0 : false) || (user?.role === 'DRIVER' ? drvUnread > 0 : false)
+  const hasUnreadNotifs = fUnread > 0 || (user?.role === 'CONTROLLER' ? fCtrlUnread > 0 : false) || (user?.role === 'DRIVER' ? fDrvUnread > 0 : false)
 
   return (
     <>
@@ -659,8 +698,8 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
                 <div className="topbar-notif-dropdown-list">
                   {/* 2. Admin System Notifs */}
                   {user.role === 'ADMIN' && (
-                    notifications.length === 0 ? <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No recent system activity</div> :
-                    notifications.map(n => {
+                    fNotifications.length === 0 ? <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No recent system activity</div> :
+                    fNotifications.map(n => {
                       const dest = n.link || getLinkFromType(n.type)
                       return (
                         <div key={n.id} onClick={() => handleAdminNotifClick(n)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)'), cursor: dest ? 'pointer' : (n.isRead ? 'default' : 'pointer'), transition: 'all 0.15s', borderLeft: n.isRead ? '3px solid transparent' : '3px solid #3b82f6' }}
@@ -682,12 +721,12 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
                   {user.role === 'CONTROLLER' && (
                     <>
                       {/* System Notifications from Backend */}
-                      {notifications.length > 0 && (
+                      {fNotifications.length > 0 && (
                         <>
                           <div style={{ padding: '8px 16px', background: isDark ? 'rgba(59,130,246,0.05)' : '#f8fafc', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#eee'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#3b82f6', textTransform: 'uppercase' }}>System Notifications</span>
                           </div>
-                          {notifications.map(n => {
+                          {fNotifications.map(n => {
                             const dest = n.link || getLinkFromType(n.type)
                             return (
                               <div key={n.id} onClick={() => handleAdminNotifClick(n)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)'), cursor: dest ? 'pointer' : (n.isRead ? 'default' : 'pointer'), transition: 'all 0.15s', borderLeft: n.isRead ? '3px solid transparent' : '3px solid #3b82f6' }}
@@ -709,14 +748,14 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
                       {/* Local Activity Log */}
                       <div style={{ padding: '8px 16px', background: isDark ? 'rgba(96, 165, 250,0.05)' : '#f8fafc', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#eee'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#a855f7', textTransform: 'uppercase' }}>Recent Activity</span>
-                        {ctrlNotifs.length > 0 && (
+                        {fCtrlNotifs.length > 0 && (
                           <button onClick={handleCtrlClearAll} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '0.65rem', cursor: 'pointer' }}>Clear All</button>
                         )}
                       </div>
-                      {ctrlNotifs.length === 0 && notifications.length === 0 ? (
+                      {fCtrlNotifs.length === 0 && fNotifications.length === 0 ? (
                         <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No recent activity</div>
                       ) : (
-                        ctrlNotifs.map(n => (
+                        fCtrlNotifs.map(n => (
                           <div key={n.id} onClick={() => handleNotifClick(n, handleCtrlMarkRead)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(96, 165, 250,0.06)' : 'rgba(96, 165, 250,0.04)'), cursor: n.link ? 'pointer' : (n.isRead ? 'default' : 'pointer'), transition: 'all 0.15s', borderLeft: n.isRead ? '3px solid transparent' : '3px solid #a855f7' }}
                             onMouseEnter={e => { if (n.link || !n.isRead) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
                             onMouseLeave={e => { e.currentTarget.style.background = n.isRead ? 'transparent' : (isDark ? 'rgba(96, 165, 250,0.06)' : 'rgba(96, 165, 250,0.04)') }}
@@ -735,8 +774,8 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
 
                   {/* 4. Driver Log */}
                   {user.role === 'DRIVER' && (
-                    drvNotifs.length === 0 ? <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No recent activity</div> :
-                    drvNotifs.map(n => (
+                    fDrvNotifs.length === 0 ? <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No recent activity</div> :
+                    fDrvNotifs.map(n => (
                       <div key={n.id} onClick={() => handleNotifClick(n, handleDrvMarkRead)} style={{ padding: '12px 16px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'transparent' : (isDark ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.04)'), cursor: n.link ? 'pointer' : (n.isRead ? 'default' : 'pointer'), transition: 'all 0.15s', borderLeft: n.isRead ? '3px solid transparent' : '3px solid #10b981' }}
                         onMouseEnter={e => { if (n.link || !n.isRead) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
                         onMouseLeave={e => { e.currentTarget.style.background = n.isRead ? 'transparent' : (isDark ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.04)') }}
