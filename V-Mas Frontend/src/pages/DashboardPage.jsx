@@ -1170,6 +1170,14 @@ const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, a
   )
 }
 
+/* Map a dashboard alert → the profile "Alert Types" filter category */
+const dashboardAlertCategory = (a) => {
+  const t = String(a?.type || '').toUpperCase()
+  if (t.includes('DOCUMENT') || t.includes('INSURANCE') || t.includes('LICENSE') || t.includes('EXPIR')) return 'INSURANCE'
+  if (String(a?.severity || '').toUpperCase() === 'OVERDUE') return 'OVERDUE'
+  return 'SERVICE'
+}
+
 const AlertSection = ({ alerts, navigate, isDark }) => {
   const [expanded, setExpanded] = useState(false)
   if (!alerts || alerts.length === 0) return null
@@ -1462,6 +1470,22 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  // Selected alert-type filter from Profile → Notification Settings (persisted per user)
+  const [alertFilter, setAlertFilter] = useState(['SERVICE', 'INSURANCE', 'FUEL', 'OVERDUE'])
+  useEffect(() => {
+    const load = () => {
+      try {
+        const saved = localStorage.getItem(`vmas-privacy-settings-${user?.id || 'me'}`)
+        const parsed = saved ? JSON.parse(saved) : null
+        setAlertFilter(Array.isArray(parsed?.alertTypes) ? parsed.alertTypes : ['SERVICE', 'INSURANCE', 'FUEL', 'OVERDUE'])
+      } catch { /* keep default */ }
+    }
+    load()
+    window.addEventListener('focus', load)
+    window.addEventListener('vmas-notif-settings-update', load)
+    return () => { window.removeEventListener('focus', load); window.removeEventListener('vmas-notif-settings-update', load) }
+  }, [user?.id])
+
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
@@ -1712,7 +1736,7 @@ const DashboardPage = () => {
 
           {/* Alerts Section - Show for Admin and Controller */}
           {(isAdmin || user?.role === 'CONTROLLER') && (
-            <AlertSection alerts={alerts} navigate={navigate} isDark={isDark} />
+            <AlertSection alerts={alerts.filter(a => alertFilter.includes(dashboardAlertCategory(a)))} navigate={navigate} isDark={isDark} />
           )}
 
           {/* Role-based content */}
