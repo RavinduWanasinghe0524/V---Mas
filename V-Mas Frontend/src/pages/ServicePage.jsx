@@ -2780,7 +2780,7 @@ const ServicePage = () => {
             return (
               <>
                 {/* Tabs Navigation (visible to all roles, limited tabs for drivers) */}
-                <div style={{
+                <div className="service-tabs" style={{
                   display: 'flex',
                   gap: 12,
                   marginBottom: 26,

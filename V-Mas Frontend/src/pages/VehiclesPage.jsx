@@ -2882,7 +2882,7 @@ const VehiclesPage = () => {
             </div>
 
             {/* Tab Navigation */}
-            <div style={{ display: 'flex', padding: '16px 32px 10px', background: D.surface, gap: 8, borderBottom: `1px solid ${D.border}` }}>
+            <div className="modal-tabs" style={{ display: 'flex', padding: '16px 32px 10px', background: D.surface, gap: 8, borderBottom: `1px solid ${D.border}` }}>
               {['overview', 'services', 'fuel'].map(tab => (
                 <button
                   key={tab}

@@ -1136,7 +1136,7 @@ const FuelAnalysisPage = () => {
                     <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel Overview</h2>
                     <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: D.textSub }}>This period's fuel performance</p>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+                  <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
                     {kpiCards.map(s => (
                       <div key={s.label}
                         onClick={() => { setFilterFuelType(s.filterFuel); setFilterAuditStatus(s.filterStatus); setActiveTab('audit'); document.getElementById('audit-view')?.scrollIntoView({ behavior: 'smooth' }) }}
@@ -1169,7 +1169,7 @@ const FuelAnalysisPage = () => {
                   <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel Overview</h2>
                   <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: D.textSub }}>Your vehicle's fuel performance</p>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+                <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
                   {[
                     {
                       label: 'TOTAL DIESEL',
@@ -1226,7 +1226,7 @@ const FuelAnalysisPage = () => {
 
             {/* ── Admin: Fuel Cost Trend + Usage by Vehicle ── */}
             {(isAdmin || isController) && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 16, marginBottom: 20 }}>
+              <div className="fuel-analysis-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 16, marginBottom: 20 }}>
 
                 {/* Fuel Consumption Chart */}
                 <div style={{ ...card(D) }}>
@@ -1309,7 +1309,7 @@ const FuelAnalysisPage = () => {
 
             {/* ── Driver/both: Monthly Consumption + Efficiency Trend ── */}
             {isDriver && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
+              <div className="fuel-analysis-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
 
                 {/* Monthly Consumption Bar Chart */}
                 <div style={{ ...card(D), padding: '22px 24px' }}>
