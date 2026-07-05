@@ -1153,6 +1153,7 @@ const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, a
       <SectionHeader title="Quick Navigation" />
       <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20, marginBottom: 36 }}>
         <FeatureCard icon={<Car size={24}/>} title="Vehicles" desc="Manage and monitor all fleet vehicles, statuses, assignments and details." onClick={() => navigate('/vehicles')} />
+        <FeatureCard icon={<Users size={24}/>} title="Users" desc="View users and manage driver accounts, roles and account status." onClick={() => navigate('/users')} />
         <FeatureCard icon={<Wrench size={24}/>} title="Service" desc="Schedule and track vehicle service appointments and maintenance records." onClick={() => navigate('/service')} />
         <FeatureCard icon={<Fuel size={24}/>} title="Fuel Analysis" desc="Monitor fuel consumption trends and cost analysis across the entire fleet." onClick={() => navigate('/fuel-analysis')} />
         <FeatureCard icon={<BarChart3 size={24}/>} title="Reports" desc="Generate comprehensive reports on fleet performance and system activity." onClick={() => navigate('/reports')} />
@@ -1167,6 +1168,14 @@ const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, a
       `}</style>
     </>
   )
+}
+
+/* Map a dashboard alert → the profile "Alert Types" filter category */
+const dashboardAlertCategory = (a) => {
+  const t = String(a?.type || '').toUpperCase()
+  if (t.includes('DOCUMENT') || t.includes('INSURANCE') || t.includes('LICENSE') || t.includes('EXPIR')) return 'INSURANCE'
+  if (String(a?.severity || '').toUpperCase() === 'OVERDUE') return 'OVERDUE'
+  return 'SERVICE'
 }
 
 const AlertSection = ({ alerts, navigate, isDark }) => {
@@ -1461,6 +1470,22 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  // Selected alert-type filter from Profile → Notification Settings (persisted per user)
+  const [alertFilter, setAlertFilter] = useState(['SERVICE', 'INSURANCE', 'FUEL', 'OVERDUE'])
+  useEffect(() => {
+    const load = () => {
+      try {
+        const saved = localStorage.getItem(`vmas-privacy-settings-${user?.id || 'me'}`)
+        const parsed = saved ? JSON.parse(saved) : null
+        setAlertFilter(Array.isArray(parsed?.alertTypes) ? parsed.alertTypes : ['SERVICE', 'INSURANCE', 'FUEL', 'OVERDUE'])
+      } catch { /* keep default */ }
+    }
+    load()
+    window.addEventListener('focus', load)
+    window.addEventListener('vmas-notif-settings-update', load)
+    return () => { window.removeEventListener('focus', load); window.removeEventListener('vmas-notif-settings-update', load) }
+  }, [user?.id])
+
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
@@ -1711,7 +1736,7 @@ const DashboardPage = () => {
 
           {/* Alerts Section - Show for Admin and Controller */}
           {(isAdmin || user?.role === 'CONTROLLER') && (
-            <AlertSection alerts={alerts} navigate={navigate} isDark={isDark} />
+            <AlertSection alerts={alerts.filter(a => alertFilter.includes(dashboardAlertCategory(a)))} navigate={navigate} isDark={isDark} />
           )}
 
           {/* Role-based content */}
