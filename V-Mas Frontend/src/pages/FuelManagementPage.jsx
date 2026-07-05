@@ -525,7 +525,7 @@ const FuelManagementPage = () => {
           </div>
 
           {/* -- Stats Grid -------------------------------------- */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
+          <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
             {[
               { label: 'Fuel Consumed', value: `${stats.totalFuel.toFixed(1)} L`, icon: <Fuel size={24} />, color: D.gold, bg: D.goldDim },
               { label: 'Total Expenditure', value: `Rs. ${Math.round(stats.totalCost).toLocaleString()}`, icon: <CircleDollarSign size={24} />, color: D.green, bg: D.greenDim },
@@ -549,8 +549,8 @@ const FuelManagementPage = () => {
 
           {/* -- Controls & List ---------------------------------- */}
           <div style={{ ...card, padding: 0 }}>
-            <div style={{ padding: '22px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, background: D.surfaceHi, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, flexWrap: 'wrap' }}>
+            <div className="fuel-controls-header" style={{ padding: '22px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, background: D.surfaceHi, flexWrap: 'wrap' }}>
+              <div className="fuel-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, flexWrap: 'wrap' }}>
 
                 {/* Vehicle Dropdown */}
                 <div style={{ position: 'relative', minWidth: 190 }}>
@@ -664,7 +664,7 @@ const FuelManagementPage = () => {
                   {filteredLogs.map((log, i) => {
                     const badge = effBadge(log.fuelEfficiency)
                     return (
-                      <div key={log.id} style={{
+                      <div key={log.id} className="fuel-log-row" style={{
                         background: D.surface, borderRadius: 20, border: `1px solid ${D.border}`,
                         padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 24,
                         transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`,

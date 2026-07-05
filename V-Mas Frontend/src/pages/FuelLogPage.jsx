@@ -305,7 +305,7 @@ const FuelLogPage = () => {
           </div>
 
           {/* Statistics Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
+          <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
             {[
               { label: 'Total Fuel (L)', value: totalLiters.toFixed(1), icon: <Fuel size={24}/>, colorDim: D.purpleDim, colorHex: D.purple },
               { label: 'Total Spent', value: `Rs. ${Math.round(totalCost).toLocaleString()}`, icon: <CircleDollarSign size={24}/>, colorDim: D.greenDim, colorHex: D.green },
@@ -386,7 +386,7 @@ const FuelLogPage = () => {
                     ) : { label: 'N/A', bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border };
                     
                     return (
-                      <div key={log.id} style={{
+                      <div key={log.id} className="fuel-log-row" style={{
                         background: D.surface, borderRadius: 20, border: `1px solid ${D.border}`,
                         padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 24,
                         transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`,
