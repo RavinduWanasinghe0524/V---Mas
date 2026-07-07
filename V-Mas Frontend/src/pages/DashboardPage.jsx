@@ -1558,7 +1558,12 @@ const DashboardPage = () => {
               const d = new Date(l.date)
               if (d.getFullYear() !== yr) return
               const m = d.getMonth()
-              const ft = (l.fuelType || '').toLowerCase().replace('_', ' ')
+              let ft = (l.fuelType || '').toLowerCase().replace('_', ' ')
+              if (ft === 'petrol' || ft.includes('92')) ft = 'petrol';
+              else if (ft === 'super petrol' || ft.includes('95')) ft = 'super petrol';
+              else if (ft === 'diesel' || ft.includes('auto')) ft = 'diesel';
+              else if (ft.includes('super diesel')) ft = 'super diesel';
+
               const liters = Number(l.liters) || 0
               const cost = Number(l.totalCost) || 0
               const reg = l.vehicleRegNumber || 'Unknown'
@@ -1566,7 +1571,6 @@ const DashboardPage = () => {
               else if (ft === 'super diesel') { agg[m].superDiesel += liters; agg[m].superDieselMap[reg] = (agg[m].superDieselMap[reg] || 0) + liters }
               else if (ft === 'petrol') { agg[m].petrol += liters; agg[m].petrolMap[reg] = (agg[m].petrolMap[reg] || 0) + liters }
               else if (ft === 'super petrol') { agg[m].superPetrol += liters; agg[m].superPetrolMap[reg] = (agg[m].superPetrolMap[reg] || 0) + liters }
-              else if (ft === 'electric') { /* ignored — no electric vehicles */ }
             })
             const toList = map => Object.entries(map).map(([reg, liters]) => ({ reg, liters })).sort((a, b) => b.liters - a.liters)
             const arr = []

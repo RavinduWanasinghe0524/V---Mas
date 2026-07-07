@@ -14,6 +14,7 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { vehicleAPI, fuelAPI, serviceAPI, userAPI } from '../services/api'
 import { generateStyledExcel } from '../utils/excelExport'
+import { formatFuelType } from '../utils/fuelUtils'
 
 // ── Helper: relative time ─────────────────────────────────────────────────────
 const getTimeAgo = (dateStr) => {
@@ -195,7 +196,7 @@ const ReportsPage = () => {
         columns = ['Reg No', 'Manufacturer', 'Model', 'Status', 'Mileage', 'Fuel Type']
         rows = vehicles.map(v => [
           v.registrationNo || '—', v.manufacturer || '—', v.model || '—',
-          v.status || '—', v.currentMileageKm ? `${v.currentMileageKm} km` : '0 km', v.fuelType || '—'
+          v.status || '—', v.currentMileageKm ? `${v.currentMileageKm} km` : '0 km', v.fuelType ? formatFuelType(v.fuelType) : '—'
         ])
       } else if (id === 'fuel-report' || id === 'driver-performance' || id === 'fuel-efficiency') {
         const { data } = await fuelAPI.getAllFuelLogs()
@@ -203,7 +204,7 @@ const ReportsPage = () => {
         columns = ['Date', 'Vehicle', 'Driver', 'Type', 'Liters', 'Total Cost']
         rows = logs.map(f => [
           f.date ? new Date(f.date).toLocaleDateString() : '—',
-          f.vehicleRegNumber || '—', f.driverUsername || '—', f.fuelType || '—',
+          f.vehicleRegNumber || '—', f.driverUsername || '—', f.fuelType ? formatFuelType(f.fuelType) : '—',
           f.liters ? `${Number(f.liters).toFixed(1)} L` : '0 L',
           f.totalCost != null ? `Rs. ${Number(f.totalCost).toLocaleString()}` : 'Rs. 0'
         ])
@@ -330,7 +331,7 @@ const ReportsPage = () => {
           body: vehData.map(v => [
             v.registrationNo || 'N/A', v.manufacturer || 'N/A', v.model || 'N/A', v.status || 'N/A',
             v.currentMileageKm != null ? `${v.currentMileageKm} km` : '0 km',
-            v.fuelType || 'N/A', v.fuelCapacity != null ? `${v.fuelCapacity} L` : '0 L'
+            v.fuelType ? formatFuelType(v.fuelType) : 'N/A', v.fuelCapacity != null ? `${v.fuelCapacity} L` : '0 L'
           ]),
           theme: 'grid', headStyles: { fillColor: headerColor }
         })
@@ -351,7 +352,7 @@ const ReportsPage = () => {
           head: [['Date', 'Vehicle', 'Driver', 'Type', 'Liters', 'Total Cost']],
           body: filteredFuel.map(f => [
             f.date ? new Date(f.date).toLocaleDateString() : 'N/A',
-            f.vehicleRegNumber || 'N/A', f.driverUsername || 'N/A', f.fuelType || 'N/A',
+            f.vehicleRegNumber || 'N/A', f.driverUsername || 'N/A', f.fuelType ? formatFuelType(f.fuelType) : 'N/A',
             f.liters != null ? `${f.liters} L` : '0 L',
             f.totalCost != null ? `Rs. ${Number(f.totalCost).toLocaleString()}` : 'Rs. 0'
           ]),
