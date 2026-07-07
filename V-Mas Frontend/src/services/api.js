@@ -64,9 +64,7 @@ export const userAPI = {
     if (expiryDate) {
       form.append('expiryDate', expiryDate)
     }
-    return api.post(`/users/${id}/document/${docType}`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    return api.post(`/users/${id}/document/${docType}`, form)
   },
   getDocumentUrl: (id, docType) => `${API_BASE_URL}/users/${id}/document/${docType}`,
 }
@@ -97,9 +95,7 @@ export const vehicleAPI = {
     if (expiryDate) {
       form.append('expiryDate', expiryDate)
     }
-    return api.post(`/vehicles/${id}/document/${docType}`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    return api.post(`/vehicles/${id}/document/${docType}`, form)
   },
   getDocumentUrl: (id, docType) => `${API_BASE_URL}/vehicles/${id}/document/${docType}`,
   getDeletedVehicles: () => api.get('/vehicles/deleted'),
@@ -149,9 +145,7 @@ export const serviceAPI = {
   uploadAttachment:     (id, file)       => {
     const form = new FormData()
     form.append('file', file)
-    return api.post(`/services/${id}/attachment`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    return api.post(`/services/${id}/attachment`, form)
   },
   getAttachmentBlob:    (id)             => api.get(`/services/${id}/attachment`, { responseType: 'blob' }),
   getServicesByVehicle: (regNo)          => api.get(`/services/vehicle/${encodeURIComponent(regNo)}`),
