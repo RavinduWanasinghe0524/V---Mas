@@ -90,10 +90,10 @@ const BarChart = ({ data, maxVal, highlightCount = 12, D }) => {
           return (
             <g key={i} opacity={opacity} style={{ transition: 'opacity 0.3s ease' }}>
               <rect x={x} y={H - dH} width={W_BAR} height={dH} rx={3} fill="url(#barD)">
-                {!dim && <title>Diesel: {d.Diesel.toFixed(1)} L</title>}
+                {!dim && <title>Auto Diesel: {d.Diesel.toFixed(1)} L</title>}
               </rect>
               <rect x={x + W_BAR + 3} y={H - pH} width={W_BAR} height={pH} rx={3} fill="url(#barP)">
-                {!dim && <title>Petrol: {d.Petrol.toFixed(1)} L</title>}
+                {!dim && <title>Petrol 92 Octane: {d.Petrol.toFixed(1)} L</title>}
               </rect>
               {d.month ? (
                 <text x={i * SLOT + SLOT / 2} y={H + 18} textAnchor="middle"
@@ -278,10 +278,10 @@ const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
                   <line x1={hx} y1={padT} x2={hx} y2={padT + chartH} stroke={axisText} strokeDasharray="3 3" opacity="0.5" />
                   <rect x={bx} y={by} width={bw} height={bh} rx="8" fill={isDark ? '#0e1529' : '#ffffff'} stroke={D.border} style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.45))' }} />
                   <text x={bx + 12} y={by + 16} fontSize="10" fontWeight="800" fill={D.text}>{p.label}</text>
-                  <text x={bx + 12} y={by + 32} fontSize="9" fill={dieselC} fontWeight="700">Diesel: {Math.round(p.diesel).toLocaleString()} L</text>
+                  <text x={bx + 12} y={by + 32} fontSize="9" fill={dieselC} fontWeight="700">Auto Diesel: {Math.round(p.diesel).toLocaleString()} L</text>
                   <text x={bx + 12} y={by + 46} fontSize="9" fill={superDieselC} fontWeight="700">Super Diesel: {Math.round(p.superDiesel).toLocaleString()} L</text>
-                  <text x={bx + 12} y={by + 60} fontSize="9" fill={petrolC} fontWeight="700">Petrol: {Math.round(p.petrol).toLocaleString()} L</text>
-                  <text x={bx + 12} y={by + 74} fontSize="9" fill={superPetrolC} fontWeight="700">Super Petrol: {Math.round(p.superPetrol).toLocaleString()} L</text>
+                  <text x={bx + 12} y={by + 60} fontSize="9" fill={petrolC} fontWeight="700">Petrol 92 Octane: {Math.round(p.petrol).toLocaleString()} L</text>
+                  <text x={bx + 12} y={by + 74} fontSize="9" fill={superPetrolC} fontWeight="700">Petrol 95 Octane: {Math.round(p.superPetrol).toLocaleString()} L</text>
                 </g>
               )
             }
@@ -293,10 +293,10 @@ const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
                         : hover.type === 'superDiesel' ? superDieselC
                         : hover.type === 'petrol' ? petrolC
                         : superPetrolC
-            const fuelName = hover.type === 'diesel' ? 'Diesel'
+            const fuelName = hover.type === 'diesel' ? 'Auto Diesel'
                            : hover.type === 'superDiesel' ? 'Super Diesel'
-                           : hover.type === 'petrol' ? 'Petrol'
-                           : 'Super Petrol'
+                           : hover.type === 'petrol' ? 'Petrol 92 Octane'
+                           : 'Petrol 95 Octane'
             const isElectric = false
             const shown = list.slice(0, 7)
             const rowH = 11, headH = 32
@@ -335,16 +335,16 @@ const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
       )}
       <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 10, flexWrap: 'wrap' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: D.textSub }}>
-          <span style={{ width: 14, height: 3, borderRadius: 2, background: dieselC }} /> Diesel (L)
+          <span style={{ width: 14, height: 3, borderRadius: 2, background: dieselC }} /> Auto Diesel (L)
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: D.textSub }}>
           <span style={{ width: 14, height: 3, borderRadius: 2, background: superDieselC }} /> Super Diesel (L)
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: D.textSub }}>
-          <span style={{ width: 14, height: 3, borderRadius: 2, background: petrolC }} /> Petrol (L)
+          <span style={{ width: 14, height: 3, borderRadius: 2, background: petrolC }} /> Petrol 92 Octane (L)
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: D.textSub }}>
-          <span style={{ width: 14, height: 3, borderRadius: 2, background: superPetrolC }} /> Super Petrol (L)
+          <span style={{ width: 14, height: 3, borderRadius: 2, background: superPetrolC }} /> Petrol 95 Octane (L)
         </span>
       </div>
     </div>
@@ -1345,7 +1345,7 @@ const FuelAnalysisPage = () => {
                   </div>
                   <BarChart data={monthlyData} maxVal={maxVal} highlightCount={highlightCount} D={D} />
                   <div style={{ display: 'flex', gap: 20, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${D.border}` }}>
-                    {[['Diesel', 'url(#barD)', '#3b82f6'], ['Petrol', 'url(#barP)', '#fbbf24']].map(([n, , c]) => (
+                    {[['Auto Diesel', 'url(#barD)', '#3b82f6'], ['Petrol 92 Octane', 'url(#barP)', '#fbbf24']].map(([n, , c]) => (
                       <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.72rem', color: D.textSub, fontWeight: 600 }}>
                         <div style={{ width: 12, height: 12, borderRadius: 3, background: c }} />{n}
                       </div>
