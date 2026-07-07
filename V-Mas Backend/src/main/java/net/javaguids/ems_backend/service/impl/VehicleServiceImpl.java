@@ -12,15 +12,10 @@ import net.javaguids.ems_backend.repository.ServiceIntervalRepository;
 import net.javaguids.ems_backend.repository.ServiceRecordRepository;
 import net.javaguids.ems_backend.service.VehicleService;
 import net.javaguids.ems_backend.service.NotificationService;
+import net.javaguids.ems_backend.service.StorageService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -28,13 +23,13 @@ import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
-@SuppressWarnings("null")
 public class VehicleServiceImpl implements VehicleService {
 
     private final VehicleRepository vehicleRepository;
     private final NotificationService notificationService;
     private final ServiceIntervalRepository serviceIntervalRepository;
     private final ServiceRecordRepository serviceRecordRepository;
+    private final StorageService storageService;
 
 
     @Override
@@ -154,33 +149,7 @@ public class VehicleServiceImpl implements VehicleService {
         vehicleRepository.save(vehicle);
     }
 
-    private Path resolveUploadPath(String relativePath) {
-        if (relativePath == null || relativePath.isBlank()) {
-            return null;
-        }
-        
-        String cleanPath = relativePath;
-        if (cleanPath.startsWith("uploads/")) {
-            cleanPath = cleanPath.substring("uploads/".length());
-        } else if (cleanPath.startsWith("uploads\\")) {
-            cleanPath = cleanPath.substring("uploads\\".length());
-        }
 
-        Path cwd = Paths.get("").toAbsolutePath();
-        Path uploadsDir;
-        
-        if (cwd.getFileName() != null && cwd.getFileName().toString().equals("V-Mas Backend")) {
-            uploadsDir = cwd.resolve("uploads");
-        } else if (Files.exists(cwd.resolve("V-Mas Backend"))) {
-            uploadsDir = cwd.resolve("V-Mas Backend").resolve("uploads");
-        } else if (Files.exists(cwd.resolve("V---Mas").resolve("V-Mas Backend"))) {
-            uploadsDir = cwd.resolve("V---Mas").resolve("V-Mas Backend").resolve("uploads");
-        } else {
-            uploadsDir = cwd.resolve("uploads");
-        }
-
-        return uploadsDir.resolve(cleanPath).normalize();
-    }
 
     @Override
     @Transactional
@@ -192,33 +161,32 @@ public class VehicleServiceImpl implements VehicleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
 
         try {
-            // Target folder: uploads/vehicle-documents/{id}
             String uploadDir = "uploads/vehicle-documents/" + id;
-            Path uploadPath = resolveUploadPath(uploadDir);
-            Files.createDirectories(uploadPath);
-
-            // Save filename using UUID prefix
             String filename = UUID.randomUUID() + "_" + file.getOriginalFilename();
-            Path filePath = uploadPath.resolve(filename);
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+            String savedPath = storageService.storeFile(uploadDir, filename, file);
 
-            String savedPath = uploadDir + "/" + filename;
-
-            // Set document path based on type
+            String oldPath = null;
             if ("insurance".equalsIgnoreCase(docType)) {
+                oldPath = vehicle.getInsuranceDocumentPath();
                 vehicle.setInsuranceDocumentPath(savedPath);
                 if (expiryDateStr != null && !expiryDateStr.isEmpty()) {
                     vehicle.setInsuranceExpiryDate(java.time.LocalDate.parse(expiryDateStr));
                 }
             } else if ("license".equalsIgnoreCase(docType)) {
+                oldPath = vehicle.getLicenseDocumentPath();
                 vehicle.setLicenseDocumentPath(savedPath);
                 if (expiryDateStr != null && !expiryDateStr.isEmpty()) {
                     vehicle.setLicenseExpiryDate(java.time.LocalDate.parse(expiryDateStr));
                 }
             } else if ("registration".equalsIgnoreCase(docType)) {
+                oldPath = vehicle.getRegistrationBookPath();
                 vehicle.setRegistrationBookPath(savedPath);
             } else {
                 throw new RuntimeException("Invalid document type: " + docType);
+            }
+
+            if (oldPath != null && !oldPath.isBlank()) {
+                storageService.deleteFile(oldPath);
             }
 
             Vehicle saved = vehicleRepository.save(vehicle);
@@ -231,7 +199,7 @@ public class VehicleServiceImpl implements VehicleService {
 
             return VehicleMapper.mapToVehicleDto(saved);
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException("Failed to store vehicle document: " + e.getMessage(), e);
         }
     }
@@ -259,17 +227,7 @@ public class VehicleServiceImpl implements VehicleService {
             throw new ResourceNotFoundException("No " + docType + " document found for vehicle with id: " + id);
         }
 
-        try {
-            Path filePath = resolveUploadPath(savedPath);
-            org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(filePath.toUri());
-            if (resource.exists() || resource.isReadable()) {
-                return resource;
-            } else {
-                throw new ResourceNotFoundException("Document file not found or not readable at: " + savedPath);
-            }
-        } catch (java.net.MalformedURLException e) {
-            throw new RuntimeException("Error reading document file path: " + e.getMessage(), e);
-        }
+        return storageService.loadFile(savedPath);
     }
 
     @Override
