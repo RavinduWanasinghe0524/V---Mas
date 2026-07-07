@@ -19,8 +19,6 @@ const fuelBadge = (ft, D) => {
     case 'SUPER DIESEL':  return { color: '#7c3aed',   bg: 'rgba(124,58,237,0.12)' }
     case 'PETROL':        return { color: D.gold,     bg: D.goldDim }
     case 'SUPER PETROL':  return { color: '#ea580c',   bg: 'rgba(234,88,12,0.12)' }
-    case 'ELECTRIC':      return { color: D.green,    bg: D.greenDim }
-    case 'HYBRID':        return { color: D.purple,   bg: D.purpleDim }
     default:              return { color: D.textSub,  bg: D.surfaceHi }
   }
 }
@@ -147,12 +145,10 @@ const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
     superDiesel: 0,
     petrol: 0,
     superPetrol: 0,
-    electric: 0,
     dieselMap: {},
     superDieselMap: {},
     petrolMap: {},
-    superPetrolMap: {},
-    electricMap: {}
+    superPetrolMap: {}
   }))
   ;(logs || []).forEach(l => {
     const d = new Date(l.date)
@@ -160,13 +156,11 @@ const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
     const m = d.getMonth()
     const ft = (l.fuelType || '').toLowerCase().replace('_', ' ')
     const liters = Number(l.liters) || 0
-    const cost = Number(l.totalCost) || 0
     const reg = l.vehicleRegNumber || 'Unknown'
     if (ft === 'diesel') { agg[m].diesel += liters; agg[m].dieselMap[reg] = (agg[m].dieselMap[reg] || 0) + liters }
     else if (ft === 'super diesel') { agg[m].superDiesel += liters; agg[m].superDieselMap[reg] = (agg[m].superDieselMap[reg] || 0) + liters }
     else if (ft === 'petrol') { agg[m].petrol += liters; agg[m].petrolMap[reg] = (agg[m].petrolMap[reg] || 0) + liters }
     else if (ft === 'super petrol') { agg[m].superPetrol += liters; agg[m].superPetrolMap[reg] = (agg[m].superPetrolMap[reg] || 0) + liters }
-    else if (ft === 'electric') { agg[m].electric += cost; agg[m].electricMap[reg] = (agg[m].electricMap[reg] || 0) + cost }
   })
   const toList = map => Object.entries(map).map(([reg, liters]) => ({ reg, liters })).sort((a, b) => b.liters - a.liters)
   const pts0 = []
@@ -177,25 +171,22 @@ const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
       superDiesel: agg[m].superDiesel,
       petrol: agg[m].petrol,
       superPetrol: agg[m].superPetrol,
-      electric: agg[m].electric,
       dieselVehicles: toList(agg[m].dieselMap),
       superDieselVehicles: toList(agg[m].superDieselMap),
       petrolVehicles: toList(agg[m].petrolMap),
-      superPetrolVehicles: toList(agg[m].superPetrolMap),
-      electricVehicles: toList(agg[m].electricMap)
+      superPetrolVehicles: toList(agg[m].superPetrolMap)
     })
   }
 
   const hasData = pts0.length > 0
-  const dieselC = '#f59e0b', superDieselC = '#7c3aed', petrolC = '#3b82f6', superPetrolC = '#ea580c', electricC = '#10b981'
+  const dieselC = '#f59e0b', superDieselC = '#7c3aed', petrolC = '#3b82f6', superPetrolC = '#ea580c'
   const W = 520, H = 180, padL = 46, padR = 16, padT = 16, padB = 36
   const chartW = W - padL - padR, chartH = H - padT - padB
   const rawMax = Math.max(1, ...pts0.flatMap(p => [
     p.diesel || 0,
     p.superDiesel || 0,
     p.petrol || 0,
-    p.superPetrol || 0,
-    (p.electric || 0) / 100
+    p.superPetrol || 0
   ]))
   const stepPow = Math.pow(10, Math.floor(Math.log10(rawMax)))
   const maxVal = Math.max(stepPow, Math.ceil(rawMax / stepPow) * stepPow)
@@ -218,8 +209,8 @@ const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
   return (
     <div style={{ padding: '22px 24px' }}>
       <div style={{ marginBottom: 18 }}>
-        <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel & Energy Consumption</h3>
-        <p style={{ margin: '3px 0 0', fontSize: '0.73rem', color: D.textSub }}>Monthly litres & electric cost (LKR/100) — hover a point for details</p>
+        <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.95rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fuel Consumption</h3>
+        <p style={{ margin: '3px 0 0', fontSize: '0.73rem', color: D.textSub }}>Monthly fuel volume by type — hover a point for details</p>
       </div>
       {hasData ? (
         <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
@@ -243,7 +234,6 @@ const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
           <path d={smooth('superDiesel')} fill="none" stroke={superDieselC} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           <path d={smooth('petrol')} fill="none" stroke={petrolC} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           <path d={smooth('superPetrol')} fill="none" stroke={superPetrolC} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d={smooth('electric', 100)} fill="none" stroke={electricC} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           {pts0.map((p, i) => (
             <g key={i}>
               <circle cx={X(i)} cy={Y(p.diesel)} r={hover && hover.i === i && hover.type === 'diesel' ? 5 : 3} fill={D.surface} stroke={dieselC} strokeWidth="2" />
@@ -257,9 +247,6 @@ const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
 
               <circle cx={X(i)} cy={Y(p.superPetrol)} r={hover && hover.i === i && hover.type === 'superPetrol' ? 5 : 3} fill={D.surface} stroke={superPetrolC} strokeWidth="2" />
               <circle cx={X(i)} cy={Y(p.superPetrol)} r="10" fill="transparent" style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ i, type: 'superPetrol' })} />
-
-              <circle cx={X(i)} cy={Y(p.electric / 100)} r={hover && hover.i === i && hover.type === 'electric' ? 5 : 3} fill={D.surface} stroke={electricC} strokeWidth="2" />
-              <circle cx={X(i)} cy={Y(p.electric / 100)} r="10" fill="transparent" style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ i, type: 'electric' })} />
             </g>
           ))}
           {hover && pts0[hover.i] && (() => {
@@ -277,26 +264,22 @@ const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
                   <text x={bx + 12} y={by + 46} fontSize="9" fill={superDieselC} fontWeight="700">Super Diesel: {Math.round(p.superDiesel).toLocaleString()} L</text>
                   <text x={bx + 12} y={by + 60} fontSize="9" fill={petrolC} fontWeight="700">Petrol: {Math.round(p.petrol).toLocaleString()} L</text>
                   <text x={bx + 12} y={by + 74} fontSize="9" fill={superPetrolC} fontWeight="700">Super Petrol: {Math.round(p.superPetrol).toLocaleString()} L</text>
-                  <text x={bx + 12} y={by + 88} fontSize="9" fill={electricC} fontWeight="700">Electric: Rs. {Math.round(p.electric).toLocaleString()}</text>
                 </g>
               )
             }
             const list = hover.type === 'diesel' ? (p.dieselVehicles || [])
                        : hover.type === 'superDiesel' ? (p.superDieselVehicles || [])
                        : hover.type === 'petrol' ? (p.petrolVehicles || [])
-                       : hover.type === 'superPetrol' ? (p.superPetrolVehicles || [])
-                       : (p.electricVehicles || [])
+                       : (p.superPetrolVehicles || [])
             const color = hover.type === 'diesel' ? dieselC
                         : hover.type === 'superDiesel' ? superDieselC
                         : hover.type === 'petrol' ? petrolC
-                        : hover.type === 'superPetrol' ? superPetrolC
-                        : electricC
+                        : superPetrolC
             const fuelName = hover.type === 'diesel' ? 'Diesel'
                            : hover.type === 'superDiesel' ? 'Super Diesel'
                            : hover.type === 'petrol' ? 'Petrol'
-                           : hover.type === 'superPetrol' ? 'Super Petrol'
-                           : 'Electric'
-            const isElectric = hover.type === 'electric'
+                           : 'Super Petrol'
+            const isElectric = false
             const shown = list.slice(0, 7)
             const rowH = 11, headH = 32
             const rows = Math.max(1, shown.length) + (list.length > 7 ? 1 : 0)
@@ -304,9 +287,8 @@ const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
             const rawVal = hover.type === 'diesel' ? p.diesel
                          : hover.type === 'superDiesel' ? p.superDiesel
                          : hover.type === 'petrol' ? p.petrol
-                         : hover.type === 'superPetrol' ? p.superPetrol
-                         : p.electric
-            const cy = Y(isElectric ? rawVal / 100 : rawVal)
+                         : p.superPetrol
+            const cy = Y(rawVal)
             let bx = hx + 12; if (bx + bw > W) bx = hx - bw - 12; if (bx < 2) bx = 2
             let by = cy - bh - 8; if (by < 2) by = cy + 12; if (by + bh > H) by = Math.max(2, H - bh - 2)
             const cx2 = bx + bw / 2
@@ -320,7 +302,7 @@ const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
                   : shown.map((v, k) => (
                     <text key={k} x={cx2} y={by + headH + k * rowH} fontSize="7.5" fill={D.text} textAnchor="middle">
                       <tspan fontWeight="700">{v.reg}</tspan>
-                      <tspan fill={axisText}>  ·  {isElectric ? `Rs. ${Math.round(v.liters).toLocaleString()}` : `${Math.round(v.liters).toLocaleString()} L`}</tspan>
+                      <tspan fill={axisText}>  ·  {`${Math.round(v.liters).toLocaleString()} L`}</tspan>
                     </text>
                   ))}
                 {list.length > 7 && (
@@ -345,9 +327,6 @@ const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: D.textSub }}>
           <span style={{ width: 14, height: 3, borderRadius: 2, background: superPetrolC }} /> Super Petrol (L)
-        </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: D.textSub }}>
-          <span style={{ width: 14, height: 3, borderRadius: 2, background: electricC }} /> Electric (LKR/100)
         </span>
       </div>
     </div>
@@ -494,8 +473,6 @@ const FuelTypeDonutChart = ({ logs, D }) => {
     { key: 'super diesel', label: 'Super Diesel',  color: '#7c3aed' },
     { key: 'petrol',       label: 'Petrol',        color: '#3b82f6' },
     { key: 'super petrol', label: 'Super Petrol',  color: '#ea580c' },
-    { key: 'electric',     label: 'Electric',      color: '#10b981' },
-    { key: 'hybrid',       label: 'Hybrid',        color: '#a855f7' },
   ]
 
   const totals = {}
@@ -519,7 +496,7 @@ const FuelTypeDonutChart = ({ logs, D }) => {
   )
 
   // Build SVG donut arcs
-  const CX = 90, CY = 90, R = 72, IR = 46
+  const CX = 100, CY = 100, R = 85, IR = 55
   let cumAngle = -Math.PI / 2
   const arcSlices = slices.map((sl, i) => {
     const val = view === 'volume' ? sl.volume : sl.cost
@@ -553,8 +530,8 @@ const FuelTypeDonutChart = ({ logs, D }) => {
     ? `${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v.toFixed(1)} L`
     : `LKR ${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : Math.round(v).toLocaleString()}`
   const fmtCenter = (v) => view === 'volume'
-    ? (v >= 1000 ? (v / 1000).toFixed(1) + 'k L' : v.toFixed(0) + ' L')
-    : (v >= 100000 ? 'Rs.' + (v / 1000).toFixed(0) + 'k' : 'Rs.' + Math.round(v / 1000) + 'k')
+    ? Math.round(v).toLocaleString() + ' L'
+    : 'Rs. ' + Math.round(v).toLocaleString()
 
   return (
     <div>
@@ -571,7 +548,7 @@ const FuelTypeDonutChart = ({ logs, D }) => {
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
         {/* SVG donut */}
-        <svg viewBox="0 0 180 180" style={{ width: 180, minWidth: 180, height: 180, overflow: 'visible', flexShrink: 0 }}>
+        <svg viewBox="0 0 200 200" style={{ width: 200, minWidth: 200, height: 200, overflow: 'visible', flexShrink: 0 }}>
           {arcSlices.map((sl, i) => sl.path && (
             <path
               key={sl.key}
@@ -584,14 +561,11 @@ const FuelTypeDonutChart = ({ logs, D }) => {
             />
           ))}
           {/* Center label */}
-          <text x={CX} y={CY - 10} textAnchor="middle" fontSize="9" fontWeight="700" fill={D.textSub}>
-            {active ? active.label : 'Total'}
+          <text x={CX} y={CY - 8} textAnchor="middle" fontSize="9.5" fontWeight="800" fill={D.textSub} letterSpacing="0.05em">
+            {active ? `${active.label.toUpperCase()} ${view.toUpperCase()}` : `TOTAL ${view.toUpperCase()}`}
           </text>
-          <text x={CX} y={CY + 6} textAnchor="middle" fontSize="13" fontWeight="900" fill={active ? active.color : D.text}>
+          <text x={CX} y={CY + 12} textAnchor="middle" fontSize="14.5" fontWeight="900" fill={active ? active.color : D.text}>
             {active ? fmtCenter(view === 'volume' ? active.volume : active.cost) : fmtCenter(totalVal)}
-          </text>
-          <text x={CX} y={CY + 20} textAnchor="middle" fontSize="8.5" fontWeight="600" fill={D.textSub}>
-            {active ? `${(active.frac * 100).toFixed(1)}% of fleet` : `${slices.length} fuel type${slices.length !== 1 ? 's' : ''}`}
           </text>
         </svg>
         {/* Legend */}
