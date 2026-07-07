@@ -13,6 +13,7 @@ import net.javaguids.ems_backend.repository.UserRepository;
 import net.javaguids.ems_backend.security.JwtUtil;
 import net.javaguids.ems_backend.service.UserService;
 import net.javaguids.ems_backend.service.NotificationService;
+import net.javaguids.ems_backend.service.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -26,7 +27,6 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
-@SuppressWarnings("null")
 public class UserServiceImpl implements UserService {
 
     @Autowired
@@ -43,6 +43,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private NotificationService notificationService;
+
+    @Autowired
+    private StorageService storageService;
 
     // ── REGISTER ────────────────────────────────────────────────────
     // Self-registered accounts start as PENDING — no JWT issued.
@@ -338,33 +341,7 @@ public class UserServiceImpl implements UserService {
         return mapToDto(restored);
     }
 
-    private java.nio.file.Path resolveUploadPath(String relativePath) {
-        if (relativePath == null || relativePath.isBlank()) {
-            return null;
-        }
-        
-        String cleanPath = relativePath;
-        if (cleanPath.startsWith("uploads/")) {
-            cleanPath = cleanPath.substring("uploads/".length());
-        } else if (cleanPath.startsWith("uploads\\")) {
-            cleanPath = cleanPath.substring("uploads\\".length());
-        }
 
-        java.nio.file.Path cwd = java.nio.file.Paths.get("").toAbsolutePath();
-        java.nio.file.Path uploadsDir;
-        
-        if (cwd.getFileName() != null && cwd.getFileName().toString().equals("V-Mas Backend")) {
-            uploadsDir = cwd.resolve("uploads");
-        } else if (java.nio.file.Files.exists(cwd.resolve("V-Mas Backend"))) {
-            uploadsDir = cwd.resolve("V-Mas Backend").resolve("uploads");
-        } else if (java.nio.file.Files.exists(cwd.resolve("V---Mas").resolve("V-Mas Backend"))) {
-            uploadsDir = cwd.resolve("V---Mas").resolve("V-Mas Backend").resolve("uploads");
-        } else {
-            uploadsDir = cwd.resolve("uploads");
-        }
-
-        return uploadsDir.resolve(cleanPath).normalize();
-    }
 
     @Override
     @Transactional
@@ -373,25 +350,23 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
         try {
-            // Target folder: uploads/user-documents/{id}
             String uploadDir = "uploads/user-documents/" + id;
-            java.nio.file.Path uploadPath = resolveUploadPath(uploadDir);
-            java.nio.file.Files.createDirectories(uploadPath);
-
-            // Save filename using UUID prefix
             String filename = java.util.UUID.randomUUID() + "_" + file.getOriginalFilename();
-            java.nio.file.Path filePath = uploadPath.resolve(filename);
-            java.nio.file.Files.copy(file.getInputStream(), filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            String savedPath = storageService.storeFile(uploadDir, filename, file);
 
-            String savedPath = uploadDir + "/" + filename;
-
+            String oldPath = null;
             if ("license".equalsIgnoreCase(docType)) {
+                oldPath = user.getLicenseDocumentPath();
                 user.setLicenseDocumentPath(savedPath);
                 if (expiryDateStr != null && !expiryDateStr.isEmpty()) {
                     user.setLicenseExpiryDate(java.time.LocalDate.parse(expiryDateStr));
                 }
             } else {
                 throw new RuntimeException("Invalid document type: " + docType);
+            }
+
+            if (oldPath != null && !oldPath.isBlank()) {
+                storageService.deleteFile(oldPath);
             }
 
             User saved = userRepository.save(user);
@@ -404,7 +379,7 @@ public class UserServiceImpl implements UserService {
 
             return mapToDto(saved);
 
-        } catch (java.io.IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException("Failed to store user document: " + e.getMessage(), e);
         }
     }
@@ -425,16 +400,6 @@ public class UserServiceImpl implements UserService {
             throw new ResourceNotFoundException("No " + docType + " document found for user with id: " + id);
         }
 
-        try {
-            java.nio.file.Path filePath = resolveUploadPath(savedPath);
-            org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(filePath.toUri());
-            if (resource.exists() || resource.isReadable()) {
-                return resource;
-            } else {
-                throw new ResourceNotFoundException("Document file not found or not readable at: " + savedPath);
-            }
-        } catch (java.net.MalformedURLException e) {
-            throw new RuntimeException("Error reading document file path: " + e.getMessage(), e);
-        }
+        return storageService.loadFile(savedPath);
     }
 }
