@@ -244,8 +244,21 @@ public class UserController {
             if (probed != null) {
                 contentType = probed;
             }
-        } catch (java.io.IOException e) {
-            // fallback
+        } catch (Exception e) {
+            // Fallback for non-filesystem resources (e.g. S3 resources)
+            String filename = resource.getFilename();
+            if (filename != null) {
+                String lower = filename.toLowerCase();
+                if (lower.endsWith(".pdf")) {
+                    contentType = "application/pdf";
+                } else if (lower.endsWith(".png")) {
+                    contentType = "image/png";
+                } else if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
+                    contentType = "image/jpeg";
+                } else if (lower.endsWith(".gif")) {
+                    contentType = "image/gif";
+                }
+            }
         }
 
         String originalFilename = resource.getFilename();
