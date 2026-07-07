@@ -3118,7 +3118,7 @@ const ServicePage = () => {
                 {displayTab === 'update' && isController && (
                   <div style={{ animation: 'fadeIn 0.3s ease', background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.12)' }}>
                     {/* Header and Bulk Save Actions */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14, padding: '22px 26px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }}>
+                    <div className="daily-mileage-header" style={{ borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }}>
                       <div>
                         <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
                           Daily Mileage Update
@@ -3127,9 +3127,9 @@ const ServicePage = () => {
                           Enter the evening odometer readings for all active fleet vehicles in one place
                         </p>
                       </div>
-                      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                      <div className="daily-mileage-actions">
                         {/* Search box */}
-                        <div style={{ position: 'relative', width: 220 }}>
+                        <div className="daily-mileage-search">
                           <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: D.textSub, opacity: 0.8 }} />
                           <input
                             type="text"
@@ -3149,6 +3149,7 @@ const ServicePage = () => {
                           )}
                         </div>
                         <button
+                          className="daily-mileage-save-btn"
                           onClick={handleSaveBulkMileage}
                           disabled={formLoading}
                           style={{
@@ -4715,22 +4716,23 @@ const ServicePage = () => {
                     </div>
                     <div style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      flexWrap: 'wrap', gap: 12,
                       background: D.surfaceHi, border: `1px solid ${D.border}`,
                       borderRadius: 12, padding: '12px 18px',
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
                         <div style={{
                           width: 36, height: 36, borderRadius: 8,
                           background: 'rgba(16,185,129,0.1)',
                           border: '1px solid rgba(16,185,129,0.2)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: '#10b981'
+                          color: '#10b981', flexShrink: 0
                         }}>
                           <Paperclip size={18} />
                         </div>
-                        <div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: '0.85rem', fontWeight: 700, color: D.text }}>Service Bill / Invoice</div>
-                          <div style={{ fontSize: '0.72rem', color: D.textSub }}>
+                          <div className="service-attachment-filename" style={{ color: D.textSub }}>
                             {(() => {
                               const path = r.attachmentPath || '';
                               let filename = path.substring(path.lastIndexOf('/') + 1);
@@ -4749,7 +4751,8 @@ const ServicePage = () => {
                           padding: '6px 16px', borderRadius: 8, fontSize: '0.78rem',
                           fontWeight: 700, background: '#10b981', color: '#fff',
                           border: 'none', cursor: 'pointer', transition: 'all 0.15s',
-                          boxShadow: '0 4px 12px rgba(16,185,129,0.25)'
+                          boxShadow: '0 4px 12px rgba(16,185,129,0.25)',
+                          flexShrink: 0, whiteSpace: 'nowrap'
                         }}
                         onMouseEnter={e => { e.currentTarget.style.background = '#059669'; e.currentTarget.style.transform = 'translateY(-1px)' }}
                         onMouseLeave={e => { e.currentTarget.style.background = '#10b981'; e.currentTarget.style.transform = 'translateY(0)' }}
@@ -4851,13 +4854,13 @@ const ServicePage = () => {
                               {fields.length > 0 ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                   {fields.map((f, fi) => (
-                                    <div key={fi} style={{ display: 'grid', gridTemplateColumns: '140px 1fr 18px 1fr', alignItems: 'center', gap: 6, fontSize: '0.75rem' }}>
-                                      <span style={{ fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.65rem' }}>{f.field}</span>
-                                      <span style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444', padding: '2px 8px', borderRadius: 5, border: '1px solid rgba(239,68,68,0.15)', fontWeight: 600, textDecoration: 'line-through', textDecorationColor: 'rgba(239,68,68,0.4)' }}>
+                                    <div key={fi} className="service-change-entry">
+                                      <span className="service-change-field" style={{ fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.65rem' }}>{f.field}</span>
+                                      <span className="service-change-from" style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444', padding: '2px 8px', borderRadius: 5, border: '1px solid rgba(239,68,68,0.15)', fontWeight: 600, textDecoration: 'line-through', textDecorationColor: 'rgba(239,68,68,0.4)' }}>
                                         {f.from}
                                       </span>
-                                      <span style={{ textAlign: 'center', color: D.textSub, fontWeight: 700 }}>→</span>
-                                      <span style={{ background: 'rgba(16,185,129,0.08)', color: '#10b981', padding: '2px 8px', borderRadius: 5, border: '1px solid rgba(16,185,129,0.15)', fontWeight: 600 }}>
+                                      <span className="service-change-arrow" style={{ textAlign: 'center', color: D.textSub, fontWeight: 700 }}>→</span>
+                                      <span className="service-change-to" style={{ background: 'rgba(16,185,129,0.08)', color: '#10b981', padding: '2px 8px', borderRadius: 5, border: '1px solid rgba(16,185,129,0.15)', fontWeight: 600 }}>
                                         {f.to}
                                       </span>
                                     </div>

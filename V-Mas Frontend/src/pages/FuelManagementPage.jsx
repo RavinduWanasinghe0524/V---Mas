@@ -572,12 +572,12 @@ const FuelManagementPage = () => {
               <div className="fuel-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, flexWrap: 'wrap' }}>
 
                 {/* Vehicle Dropdown */}
-                <div style={{ position: 'relative', minWidth: 190 }}>
+                <div style={{ position: 'relative', flex: '1 1 auto', minWidth: 0 }}>
                   <Car size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.blue, pointerEvents: 'none', opacity: 0.8 }} />
                   <select
                     value={filterVehicle}
                     onChange={e => setFilterVehicle(e.target.value)}
-                    style={{ ...inputStyle, paddingLeft: 38, appearance: 'none', paddingRight: 32, cursor: 'pointer' }}
+                    style={{ ...inputStyle, paddingLeft: 38, appearance: 'none', paddingRight: 32, cursor: 'pointer', width: '100%' }}
                     onFocus={onFocus} onBlur={onBlur}
                   >
                     <option value="all">All Vehicles</option>
@@ -589,12 +589,12 @@ const FuelManagementPage = () => {
                 </div>
 
                 {/* Driver Dropdown */}
-                <div style={{ position: 'relative', minWidth: 190 }}>
+                <div style={{ position: 'relative', flex: '1 1 auto', minWidth: 0 }}>
                   <User size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.purple, pointerEvents: 'none', opacity: 0.8 }} />
                   <select
                     value={filterDriver}
                     onChange={e => setFilterDriver(e.target.value)}
-                    style={{ ...inputStyle, paddingLeft: 38, appearance: 'none', paddingRight: 32, cursor: 'pointer' }}
+                    style={{ ...inputStyle, paddingLeft: 38, appearance: 'none', paddingRight: 32, cursor: 'pointer', width: '100%' }}
                     onFocus={onFocus} onBlur={onBlur}
                   >
                     <option value="all">All Drivers</option>
@@ -606,8 +606,8 @@ const FuelManagementPage = () => {
                 </div>
 
                 {/* Fuel Type Dropdown */}
-                <div style={{ position: 'relative', minWidth: 160 }}>
-                  <select value={filterFuelType} onChange={e => setFilterFuelType(e.target.value)} style={{ ...inputStyle, appearance: 'none', paddingRight: 32, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
+                <div style={{ position: 'relative', flex: '1 1 auto', minWidth: 0 }}>
+                  <select value={filterFuelType} onChange={e => setFilterFuelType(e.target.value)} style={{ ...inputStyle, appearance: 'none', paddingRight: 32, cursor: 'pointer', width: '100%' }} onFocus={onFocus} onBlur={onBlur}>
                     <option value="all">All Fuel Types</option>
                     <option value="Petrol 92 Octane">Petrol 92 Octane</option>
                     <option value="Petrol 95 Octane">Petrol 95 Octane</option>
@@ -618,8 +618,8 @@ const FuelManagementPage = () => {
                 </div>
 
                 {/* Efficiency Dropdown */}
-                <div style={{ position: 'relative', minWidth: 175 }}>
-                  <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inputStyle, appearance: 'none', paddingRight: 32, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
+                <div style={{ position: 'relative', flex: '1 1 auto', minWidth: 0 }}>
+                  <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inputStyle, appearance: 'none', paddingRight: 32, cursor: 'pointer', width: '100%' }} onFocus={onFocus} onBlur={onBlur}>
                     <option value="all">All Efficiency</option>
                     <option value="excellent">Excellent (&gt;10)</option>
                     <option value="good">Good (7–10)</option>
@@ -642,7 +642,7 @@ const FuelManagementPage = () => {
                 )}
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+              <div className="fuel-controls-bottom">
                 {!isDriver && (
                   <button
                     onClick={() => setShowDeletedDrawer(true)}
