@@ -937,7 +937,7 @@ const UsersPage = () => {
                             {/* Action Buttons Row */}
                             {(u.accountStatus === 'PENDING' || (!isController || u.role !== 'ADMIN')) && (
                               <div style={{ borderTop: `1px solid ${D.border}`, margin: '8px 0 0', paddingTop: '16px', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                                {u.accountStatus === 'PENDING' && (
+                                {u.accountStatus === 'PENDING' ? (
                                   <>
                                     <button onClick={(e) => { e.stopPropagation(); handleApprove(u.id, u.userName); }} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: D.green, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.green}30` }}
                                       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
@@ -948,20 +948,21 @@ const UsersPage = () => {
                                       <X size={14} /> Reject
                                     </button>
                                   </>
-                                )}
-                                {(!isController || u.role !== 'ADMIN') && (
-                                  <>
-                                    <button onClick={(e) => { e.stopPropagation(); handleEdit(u); }} style={{ padding: '8px 16px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
-                                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.15)'; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.color = '#60a5fa' }}
-                                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
-                                      Edit
-                                    </button>
-                                    <button onClick={(e) => { e.stopPropagation(); setUserToDelete(u); }} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
-                                      onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
-                                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = D.red }}>
-                                      Delete
-                                    </button>
-                                  </>
+                                ) : (
+                                  (!isController || u.role !== 'ADMIN') && (
+                                    <>
+                                      <button onClick={(e) => { e.stopPropagation(); handleEdit(u); }} style={{ padding: '8px 16px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.15)'; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.color = '#60a5fa' }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
+                                        Edit
+                                      </button>
+                                      <button onClick={(e) => { e.stopPropagation(); setUserToDelete(u); }} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = D.red }}>
+                                        Delete
+                                      </button>
+                                    </>
+                                  )
                                 )}
                               </div>
                             )}
@@ -1178,11 +1179,24 @@ const UsersPage = () => {
 
               {/* Footer / Actions */}
               <div style={{ borderTop: `1px solid ${D.border}`, padding: '18px 32px', background: D.surfaceHi, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-                {(!isController || u.role !== 'ADMIN') && (
-                  <button onClick={() => { closeProfile(); handleEdit(u); }} style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(37,99,235,0.2)' }}
-                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                    Edit Details
-                  </button>
+                {u.accountStatus === 'PENDING' ? (
+                  <>
+                    <button onClick={() => { closeProfile(); handleApprove(u.id, u.userName); }} style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: D.green, color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.green}30` }}
+                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                      <Check size={16} /> Approve
+                    </button>
+                    <button onClick={() => { closeProfile(); handleReject(u.id, u.userName); }} style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: D.red, color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.red}30` }}
+                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                      <X size={16} /> Reject
+                    </button>
+                  </>
+                ) : (
+                  (!isController || u.role !== 'ADMIN') && (
+                    <button onClick={() => { closeProfile(); handleEdit(u); }} style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(37,99,235,0.2)' }}
+                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                      Edit Details
+                    </button>
+                  )
                 )}
                 <button onClick={closeProfile} style={{ padding: '10px 20px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>
@@ -1467,26 +1481,26 @@ const UsersPage = () => {
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20, animation: 'fadeIn 0.2s ease' }}>
           <div onClick={e => e.stopPropagation()}
             style={{ position: 'relative', width: '100%', maxWidth: 440, background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 32px 80px rgba(0,0,0,0.5)', padding: '36px 32px', textAlign: 'center', animation: 'scaleIn 0.25s cubic-bezier(0.16,1,0.3,1)' }}>
-            <button 
+            <button
               type="button"
-              onClick={() => !deleting && setUserToDelete(null)} 
+              onClick={() => !deleting && setUserToDelete(null)}
               disabled={deleting}
-              style={{ 
+              style={{
                 position: 'absolute',
                 top: 20,
                 right: 20,
-                background: 'transparent', 
-                border: 'none', 
-                borderRadius: 10, 
-                padding: 8, 
-                color: D.textSub, 
-                cursor: deleting ? 'not-allowed' : 'pointer', 
+                background: 'transparent',
+                border: 'none',
+                borderRadius: 10,
+                padding: 8,
+                color: D.textSub,
+                cursor: deleting ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
-              }} 
-              onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }} 
+              }}
+              onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
               <X size={18} />
@@ -1501,50 +1515,50 @@ const UsersPage = () => {
               This account will be moved to Deleted Users. It will be removed from the active list but can be restored at any time.
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-              <button 
-                type="button" 
-                onClick={() => setUserToDelete(null)} 
+              <button
+                type="button"
+                onClick={() => setUserToDelete(null)}
                 disabled={deleting}
-                style={{ 
-                  flex: 1, 
+                style={{
+                  flex: 1,
                   maxWidth: 170,
-                  padding: '11px 20px', 
-                  borderRadius: 12, 
-                  border: `1px solid ${D.border}`, 
-                  background: 'transparent', 
-                  color: D.text, 
-                  cursor: deleting ? 'not-allowed' : 'pointer', 
-                  fontSize: '0.88rem', 
-                  fontWeight: 700, 
+                  padding: '11px 20px',
+                  borderRadius: 12,
+                  border: `1px solid ${D.border}`,
+                  background: 'transparent',
+                  color: D.text,
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
                   transition: 'all 0.2s',
                   fontFamily: 'inherit'
-                }} 
-                onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }} 
+                }}
+                onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 Cancel
               </button>
-              <button 
-                type="button" 
-                onClick={confirmDelete} 
+              <button
+                type="button"
+                onClick={confirmDelete}
                 disabled={deleting}
-                style={{ 
-                  flex: 1, 
+                style={{
+                  flex: 1,
                   maxWidth: 170,
-                  padding: '11px 20px', 
-                  borderRadius: 12, 
-                  border: 'none', 
-                  background: D.red, 
-                  color: '#fff', 
-                  fontSize: '0.88rem', 
-                  fontWeight: 700, 
-                  cursor: deleting ? 'not-allowed' : 'pointer', 
-                  transition: 'all 0.2s', 
+                  padding: '11px 20px',
+                  borderRadius: 12,
+                  border: 'none',
+                  background: D.red,
+                  color: '#fff',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
                   boxShadow: isDark ? '0 4px 12px rgba(239,68,68,0.3)' : '0 4px 12px rgba(239,68,68,0.2)',
                   fontFamily: 'inherit',
                   opacity: deleting ? 0.7 : 1
-                }} 
-                onMouseEnter={e => { if (!deleting) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = isDark ? '0 6px 16px rgba(239,68,68,0.4)' : '0 6px 16px rgba(239,68,68,0.3)' } }} 
+                }}
+                onMouseEnter={e => { if (!deleting) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = isDark ? '0 6px 16px rgba(239,68,68,0.4)' : '0 6px 16px rgba(239,68,68,0.3)' } }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isDark ? '0 4px 12px rgba(239,68,68,0.3)' : '0 4px 12px rgba(239,68,68,0.2)' }}
               >
                 {deleting ? 'Deleting…' : 'Delete'}
@@ -1595,7 +1609,7 @@ const UsersPage = () => {
             </h3>
             <p style={{ margin: '0 0 30px', fontSize: '0.9rem', color: D.textSub, lineHeight: 1.65 }}>
               {confirmAction.type === 'approve'
-                ? <>Activating <strong style={{ color: D.text }}>{confirmAction.username}</strong>'s account will grant them full system access based on their assigned role.</>  
+                ? <>Activating <strong style={{ color: D.text }}>{confirmAction.username}</strong>'s account will grant them full system access based on their assigned role.</>
                 : <>Rejecting <strong style={{ color: D.text }}>{confirmAction.username}</strong>'s request will set their account to <strong style={{ color: D.red }}>Inactive</strong>. They will not be able to log in.</>}
             </p>
 
