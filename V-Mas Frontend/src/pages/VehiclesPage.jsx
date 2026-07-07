@@ -1486,7 +1486,7 @@ const VehiclesPage = () => {
                       </select>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                  <div className="vehicles-toolbar-right">
                     {/* View Toggler */}
                     <div style={{
                       display: 'flex', background: 'rgba(255,255,255,0.03)', border: `1px solid ${D.border}`,
@@ -1545,7 +1545,7 @@ const VehiclesPage = () => {
                 </div>
 
               {/* Data List */}
-              <div style={{ padding: '24px 32px 40px' }}>
+              <div className="vehicles-data-list" style={{ padding: '24px 32px 40px' }}>
                 {filtered.length === 0 ? (
                   <div style={{ padding: '100px 0', textAlign: 'center' }}>
                     <div style={{ background: D.surfaceHi, width: 90, height: 90, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: D.textSub, border: `1px solid ${D.border}` }}>
@@ -1909,9 +1909,9 @@ const VehiclesPage = () => {
 
                           {/* Details section */}
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`Chassis: ${v.chassisNumber || 'N/A'}`}>
                               <FileText size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                              <span>Chassis: {v.chassisNumber || 'N/A'}</span>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Chassis: {v.chassisNumber || 'N/A'}</span>
                             </div>
                             {/* Compliance Expiries info */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
@@ -3001,7 +3001,18 @@ const VehiclesPage = () => {
                         <span style={{ fontSize: '0.65rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
                           {item.icon} {item.label}
                         </span>
-                        <span style={{ fontSize: '0.88rem', color: D.text, fontWeight: 700 }}>
+                        <span 
+                          title={typeof item.value === 'string' ? item.value : undefined}
+                          style={{ 
+                            fontSize: '0.88rem', 
+                            color: D.text, 
+                            fontWeight: 700,
+                            display: 'block',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
                           {item.value}
                         </span>
                       </div>
