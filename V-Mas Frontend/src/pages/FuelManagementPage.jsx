@@ -11,17 +11,30 @@ import {
   Edit2, AlertTriangle, Check, X, Loader2, RotateCcw, FileText, 
   Calendar, Clock, User, MoreVertical, Archive
 } from 'lucide-react'
-import { computeLogsEfficiency } from '../utils/fuelUtils'
+import { computeLogsEfficiency, formatFuelType, getFuelLogType } from '../utils/fuelUtils'
 
 // ── Shared fuel-type badge helper ───────────────────────────────────────
 const fuelBadge = (ft, D) => {
-  switch ((ft || '').toUpperCase()) {
-    case 'DIESEL':        return { color: D.indigo,   bg: D.indigoDim }
-    case 'SUPER DIESEL':  return { color: '#7c3aed',   bg: 'rgba(124,58,237,0.12)' }
-    case 'PETROL':        return { color: D.gold,     bg: D.goldDim }
-    case 'SUPER PETROL':  return { color: '#ea580c',   bg: 'rgba(234,88,12,0.12)' }
-    default:              return { color: D.textSub,  bg: D.surfaceHi }
+  const clean = (ft || '').toUpperCase().replace('_', ' ');
+  if (clean.includes('PETROL 92') || clean === 'PETROL') {
+    return { color: D.gold, bg: D.goldDim };
   }
+  if (clean.includes('PETROL 95') || clean === 'SUPER PETROL') {
+    return { color: '#ea580c', bg: 'rgba(234,88,12,0.12)' };
+  }
+  if (clean.includes('AUTO DIESEL') || clean === 'DIESEL') {
+    return { color: D.indigo, bg: D.indigoDim };
+  }
+  if (clean.includes('SUPER DIESEL')) {
+    return { color: '#7c3aed', bg: 'rgba(124,58,237,0.12)' };
+  }
+  if (clean.includes('HYBRID')) {
+    return { color: D.green, bg: D.greenDim };
+  }
+  if (clean.includes('ELECTRIC')) {
+    return { color: D.blue, bg: D.blueDim };
+  }
+  return { color: D.textSub, bg: D.surfaceHi };
 }
 
 /* ── Fuel Management Page ────────────────────────────────────────────────── */
@@ -199,7 +212,17 @@ const FuelManagementPage = () => {
     let filtered = allLogs.filter(l => !l.isDeleted)
     if (filterVehicle !== 'all') filtered = filtered.filter(l => l.vehicleRegNumber === filterVehicle)
     if (filterDriver !== 'all') filtered = filtered.filter(l => l.driverUsername === filterDriver)
-    if (filterFuelType !== 'all') filtered = filtered.filter(l => l.fuelType === filterFuelType)
+    if (filterFuelType !== 'all') {
+      filtered = filtered.filter(l => {
+        const ft = (l.fuelType || '').toLowerCase();
+        const filterFt = filterFuelType.toLowerCase();
+        if (filterFt === 'petrol 92 octane') return ft === 'petrol 92 octane' || ft === 'petrol';
+        if (filterFt === 'petrol 95 octane') return ft === 'petrol 95 octane' || ft === 'super petrol';
+        if (filterFt === 'auto diesel') return ft === 'auto diesel' || ft === 'diesel';
+        if (filterFt === 'super diesel') return ft === 'super diesel';
+        return ft === filterFt;
+      })
+    }
     if (filterStatus !== 'all') {
       filtered = filtered.filter(l => {
         const eff = l.fuelEfficiency
@@ -258,9 +281,7 @@ const FuelManagementPage = () => {
   const handleVehicleSelect = e => {
     const regNo = e.target.value
     const selected = vehicles.find(v => v.registrationNo === regNo)
-    const fuelType = selected?.fuelType
-      ? selected.fuelType.charAt(0).toUpperCase() + selected.fuelType.slice(1).toLowerCase()
-      : undefined
+    const fuelType = selected?.fuelType ? getFuelLogType(selected.fuelType) : undefined
 
     const lastLog = allLogs.find(l => !l.isDeleted && l.vehicleRegNumber === regNo)
     const lastLogMil = lastLog ? Number(lastLog.mileage) : 0
@@ -588,10 +609,10 @@ const FuelManagementPage = () => {
                 <div style={{ position: 'relative', minWidth: 160 }}>
                   <select value={filterFuelType} onChange={e => setFilterFuelType(e.target.value)} style={{ ...inputStyle, appearance: 'none', paddingRight: 32, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
                     <option value="all">All Fuel Types</option>
-                    <option value="Diesel">Diesel</option>
+                    <option value="Petrol 92 Octane">Petrol 92 Octane</option>
+                    <option value="Petrol 95 Octane">Petrol 95 Octane</option>
+                    <option value="Auto Diesel">Auto Diesel</option>
                     <option value="Super Diesel">Super Diesel</option>
-                    <option value="Petrol">Petrol</option>
-                    <option value="Super Petrol">Super Petrol</option>
                   </select>
                   <MoreVertical size={13} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
                 </div>
@@ -827,10 +848,10 @@ const FuelManagementPage = () => {
                         </div>
                       ) : (
                         <select name="fuelType" value={editingLog ? editingLog.fuelType : formData.fuelType} onChange={handleInputChange} required style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
-                          <option value="Diesel">Diesel</option>
+                          <option value="Petrol 92 Octane">Petrol 92 Octane</option>
+                          <option value="Petrol 95 Octane">Petrol 95 Octane</option>
+                          <option value="Auto Diesel">Auto Diesel</option>
                           <option value="Super Diesel">Super Diesel</option>
-                          <option value="Petrol">Petrol</option>
-                          <option value="Super Petrol">Super Petrol</option>
                         </select>
                       )}
                     </div>

@@ -425,7 +425,7 @@ const FleetFuelChart = ({ isDark, chartData }) => {
     >
       <div style={{ marginBottom: 18 }}>
         <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fleet Fuel Consumption</div>
-        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Monthly fuel volume by type (Diesel / Super Diesel / Petrol / Super Petrol) — hover a point for details</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Monthly fuel volume by type (Auto Diesel / Super Diesel / Petrol 92 Octane / Petrol 95 Octane) — hover a point for details</div>
       </div>
       {hasData ? (
         <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
@@ -475,10 +475,10 @@ const FleetFuelChart = ({ isDark, chartData }) => {
                   <line x1={hx} y1={padT} x2={hx} y2={padT + chartH} stroke={axisText} strokeDasharray="3 3" opacity="0.5" />
                   <rect x={bx} y={by} width={bw} height={bh} rx="8" fill={isDark ? '#0e1529' : '#ffffff'} stroke="var(--surface-border)" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.45))' }} />
                   <text x={bx + 12} y={by + 16} fontSize="10" fontWeight="800" fill="var(--text-primary)">{p.label}</text>
-                  <text x={bx + 12} y={by + 32} fontSize="9" fill={dieselC} fontWeight="700">Diesel: {Math.round(p.diesel).toLocaleString()} L</text>
+                  <text x={bx + 12} y={by + 32} fontSize="9" fill={dieselC} fontWeight="700">Auto Diesel: {Math.round(p.diesel).toLocaleString()} L</text>
                   <text x={bx + 12} y={by + 46} fontSize="9" fill={superDieselC} fontWeight="700">Super Diesel: {Math.round(p.superDiesel).toLocaleString()} L</text>
-                  <text x={bx + 12} y={by + 60} fontSize="9" fill={petrolC} fontWeight="700">Petrol: {Math.round(p.petrol).toLocaleString()} L</text>
-                  <text x={bx + 12} y={by + 74} fontSize="9" fill={superPetrolC} fontWeight="700">Super Petrol: {Math.round(p.superPetrol).toLocaleString()} L</text>
+                  <text x={bx + 12} y={by + 60} fontSize="9" fill={petrolC} fontWeight="700">Petrol 92 Octane: {Math.round(p.petrol).toLocaleString()} L</text>
+                  <text x={bx + 12} y={by + 74} fontSize="9" fill={superPetrolC} fontWeight="700">Petrol 95 Octane: {Math.round(p.superPetrol).toLocaleString()} L</text>
                 </g>
               )
             }
@@ -490,10 +490,10 @@ const FleetFuelChart = ({ isDark, chartData }) => {
                         : hover.type === 'superDiesel' ? superDieselC
                         : hover.type === 'petrol' ? petrolC
                         : superPetrolC
-            const fuelName = hover.type === 'diesel' ? 'Diesel'
+            const fuelName = hover.type === 'diesel' ? 'Auto Diesel'
                            : hover.type === 'superDiesel' ? 'Super Diesel'
-                           : hover.type === 'petrol' ? 'Petrol'
-                           : 'Super Petrol'
+                           : hover.type === 'petrol' ? 'Petrol 92 Octane'
+                           : 'Petrol 95 Octane'
             const isElectric = false
             const shown = list.slice(0, 7)
             const rowH = 11, headH = 32
@@ -532,16 +532,16 @@ const FleetFuelChart = ({ isDark, chartData }) => {
       )}
       <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 10, flexWrap: 'wrap' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-          <span style={{ width: 14, height: 3, borderRadius: 2, background: dieselC }} /> Diesel (L)
+          <span style={{ width: 14, height: 3, borderRadius: 2, background: dieselC }} /> Auto Diesel (L)
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
           <span style={{ width: 14, height: 3, borderRadius: 2, background: superDieselC }} /> Super Diesel (L)
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-          <span style={{ width: 14, height: 3, borderRadius: 2, background: petrolC }} /> Petrol (L)
+          <span style={{ width: 14, height: 3, borderRadius: 2, background: petrolC }} /> Petrol 92 Octane (L)
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-          <span style={{ width: 14, height: 3, borderRadius: 2, background: superPetrolC }} /> Super Petrol (L)
+          <span style={{ width: 14, height: 3, borderRadius: 2, background: superPetrolC }} /> Petrol 95 Octane (L)
         </span>
       </div>
     </div>
@@ -1558,7 +1558,12 @@ const DashboardPage = () => {
               const d = new Date(l.date)
               if (d.getFullYear() !== yr) return
               const m = d.getMonth()
-              const ft = (l.fuelType || '').toLowerCase().replace('_', ' ')
+              let ft = (l.fuelType || '').toLowerCase().replace('_', ' ')
+              if (ft === 'petrol' || ft.includes('92')) ft = 'petrol';
+              else if (ft === 'super petrol' || ft.includes('95')) ft = 'super petrol';
+              else if (ft === 'diesel' || ft.includes('auto')) ft = 'diesel';
+              else if (ft.includes('super diesel')) ft = 'super diesel';
+
               const liters = Number(l.liters) || 0
               const cost = Number(l.totalCost) || 0
               const reg = l.vehicleRegNumber || 'Unknown'
@@ -1566,7 +1571,6 @@ const DashboardPage = () => {
               else if (ft === 'super diesel') { agg[m].superDiesel += liters; agg[m].superDieselMap[reg] = (agg[m].superDieselMap[reg] || 0) + liters }
               else if (ft === 'petrol') { agg[m].petrol += liters; agg[m].petrolMap[reg] = (agg[m].petrolMap[reg] || 0) + liters }
               else if (ft === 'super petrol') { agg[m].superPetrol += liters; agg[m].superPetrolMap[reg] = (agg[m].superPetrolMap[reg] || 0) + liters }
-              else if (ft === 'electric') { /* ignored — no electric vehicles */ }
             })
             const toList = map => Object.entries(map).map(([reg, liters]) => ({ reg, liters })).sort((a, b) => b.liters - a.liters)
             const arr = []

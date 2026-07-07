@@ -62,3 +62,34 @@ export const computeLogsEfficiency = (logs, vehicles = []) => {
 
   return logs
 }
+
+/**
+ * Maps raw fuel type enum values/strings to standard Sri Lankan descriptive names.
+ * Supports legacy values (Petrol, Diesel) and formats hybrid/electric if present.
+ *
+ * @param {string} type - Raw fuel type string
+ * @returns {string} Friendly display label
+ */
+export const formatFuelType = (type) => {
+  if (!type) return 'N/A';
+  const clean = type.toUpperCase().replace('_', ' ');
+  if (clean === 'PETROL' || clean.includes('PETROL 92') || clean.includes('PETROL_92')) return 'Petrol 92 Octane';
+  if (clean === 'SUPER PETROL' || clean.includes('PETROL 95') || clean.includes('PETROL_95') || clean.includes('SUPER_PETROL')) return 'Petrol 95 Octane';
+  if (clean === 'DIESEL' || clean.includes('AUTO DIESEL') || clean.includes('AUTO_DIESEL')) return 'Auto Diesel';
+  if (clean === 'SUPER DIESEL' || clean.includes('SUPER_DIESEL')) return 'Super Diesel';
+  if (clean === 'HYBRID') return 'Hybrid';
+  if (clean === 'ELECTRIC') return 'Electric';
+  return clean.charAt(0) + clean.slice(1).toLowerCase();
+}
+
+/**
+ * Returns the exact descriptive name of the fuel log type for a given vehicle fuel type.
+ *
+ * @param {string} vehicleFuelType - Vehicle's fuelType enum string
+ * @returns {string} descriptive fuel log string
+ */
+export const getFuelLogType = (vehicleFuelType) => {
+  if (!vehicleFuelType) return '';
+  return formatFuelType(vehicleFuelType);
+}
+

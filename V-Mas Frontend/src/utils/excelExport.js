@@ -4,6 +4,7 @@
  * Uses ExcelJS to produce fully styled, branded reports.
  */
 import ExcelJS from 'exceljs'
+import { formatFuelType } from './fuelUtils'
 
 // ── Brand colours ────────────────────────────────────────────────────────────
 const BRAND = {
@@ -254,7 +255,7 @@ export const generateStyledExcel = async (id, {
       v.model  || 'N/A',
       v.status || 'N/A',
       v.currentMileageKm || 0,
-      v.fuelType || 'N/A',
+      formatFuelType(v.fuelType),
       v.fuelCapacity || 0,
     ])
     row = addDataTable(ws, hdrs, data, row, BRAND.navy, COLS)
@@ -292,7 +293,7 @@ export const generateStyledExcel = async (id, {
       fmtDate(f.date),
       f.vehicleRegNumber  || 'N/A',
       f.driverUsername    || 'N/A',
-      f.fuelType          || 'N/A',
+      formatFuelType(f.fuelType),
       Number(f.liters)    || 0,
       fmtCost(f.costPerLiter),
       fmtCost(f.totalCost),

@@ -131,9 +131,16 @@ public class FuelServiceImpl implements FuelService {
         int year = now.getYear();
 
         Double totalDiesel = fuelLogRepository.getTotalLitersByFuelType("Diesel", month, year)
-                + fuelLogRepository.getTotalLitersByFuelType("Super Diesel", month, year);
+                + fuelLogRepository.getTotalLitersByFuelType("Super Diesel", month, year)
+                + fuelLogRepository.getTotalLitersByFuelType("Auto Diesel", month, year)
+                + fuelLogRepository.getTotalLitersByFuelType("DIESEL", month, year)
+                + fuelLogRepository.getTotalLitersByFuelType("SUPER_DIESEL", month, year);
         Double totalPetrol = fuelLogRepository.getTotalLitersByFuelType("Petrol", month, year)
-                + fuelLogRepository.getTotalLitersByFuelType("Super Petrol", month, year);
+                + fuelLogRepository.getTotalLitersByFuelType("Super Petrol", month, year)
+                + fuelLogRepository.getTotalLitersByFuelType("Petrol 92 Octane", month, year)
+                + fuelLogRepository.getTotalLitersByFuelType("Petrol 95 Octane", month, year)
+                + fuelLogRepository.getTotalLitersByFuelType("PETROL", month, year)
+                + fuelLogRepository.getTotalLitersByFuelType("SUPER_PETROL", month, year);
         Double totalCost = fuelLogRepository.getTotalCostForMonth(month, year);
         Double totalVolume = totalDiesel + totalPetrol;
 
@@ -169,8 +176,15 @@ public class FuelServiceImpl implements FuelService {
             Double totalLiters = ((Number) result[2]).doubleValue();
 
             String fuelType = rawFuelType != null ? rawFuelType.trim() : "";
-            if (fuelType.equalsIgnoreCase("Petrol") || fuelType.equalsIgnoreCase("Super Petrol")) fuelType = "Petrol";
-            else if (fuelType.equalsIgnoreCase("Diesel") || fuelType.equalsIgnoreCase("Super Diesel")) fuelType = "Diesel";
+            if (fuelType.equalsIgnoreCase("Petrol") || fuelType.equalsIgnoreCase("Super Petrol")
+                    || fuelType.equalsIgnoreCase("Petrol 92 Octane") || fuelType.equalsIgnoreCase("Petrol 95 Octane")
+                    || fuelType.equalsIgnoreCase("PETROL") || fuelType.equalsIgnoreCase("SUPER_PETROL")) {
+                fuelType = "Petrol";
+            } else if (fuelType.equalsIgnoreCase("Diesel") || fuelType.equalsIgnoreCase("Super Diesel")
+                    || fuelType.equalsIgnoreCase("Auto Diesel") || fuelType.equalsIgnoreCase("DIESEL")
+                    || fuelType.equalsIgnoreCase("SUPER_DIESEL")) {
+                fuelType = "Diesel";
+            }
 
             if (data.containsKey(fuelType)) {
                 double existing = data.get(fuelType).get(monthNum - 1);

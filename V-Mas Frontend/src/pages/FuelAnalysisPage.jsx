@@ -10,17 +10,30 @@ import {
   Calendar, Car, User, Clock, RotateCcw, ChevronLeft, ChevronRight, Filter,
   Search, X, Check, Edit2, MoreVertical, AlertTriangle, BadgeCheck, RefreshCw
 } from 'lucide-react'
-import { computeLogsEfficiency } from '../utils/fuelUtils'
+import { computeLogsEfficiency, formatFuelType } from '../utils/fuelUtils'
 
 // ── Shared fuel-type badge helper ───────────────────────────────────────
 const fuelBadge = (ft, D) => {
-  switch ((ft || '').toUpperCase()) {
-    case 'DIESEL':        return { color: D.indigo,   bg: D.indigoDim }
-    case 'SUPER DIESEL':  return { color: '#7c3aed',   bg: 'rgba(124,58,237,0.12)' }
-    case 'PETROL':        return { color: D.gold,     bg: D.goldDim }
-    case 'SUPER PETROL':  return { color: '#ea580c',   bg: 'rgba(234,88,12,0.12)' }
-    default:              return { color: D.textSub,  bg: D.surfaceHi }
+  const clean = (ft || '').toUpperCase().replace('_', ' ');
+  if (clean.includes('PETROL 92') || clean === 'PETROL') {
+    return { color: D.gold, bg: D.goldDim };
   }
+  if (clean.includes('PETROL 95') || clean === 'SUPER PETROL') {
+    return { color: '#ea580c', bg: 'rgba(234,88,12,0.12)' };
+  }
+  if (clean.includes('AUTO DIESEL') || clean === 'DIESEL') {
+    return { color: D.indigo, bg: D.indigoDim };
+  }
+  if (clean.includes('SUPER DIESEL')) {
+    return { color: '#7c3aed', bg: 'rgba(124,58,237,0.12)' };
+  }
+  if (clean.includes('HYBRID')) {
+    return { color: D.green, bg: D.greenDim };
+  }
+  if (clean.includes('ELECTRIC')) {
+    return { color: D.blue, bg: D.blueDim };
+  }
+  return { color: D.textSub, bg: D.surfaceHi };
 }
 
 const card = (D) => ({
@@ -77,10 +90,10 @@ const BarChart = ({ data, maxVal, highlightCount = 12, D }) => {
           return (
             <g key={i} opacity={opacity} style={{ transition: 'opacity 0.3s ease' }}>
               <rect x={x} y={H - dH} width={W_BAR} height={dH} rx={3} fill="url(#barD)">
-                {!dim && <title>Diesel: {d.Diesel.toFixed(1)} L</title>}
+                {!dim && <title>Auto Diesel: {d.Diesel.toFixed(1)} L</title>}
               </rect>
               <rect x={x + W_BAR + 3} y={H - pH} width={W_BAR} height={pH} rx={3} fill="url(#barP)">
-                {!dim && <title>Petrol: {d.Petrol.toFixed(1)} L</title>}
+                {!dim && <title>Petrol 92 Octane: {d.Petrol.toFixed(1)} L</title>}
               </rect>
               {d.month ? (
                 <text x={i * SLOT + SLOT / 2} y={H + 18} textAnchor="middle"
@@ -154,7 +167,12 @@ const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
     const d = new Date(l.date)
     if (d.getFullYear() !== yr) return
     const m = d.getMonth()
-    const ft = (l.fuelType || '').toLowerCase().replace('_', ' ')
+    let ft = (l.fuelType || '').toLowerCase().replace('_', ' ')
+    if (ft === 'petrol' || ft.includes('92')) ft = 'petrol';
+    else if (ft === 'super petrol' || ft.includes('95')) ft = 'super petrol';
+    else if (ft === 'diesel' || ft.includes('auto')) ft = 'diesel';
+    else if (ft.includes('super diesel')) ft = 'super diesel';
+
     const liters = Number(l.liters) || 0
     const reg = l.vehicleRegNumber || 'Unknown'
     if (ft === 'diesel') { agg[m].diesel += liters; agg[m].dieselMap[reg] = (agg[m].dieselMap[reg] || 0) + liters }
@@ -260,10 +278,10 @@ const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
                   <line x1={hx} y1={padT} x2={hx} y2={padT + chartH} stroke={axisText} strokeDasharray="3 3" opacity="0.5" />
                   <rect x={bx} y={by} width={bw} height={bh} rx="8" fill={isDark ? '#0e1529' : '#ffffff'} stroke={D.border} style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.45))' }} />
                   <text x={bx + 12} y={by + 16} fontSize="10" fontWeight="800" fill={D.text}>{p.label}</text>
-                  <text x={bx + 12} y={by + 32} fontSize="9" fill={dieselC} fontWeight="700">Diesel: {Math.round(p.diesel).toLocaleString()} L</text>
+                  <text x={bx + 12} y={by + 32} fontSize="9" fill={dieselC} fontWeight="700">Auto Diesel: {Math.round(p.diesel).toLocaleString()} L</text>
                   <text x={bx + 12} y={by + 46} fontSize="9" fill={superDieselC} fontWeight="700">Super Diesel: {Math.round(p.superDiesel).toLocaleString()} L</text>
-                  <text x={bx + 12} y={by + 60} fontSize="9" fill={petrolC} fontWeight="700">Petrol: {Math.round(p.petrol).toLocaleString()} L</text>
-                  <text x={bx + 12} y={by + 74} fontSize="9" fill={superPetrolC} fontWeight="700">Super Petrol: {Math.round(p.superPetrol).toLocaleString()} L</text>
+                  <text x={bx + 12} y={by + 60} fontSize="9" fill={petrolC} fontWeight="700">Petrol 92 Octane: {Math.round(p.petrol).toLocaleString()} L</text>
+                  <text x={bx + 12} y={by + 74} fontSize="9" fill={superPetrolC} fontWeight="700">Petrol 95 Octane: {Math.round(p.superPetrol).toLocaleString()} L</text>
                 </g>
               )
             }
@@ -275,10 +293,10 @@ const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
                         : hover.type === 'superDiesel' ? superDieselC
                         : hover.type === 'petrol' ? petrolC
                         : superPetrolC
-            const fuelName = hover.type === 'diesel' ? 'Diesel'
+            const fuelName = hover.type === 'diesel' ? 'Auto Diesel'
                            : hover.type === 'superDiesel' ? 'Super Diesel'
-                           : hover.type === 'petrol' ? 'Petrol'
-                           : 'Super Petrol'
+                           : hover.type === 'petrol' ? 'Petrol 92 Octane'
+                           : 'Petrol 95 Octane'
             const isElectric = false
             const shown = list.slice(0, 7)
             const rowH = 11, headH = 32
@@ -317,16 +335,16 @@ const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
       )}
       <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 10, flexWrap: 'wrap' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: D.textSub }}>
-          <span style={{ width: 14, height: 3, borderRadius: 2, background: dieselC }} /> Diesel (L)
+          <span style={{ width: 14, height: 3, borderRadius: 2, background: dieselC }} /> Auto Diesel (L)
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: D.textSub }}>
           <span style={{ width: 14, height: 3, borderRadius: 2, background: superDieselC }} /> Super Diesel (L)
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: D.textSub }}>
-          <span style={{ width: 14, height: 3, borderRadius: 2, background: petrolC }} /> Petrol (L)
+          <span style={{ width: 14, height: 3, borderRadius: 2, background: petrolC }} /> Petrol 92 Octane (L)
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: D.textSub }}>
-          <span style={{ width: 14, height: 3, borderRadius: 2, background: superPetrolC }} /> Super Petrol (L)
+          <span style={{ width: 14, height: 3, borderRadius: 2, background: superPetrolC }} /> Petrol 95 Octane (L)
         </span>
       </div>
     </div>
@@ -469,15 +487,20 @@ const FuelTypeDonutChart = ({ logs, D }) => {
   const [view, setView] = useState('volume') // 'volume' | 'cost'
 
   const FUEL_META = [
-    { key: 'diesel',       label: 'Diesel',       color: '#f59e0b' },
-    { key: 'super diesel', label: 'Super Diesel',  color: '#7c3aed' },
-    { key: 'petrol',       label: 'Petrol',        color: '#3b82f6' },
-    { key: 'super petrol', label: 'Super Petrol',  color: '#ea580c' },
+    { key: 'auto diesel',       label: 'Auto Diesel',       color: '#f59e0b' },
+    { key: 'super diesel',      label: 'Super Diesel',      color: '#7c3aed' },
+    { key: 'petrol 92 octane',  label: 'Petrol 92 Octane',  color: '#3b82f6' },
+    { key: 'petrol 95 octane',  label: 'Petrol 95 Octane',  color: '#ea580c' },
   ]
 
   const totals = {}
   ;(logs || []).forEach(l => {
-    const ft = (l.fuelType || '').toLowerCase().replace('_', ' ')
+    let ft = (l.fuelType || '').toLowerCase().replace('_', ' ')
+    if (ft === 'petrol' || ft.includes('92')) ft = 'petrol 92 octane';
+    else if (ft === 'super petrol' || ft.includes('95')) ft = 'petrol 95 octane';
+    else if (ft === 'diesel' || ft.includes('auto')) ft = 'auto diesel';
+    else if (ft.includes('super diesel')) ft = 'super diesel';
+
     if (!totals[ft]) totals[ft] = { volume: 0, cost: 0, count: 0 }
     totals[ft].volume += Number(l.liters) || 0
     totals[ft].cost   += Number(l.totalCost) || 0
@@ -672,8 +695,15 @@ const FuelAnalysisPage = () => {
         // -- Summary KPIs (all-time totals, same as FuelManagementPage) --
         const curYear = new Date().getFullYear()
 
-        const totalDiesel = activeLogs.filter(l => l.fuelType?.toLowerCase() === 'diesel').reduce((s, l) => s + (l.liters || 0), 0)
-        const totalPetrol = activeLogs.filter(l => l.fuelType?.toLowerCase() === 'petrol').reduce((s, l) => s + (l.liters || 0), 0)
+        const totalDiesel = activeLogs.filter(l => {
+          const ft = (l.fuelType || '').toLowerCase();
+          return ft === 'diesel' || ft === 'super diesel' || ft.includes('diesel');
+        }).reduce((s, l) => s + (l.liters || 0), 0)
+
+        const totalPetrol = activeLogs.filter(l => {
+          const ft = (l.fuelType || '').toLowerCase();
+          return ft === 'petrol' || ft === 'super petrol' || ft.includes('petrol');
+        }).reduce((s, l) => s + (l.liters || 0), 0)
         const totalVolume = totalDiesel + totalPetrol
         const totalCost = activeLogs.reduce((s, l) => s + (l.totalCost || 0), 0)
 
@@ -689,9 +719,9 @@ const FuelAnalysisPage = () => {
           if (d.getFullYear() !== curYear) return
           const m = d.getMonth()
           const ft = (l.fuelType || '').toLowerCase()
-          // Merge super-variants into base types for the chart
-          if (ft === 'diesel' || ft === 'super diesel') dieselArr[m] += (l.liters || 0)
-          else if (ft === 'petrol' || ft === 'super petrol') petrolArr[m] += (l.liters || 0)
+          // Merge super-variants and Sri Lankan types into base types for the chart
+          if (ft === 'diesel' || ft === 'super diesel' || ft.includes('diesel')) dieselArr[m] += (l.liters || 0)
+          else if (ft === 'petrol' || ft === 'super petrol' || ft.includes('petrol')) petrolArr[m] += (l.liters || 0)
           // Electric logs (liters=0) are excluded automatically
         })
 
@@ -809,7 +839,17 @@ const FuelAnalysisPage = () => {
         const drv = log.driverUsername || log.uploadedBy || ''
         if (drv !== filterDriver) return false
       }
-      if (filterFuelType !== 'all' && log.fuelType !== filterFuelType) return false
+      if (filterFuelType !== 'all') {
+        const ft = (log.fuelType || '').toLowerCase();
+        const filterFt = filterFuelType.toLowerCase();
+        let match = false;
+        if (filterFt === 'petrol 92 octane') match = (ft === 'petrol 92 octane' || ft === 'petrol');
+        else if (filterFt === 'petrol 95 octane') match = (ft === 'petrol 95 octane' || ft === 'super petrol');
+        else if (filterFt === 'auto diesel') match = (ft === 'auto diesel' || ft === 'diesel');
+        else if (filterFt === 'super diesel') match = (ft === 'super diesel');
+        else match = (ft === filterFt);
+        if (!match) return false;
+      }
       if (filterAuditStatus === 'edited' && !log.isUpdated) return false
       if (filterAuditStatus === 'original' && log.isUpdated) return false
       return true
@@ -1305,7 +1345,7 @@ const FuelAnalysisPage = () => {
                   </div>
                   <BarChart data={monthlyData} maxVal={maxVal} highlightCount={highlightCount} D={D} />
                   <div style={{ display: 'flex', gap: 20, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${D.border}` }}>
-                    {[['Diesel', 'url(#barD)', '#3b82f6'], ['Petrol', 'url(#barP)', '#fbbf24']].map(([n, , c]) => (
+                    {[['Auto Diesel', 'url(#barD)', '#3b82f6'], ['Petrol 92 Octane', 'url(#barP)', '#fbbf24']].map(([n, , c]) => (
                       <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.72rem', color: D.textSub, fontWeight: 600 }}>
                         <div style={{ width: 12, height: 12, borderRadius: 3, background: c }} />{n}
                       </div>
@@ -1540,7 +1580,17 @@ const FuelAnalysisPage = () => {
                                     {new Date(log.date).toLocaleDateString('en-CA')}
                                   </td>
                                   <td style={{ ...colStyle('120px') }}>
-                                    <span style={{ fontSize: '0.75rem', color: log.fuelType === 'Diesel' ? D.indigo : D.gold, fontWeight: 800, textTransform: 'uppercase', background: log.fuelType === 'Diesel' ? D.indigoDim : D.goldDim, padding: '3px 10px', borderRadius: 6, border: `1px solid ${log.fuelType === 'Diesel' ? D.indigo : D.gold}30` }}>{log.fuelType}</span>
+                                    {(() => {
+                                      const fb = fuelBadge(log.fuelType, D);
+                                      return (
+                                        <span style={{
+                                          fontSize: '0.75rem', color: fb.color, fontWeight: 800, textTransform: 'uppercase',
+                                          background: fb.bg, padding: '3px 10px', borderRadius: 6, border: `1px solid ${fb.color}30`
+                                        }}>
+                                          {formatFuelType(log.fuelType)}
+                                        </span>
+                                      );
+                                    })()}
                                   </td>
                                   <td style={{ ...colStyle('100px'), color: D.text }}>
                                     {log.liters != null ? log.liters.toFixed(1) : '—'} L
@@ -1639,11 +1689,10 @@ const FuelAnalysisPage = () => {
                       <Filter size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
                       <select value={filterFuelType} onChange={e => setFilterFuelType(e.target.value)} style={{ width: '100%', padding: '11px 32px 11px 36px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, fontSize: '0.85rem', color: D.text, background: D.inputBg, outline: 'none', cursor: 'pointer', appearance: 'none', fontFamily: 'inherit' }} onFocus={e => { e.target.style.borderColor = D.purple }} onBlur={e => { e.target.style.borderColor = D.inputBorder }}>
                         <option value="all" style={{ background: D.surface, color: D.text }}>All Fuels</option>
-                        <option value="Diesel" style={{ background: D.surface, color: D.text }}>Diesel</option>
+                        <option value="Petrol 92 Octane" style={{ background: D.surface, color: D.text }}>Petrol 92 Octane</option>
+                        <option value="Petrol 95 Octane" style={{ background: D.surface, color: D.text }}>Petrol 95 Octane</option>
+                        <option value="Auto Diesel" style={{ background: D.surface, color: D.text }}>Auto Diesel</option>
                         <option value="Super Diesel" style={{ background: D.surface, color: D.text }}>Super Diesel</option>
-                        <option value="Petrol" style={{ background: D.surface, color: D.text }}>Petrol</option>
-                        <option value="Super Petrol" style={{ background: D.surface, color: D.text }}>Super Petrol</option>
-                        <option value="Electric" style={{ background: D.surface, color: D.text }}>Electric</option>
                       </select>
                       <MoreVertical size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
                     </div>
@@ -1706,7 +1755,7 @@ const FuelAnalysisPage = () => {
                             <div style={{ width: 130, flexShrink: 0 }}>
                               <div style={{ fontSize: '1.05rem', fontWeight: 950, color: D.blue, letterSpacing: '0.02em' }}>{log.vehicleRegNumber}</div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                                {(() => { const fb = fuelBadge(log.fuelType, D); return <span style={{ fontSize: '0.72rem', color: fb.color, fontWeight: 800, textTransform: 'uppercase', background: fb.bg, padding: '2px 8px', borderRadius: 6, border: `1px solid ${fb.color}30`, display: 'flex', alignItems: 'center', gap: 3 }}>{log.fuelType?.toUpperCase() === 'ELECTRIC' && <Zap size={9} />}{log.fuelType}</span> })()}
+                                {(() => { const fb = fuelBadge(log.fuelType, D); return <span style={{ fontSize: '0.72rem', color: fb.color, fontWeight: 800, textTransform: 'uppercase', background: fb.bg, padding: '2px 8px', borderRadius: 6, border: `1px solid ${fb.color}30`, display: 'flex', alignItems: 'center', gap: 3 }}>{log.fuelType?.toUpperCase() === 'ELECTRIC' && <Zap size={9} />}{formatFuelType(log.fuelType)}</span> })()}
                               </div>
                             </div>
 

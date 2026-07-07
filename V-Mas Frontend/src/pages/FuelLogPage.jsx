@@ -7,17 +7,31 @@ import { fuelAPI, vehicleAPI } from '../services/api'
 import { addDriverNotification } from '../services/notificationService'
 import { Fuel, CircleDollarSign, BarChart2, Car, Check, X, Plus, Loader2, Calendar, Gauge } from 'lucide-react'
 
+import { computeLogsEfficiency, formatFuelType, getFuelLogType } from '../utils/fuelUtils'
+
 // ── Shared fuel-type badge helper ──────────────────────────────────────
 const fuelBadge = (ft, D) => {
-  switch ((ft || '').toUpperCase()) {
-    case 'DIESEL':        return { color: D.indigo,   bg: D.indigoDim }
-    case 'SUPER DIESEL':  return { color: '#7c3aed',   bg: 'rgba(124,58,237,0.12)' }
-    case 'PETROL':        return { color: D.gold,     bg: D.goldDim }
-    case 'SUPER PETROL':  return { color: '#ea580c',   bg: 'rgba(234,88,12,0.12)' }
-    default:              return { color: D.textSub,  bg: D.surfaceHi }
+  const clean = (ft || '').toUpperCase().replace('_', ' ');
+  if (clean.includes('PETROL 92') || clean === 'PETROL') {
+    return { color: D.gold, bg: D.goldDim };
   }
+  if (clean.includes('PETROL 95') || clean === 'SUPER PETROL') {
+    return { color: '#ea580c', bg: 'rgba(234,88,12,0.12)' };
+  }
+  if (clean.includes('AUTO DIESEL') || clean === 'DIESEL') {
+    return { color: D.indigo, bg: D.indigoDim };
+  }
+  if (clean.includes('SUPER DIESEL')) {
+    return { color: '#7c3aed', bg: 'rgba(124,58,237,0.12)' };
+  }
+  if (clean.includes('HYBRID')) {
+    return { color: D.green, bg: D.greenDim };
+  }
+  if (clean.includes('ELECTRIC')) {
+    return { color: D.blue, bg: D.blueDim };
+  }
+  return { color: D.textSub, bg: D.surfaceHi };
 }
-import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 
 
@@ -120,7 +134,7 @@ const FuelLogPage = () => {
         const selectedVehicle = allVehicles.find(v => v.registrationNo === value)
         setSelectedVehicleInfo(selectedVehicle || null)
         if (selectedVehicle?.fuelType) {
-          updated.fuelType = selectedVehicle.fuelType.charAt(0).toUpperCase() + selectedVehicle.fuelType.slice(1).toLowerCase()
+          updated.fuelType = getFuelLogType(selectedVehicle.fuelType)
         }
         // Reset EV charging cost when switching vehicles
         updated.chargingCost = ''
@@ -195,7 +209,7 @@ const FuelLogPage = () => {
       setFormData({
         vehicleRegNumber: formData.vehicleRegNumber,
         fuelType: selectedVehicle?.fuelType
-          ? selectedVehicle.fuelType.charAt(0).toUpperCase() + selectedVehicle.fuelType.slice(1).toLowerCase()
+          ? getFuelLogType(selectedVehicle.fuelType)
           : formData.fuelType,
         liters: '',
         costPerLiter: '',
@@ -388,7 +402,7 @@ const FuelLogPage = () => {
                             <Calendar size={18} color={D.textSub} strokeWidth={2.5} /> {new Date(log.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
-                            {(() => { const fb = fuelBadge(log.fuelType, D); return <span style={{ fontSize: '0.75rem', color: fb.color, fontWeight: 800, textTransform: 'uppercase', background: fb.bg, padding: '3px 10px', borderRadius: 6, border: `1px solid ${fb.color}30`, display: 'flex', alignItems: 'center', gap: 4 }}>{log.fuelType}</span> })()
+                             {(() => { const fb = fuelBadge(log.fuelType, D); return <span style={{ fontSize: '0.75rem', color: fb.color, fontWeight: 800, textTransform: 'uppercase', background: fb.bg, padding: '3px 10px', borderRadius: 6, border: `1px solid ${fb.color}30`, display: 'flex', alignItems: 'center', gap: 4 }}>{formatFuelType(log.fuelType)}</span> })()
                             }
                           </div>
                         </div>
@@ -546,16 +560,19 @@ const FuelLogPage = () => {
                   }}>
                     {formData.vehicleRegNumber ? (
                       <>
-                        <span style={{
-                          background: formData.fuelType?.toUpperCase() === 'DIESEL' ? D.indigoDim
-                                    : D.goldDim,
-                          color: formData.fuelType?.toUpperCase() === 'DIESEL' ? D.indigo
-                               : D.gold,
-                          fontWeight: 800, fontSize: '0.78rem', padding: '3px 10px',
-                          borderRadius: 6, textTransform: 'uppercase'
-                        }}>
-                          {formData.fuelType || 'N/A'}
-                        </span>
+                        {(() => {
+                          const fb = fuelBadge(formData.fuelType, D);
+                          return (
+                            <span style={{
+                              background: fb.bg,
+                              color: fb.color,
+                              fontWeight: 800, fontSize: '0.78rem', padding: '3px 10px',
+                              borderRadius: 6, textTransform: 'uppercase'
+                            }}>
+                              {formatFuelType(formData.fuelType)}
+                            </span>
+                          );
+                        })()}
                         <span style={{ fontSize: '0.78rem', color: D.textSub }}>Set at vehicle registration — cannot be changed</span>
                       </>
                     ) : (
