@@ -8,7 +8,7 @@ import api, { vehicleAPI, serviceAPI, fuelAPI } from '../services/api'
 import { getAlertLevel, computeMileageProgress, computeDateAlert, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
 import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download, Phone, IdCard, Shield, Star, Zap, LayoutGrid, List, Archive, RotateCcw } from 'lucide-react'
 import { generateStyledExcel } from '../utils/excelExport'
-import { computeLogsEfficiency } from '../utils/fuelUtils'
+import { computeLogsEfficiency, formatFuelType } from '../utils/fuelUtils'
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'
@@ -1479,8 +1479,10 @@ const VehiclesPage = () => {
                         onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
                       >
                         <option value="ALL" style={{ background: D.surface, color: D.text }}>All Fuel Types</option>
-                        <option value="PETROL" style={{ background: D.surface, color: D.text }}>Petrol</option>
-                        <option value="DIESEL" style={{ background: D.surface, color: D.text }}>Diesel</option>
+                        <option value="PETROL" style={{ background: D.surface, color: D.text }}>Petrol 92 Octane</option>
+                        <option value="SUPER_PETROL" style={{ background: D.surface, color: D.text }}>Petrol 95 Octane</option>
+                        <option value="DIESEL" style={{ background: D.surface, color: D.text }}>Auto Diesel</option>
+                        <option value="SUPER_DIESEL" style={{ background: D.surface, color: D.text }}>Super Diesel</option>
                       </select>
                     </div>
                   </div>
@@ -1664,7 +1666,7 @@ const VehiclesPage = () => {
                                 </div>
                               </td>
               <td style={{ padding: '14px 20px', fontWeight: 600, color: D.textSub }}>
-                {v.fuelType ?? 'N/A'}
+                {formatFuelType(v.fuelType)}
               </td>
                               <td style={{ padding: '14px 20px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                                 <div style={{ display: 'inline-flex', gap: 8 }}>
@@ -1868,7 +1870,7 @@ const VehiclesPage = () => {
                                 <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Fuel</span>
                               </div>
                               <div style={{ fontSize: '1.1rem', fontWeight: 900, color: D.text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                                {v.fuelType ?? 'N/A'}
+                                {formatFuelType(v.fuelType)}
                                 {isController && <Edit2 size={10} style={{ opacity: 0.6, color: '#f59e0b' }} />}
                               </div>
                             </div>
@@ -2032,8 +2034,10 @@ const VehiclesPage = () => {
                     <label style={labelStyle}>Fuel Type <span style={{ color: D.red }}>*</span></label>
                     <select name="fuelType" value={formData.fuelType} onChange={handleChange} required style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
                       <option value="" style={{ background: D.surfaceHi }}>Select Fuel Type</option>
-                      <option value="PETROL" style={{ background: D.surfaceHi }}>Petrol</option>
-                      <option value="DIESEL" style={{ background: D.surfaceHi }}>Diesel</option>
+                      <option value="PETROL" style={{ background: D.surfaceHi }}>Petrol 92 Octane</option>
+                      <option value="SUPER_PETROL" style={{ background: D.surfaceHi }}>Petrol 95 Octane</option>
+                      <option value="DIESEL" style={{ background: D.surfaceHi }}>Auto Diesel</option>
+                      <option value="SUPER_DIESEL" style={{ background: D.surfaceHi }}>Super Diesel</option>
                     </select>
                   </div>
                   <div>
@@ -2220,8 +2224,10 @@ const VehiclesPage = () => {
                     <label style={labelStyle}>Fuel Type</label>
                     <select name="fuelType" value={editFormData.fuelType} onChange={handleEditChange} required style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
                       <option value="" style={{ background: D.surfaceHi }}>Select Fuel Type</option>
-                      <option value="PETROL" style={{ background: D.surfaceHi }}>Petrol</option>
-                      <option value="DIESEL" style={{ background: D.surfaceHi }}>Diesel</option>
+                      <option value="PETROL" style={{ background: D.surfaceHi }}>Petrol 92 Octane</option>
+                      <option value="SUPER_PETROL" style={{ background: D.surfaceHi }}>Petrol 95 Octane</option>
+                      <option value="DIESEL" style={{ background: D.surfaceHi }}>Auto Diesel</option>
+                      <option value="SUPER_DIESEL" style={{ background: D.surfaceHi }}>Super Diesel</option>
                     </select>
                   </div>
                   <div>
@@ -2753,7 +2759,7 @@ const VehiclesPage = () => {
                             ['Manufacturer', v.manufacturer],
                             ['Model', v.model],
                             ['Year', v.year],
-                            ['Fuel Type', v.fuelType],
+                            ['Fuel Type', formatFuelType(v.fuelType)],
                             ['Mileage', v.currentMileageKm ? `${v.currentMileageKm.toLocaleString()} km` : '0 km'],
                             ['Chassis No', v.chassisNumber],
                             ['Engine No', v.engineNumber],
@@ -3750,8 +3756,10 @@ const VehiclesPage = () => {
                     autoFocus
                   >
                     <option value="" style={{ background: D.surfaceHi }}>Select Fuel Type</option>
-                    <option value="PETROL" style={{ background: D.surfaceHi }}>Petrol</option>
-                    <option value="DIESEL" style={{ background: D.surfaceHi }}>Diesel</option>
+                    <option value="PETROL" style={{ background: D.surfaceHi }}>Petrol 92 Octane</option>
+                    <option value="SUPER_PETROL" style={{ background: D.surfaceHi }}>Petrol 95 Octane</option>
+                    <option value="DIESEL" style={{ background: D.surfaceHi }}>Auto Diesel</option>
+                    <option value="SUPER_DIESEL" style={{ background: D.surfaceHi }}>Super Diesel</option>
                   </select>
                   <p style={{ margin: '6px 0 0', fontSize: '0.7rem', color: D.textSub }}>
                     Previous: <strong style={{ color: D.text }}>{fuelModalVehicle.fuelType || 'N/A'}</strong>
