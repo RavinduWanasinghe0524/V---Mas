@@ -819,8 +819,8 @@ const UsersPage = () => {
                             onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)' }}>
 
                             {/* Header row */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }}>
                                 {/* Avatar */}
                                 <div style={{ flexShrink: 0 }}>
                                   {u.profilePicture ? (
@@ -843,14 +843,14 @@ const UsersPage = () => {
                                   )}
                                 </div>
                                 {/* Name and Subtitle */}
-                                <div>
-                                  <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em' }}>{u.userName}</h4>
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                  <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={u.userName}>{u.userName}</h4>
                                   {u.role === 'DRIVER' ? (
-                                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500 }}>
+                                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                       Fleet Driver
                                     </p>
                                   ) : (
-                                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500 }}>
+                                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={u.role === 'ADMIN' ? 'Fleet Administrator' : 'Fleet Controller'}>
                                       {u.role === 'ADMIN' ? 'Fleet Administrator' : 'Fleet Controller'}
                                     </p>
                                   )}
