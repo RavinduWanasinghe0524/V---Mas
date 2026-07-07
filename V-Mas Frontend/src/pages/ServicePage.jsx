@@ -1144,11 +1144,22 @@ const ServicePage = () => {
     setAttachmentViewer(prev => ({ ...prev, loading: true }))
     try {
       const res = await serviceAPI.getAttachmentBlob(record.id)
-      const blob = res.data
-      const type = blob.type || ''
-      const url = URL.createObjectURL(blob)
-
       const path = record.attachmentPath || ''
+      const lowerPath = path.toLowerCase()
+      const rawBlob = res.data instanceof Blob ? res.data : new Blob([res.data])
+      let type = rawBlob.type || res.headers?.['content-type']
+      if (!type || type === 'application/octet-stream') {
+        if (lowerPath.endsWith('.pdf')) type = 'application/pdf'
+        else if (lowerPath.endsWith('.png')) type = 'image/png'
+        else if (lowerPath.endsWith('.jpg') || lowerPath.endsWith('.jpeg')) type = 'image/jpeg'
+        else if (lowerPath.endsWith('.gif')) type = 'image/gif'
+        else if (lowerPath.endsWith('.webp')) type = 'image/webp'
+        else if (lowerPath.endsWith('.avif')) type = 'image/avif'
+        else if (lowerPath.endsWith('.svg')) type = 'image/svg+xml'
+        else type = 'image/jpeg'
+      }
+      const finalBlob = rawBlob.type === type ? rawBlob : new Blob([rawBlob], { type })
+      const url = URL.createObjectURL(finalBlob)
       let filename = path.substring(path.lastIndexOf('/') + 1)
       if (filename.length > 37 && filename.substring(8, 9) === '-' && filename.substring(13, 14) === '-') {
         filename = filename.substring(37)

@@ -75,6 +75,8 @@ public class SecurityConfig {
                         // ── Users / admin ────────────────────────────────────────
                         // Allow all authenticated users to access their own profile
                         .requestMatchers("/api/users/me", "/api/users/me/**").authenticated()
+                        // Allow all authenticated users to access their own documents (owner validation is in the controller)
+                        .requestMatchers("/api/users/*/document/**").authenticated()
                         // Restrict other user management to ADMIN/CONTROLLER
                         .requestMatchers("/api/users/**").hasAnyRole("ADMIN", "CONTROLLER")
 
@@ -118,6 +120,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setExposedHeaders(Arrays.asList("Content-Type", "Content-Disposition", "Authorization"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

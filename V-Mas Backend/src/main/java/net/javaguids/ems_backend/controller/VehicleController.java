@@ -138,6 +138,14 @@ public class VehicleController {
                     contentType = "image/jpeg";
                 } else if (lower.endsWith(".gif")) {
                     contentType = "image/gif";
+                } else if (lower.endsWith(".webp")) {
+                    contentType = "image/webp";
+                } else if (lower.endsWith(".avif")) {
+                    contentType = "image/avif";
+                } else if (lower.endsWith(".svg")) {
+                    contentType = "image/svg+xml";
+                } else if (lower.endsWith(".bmp")) {
+                    contentType = "image/bmp";
                 }
             }
         }
