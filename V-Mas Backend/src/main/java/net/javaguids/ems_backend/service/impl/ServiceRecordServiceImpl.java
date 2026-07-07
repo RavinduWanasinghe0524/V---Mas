@@ -505,9 +505,9 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
                             .findByVehicleRegNumberAndDeletedFalse(vehicle.getRegistrationNo());
                     long totalRecords = records.size();
                     java.math.BigDecimal totalCost = records.stream()
-                            .map(ServiceRecord::getServiceCost)
-                            .filter(Objects::nonNull)
-                            .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+                            .map(r -> r.getServiceCost())
+                            .filter(cost -> cost != null)
+                            .reduce(java.math.BigDecimal.ZERO, (a, b) -> a.add(b));
                     java.util.Map<String, Long> byType = records.stream()
                             .filter(r -> r.getServiceType() != null)
                             .collect(Collectors.groupingBy(
