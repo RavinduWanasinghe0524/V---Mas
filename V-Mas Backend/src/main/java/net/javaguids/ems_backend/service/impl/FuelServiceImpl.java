@@ -6,6 +6,7 @@ import net.javaguids.ems_backend.dto.*;
 import net.javaguids.ems_backend.dto.FuelEfficiencyDto.FillUpRecord;
 import net.javaguids.ems_backend.dto.FuelEfficiencyDto.VehicleEfficiencyRecord;
 import net.javaguids.ems_backend.entity.FuelLog;
+import net.javaguids.ems_backend.enums.ApprovalStatus;
 import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.repository.FuelLogRepository;
 import net.javaguids.ems_backend.service.FuelService;
@@ -52,6 +53,7 @@ public class FuelServiceImpl implements FuelService {
         fuelLog.setDate(fuelLogDto.getDate() != null ? fuelLogDto.getDate() : LocalDate.now());
         fuelLog.setDriverUsername(driverUsername); // ← tie this log to the driver
         fuelLog.setUploadedBy(driverUsername); // ← track who uploaded it
+        fuelLog.setStatus(ApprovalStatus.PENDING);
 
         // Save the fuel log
         FuelLog savedLog = fuelLogRepository.save(fuelLog);
@@ -108,6 +110,7 @@ public class FuelServiceImpl implements FuelService {
         fuelLog.setIsUpdated(true);
         fuelLog.setUpdatedAt(LocalDateTime.now());
         fuelLog.setUpdatedBy(driverUsername);
+        fuelLog.setStatus(ApprovalStatus.PENDING);
 
         FuelLog updated = fuelLogRepository.save(fuelLog);
         
@@ -281,6 +284,7 @@ public class FuelServiceImpl implements FuelService {
         // driverUsername may be supplied in the DTO (optional for controller)
         fuelLog.setDriverUsername(fuelLogDto.getDriverUsername());
         fuelLog.setUploadedBy(fuelLogDto.getUploadedBy()); // ← track who uploaded it
+        fuelLog.setStatus(ApprovalStatus.APPROVED);
 
         FuelLog savedLog = fuelLogRepository.save(fuelLog);
         log.info("Controller saved fuel log with ID: {}", savedLog.getId());
@@ -581,6 +585,47 @@ public class FuelServiceImpl implements FuelService {
         dto.setUpdatedBy(fuelLog.getUpdatedBy());
         dto.setIsDeleted(fuelLog.getIsDeleted() != null && fuelLog.getIsDeleted());
         dto.setDeletedAt(fuelLog.getDeletedAt());
+        dto.setStatus(fuelLog.getStatus());
         return dto;
+    }
+
+    @Override
+    @Transactional
+    public FuelLogDto approveFuelLog(Long id) {
+        log.info("Approving fuel log ID: {}", id);
+        FuelLog fuelLog = fuelLogRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Fuel log not found with id: " + id));
+        fuelLog.setStatus(ApprovalStatus.APPROVED);
+        FuelLog saved = fuelLogRepository.save(fuelLog);
+        
+        // Notify the driver that their fuel log was approved
+        if (fuelLog.getDriverUsername() != null) {
+            notificationService.createNotification(
+                "USER-" + fuelLog.getDriverUsername(),
+                "Your fuel log for vehicle " + fuelLog.getVehicleRegNumber() + " was approved by the Controller.",
+                "FUEL_APPROVAL"
+            );
+        }
+        return mapToDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public FuelLogDto rejectFuelLog(Long id) {
+        log.info("Rejecting fuel log ID: {}", id);
+        FuelLog fuelLog = fuelLogRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Fuel log not found with id: " + id));
+        fuelLog.setStatus(ApprovalStatus.REJECTED);
+        FuelLog saved = fuelLogRepository.save(fuelLog);
+
+        // Notify the driver that their fuel log was rejected
+        if (fuelLog.getDriverUsername() != null) {
+            notificationService.createNotification(
+                "USER-" + fuelLog.getDriverUsername(),
+                "Your fuel log for vehicle " + fuelLog.getVehicleRegNumber() + " was rejected by the Controller.",
+                "FUEL_REJECTION"
+            );
+        }
+        return mapToDto(saved);
     }
 }

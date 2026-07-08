@@ -10,6 +10,7 @@ import net.javaguids.ems_backend.dto.ServiceRecordDto;
 import net.javaguids.ems_backend.entity.ServiceRecord;
 import net.javaguids.ems_backend.entity.ServiceRecordAudit;
 import net.javaguids.ems_backend.enums.ServiceType;
+import net.javaguids.ems_backend.enums.ApprovalStatus;
 import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.entity.Vehicle;
 import net.javaguids.ems_backend.mapper.ServiceRecordMapper;
@@ -102,11 +103,21 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
             record.setCreatedBy(currentUsername);
         }
 
+        boolean isDriver = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_DRIVER"));
+        if (isDriver) {
+            record.setStatus(ApprovalStatus.PENDING);
+        } else {
+            record.setStatus(ApprovalStatus.APPROVED);
+        }
+
         ServiceRecord saved = serviceRecordRepository.save(java.util.Objects.requireNonNull(record));
-        try {
-            notificationService.resolveServiceAlerts(saved.getVehicleRegNumber(), saved.getServiceType().name());
-        } catch (Exception e) {
-            // non-blocking
+        if (saved.getStatus() == ApprovalStatus.APPROVED) {
+            try {
+                notificationService.resolveServiceAlerts(saved.getVehicleRegNumber(), saved.getServiceType().name());
+            } catch (Exception e) {
+                // non-blocking
+            }
         }
         return ServiceRecordMapper.mapToServiceRecordDto(saved);
     }
@@ -227,6 +238,12 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
             record.setServiceClassification(dto.getServiceClassification());
         }
 
+        if (isDriver) {
+            record.setStatus(ApprovalStatus.PENDING);
+        } else {
+            record.setStatus(ApprovalStatus.APPROVED);
+        }
+
         ServiceRecord updated = serviceRecordRepository.save(record);
 
         // ── Persist audit entry if anything actually changed ──────────────────────────────
@@ -270,10 +287,12 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
                 "SERVICE_UPDATE"
         );
 
-        try {
-            notificationService.resolveServiceAlerts(updated.getVehicleRegNumber(), updated.getServiceType().name());
-        } catch (Exception e) {
-            // non-blocking
+        if (updated.getStatus() == ApprovalStatus.APPROVED) {
+            try {
+                notificationService.resolveServiceAlerts(updated.getVehicleRegNumber(), updated.getServiceType().name());
+            } catch (Exception e) {
+                // non-blocking
+            }
         }
 
         return ServiceRecordMapper.mapToServiceRecordDto(updated);
@@ -571,5 +590,48 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
     /** Converts ServiceType enum to a human-readable label. */
     private String enumLabel(ServiceType type) {
         return type == null ? null : type.name().replace('_', ' ');
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public ServiceRecordDto approveServiceRecord(Long id) {
+        ServiceRecord record = serviceRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Service record not found with id: " + id));
+        record.setStatus(ApprovalStatus.APPROVED);
+        ServiceRecord saved = serviceRecordRepository.save(record);
+        
+        // Resolve service alerts now that it is approved!
+        try {
+            notificationService.resolveServiceAlerts(saved.getVehicleRegNumber(), saved.getServiceType().name());
+        } catch (Exception ignored) {}
+
+        // Send notification to the driver
+        if (record.getCreatedBy() != null) {
+            notificationService.createNotification(
+                "USER-" + record.getCreatedBy(),
+                "Your service record for vehicle " + record.getVehicleRegNumber() + " was approved by the Controller.",
+                "SERVICE_APPROVAL"
+            );
+        }
+        return ServiceRecordMapper.mapToServiceRecordDto(saved);
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public ServiceRecordDto rejectServiceRecord(Long id) {
+        ServiceRecord record = serviceRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Service record not found with id: " + id));
+        record.setStatus(ApprovalStatus.REJECTED);
+        ServiceRecord saved = serviceRecordRepository.save(record);
+
+        // Send notification to the driver
+        if (record.getCreatedBy() != null) {
+            notificationService.createNotification(
+                "USER-" + record.getCreatedBy(),
+                "Your service record for vehicle " + record.getVehicleRegNumber() + " was rejected by the Controller.",
+                "SERVICE_REJECTION"
+            );
+        }
+        return ServiceRecordMapper.mapToServiceRecordDto(saved);
     }
 }

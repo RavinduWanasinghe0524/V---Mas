@@ -37,6 +37,7 @@ public class SchemaMigrationConfig {
         dropLegacyCurrentMileageColumn();
         makeDriverUsernameNullable();
         dropStaleVehicleCheckConstraints();
+        populateDefaultStatusValues();
     }
 
     // ── Migration 1 ─────────────────────────────────────────────────────────
@@ -196,6 +197,40 @@ public class SchemaMigrationConfig {
             }
         } catch (Exception e) {
             log.warn("[Migration] Error checking or dropping constraint '{}' on table '{}': {}", constraintName, tableName, e.getMessage());
+        }
+    }
+
+    /**
+     * Populates existing null 'status' values in fuel_logs and service_records with 'APPROVED'.
+     * Runs safely check if the column has been created by Hibernate.
+     */
+    private void populateDefaultStatusValues() {
+        try {
+            Integer fuelLogStatusCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.COLUMNS " +
+                    "WHERE TABLE_SCHEMA = DATABASE() " +
+                    "  AND TABLE_NAME   = 'fuel_logs' " +
+                    "  AND COLUMN_NAME  = 'status'",
+                    Integer.class
+            );
+            if (fuelLogStatusCount != null && fuelLogStatusCount > 0) {
+                jdbcTemplate.execute("UPDATE fuel_logs SET status = 'APPROVED' WHERE status IS NULL");
+                log.info("[Migration] Populated default 'APPROVED' status for null records in fuel_logs.");
+            }
+
+            Integer serviceRecordStatusCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.COLUMNS " +
+                    "WHERE TABLE_SCHEMA = DATABASE() " +
+                    "  AND TABLE_NAME   = 'service_records' " +
+                    "  AND COLUMN_NAME  = 'status'",
+                    Integer.class
+            );
+            if (serviceRecordStatusCount != null && serviceRecordStatusCount > 0) {
+                jdbcTemplate.execute("UPDATE service_records SET status = 'APPROVED' WHERE status IS NULL");
+                log.info("[Migration] Populated default 'APPROVED' status for null records in service_records.");
+            }
+        } catch (Exception e) {
+            log.warn("[Migration] Could not populate default status values: {}", e.getMessage());
         }
     }
 }

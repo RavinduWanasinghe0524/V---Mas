@@ -2,6 +2,7 @@ package net.javaguids.ems_backend.mapper;
 
 import net.javaguids.ems_backend.dto.ServiceRecordDto;
 import net.javaguids.ems_backend.entity.ServiceRecord;
+import net.javaguids.ems_backend.enums.ApprovalStatus;
 
 public class ServiceRecordMapper {
 
@@ -26,6 +27,7 @@ public class ServiceRecordMapper {
         dto.setDeleted(record.isDeleted());
         dto.setDeletedBy(record.getDeletedBy());
         dto.setDeletedAt(record.getDeletedAt());
+        dto.setStatus(record.getStatus());
         return dto;
     }
 
@@ -44,6 +46,9 @@ public class ServiceRecordMapper {
         record.setPartsReplaced(dto.getPartsReplaced());
         if (dto.getServiceClassification() != null) {
             record.setServiceClassification(dto.getServiceClassification());
+        }
+        if (dto.getStatus() != null) {
+            record.setStatus(dto.getStatus());
         }
         // attachmentPath is managed separately via the upload endpoint
         // createdBy is injected by the service layer, not from the DTO

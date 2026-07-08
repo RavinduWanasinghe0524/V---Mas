@@ -1091,7 +1091,7 @@ const DailyMileageModal = ({ open, onClose }) => {
   )
 }
 
-const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, activities, services }) => {
+const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, activities, services, pendingFuelCount, pendingServiceCount }) => {
   const [mileageOpen, setMileageOpen] = useState(false)
   return (
     <>
@@ -1101,6 +1101,24 @@ const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, a
         <StatCard icon={<CheckCircle size={20} color="var(--success)"/>} label="Active" value={stats.active} colorDim="var(--success-bg)" colorHex="var(--success)" change="Currently active" onClick={() => navigate('/vehicles')} />
         <StatCard icon={<Wrench size={20} color="var(--warning)"/>} label="In Service" value={stats.maintenance} colorDim="var(--warning-bg)" colorHex="var(--warning)" change="Under maintenance" onClick={() => navigate('/service')} />
         <StatCard icon={<Activity size={20} color="var(--info)"/>} label="Available" value={stats.available} colorDim="var(--info-bg)" colorHex="var(--info)" change="Ready to assign" onClick={() => navigate('/vehicles')} />
+        <StatCard
+          icon={<Fuel size={20} color={pendingFuelCount > 0 ? '#fbbf24' : 'var(--primary)'}/>}
+          label="Pending Fuel Logs"
+          value={pendingFuelCount}
+          colorDim={pendingFuelCount > 0 ? 'rgba(251, 191, 36, 0.25)' : 'rgba(59, 130, 246, 0.1)'}
+          colorHex={pendingFuelCount > 0 ? '#fbbf24' : 'var(--primary)'}
+          change={pendingFuelCount > 0 ? "Awaiting your approval" : "All logs approved"}
+          onClick={() => navigate('/fuel-management')}
+        />
+        <StatCard
+          icon={<Wrench size={20} color={pendingServiceCount > 0 ? '#fbbf24' : 'var(--primary)'}/>}
+          label="Pending Service Records"
+          value={pendingServiceCount}
+          colorDim={pendingServiceCount > 0 ? 'rgba(251, 191, 36, 0.25)' : 'rgba(59, 130, 246, 0.1)'}
+          colorHex={pendingServiceCount > 0 ? '#fbbf24' : 'var(--primary)'}
+          change={pendingServiceCount > 0 ? "Awaiting your approval" : "All records approved"}
+          onClick={() => navigate('/service')}
+        />
       </div>
 
       <div className="dashboard-columns-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start', marginBottom: 36 }}>
@@ -1429,6 +1447,8 @@ const DashboardPage = () => {
   const [alerts, setAlerts] = useState([])
   const [activities, setActivities] = useState([])
   const [services, setServices] = useState([])
+  const [pendingFuelCount, setPendingFuelCount] = useState(0)
+  const [pendingServiceCount, setPendingServiceCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -1461,7 +1481,10 @@ const DashboardPage = () => {
 
           try {
             const servRes = await serviceAPI.getAllServices()
-            setServices(servRes.data.data || [])
+            const allServices = servRes.data.data || []
+            setServices(allServices)
+            const pendingServ = allServices.filter(s => s.status === 'PENDING').length
+            setPendingServiceCount(pendingServ)
           } catch (err) {
             console.error('Error loading service records for dashboard:', err)
           }
@@ -1542,7 +1565,10 @@ const DashboardPage = () => {
           }
           try {
             const logsRes = await fuelAPI.getAllFuelLogs()
-            const logs = (logsRes.data.data || []).filter(l => !l.isDeleted && !l.deleted)
+            const allLogs = logsRes.data.data || []
+            const logs = allLogs.filter(l => !l.isDeleted && !l.deleted)
+            const pendingFuel = allLogs.filter(l => l.status === 'PENDING').length
+            setPendingFuelCount(pendingFuel)
             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
             const now = new Date(), yr = now.getFullYear(), upto = now.getMonth()
             const agg = Array.from({ length: 12 }, () => ({
@@ -1694,7 +1720,19 @@ const DashboardPage = () => {
 
           {/* Role-based content */}
           {user?.role === 'ADMIN' && <AdminDashboard stats={stats} loading={loading} navigate={navigate} isDark={isDark} monthlyCostData={monthlyCostData} activities={activities} services={services} />}
-          {user?.role === 'CONTROLLER' && <ControllerDashboard navigate={navigate} isDark={isDark} chartData={fleetChartData} statusData={statusData} stats={controllerStats} activities={activities} services={services} />}
+          {user?.role === 'CONTROLLER' && (
+            <ControllerDashboard
+              navigate={navigate}
+              isDark={isDark}
+              chartData={fleetChartData}
+              statusData={statusData}
+              stats={controllerStats}
+              activities={activities}
+              services={services}
+              pendingFuelCount={pendingFuelCount}
+              pendingServiceCount={pendingServiceCount}
+            />
+          )}
           {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} vehicleCount={driverVehicleCount} fuelLogs={driverFuelLogs} accountStatus={user?.accountStatus} />}
         </div>
       </div>
