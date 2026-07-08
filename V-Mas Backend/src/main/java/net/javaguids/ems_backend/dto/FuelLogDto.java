@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import net.javaguids.ems_backend.enums.ApprovalStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -30,6 +31,7 @@ public class FuelLogDto {
     private String updatedBy;
     private Boolean isDeleted;
     private LocalDateTime deletedAt;
+    private ApprovalStatus status;
 
     // Computed field for fuel efficiency (not stored in DB)
     private Double fuelEfficiency;

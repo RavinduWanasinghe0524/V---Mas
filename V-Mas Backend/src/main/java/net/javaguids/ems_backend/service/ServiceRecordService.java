@@ -56,4 +56,10 @@ public interface ServiceRecordService {
 
     /** Returns the file attachment resource for a specific service record */
     org.springframework.core.io.Resource getAttachment(Long id);
+
+    /** Approve a pending service record */
+    ServiceRecordDto approveServiceRecord(Long id);
+
+    /** Reject a pending service record */
+    ServiceRecordDto rejectServiceRecord(Long id);
 }

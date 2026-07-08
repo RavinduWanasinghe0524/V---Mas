@@ -55,4 +55,10 @@ public interface FuelService {
 
     /** Restore a soft-deleted fuel log (controller/admin) */
     FuelLogDto restoreFuelLog(Long id);
+
+    /** Approve a pending fuel log */
+    FuelLogDto approveFuelLog(Long id);
+
+    /** Reject a pending fuel log */
+    FuelLogDto rejectFuelLog(Long id);
 }

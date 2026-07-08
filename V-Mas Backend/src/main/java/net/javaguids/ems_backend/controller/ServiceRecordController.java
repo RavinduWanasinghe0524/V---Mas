@@ -215,4 +215,26 @@ public class ServiceRecordController {
         List<ServiceIntervalDto> updated = serviceIntervalService.updateIntervalsBulk(dtos);
         return ApiResponseUtil.success("Service intervals updated successfully in bulk", updated, HttpStatus.OK);
     }
+
+    /**
+     * PATCH /api/services/{id}/approve
+     * Controller/Admin approves a pending service record.
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @PatchMapping("/{id}/approve")
+    public ResponseEntity<ApiResponse<ServiceRecordDto>> approveServiceRecord(@PathVariable Long id) {
+        ServiceRecordDto approved = serviceRecordService.approveServiceRecord(id);
+        return ApiResponseUtil.success("Service record approved successfully", approved, HttpStatus.OK);
+    }
+
+    /**
+     * PATCH /api/services/{id}/reject
+     * Controller/Admin rejects a pending service record.
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @PatchMapping("/{id}/reject")
+    public ResponseEntity<ApiResponse<ServiceRecordDto>> rejectServiceRecord(@PathVariable Long id) {
+        ServiceRecordDto rejected = serviceRecordService.rejectServiceRecord(id);
+        return ApiResponseUtil.success("Service record rejected successfully", rejected, HttpStatus.OK);
+    }
 }
