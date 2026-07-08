@@ -1416,14 +1416,6 @@ const DriverDashboard = ({ navigate, isDark }) => {
           change="Nothing assigned yet"
         />
       </div>
-
-      <SectionHeader title="Driver Tools" />
-      <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
-        <FeatureCard icon={<Fuel size={24}/>} title="Add Fuel Log" desc="Record a new fuel fill-up with the latest mileage and cost." onClick={() => navigate('/fuel-log')} />
-        <FeatureCard icon={<Wrench size={24}/>} title="Service History" desc="View maintenance and service records across the fleet." onClick={() => navigate('/service')} />
-        <FeatureCard icon={<Car size={24}/>} title="Vehicle Details" desc="Browse fleet vehicles and view their full details." onClick={() => navigate('/vehicles')} />
-        <FeatureCard icon={<UserCog size={24}/>} title="My Profile" desc="Manage your personal details and account settings." onClick={() => navigate('/profile')} />
-      </div>
     </>
   )
 }
