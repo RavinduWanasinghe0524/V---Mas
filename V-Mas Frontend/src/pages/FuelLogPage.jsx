@@ -33,6 +33,13 @@ const fuelBadge = (ft, D) => {
   return { color: D.textSub, bg: D.surfaceHi };
 }
 
+const approvalBadge = (status, D) => {
+  const s = (status || 'APPROVED').toUpperCase()
+  if (s === 'PENDING') return { label: 'Pending', bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: 'rgba(245,158,11,0.25)' }
+  if (s === 'REJECTED') return { label: 'Rejected', bg: 'rgba(239,68,68,0.12)', color: '#ef4444', border: 'rgba(239,68,68,0.25)' }
+  return { label: 'Approved', bg: 'rgba(16,185,129,0.12)', color: '#10b981', border: 'rgba(16,185,129,0.25)' }
+}
+
 
 
 const FuelLogPage = () => {
@@ -401,9 +408,9 @@ const FuelLogPage = () => {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '1rem', color: D.text, fontWeight: 800 }}>
                             <Calendar size={18} color={D.textSub} strokeWidth={2.5} /> {new Date(log.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
-                             {(() => { const fb = fuelBadge(log.fuelType, D); return <span style={{ fontSize: '0.75rem', color: fb.color, fontWeight: 800, textTransform: 'uppercase', background: fb.bg, padding: '3px 10px', borderRadius: 6, border: `1px solid ${fb.color}30`, display: 'flex', alignItems: 'center', gap: 4 }}>{formatFuelType(log.fuelType)}</span> })()
-                            }
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                             {(() => { const fb = fuelBadge(log.fuelType, D); return <span style={{ fontSize: '0.75rem', color: fb.color, fontWeight: 800, textTransform: 'uppercase', background: fb.bg, padding: '3px 10px', borderRadius: 6, border: `1px solid ${fb.color}30`, display: 'flex', alignItems: 'center', gap: 4 }}>{formatFuelType(log.fuelType)}</span> })()}
+                             {(() => { const ab = approvalBadge(log.status, D); return <span style={{ fontSize: '0.75rem', color: ab.color, fontWeight: 800, textTransform: 'uppercase', background: ab.bg, padding: '3px 10px', borderRadius: 6, border: `1px solid ${ab.border}`, display: 'flex', alignItems: 'center', gap: 4 }}>{ab.label}</span> })()}
                           </div>
                         </div>
                         

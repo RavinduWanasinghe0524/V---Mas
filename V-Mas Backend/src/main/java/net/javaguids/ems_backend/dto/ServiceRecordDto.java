@@ -2,6 +2,7 @@ package net.javaguids.ems_backend.dto;
 
 import lombok.*;
 import net.javaguids.ems_backend.enums.ServiceType;
+import net.javaguids.ems_backend.enums.ApprovalStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -45,4 +46,5 @@ public class ServiceRecordDto {
     private boolean deleted;
     private String deletedBy;
     private LocalDateTime deletedAt;
+    private ApprovalStatus status;
 }

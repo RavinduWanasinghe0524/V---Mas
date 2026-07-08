@@ -14,16 +14,16 @@ public interface FuelLogRepository extends JpaRepository<FuelLog, Long> {
     @Query("SELECT f FROM FuelLog f WHERE f.vehicleRegNumber = :vehicleRegNumber AND (f.isDeleted = false OR f.isDeleted IS NULL) ORDER BY f.date DESC, f.id DESC")
     List<FuelLog> findByVehicleRegNumberOrderByDateDesc(@Param("vehicleRegNumber") String vehicleRegNumber);
 
-    @Query("SELECT COALESCE(SUM(f.liters), 0.0) FROM FuelLog f WHERE LOWER(TRIM(f.fuelType)) = LOWER(:fuelType) AND MONTH(f.date) = :month AND YEAR(f.date) = :year AND (f.isDeleted = false OR f.isDeleted IS NULL)")
+    @Query("SELECT COALESCE(SUM(f.liters), 0.0) FROM FuelLog f WHERE LOWER(TRIM(f.fuelType)) = LOWER(:fuelType) AND MONTH(f.date) = :month AND YEAR(f.date) = :year AND (f.isDeleted = false OR f.isDeleted IS NULL) AND f.status = 'APPROVED'")
     Double getTotalLitersByFuelType(@Param("fuelType") String fuelType, @Param("month") int month, @Param("year") int year);
 
-    @Query("SELECT COALESCE(SUM(f.totalCost), 0.0) FROM FuelLog f WHERE MONTH(f.date) = :month AND YEAR(f.date) = :year AND (f.isDeleted = false OR f.isDeleted IS NULL)")
+    @Query("SELECT COALESCE(SUM(f.totalCost), 0.0) FROM FuelLog f WHERE MONTH(f.date) = :month AND YEAR(f.date) = :year AND (f.isDeleted = false OR f.isDeleted IS NULL) AND f.status = 'APPROVED'")
     Double getTotalCostForMonth(@Param("month") int month, @Param("year") int year);
 
-    @Query("SELECT f FROM FuelLog f WHERE f.vehicleRegNumber = :vehicleRegNumber AND f.date < :currentDate AND (f.isDeleted = false OR f.isDeleted IS NULL) ORDER BY f.date DESC, f.id DESC")
+    @Query("SELECT f FROM FuelLog f WHERE f.vehicleRegNumber = :vehicleRegNumber AND f.date < :currentDate AND (f.isDeleted = false OR f.isDeleted IS NULL) AND f.status = 'APPROVED' ORDER BY f.date DESC, f.id DESC")
     List<FuelLog> findPreviousLog(@Param("vehicleRegNumber") String vehicleRegNumber, @Param("currentDate") LocalDate currentDate);
 
-    @Query("SELECT DISTINCT f.vehicleRegNumber FROM FuelLog f WHERE (f.isDeleted = false OR f.isDeleted IS NULL)")
+    @Query("SELECT DISTINCT f.vehicleRegNumber FROM FuelLog f WHERE (f.isDeleted = false OR f.isDeleted IS NULL) AND f.status = 'APPROVED'")
     List<String> findAllDistinctVehicleRegNumbers();
 
     /**
@@ -31,23 +31,23 @@ public interface FuelLogRepository extends JpaRepository<FuelLog, Long> {
      * Used for sequential km/L efficiency calculation across fill-ups.
      */
     @Query("SELECT f FROM FuelLog f WHERE f.vehicleRegNumber = :vehicleRegNumber " +
-           "AND (f.isDeleted = false OR f.isDeleted IS NULL) " +
+           "AND (f.isDeleted = false OR f.isDeleted IS NULL) AND f.status = 'APPROVED' " +
            "ORDER BY f.date ASC, f.id ASC")
     List<FuelLog> findByVehicleRegNumberOrderByDateAscIdAsc(@Param("vehicleRegNumber") String vehicleRegNumber);
 
     /**
      * Distinct vehicle reg numbers that have at least one non-deleted log.
      */
-    @Query("SELECT DISTINCT f.vehicleRegNumber FROM FuelLog f WHERE f.isDeleted = false OR f.isDeleted IS NULL")
+    @Query("SELECT DISTINCT f.vehicleRegNumber FROM FuelLog f WHERE (f.isDeleted = false OR f.isDeleted IS NULL) AND f.status = 'APPROVED'")
     List<String> findAllDistinctActiveVehicleRegNumbers();
 
     @Query("SELECT MONTH(f.date) as month, f.fuelType, SUM(f.liters) as totalLiters " +
-           "FROM FuelLog f WHERE YEAR(f.date) = :year AND (f.isDeleted = false OR f.isDeleted IS NULL) " +
+           "FROM FuelLog f WHERE YEAR(f.date) = :year AND (f.isDeleted = false OR f.isDeleted IS NULL) AND f.status = 'APPROVED' " +
            "GROUP BY MONTH(f.date), f.fuelType " +
            "ORDER BY MONTH(f.date)")
     List<Object[]> getMonthlyConsumptionByFuelType(@Param("year") int year);
 
-    @Query("SELECT COALESCE(SUM(f.totalCost), 0.0) FROM FuelLog f WHERE f.vehicleRegNumber = :vehicleRegNumber AND (f.isDeleted = false OR f.isDeleted IS NULL)")
+    @Query("SELECT COALESCE(SUM(f.totalCost), 0.0) FROM FuelLog f WHERE f.vehicleRegNumber = :vehicleRegNumber AND (f.isDeleted = false OR f.isDeleted IS NULL) AND f.status = 'APPROVED'")
     Double getTotalSpendingByVehicle(@Param("vehicleRegNumber") String vehicleRegNumber);
 
     // ---- Driver-scoped queries (with legacy support) ----

@@ -424,7 +424,7 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
 }
 
 /* ── Service List Card (Old Style) ──────────────────────────────── */
-const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, vehicleCurrentKm, isLatest, onEdit, onDelete, onView, onViewAttachment, D }) => {
+const ServiceListCard = ({ record, index, isDriver, isAdmin, isController, currentUsername, vehicleCurrentKm, isLatest, onEdit, onDelete, onView, onViewAttachment, D, handleApproveService, handleRejectService }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
@@ -492,6 +492,21 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
           }}>
             {record.serviceClassification === 'AD_HOC' ? '🛠️ Ad-hoc Repair' : '🟢 Routine'}
           </span>
+          {/* Approval status badge */}
+          {(() => {
+            const ab = approvalBadge(record.status, D);
+            return (
+              <span style={{
+                padding: '2px 10px', borderRadius: 999,
+                fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                background: ab.bg, color: ab.color,
+                border: `1px solid ${ab.border}`,
+              }}>
+                {ab.label}
+              </span>
+            )
+          })()}
           {record.serviceTypeDetail && (
             <span style={{ fontSize: '0.85rem', color: D.textSub }}>({record.serviceTypeDetail})</span>
           )}
@@ -576,8 +591,38 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
         </div>
       </div>
 
-      {(canEdit || canDelete) && (
+      {((canEdit || canDelete) || (record.status === 'PENDING' && isController)) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+          {record.status === 'PENDING' && isController && (
+            <>
+              <button
+                onClick={e => { e.stopPropagation(); handleApproveService(record.id); }}
+                style={{
+                  padding: '6px 16px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
+                  background: D.greenDim, color: D.green,
+                  border: `1px solid ${D.green}30`, cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = D.green; e.currentTarget.style.color = '#fff' }}
+                onMouseLeave={e => { e.currentTarget.style.background = D.greenDim; e.currentTarget.style.color = D.green }}
+              >
+                Approve
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); handleRejectService(record.id); }}
+                style={{
+                  padding: '6px 16px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
+                  background: D.redDim, color: D.red,
+                  border: `1px solid ${D.red}30`, cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+                onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
+              >
+                Reject
+              </button>
+            </>
+          )}
           {canEdit && (
             <button
               onClick={e => { e.stopPropagation(); onEdit(record.id) }}
@@ -615,7 +660,7 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
 }
 
 /* ── Service Grid Card (New Style) ──────────────────────────────── */
-const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, vehicleCurrentKm, isLatest, onEdit, onDelete, onView, onViewAttachment, D, vehicleImage, vehicleName }) => {
+const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, currentUsername, vehicleCurrentKm, isLatest, onEdit, onDelete, onView, onViewAttachment, D, vehicleImage, vehicleName, handleApproveService, handleRejectService }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
@@ -712,6 +757,20 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
           }}>
             {record.serviceClassification === 'AD_HOC' ? '🛠️ Ad-hoc' : '🟢 Routine'}
           </div>
+          {(() => {
+            const ab = approvalBadge(record.status, D);
+            return (
+              <div style={{
+                padding: '4px 10px', borderRadius: 999,
+                fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.05em',
+                background: ab.bg, color: ab.color,
+                border: `1px solid ${ab.border}`,
+                textTransform: 'uppercase'
+              }}>
+                {ab.label}
+              </div>
+            )
+          })()}
         </div>
       </div>
 
@@ -800,8 +859,34 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
       </div>
 
       {/* Actions — stop propagation so clicking buttons doesn't also open the detail modal */}
-      {(canEdit || canDelete) && (
+      {((canEdit || canDelete) || (record.status === 'PENDING' && isController)) && (
         <div style={{ display: 'flex', gap: 8, marginTop: 12, borderTop: `1px solid ${D.border}`, paddingTop: 12 }}>
+          {record.status === 'PENDING' && isController && (
+            <>
+              <button
+                onClick={e => { e.stopPropagation(); handleApproveService(record.id); }}
+                style={{
+                  flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
+                  background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, cursor: 'pointer', transition: 'all 0.15s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = D.green; e.currentTarget.style.color = '#fff' }}
+                onMouseLeave={e => { e.currentTarget.style.background = D.greenDim; e.currentTarget.style.color = D.green }}
+              >
+                Approve
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); handleRejectService(record.id); }}
+                style={{
+                  flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
+                  background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, cursor: 'pointer', transition: 'all 0.15s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+                onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
+              >
+                Reject
+              </button>
+            </>
+          )}
           {canEdit && (
             <button
               onClick={e => { e.stopPropagation(); onEdit(record.id) }}
@@ -1702,6 +1787,36 @@ const ServicePage = () => {
     }
   }
 
+  const handleApproveService = async (id) => {
+    try {
+      setFormLoading(true)
+      await serviceAPI.approveService(id)
+      await loadData()
+      showToast('Service record approved successfully!', 'success')
+      addControllerNotification(`Service record approved`, 'SERVICE_APPROVAL', '/service')
+    } catch (err) {
+      console.error('Approve service record error:', err)
+      showToast('Failed to approve service record', 'error')
+    } finally {
+      setFormLoading(false)
+    }
+  }
+
+  const handleRejectService = async (id) => {
+    try {
+      setFormLoading(true)
+      await serviceAPI.rejectService(id)
+      await loadData()
+      showToast('Service record rejected successfully!', 'error')
+      addControllerNotification(`Service record rejected`, 'SERVICE_REJECTION', '/service')
+    } catch (err) {
+      console.error('Reject service record error:', err)
+      showToast('Failed to reject service record', 'error')
+    } finally {
+      setFormLoading(false)
+    }
+  }
+
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
@@ -2294,28 +2409,28 @@ const ServicePage = () => {
     if (sortBy === 'creationDesc') {
       const dateA = a.createdAt ? parseBackendDate(a.createdAt) : new Date(0);
       const dateB = b.createdAt ? parseBackendDate(b.createdAt) : new Date(0);
-      return dateB - dateA;
+      return (dateB - dateA) || (b.id || 0) - (a.id || 0);
     }
     if (sortBy === 'creationAsc') {
       const dateA = a.createdAt ? parseBackendDate(a.createdAt) : new Date(0);
       const dateB = b.createdAt ? parseBackendDate(b.createdAt) : new Date(0);
-      return dateA - dateB;
+      return (dateA - dateB) || (a.id || 0) - (b.id || 0);
     }
     if (sortBy === 'serviceDateDesc') {
       const dateA = a.serviceDate ? new Date(a.serviceDate) : new Date(0);
       const dateB = b.serviceDate ? new Date(b.serviceDate) : new Date(0);
-      return dateB - dateA;
+      return (dateB - dateA) || (b.id || 0) - (a.id || 0);
     }
     if (sortBy === 'serviceDateAsc') {
       const dateA = a.serviceDate ? new Date(a.serviceDate) : new Date(0);
       const dateB = b.serviceDate ? new Date(b.serviceDate) : new Date(0);
-      return dateA - dateB;
+      return (dateA - dateB) || (a.id || 0) - (b.id || 0);
     }
     if (sortBy === 'costDesc') {
-      return (b.serviceCost || 0) - (a.serviceCost || 0);
+      return (b.serviceCost || 0) - (a.serviceCost || 0) || (b.id || 0) - (a.id || 0);
     }
     if (sortBy === 'costAsc') {
-      return (a.serviceCost || 0) - (b.serviceCost || 0);
+      return (a.serviceCost || 0) - (b.serviceCost || 0) || (a.id || 0) - (b.id || 0);
     }
     return 0;
   })
@@ -3990,6 +4105,7 @@ const ServicePage = () => {
                                   index={index}
                                   isDriver={isDriver}
                                   isAdmin={isAdmin}
+                                  isController={isController}
                                   currentUsername={user?.userName}
                                   vehicleCurrentKm={vehicleCurrentKm}
                                   isLatest={isLatest}
@@ -3999,6 +4115,8 @@ const ServicePage = () => {
                                   onViewAttachment={handleViewAttachment}
                                   D={D}
                                   vehicleImage={vc?.vehicleImage} vehicleName={vc && (vc.manufacturer || vc.model) ? `${vc.manufacturer || ''} ${vc.model || ''}`.trim() : null}
+                                  handleApproveService={handleApproveService}
+                                  handleRejectService={handleRejectService}
                                 />
                               )
                             })
@@ -4110,17 +4228,34 @@ const ServicePage = () => {
                                       </td>
 
                                       <td style={{ padding: '20px 26px' }}>
-                                        <span style={{
-                                          display: 'inline-flex', alignItems: 'center', gap: 5,
-                                          fontSize: '0.78rem', fontWeight: 800,
-                                          padding: '4px 10px', borderRadius: 999,
-                                          background: stConfig.bg, color: stConfig.color,
-                                          border: `1px solid ${stConfig.border}`,
-                                          whiteSpace: 'nowrap',
-                                        }}>
-                                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: stConfig.dot, flexShrink: 0 }} />
-                                          {status}
-                                        </span>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                          <span style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: 5,
+                                            fontSize: '0.78rem', fontWeight: 800,
+                                            padding: '4px 10px', borderRadius: 999,
+                                            background: stConfig.bg, color: stConfig.color,
+                                            border: `1px solid ${stConfig.border}`,
+                                            whiteSpace: 'nowrap',
+                                          }}>
+                                            <span style={{ width: 5, height: 5, borderRadius: '50%', background: stConfig.dot, flexShrink: 0 }} />
+                                            {status}
+                                          </span>
+                                          {(() => {
+                                            const ab = approvalBadge(s.status, D);
+                                            return (
+                                              <span style={{
+                                                display: 'inline-flex', alignItems: 'center', gap: 5,
+                                                fontSize: '0.78rem', fontWeight: 800,
+                                                padding: '4px 10px', borderRadius: 999,
+                                                background: ab.bg, color: ab.color,
+                                                border: `1px solid ${ab.border}`,
+                                                whiteSpace: 'nowrap',
+                                              }}>
+                                                {ab.label}
+                                              </span>
+                                            )
+                                          })()}
+                                        </div>
                                       </td>
 
                                       <td style={{ padding: '20px 26px' }} onClick={e => e.stopPropagation()}>

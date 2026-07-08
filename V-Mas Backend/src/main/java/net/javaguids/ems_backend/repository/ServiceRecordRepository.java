@@ -27,11 +27,11 @@ public interface ServiceRecordRepository
             java.time.LocalDate startDate, java.time.LocalDate endDate);
 
     @org.springframework.data.jpa.repository.Query(
-        "SELECT SUM(sr.serviceCost) FROM ServiceRecord sr WHERE sr.deleted = false")
+        "SELECT SUM(sr.serviceCost) FROM ServiceRecord sr WHERE sr.deleted = false AND sr.status = 'APPROVED'")
     java.math.BigDecimal getTotalServiceCost();
 
     @org.springframework.data.jpa.repository.Query(
-        "SELECT sr.serviceType, COUNT(sr) FROM ServiceRecord sr WHERE sr.deleted = false GROUP BY sr.serviceType")
+        "SELECT sr.serviceType, COUNT(sr) FROM ServiceRecord sr WHERE sr.deleted = false AND sr.status = 'APPROVED' GROUP BY sr.serviceType")
     List<Object[]> countServicesByType();
 
     /**
@@ -40,9 +40,9 @@ public interface ServiceRecordRepository
      */
     @org.springframework.data.jpa.repository.Query(
         "SELECT sr FROM ServiceRecord sr " +
-        "WHERE sr.deleted = false " +
+        "WHERE sr.deleted = false AND sr.status = 'APPROVED' " +
         "AND sr.id IN (SELECT MAX(sr2.id) FROM ServiceRecord sr2 " +
-        "              WHERE sr2.deleted = false " +
+        "              WHERE sr2.deleted = false AND sr2.status = 'APPROVED' " +
         "              GROUP BY sr2.vehicleRegNumber, sr2.serviceType)"
     )
     List<ServiceRecord> findLatestServiceRecordPerVehicleAndServiceType();

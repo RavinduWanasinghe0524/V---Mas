@@ -37,6 +37,13 @@ const fuelBadge = (ft, D) => {
   return { color: D.textSub, bg: D.surfaceHi };
 }
 
+const approvalBadge = (status, D) => {
+  const s = (status || 'APPROVED').toUpperCase()
+  if (s === 'PENDING') return { label: 'Pending', bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: 'rgba(245,158,11,0.25)' }
+  if (s === 'REJECTED') return { label: 'Rejected', bg: 'rgba(239,68,68,0.12)', color: '#ef4444', border: 'rgba(239,68,68,0.25)' }
+  return { label: 'Approved', bg: 'rgba(16,185,129,0.12)', color: '#10b981', border: 'rgba(16,185,129,0.25)' }
+}
+
 /* ── Fuel Management Page ────────────────────────────────────────────────── */
 const FuelManagementPage = () => {
   const D = useD()
@@ -173,7 +180,13 @@ const FuelManagementPage = () => {
         const rawLogs = fuelRes.value.data.data || []
         const vehList = vehRes.status === 'fulfilled' ? (vehRes.value.data.data || []) : []
         computeLogsEfficiency(rawLogs, vehList)
-        logs = [...rawLogs].sort((a, b) => new Date(b.date) - new Date(a.date))
+        logs = [...rawLogs].sort((a, b) => {
+          if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
+          if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
+          const dateDiff = new Date(b.date) - new Date(a.date);
+          if (dateDiff !== 0) return dateDiff;
+          return (b.id || 0) - (a.id || 0);
+        })
         setAllLogs(logs)
       } else {
         console.error('Failed to load fuel logs:', fuelRes.reason)
@@ -462,6 +475,30 @@ const FuelManagementPage = () => {
     }
   }
 
+  const handleApproveLog = async (id) => {
+    try {
+      await fuelAPI.approveLog(id)
+      await loadData()
+      showToast('Fuel log approved successfully!')
+      addControllerNotification(`Fuel log approved`, 'FUEL_APPROVAL', '/fuel-management')
+    } catch (err) {
+      console.error('Approve fuel log error:', err)
+      showToast('Failed to approve fuel log', 'error')
+    }
+  }
+
+  const handleRejectLog = async (id) => {
+    try {
+      await fuelAPI.rejectLog(id)
+      await loadData()
+      showToast('Fuel log rejected successfully!', 'error')
+      addControllerNotification(`Fuel log rejected`, 'FUEL_REJECTION', '/fuel-management')
+    } catch (err) {
+      console.error('Reject fuel log error:', err)
+      showToast('Failed to reject fuel log', 'error')
+    }
+  }
+
   const effBadge = eff => {
     if (!eff) return { label: 'N/A', bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
     if (eff > 10) return { label: 'Excellent', bg: D.greenDim, color: D.green, border: 'rgba(74,222,128,0.3)' }
@@ -692,9 +729,9 @@ const FuelManagementPage = () => {
                         {/* Vehicle Info */}
                         <div style={{ width: 130, flexShrink: 0 }}>
                           <div style={{ fontSize: '1.05rem', fontWeight: 950, color: D.blue, letterSpacing: '0.02em' }}>{log.vehicleRegNumber}</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                           {(() => { const fb = fuelBadge(log.fuelType, D); return <span style={{ fontSize: '0.72rem', color: fb.color, fontWeight: 800, textTransform: 'uppercase', background: fb.bg, padding: '2px 8px', borderRadius: 6, border: `1px solid ${fb.color}30`, display: 'flex', alignItems: 'center', gap: 3 }}>{log.fuelType}</span> })()
-                           }
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                            {(() => { const fb = fuelBadge(log.fuelType, D); return <span style={{ fontSize: '0.72rem', color: fb.color, fontWeight: 800, textTransform: 'uppercase', background: fb.bg, padding: '2px 8px', borderRadius: 6, border: `1px solid ${fb.color}30`, display: 'flex', alignItems: 'center', gap: 3 }}>{log.fuelType}</span> })()}
+                            {(() => { const ab = approvalBadge(log.status, D); return <span style={{ fontSize: '0.72rem', color: ab.color, fontWeight: 800, textTransform: 'uppercase', background: ab.bg, padding: '2px 8px', borderRadius: 6, border: `1px solid ${ab.border}`, display: 'flex', alignItems: 'center', gap: 3 }}>{ab.label}</span> })()}
                           </div>
                         </div>
 
@@ -734,6 +771,16 @@ const FuelManagementPage = () => {
 
                         {/* Actions */}
                         <div style={{ display: 'flex', gap: 10, marginLeft: 16 }}>
+                          {log.status === 'PENDING' && (
+                            <>
+                              <button onClick={() => handleApproveLog(log.id)} style={{ width: 42, height: 42, borderRadius: 12, border: `1px solid ${D.green}`, background: D.greenDim, color: D.green, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.25s' }} title="Approve Log" onMouseEnter={e => { e.currentTarget.style.background = D.green; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = D.greenDim; e.currentTarget.style.color = D.green }}>
+                                <Check size={18} />
+                              </button>
+                              <button onClick={() => handleRejectLog(log.id)} style={{ width: 42, height: 42, borderRadius: 12, border: `1px solid ${D.red}`, background: D.redDim, color: D.red, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.25s' }} title="Reject Log" onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}>
+                                <X size={18} />
+                              </button>
+                            </>
+                          )}
                           <button onClick={() => setEditingLog({ ...log, date: log.date.split('T')[0] })} style={{ width: 42, height: 42, borderRadius: 12, border: `1px solid ${D.border}`, background: D.surface, color: D.textSub, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.25s' }} onMouseEnter={e => { e.currentTarget.style.color = D.purple; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.background = D.purpleDim }} onMouseLeave={e => { e.currentTarget.style.color = D.textSub; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface }}>
                             <Edit2 size={18} />
                           </button>

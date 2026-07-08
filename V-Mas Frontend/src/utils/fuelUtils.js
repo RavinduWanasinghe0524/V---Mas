@@ -14,17 +14,18 @@
 export const computeLogsEfficiency = (logs, vehicles = []) => {
   if (!logs || !logs.length) return logs
 
-  // Build a quick lookup: registrationNo -> currentMileageKm
+  // Build a quick lookup: registrationNo -> initialMileageKm ?? currentMileageKm ?? 0
   const vehicleMileageMap = {}
   vehicles.forEach(v => {
-    if (v.registrationNo != null && v.currentMileageKm != null) {
-      vehicleMileageMap[v.registrationNo] = v.currentMileageKm
+    if (v.registrationNo != null) {
+      vehicleMileageMap[v.registrationNo] = v.initialMileageKm ?? v.currentMileageKm ?? 0
     }
   })
 
-  // Group logs by vehicleRegNumber
+  // Group logs by vehicleRegNumber (skipping deleted or rejected logs)
   const groups = {}
   logs.forEach(l => {
+    if (l.isDeleted || l.deleted || l.status === 'REJECTED') return
     const reg = l.vehicleRegNumber
     if (reg) {
       if (!groups[reg]) groups[reg] = []
