@@ -91,6 +91,13 @@ const ProfilePage = () => {
     licenseDocumentPath: '', dateJoined: '', experience: ''
   })
   const [licenseFile, setLicenseFile] = useState(null)
+  const [attachmentViewer, setAttachmentViewer] = useState({
+    isOpen: false,
+    url: '',
+    type: '',
+    filename: '',
+    loading: false
+  })
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileSuccess, setProfileSuccess] = useState('')
   const [profileError, setProfileError] = useState('')
@@ -195,6 +202,8 @@ const ProfilePage = () => {
     setNotifSaving(true)
     try {
       localStorage.setItem(privacyKey, JSON.stringify(privacy))
+      // Notify the Topbar to re-apply the alert-type filter immediately
+      window.dispatchEvent(new Event('vmas-notif-settings-update'))
     } catch { /* ignore storage errors */ }
     await new Promise(r => setTimeout(r, 800))
     setNotifSaving(false)
@@ -638,9 +647,34 @@ const ProfilePage = () => {
                                         responseType: 'blob',
                                         headers: { 'Authorization': `Bearer ${token}` }
                                       })
-                                      const blob = new Blob([res.data], { type: res.headers['content-type'] })
+                                      const path = profileForm.licenseDocumentPath || ''
+                                      const lowerPath = path.toLowerCase()
+                                      const rawBlob = res.data instanceof Blob ? res.data : new Blob([res.data])
+                                      let contentType = rawBlob.type || res.headers['content-type'] || res.headers.get?.('content-type')
+                                      if (!contentType || contentType === 'application/octet-stream') {
+                                        if (lowerPath.endsWith('.pdf')) contentType = 'application/pdf'
+                                        else if (lowerPath.endsWith('.png')) contentType = 'image/png'
+                                        else if (lowerPath.endsWith('.jpg') || lowerPath.endsWith('.jpeg')) contentType = 'image/jpeg'
+                                        else if (lowerPath.endsWith('.gif')) contentType = 'image/gif'
+                                        else if (lowerPath.endsWith('.webp')) contentType = 'image/webp'
+                                        else if (lowerPath.endsWith('.avif')) contentType = 'image/avif'
+                                        else if (lowerPath.endsWith('.svg')) contentType = 'image/svg+xml'
+                                        else contentType = 'image/jpeg' // default fallback
+                                      }
+                                      const blob = rawBlob.type === contentType ? rawBlob : new Blob([rawBlob], { type: contentType })
                                       const url = window.URL.createObjectURL(blob)
-                                      window.open(url, '_blank')
+                                      if (contentType.includes('pdf')) {
+                                        window.open(url, '_blank')
+                                      } else {
+                                        const filename = path.substring(path.lastIndexOf('/') + 1)
+                                        setAttachmentViewer({
+                                          isOpen: true,
+                                          url,
+                                          type: contentType,
+                                          filename: filename.includes('_') ? filename.substring(filename.indexOf('_') + 1) : filename,
+                                          loading: false
+                                        })
+                                      }
                                     } catch (err) {
                                       let errMsg = "Failed to load document."
                                       if (err.response?.data instanceof Blob) {
@@ -1035,6 +1069,92 @@ const ProfilePage = () => {
 
         </div>
       </div>
+
+      {/* ── Attachment Lightbox Modal ─────────────────────────────────── */}
+      {attachmentViewer.isOpen && (
+        <div
+          onClick={() => setAttachmentViewer(prev => ({ ...prev, isOpen: false }))}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(10px)', zIndex: 9999,
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', padding: '24px',
+          }}
+        >
+          {/* Header controls */}
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'absolute', top: 24, left: 24, right: 24,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              color: '#fff', zIndex: 10,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <FileText size={18} color="#10b981" />
+              <div>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  License Document
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>
+                  {attachmentViewer.filename}
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              {/* Download button */}
+              <a
+                href={attachmentViewer.url}
+                download={attachmentViewer.filename}
+                style={{
+                  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 10, color: '#fff', padding: '8px 16px', fontSize: '0.8rem',
+                  fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center',
+                  gap: 6, textDecoration: 'none', transition: 'all 0.15s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              >
+                Download
+              </a>
+              {/* Close button */}
+              <button
+                onClick={() => setAttachmentViewer(prev => ({ ...prev, isOpen: false }))}
+                style={{
+                  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 10, color: '#fff', padding: '8px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Image Container */}
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'relative', width: '100%', height: '100%',
+              maxWidth: '85vw', maxHeight: '75vh', marginTop: '40px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <img
+              src={attachmentViewer.url}
+              alt="License Attachment"
+              style={{
+                maxWidth: '100%', maxHeight: '100%', borderRadius: 16,
+                boxShadow: '0 24px 60px rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)',
+                objectFit: 'contain', background: '#000',
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

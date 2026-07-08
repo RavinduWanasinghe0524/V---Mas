@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import net.javaguids.ems_backend.enums.ApprovalStatus;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -44,6 +46,10 @@ public class FuelLog {
 
     @Column(nullable = true)
     private String driverUsername;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 50, columnDefinition = "VARCHAR(50) DEFAULT 'APPROVED'")
+    private ApprovalStatus status = ApprovalStatus.APPROVED;
 
     // ── Audit fields ────────────────────────────────────────────────────────
 

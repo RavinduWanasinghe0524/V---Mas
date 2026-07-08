@@ -10,6 +10,7 @@ import net.javaguids.ems_backend.dto.ServiceRecordDto;
 import net.javaguids.ems_backend.entity.ServiceRecord;
 import net.javaguids.ems_backend.entity.ServiceRecordAudit;
 import net.javaguids.ems_backend.enums.ServiceType;
+import net.javaguids.ems_backend.enums.ApprovalStatus;
 import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.entity.Vehicle;
 import net.javaguids.ems_backend.mapper.ServiceRecordMapper;
@@ -20,17 +21,12 @@ import net.javaguids.ems_backend.repository.ServiceIntervalRepository;
 import net.javaguids.ems_backend.service.ServiceRecordService;
 import org.springframework.security.access.AccessDeniedException;
 import net.javaguids.ems_backend.service.NotificationService;
+import net.javaguids.ems_backend.service.StorageService;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,7 +36,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-@SuppressWarnings("null")
 public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     private final ServiceRecordRepository serviceRecordRepository;
@@ -48,6 +43,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
     private final VehicleRepository vehicleRepository;
     private final NotificationService notificationService;
     private final ServiceIntervalRepository serviceIntervalRepository;
+    private final StorageService storageService;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Value("${app.upload.dir:uploads/service-attachments}")
@@ -57,12 +53,14 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
                                     ServiceRecordAuditRepository auditRepository,
                                     VehicleRepository vehicleRepository,
                                     NotificationService notificationService,
-                                    ServiceIntervalRepository serviceIntervalRepository) {
+                                    ServiceIntervalRepository serviceIntervalRepository,
+                                    StorageService storageService) {
         this.serviceRecordRepository = serviceRecordRepository;
         this.auditRepository = auditRepository;
         this.vehicleRepository = vehicleRepository;
         this.notificationService = notificationService;
         this.serviceIntervalRepository = serviceIntervalRepository;
+        this.storageService = storageService;
     }
 
     @Override
@@ -105,11 +103,21 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
             record.setCreatedBy(currentUsername);
         }
 
+        boolean isDriver = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_DRIVER"));
+        if (isDriver) {
+            record.setStatus(ApprovalStatus.PENDING);
+        } else {
+            record.setStatus(ApprovalStatus.APPROVED);
+        }
+
         ServiceRecord saved = serviceRecordRepository.save(java.util.Objects.requireNonNull(record));
-        try {
-            notificationService.resolveServiceAlerts(saved.getVehicleRegNumber(), saved.getServiceType().name());
-        } catch (Exception e) {
-            // non-blocking
+        if (saved.getStatus() == ApprovalStatus.APPROVED) {
+            try {
+                notificationService.resolveServiceAlerts(saved.getVehicleRegNumber(), saved.getServiceType().name());
+            } catch (Exception e) {
+                // non-blocking
+            }
         }
         return ServiceRecordMapper.mapToServiceRecordDto(saved);
     }
@@ -230,6 +238,12 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
             record.setServiceClassification(dto.getServiceClassification());
         }
 
+        if (isDriver) {
+            record.setStatus(ApprovalStatus.PENDING);
+        } else {
+            record.setStatus(ApprovalStatus.APPROVED);
+        }
+
         ServiceRecord updated = serviceRecordRepository.save(record);
 
         // ── Persist audit entry if anything actually changed ──────────────────────────────
@@ -273,10 +287,12 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
                 "SERVICE_UPDATE"
         );
 
-        try {
-            notificationService.resolveServiceAlerts(updated.getVehicleRegNumber(), updated.getServiceType().name());
-        } catch (Exception e) {
-            // non-blocking
+        if (updated.getStatus() == ApprovalStatus.APPROVED) {
+            try {
+                notificationService.resolveServiceAlerts(updated.getVehicleRegNumber(), updated.getServiceType().name());
+            } catch (Exception e) {
+                // non-blocking
+            }
         }
 
         return ServiceRecordMapper.mapToServiceRecordDto(updated);
@@ -362,33 +378,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
         return filename;
     }
 
-    private Path resolveUploadPath(String relativePath) {
-        if (relativePath == null || relativePath.isBlank()) {
-            return null;
-        }
-        
-        String cleanPath = relativePath;
-        if (cleanPath.startsWith("uploads/")) {
-            cleanPath = cleanPath.substring("uploads/".length());
-        } else if (cleanPath.startsWith("uploads\\")) {
-            cleanPath = cleanPath.substring("uploads\\".length());
-        }
 
-        Path cwd = Paths.get("").toAbsolutePath();
-        Path uploadsDir;
-        
-        if (cwd.getFileName() != null && cwd.getFileName().toString().equals("V-Mas Backend")) {
-            uploadsDir = cwd.resolve("uploads");
-        } else if (Files.exists(cwd.resolve("V-Mas Backend"))) {
-            uploadsDir = cwd.resolve("V-Mas Backend").resolve("uploads");
-        } else if (Files.exists(cwd.resolve("V---Mas").resolve("V-Mas Backend"))) {
-            uploadsDir = cwd.resolve("V---Mas").resolve("V-Mas Backend").resolve("uploads");
-        } else {
-            uploadsDir = cwd.resolve("uploads");
-        }
-
-        return uploadsDir.resolve(cleanPath).normalize();
-    }
 
     @Override
     public ServiceRecordDto uploadAttachment(Long id, MultipartFile file) {
@@ -397,21 +387,18 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
                         "Service record not found with id: " + id));
 
         try {
-            // Build a stable directory per record, rooted inside the Backend folder
             String uploadDir = uploadBaseDir + "/" + id;
-            Path uploadPath = resolveUploadPath(uploadDir);
-            Files.createDirectories(uploadPath);
-
-            // Use a UUID prefix to avoid filename collisions
             String filename = UUID.randomUUID() + "_" + file.getOriginalFilename();
-            Path filePath = uploadPath.resolve(filename);
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+            String savedPath = storageService.storeFile(uploadDir, filename, file);
 
             String oldPath = record.getAttachmentPath();
+            if (oldPath != null && !oldPath.isBlank()) {
+                storageService.deleteFile(oldPath);
+            }
             String oldFilename = getCleanFilename(oldPath);
             String newFilename = file.getOriginalFilename();
 
-            record.setAttachmentPath(uploadDir + "/" + filename);
+            record.setAttachmentPath(savedPath);
             ServiceRecord updated = serviceRecordRepository.save(record);
 
             // ── Persist audit entry for the attachment upload ──────────────────────────
@@ -445,7 +432,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
 
             return ServiceRecordMapper.mapToServiceRecordDto(updated);
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException("Failed to store attachment: " + e.getMessage(), e);
         }
     }
@@ -537,9 +524,9 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
                             .findByVehicleRegNumberAndDeletedFalse(vehicle.getRegistrationNo());
                     long totalRecords = records.size();
                     java.math.BigDecimal totalCost = records.stream()
-                            .map(ServiceRecord::getServiceCost)
-                            .filter(Objects::nonNull)
-                            .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+                            .map(r -> r.getServiceCost())
+                            .filter(cost -> cost != null)
+                            .reduce(java.math.BigDecimal.ZERO, (a, b) -> a.add(b));
                     java.util.Map<String, Long> byType = records.stream()
                             .filter(r -> r.getServiceType() != null)
                             .collect(Collectors.groupingBy(
@@ -597,21 +584,54 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
             throw new ResourceNotFoundException("No attachment found for service record with id: " + id);
         }
 
-        try {
-            Path filePath = resolveUploadPath(attachmentPath);
-            org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(filePath.toUri());
-            if (resource.exists() || resource.isReadable()) {
-                return resource;
-            } else {
-                throw new ResourceNotFoundException("Attachment file not found or not readable at: " + attachmentPath);
-            }
-        } catch (java.net.MalformedURLException e) {
-            throw new RuntimeException("Error reading attachment file path: " + e.getMessage(), e);
-        }
+        return storageService.loadFile(attachmentPath);
     }
 
     /** Converts ServiceType enum to a human-readable label. */
     private String enumLabel(ServiceType type) {
         return type == null ? null : type.name().replace('_', ' ');
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public ServiceRecordDto approveServiceRecord(Long id) {
+        ServiceRecord record = serviceRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Service record not found with id: " + id));
+        record.setStatus(ApprovalStatus.APPROVED);
+        ServiceRecord saved = serviceRecordRepository.save(record);
+        
+        // Resolve service alerts now that it is approved!
+        try {
+            notificationService.resolveServiceAlerts(saved.getVehicleRegNumber(), saved.getServiceType().name());
+        } catch (Exception ignored) {}
+
+        // Send notification to the driver
+        if (record.getCreatedBy() != null) {
+            notificationService.createNotification(
+                "USER-" + record.getCreatedBy(),
+                "Your service record for vehicle " + record.getVehicleRegNumber() + " was approved by the Controller.",
+                "SERVICE_APPROVAL"
+            );
+        }
+        return ServiceRecordMapper.mapToServiceRecordDto(saved);
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public ServiceRecordDto rejectServiceRecord(Long id) {
+        ServiceRecord record = serviceRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Service record not found with id: " + id));
+        record.setStatus(ApprovalStatus.REJECTED);
+        ServiceRecord saved = serviceRecordRepository.save(record);
+
+        // Send notification to the driver
+        if (record.getCreatedBy() != null) {
+            notificationService.createNotification(
+                "USER-" + record.getCreatedBy(),
+                "Your service record for vehicle " + record.getVehicleRegNumber() + " was rejected by the Controller.",
+                "SERVICE_REJECTION"
+            );
+        }
+        return ServiceRecordMapper.mapToServiceRecordDto(saved);
     }
 }

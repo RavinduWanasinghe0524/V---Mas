@@ -244,8 +244,29 @@ public class UserController {
             if (probed != null) {
                 contentType = probed;
             }
-        } catch (java.io.IOException e) {
-            // fallback
+        } catch (Exception e) {
+            // Fallback for non-filesystem resources (e.g. S3 resources)
+            String filename = resource.getFilename();
+            if (filename != null) {
+                String lower = filename.toLowerCase();
+                if (lower.endsWith(".pdf")) {
+                    contentType = "application/pdf";
+                } else if (lower.endsWith(".png")) {
+                    contentType = "image/png";
+                } else if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
+                    contentType = "image/jpeg";
+                } else if (lower.endsWith(".gif")) {
+                    contentType = "image/gif";
+                } else if (lower.endsWith(".webp")) {
+                    contentType = "image/webp";
+                } else if (lower.endsWith(".avif")) {
+                    contentType = "image/avif";
+                } else if (lower.endsWith(".svg")) {
+                    contentType = "image/svg+xml";
+                } else if (lower.endsWith(".bmp")) {
+                    contentType = "image/bmp";
+                }
+            }
         }
 
         String originalFilename = resource.getFilename();

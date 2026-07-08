@@ -155,7 +155,30 @@ public class ServiceRecordController {
             if (probed != null) {
                 contentType = probed;
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            // Fallback for non-filesystem resources (e.g. S3 resources)
+            String filename = resource.getFilename();
+            if (filename != null) {
+                String lower = filename.toLowerCase();
+                if (lower.endsWith(".pdf")) {
+                    contentType = "application/pdf";
+                } else if (lower.endsWith(".png")) {
+                    contentType = "image/png";
+                } else if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
+                    contentType = "image/jpeg";
+                } else if (lower.endsWith(".gif")) {
+                    contentType = "image/gif";
+                } else if (lower.endsWith(".webp")) {
+                    contentType = "image/webp";
+                } else if (lower.endsWith(".avif")) {
+                    contentType = "image/avif";
+                } else if (lower.endsWith(".svg")) {
+                    contentType = "image/svg+xml";
+                } else if (lower.endsWith(".bmp")) {
+                    contentType = "image/bmp";
+                }
+            }
+        }
 
         return ResponseEntity.ok()
                 .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
@@ -191,5 +214,27 @@ public class ServiceRecordController {
     public ResponseEntity<ApiResponse<List<ServiceIntervalDto>>> updateIntervalsBulk(@RequestBody List<ServiceIntervalDto> dtos) {
         List<ServiceIntervalDto> updated = serviceIntervalService.updateIntervalsBulk(dtos);
         return ApiResponseUtil.success("Service intervals updated successfully in bulk", updated, HttpStatus.OK);
+    }
+
+    /**
+     * PATCH /api/services/{id}/approve
+     * Controller/Admin approves a pending service record.
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @PatchMapping("/{id}/approve")
+    public ResponseEntity<ApiResponse<ServiceRecordDto>> approveServiceRecord(@PathVariable Long id) {
+        ServiceRecordDto approved = serviceRecordService.approveServiceRecord(id);
+        return ApiResponseUtil.success("Service record approved successfully", approved, HttpStatus.OK);
+    }
+
+    /**
+     * PATCH /api/services/{id}/reject
+     * Controller/Admin rejects a pending service record.
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @PatchMapping("/{id}/reject")
+    public ResponseEntity<ApiResponse<ServiceRecordDto>> rejectServiceRecord(@PathVariable Long id) {
+        ServiceRecordDto rejected = serviceRecordService.rejectServiceRecord(id);
+        return ApiResponseUtil.success("Service record rejected successfully", rejected, HttpStatus.OK);
     }
 }

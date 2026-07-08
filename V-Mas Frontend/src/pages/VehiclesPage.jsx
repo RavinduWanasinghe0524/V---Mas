@@ -8,7 +8,7 @@ import api, { vehicleAPI, serviceAPI, fuelAPI } from '../services/api'
 import { getAlertLevel, computeMileageProgress, computeDateAlert, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
 import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download, Phone, IdCard, Shield, Star, Zap, LayoutGrid, List, Archive, RotateCcw } from 'lucide-react'
 import { generateStyledExcel } from '../utils/excelExport'
-import { computeLogsEfficiency } from '../utils/fuelUtils'
+import { computeLogsEfficiency, formatFuelType } from '../utils/fuelUtils'
 
 const onFocus = e => {
   e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'
@@ -248,6 +248,13 @@ const VehiclesPage = () => {
   const [fuelModalError, setFuelModalError] = useState('')
 
   const [deletedDrawer, setDeletedDrawer] = useState(false)
+  const [attachmentViewer, setAttachmentViewer] = useState({
+    isOpen: false,
+    url: '',
+    type: '',
+    filename: '',
+    loading: false
+  })
   const [deletedVehicles, setDeletedVehicles] = useState([])
   const [deletedLoading, setDeletedLoading] = useState(false)
   const [restoringId, setRestoringId] = useState(null)
@@ -401,7 +408,20 @@ const VehiclesPage = () => {
           'Authorization': `Bearer ${token}`
         }
       })
-      const blob = new Blob([res.data], { type: res.headers['content-type'] })
+      const lowerFilename = (filename || '').toLowerCase()
+      const rawBlob = res.data instanceof Blob ? res.data : new Blob([res.data])
+      let contentType = rawBlob.type || res.headers['content-type'] || res.headers.get?.('content-type')
+      if (!contentType || contentType === 'application/octet-stream') {
+        if (lowerFilename.endsWith('.pdf')) contentType = 'application/pdf'
+        else if (lowerFilename.endsWith('.png')) contentType = 'image/png'
+        else if (lowerFilename.endsWith('.jpg') || lowerFilename.endsWith('.jpeg')) contentType = 'image/jpeg'
+        else if (lowerFilename.endsWith('.gif')) contentType = 'image/gif'
+        else if (lowerFilename.endsWith('.webp')) contentType = 'image/webp'
+        else if (lowerFilename.endsWith('.avif')) contentType = 'image/avif'
+        else if (lowerFilename.endsWith('.svg')) contentType = 'image/svg+xml'
+        else contentType = docType === 'registration' ? 'application/pdf' : 'image/jpeg'
+      }
+      const blob = rawBlob.type === contentType ? rawBlob : new Blob([rawBlob], { type: contentType })
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -435,9 +455,40 @@ const VehiclesPage = () => {
           'Authorization': `Bearer ${token}`
         }
       })
-      const blob = new Blob([res.data], { type: res.headers['content-type'] })
+      const vehicle = vehicles.find(v => v.id === id)
+      let path = ''
+      if (vehicle) {
+        if (docType === 'insurance') path = vehicle.insuranceDocumentPath || ''
+        else if (docType === 'license') path = vehicle.licenseDocumentPath || ''
+        else if (docType === 'registration') path = vehicle.registrationBookPath || ''
+      }
+      const lowerPath = path.toLowerCase()
+      const rawBlob = res.data instanceof Blob ? res.data : new Blob([res.data])
+      let contentType = rawBlob.type || res.headers['content-type'] || res.headers.get?.('content-type')
+      if (!contentType || contentType === 'application/octet-stream') {
+        if (lowerPath.endsWith('.pdf')) contentType = 'application/pdf'
+        else if (lowerPath.endsWith('.png')) contentType = 'image/png'
+        else if (lowerPath.endsWith('.jpg') || lowerPath.endsWith('.jpeg')) contentType = 'image/jpeg'
+        else if (lowerPath.endsWith('.gif')) contentType = 'image/gif'
+        else if (lowerPath.endsWith('.webp')) contentType = 'image/webp'
+        else if (lowerPath.endsWith('.avif')) contentType = 'image/avif'
+        else if (lowerPath.endsWith('.svg')) contentType = 'image/svg+xml'
+        else contentType = docType === 'registration' ? 'application/pdf' : 'image/jpeg'
+      }
+      const blob = rawBlob.type === contentType ? rawBlob : new Blob([rawBlob], { type: contentType })
       const url = window.URL.createObjectURL(blob)
-      window.open(url, '_blank')
+      if (contentType.includes('pdf')) {
+        window.open(url, '_blank')
+      } else {
+        const filename = path.substring(path.lastIndexOf('/') + 1)
+        setAttachmentViewer({
+          isOpen: true,
+          url,
+          type: contentType,
+          filename: filename.includes('_') ? filename.substring(filename.indexOf('_') + 1) : filename,
+          loading: false
+        })
+      }
     } catch (err) {
       console.error("Failed to view document online:", err)
       let errMsg = "Failed to view document. Please try again."
@@ -1428,16 +1479,14 @@ const VehiclesPage = () => {
                         onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
                       >
                         <option value="ALL" style={{ background: D.surface, color: D.text }}>All Fuel Types</option>
-                        <option value="PETROL" style={{ background: D.surface, color: D.text }}>Petrol</option>
-                        <option value="SUPER_PETROL" style={{ background: D.surface, color: D.text }}>Super Petrol</option>
-                        <option value="DIESEL" style={{ background: D.surface, color: D.text }}>Diesel</option>
+                        <option value="PETROL" style={{ background: D.surface, color: D.text }}>Petrol 92 Octane</option>
+                        <option value="SUPER_PETROL" style={{ background: D.surface, color: D.text }}>Petrol 95 Octane</option>
+                        <option value="DIESEL" style={{ background: D.surface, color: D.text }}>Auto Diesel</option>
                         <option value="SUPER_DIESEL" style={{ background: D.surface, color: D.text }}>Super Diesel</option>
-                        <option value="HYBRID" style={{ background: D.surface, color: D.text }}>Hybrid</option>
-                        <option value="ELECTRIC" style={{ background: D.surface, color: D.text }}>Electric</option>
                       </select>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                  <div className="vehicles-toolbar-right">
                     {/* View Toggler */}
                     <div style={{
                       display: 'flex', background: 'rgba(255,255,255,0.03)', border: `1px solid ${D.border}`,
@@ -1496,7 +1545,7 @@ const VehiclesPage = () => {
                 </div>
 
               {/* Data List */}
-              <div style={{ padding: '24px 32px 40px' }}>
+              <div className="vehicles-data-list" style={{ padding: '24px 32px 40px' }}>
                 {filtered.length === 0 ? (
                   <div style={{ padding: '100px 0', textAlign: 'center' }}>
                     <div style={{ background: D.surfaceHi, width: 90, height: 90, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: D.textSub, border: `1px solid ${D.border}` }}>
@@ -1617,7 +1666,7 @@ const VehiclesPage = () => {
                                 </div>
                               </td>
               <td style={{ padding: '14px 20px', fontWeight: 600, color: D.textSub }}>
-                {v.fuelType ?? 'N/A'}
+                {formatFuelType(v.fuelType)}
               </td>
                               <td style={{ padding: '14px 20px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                                 <div style={{ display: 'inline-flex', gap: 8 }}>
@@ -1821,7 +1870,7 @@ const VehiclesPage = () => {
                                 <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Fuel</span>
                               </div>
                               <div style={{ fontSize: '1.1rem', fontWeight: 900, color: D.text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                                {v.fuelType ?? 'N/A'}
+                                {formatFuelType(v.fuelType)}
                                 {isController && <Edit2 size={10} style={{ opacity: 0.6, color: '#f59e0b' }} />}
                               </div>
                             </div>
@@ -1860,9 +1909,9 @@ const VehiclesPage = () => {
 
                           {/* Details section */}
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`Chassis: ${v.chassisNumber || 'N/A'}`}>
                               <FileText size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                              <span>Chassis: {v.chassisNumber || 'N/A'}</span>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Chassis: {v.chassisNumber || 'N/A'}</span>
                             </div>
                             {/* Compliance Expiries info */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
@@ -1985,12 +2034,10 @@ const VehiclesPage = () => {
                     <label style={labelStyle}>Fuel Type <span style={{ color: D.red }}>*</span></label>
                     <select name="fuelType" value={formData.fuelType} onChange={handleChange} required style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
                       <option value="" style={{ background: D.surfaceHi }}>Select Fuel Type</option>
-                      <option value="PETROL" style={{ background: D.surfaceHi }}>Petrol</option>
-                      <option value="SUPER_PETROL" style={{ background: D.surfaceHi }}>Super Petrol</option>
-                      <option value="DIESEL" style={{ background: D.surfaceHi }}>Diesel</option>
+                      <option value="PETROL" style={{ background: D.surfaceHi }}>Petrol 92 Octane</option>
+                      <option value="SUPER_PETROL" style={{ background: D.surfaceHi }}>Petrol 95 Octane</option>
+                      <option value="DIESEL" style={{ background: D.surfaceHi }}>Auto Diesel</option>
                       <option value="SUPER_DIESEL" style={{ background: D.surfaceHi }}>Super Diesel</option>
-                      <option value="ELECTRIC" style={{ background: D.surfaceHi }}>Electric</option>
-                      <option value="HYBRID" style={{ background: D.surfaceHi }}>Hybrid</option>
                     </select>
                   </div>
                   <div>
@@ -2177,12 +2224,10 @@ const VehiclesPage = () => {
                     <label style={labelStyle}>Fuel Type</label>
                     <select name="fuelType" value={editFormData.fuelType} onChange={handleEditChange} required style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
                       <option value="" style={{ background: D.surfaceHi }}>Select Fuel Type</option>
-                      <option value="PETROL" style={{ background: D.surfaceHi }}>Petrol</option>
-                      <option value="SUPER_PETROL" style={{ background: D.surfaceHi }}>Super Petrol</option>
-                      <option value="DIESEL" style={{ background: D.surfaceHi }}>Diesel</option>
+                      <option value="PETROL" style={{ background: D.surfaceHi }}>Petrol 92 Octane</option>
+                      <option value="SUPER_PETROL" style={{ background: D.surfaceHi }}>Petrol 95 Octane</option>
+                      <option value="DIESEL" style={{ background: D.surfaceHi }}>Auto Diesel</option>
                       <option value="SUPER_DIESEL" style={{ background: D.surfaceHi }}>Super Diesel</option>
-                      <option value="ELECTRIC" style={{ background: D.surfaceHi }}>Electric</option>
-                      <option value="HYBRID" style={{ background: D.surfaceHi }}>Hybrid</option>
                     </select>
                   </div>
                   <div>
@@ -2714,7 +2759,7 @@ const VehiclesPage = () => {
                             ['Manufacturer', v.manufacturer],
                             ['Model', v.model],
                             ['Year', v.year],
-                            ['Fuel Type', v.fuelType],
+                            ['Fuel Type', formatFuelType(v.fuelType)],
                             ['Mileage', v.currentMileageKm ? `${v.currentMileageKm.toLocaleString()} km` : '0 km'],
                             ['Chassis No', v.chassisNumber],
                             ['Engine No', v.engineNumber],
@@ -2882,7 +2927,7 @@ const VehiclesPage = () => {
             </div>
 
             {/* Tab Navigation */}
-            <div style={{ display: 'flex', padding: '16px 32px 10px', background: D.surface, gap: 8, borderBottom: `1px solid ${D.border}` }}>
+            <div className="modal-tabs" style={{ display: 'flex', padding: '16px 32px 10px', background: D.surface, gap: 8, borderBottom: `1px solid ${D.border}` }}>
               {['overview', 'services', 'fuel'].map(tab => (
                 <button
                   key={tab}
@@ -2956,7 +3001,18 @@ const VehiclesPage = () => {
                         <span style={{ fontSize: '0.65rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
                           {item.icon} {item.label}
                         </span>
-                        <span style={{ fontSize: '0.88rem', color: D.text, fontWeight: 700 }}>
+                        <span 
+                          title={typeof item.value === 'string' ? item.value : undefined}
+                          style={{ 
+                            fontSize: '0.88rem', 
+                            color: D.text, 
+                            fontWeight: 700,
+                            display: 'block',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
                           {item.value}
                         </span>
                       </div>
@@ -3353,7 +3409,7 @@ const VehiclesPage = () => {
                       }
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                          {records.sort((a, b) => new Date(b.serviceDate) - new Date(a.serviceDate)).map(rec => (
+                          {records.sort((a, b) => new Date(b.serviceDate) - new Date(a.serviceDate) || (b.id || 0) - (a.id || 0)).map(rec => (
                             <div key={rec.id} style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 14, padding: '14px 16px', display: 'flex', gap: 12 }}>
                               <div style={{
                                 width: 32,
@@ -3711,12 +3767,10 @@ const VehiclesPage = () => {
                     autoFocus
                   >
                     <option value="" style={{ background: D.surfaceHi }}>Select Fuel Type</option>
-                    <option value="PETROL" style={{ background: D.surfaceHi }}>Petrol</option>
-                    <option value="SUPER_PETROL" style={{ background: D.surfaceHi }}>Super Petrol</option>
-                    <option value="DIESEL" style={{ background: D.surfaceHi }}>Diesel</option>
+                    <option value="PETROL" style={{ background: D.surfaceHi }}>Petrol 92 Octane</option>
+                    <option value="SUPER_PETROL" style={{ background: D.surfaceHi }}>Petrol 95 Octane</option>
+                    <option value="DIESEL" style={{ background: D.surfaceHi }}>Auto Diesel</option>
                     <option value="SUPER_DIESEL" style={{ background: D.surfaceHi }}>Super Diesel</option>
-                    <option value="ELECTRIC" style={{ background: D.surfaceHi }}>Electric</option>
-                    <option value="HYBRID" style={{ background: D.surfaceHi }}>Hybrid</option>
                   </select>
                   <p style={{ margin: '6px 0 0', fontSize: '0.7rem', color: D.textSub }}>
                     Previous: <strong style={{ color: D.text }}>{fuelModalVehicle.fuelType || 'N/A'}</strong>
@@ -3760,6 +3814,92 @@ const VehiclesPage = () => {
           animation: pulse-orange 2s infinite ease-in-out !important;
         }
       `}</style>
+
+      {/* ── Attachment Lightbox Modal ─────────────────────────────────── */}
+      {attachmentViewer.isOpen && (
+        <div
+          onClick={() => setAttachmentViewer(prev => ({ ...prev, isOpen: false }))}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(10px)', zIndex: 9999,
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', padding: '24px',
+          }}
+        >
+          {/* Header controls */}
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'absolute', top: 24, left: 24, right: 24,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              color: '#fff', zIndex: 10,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <FileText size={18} color="#10b981" />
+              <div>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  Vehicle Document
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>
+                  {attachmentViewer.filename}
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              {/* Download button */}
+              <a
+                href={attachmentViewer.url}
+                download={attachmentViewer.filename}
+                style={{
+                  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 10, color: '#fff', padding: '8px 16px', fontSize: '0.8rem',
+                  fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center',
+                  gap: 6, textDecoration: 'none', transition: 'all 0.15s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              >
+                Download
+              </a>
+              {/* Close button */}
+              <button
+                onClick={() => setAttachmentViewer(prev => ({ ...prev, isOpen: false }))}
+                style={{
+                  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 10, color: '#fff', padding: '8px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Image Container */}
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'relative', width: '100%', height: '100%',
+              maxWidth: '85vw', maxHeight: '75vh', marginTop: '40px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <img
+              src={attachmentViewer.url}
+              alt="Vehicle Document"
+              style={{
+                maxWidth: '100%', maxHeight: '100%', borderRadius: 16,
+                boxShadow: '0 24px 60px rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)',
+                objectFit: 'contain', background: '#000',
+              }}
+            />
+          </div>
+        </div>
+      )}
     </>
   )
 }

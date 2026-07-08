@@ -424,7 +424,7 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
 }
 
 /* ── Service List Card (Old Style) ──────────────────────────────── */
-const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, vehicleCurrentKm, isLatest, onEdit, onDelete, onView, onViewAttachment, D }) => {
+const ServiceListCard = ({ record, index, isDriver, isAdmin, isController, currentUsername, vehicleCurrentKm, isLatest, onEdit, onDelete, onView, onViewAttachment, D, handleApproveService, handleRejectService }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
@@ -492,6 +492,21 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
           }}>
             {record.serviceClassification === 'AD_HOC' ? '🛠️ Ad-hoc Repair' : '🟢 Routine'}
           </span>
+          {/* Approval status badge */}
+          {(() => {
+            const ab = approvalBadge(record.status, D);
+            return (
+              <span style={{
+                padding: '2px 10px', borderRadius: 999,
+                fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                background: ab.bg, color: ab.color,
+                border: `1px solid ${ab.border}`,
+              }}>
+                {ab.label}
+              </span>
+            )
+          })()}
           {record.serviceTypeDetail && (
             <span style={{ fontSize: '0.85rem', color: D.textSub }}>({record.serviceTypeDetail})</span>
           )}
@@ -576,8 +591,38 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
         </div>
       </div>
 
-      {(canEdit || canDelete) && (
+      {((canEdit || canDelete) || (record.status === 'PENDING' && isController)) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+          {record.status === 'PENDING' && isController && (
+            <>
+              <button
+                onClick={e => { e.stopPropagation(); handleApproveService(record.id); }}
+                style={{
+                  padding: '6px 16px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
+                  background: D.greenDim, color: D.green,
+                  border: `1px solid ${D.green}30`, cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = D.green; e.currentTarget.style.color = '#fff' }}
+                onMouseLeave={e => { e.currentTarget.style.background = D.greenDim; e.currentTarget.style.color = D.green }}
+              >
+                Approve
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); handleRejectService(record.id); }}
+                style={{
+                  padding: '6px 16px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
+                  background: D.redDim, color: D.red,
+                  border: `1px solid ${D.red}30`, cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+                onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
+              >
+                Reject
+              </button>
+            </>
+          )}
           {canEdit && (
             <button
               onClick={e => { e.stopPropagation(); onEdit(record.id) }}
@@ -615,7 +660,7 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
 }
 
 /* ── Service Grid Card (New Style) ──────────────────────────────── */
-const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, vehicleCurrentKm, isLatest, onEdit, onDelete, onView, onViewAttachment, D, vehicleImage, vehicleName }) => {
+const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, currentUsername, vehicleCurrentKm, isLatest, onEdit, onDelete, onView, onViewAttachment, D, vehicleImage, vehicleName, handleApproveService, handleRejectService }) => {
   const [hovered, setHovered] = useState(false)
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
@@ -712,6 +757,20 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
           }}>
             {record.serviceClassification === 'AD_HOC' ? '🛠️ Ad-hoc' : '🟢 Routine'}
           </div>
+          {(() => {
+            const ab = approvalBadge(record.status, D);
+            return (
+              <div style={{
+                padding: '4px 10px', borderRadius: 999,
+                fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.05em',
+                background: ab.bg, color: ab.color,
+                border: `1px solid ${ab.border}`,
+                textTransform: 'uppercase'
+              }}>
+                {ab.label}
+              </div>
+            )
+          })()}
         </div>
       </div>
 
@@ -800,8 +859,34 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, currentUsername, ve
       </div>
 
       {/* Actions — stop propagation so clicking buttons doesn't also open the detail modal */}
-      {(canEdit || canDelete) && (
+      {((canEdit || canDelete) || (record.status === 'PENDING' && isController)) && (
         <div style={{ display: 'flex', gap: 8, marginTop: 12, borderTop: `1px solid ${D.border}`, paddingTop: 12 }}>
+          {record.status === 'PENDING' && isController && (
+            <>
+              <button
+                onClick={e => { e.stopPropagation(); handleApproveService(record.id); }}
+                style={{
+                  flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
+                  background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, cursor: 'pointer', transition: 'all 0.15s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = D.green; e.currentTarget.style.color = '#fff' }}
+                onMouseLeave={e => { e.currentTarget.style.background = D.greenDim; e.currentTarget.style.color = D.green }}
+              >
+                Approve
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); handleRejectService(record.id); }}
+                style={{
+                  flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
+                  background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, cursor: 'pointer', transition: 'all 0.15s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+                onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
+              >
+                Reject
+              </button>
+            </>
+          )}
           {canEdit && (
             <button
               onClick={e => { e.stopPropagation(); onEdit(record.id) }}
@@ -1144,11 +1229,22 @@ const ServicePage = () => {
     setAttachmentViewer(prev => ({ ...prev, loading: true }))
     try {
       const res = await serviceAPI.getAttachmentBlob(record.id)
-      const blob = res.data
-      const type = blob.type || ''
-      const url = URL.createObjectURL(blob)
-
       const path = record.attachmentPath || ''
+      const lowerPath = path.toLowerCase()
+      const rawBlob = res.data instanceof Blob ? res.data : new Blob([res.data])
+      let type = rawBlob.type || res.headers?.['content-type']
+      if (!type || type === 'application/octet-stream') {
+        if (lowerPath.endsWith('.pdf')) type = 'application/pdf'
+        else if (lowerPath.endsWith('.png')) type = 'image/png'
+        else if (lowerPath.endsWith('.jpg') || lowerPath.endsWith('.jpeg')) type = 'image/jpeg'
+        else if (lowerPath.endsWith('.gif')) type = 'image/gif'
+        else if (lowerPath.endsWith('.webp')) type = 'image/webp'
+        else if (lowerPath.endsWith('.avif')) type = 'image/avif'
+        else if (lowerPath.endsWith('.svg')) type = 'image/svg+xml'
+        else type = 'image/jpeg'
+      }
+      const finalBlob = rawBlob.type === type ? rawBlob : new Blob([rawBlob], { type })
+      const url = URL.createObjectURL(finalBlob)
       let filename = path.substring(path.lastIndexOf('/') + 1)
       if (filename.length > 37 && filename.substring(8, 9) === '-' && filename.substring(13, 14) === '-') {
         filename = filename.substring(37)
@@ -1686,6 +1782,36 @@ const ServicePage = () => {
     } catch (err) {
       const msg = err.response?.data ? JSON.stringify(err.response.data) : (err.message || 'Failed to update service record.')
       setSubmitError('Debug Backend Error: ' + msg)
+    } finally {
+      setFormLoading(false)
+    }
+  }
+
+  const handleApproveService = async (id) => {
+    try {
+      setFormLoading(true)
+      await serviceAPI.approveService(id)
+      await loadData()
+      showToast('Service record approved successfully!', 'success')
+      addControllerNotification(`Service record approved`, 'SERVICE_APPROVAL', '/service')
+    } catch (err) {
+      console.error('Approve service record error:', err)
+      showToast('Failed to approve service record', 'error')
+    } finally {
+      setFormLoading(false)
+    }
+  }
+
+  const handleRejectService = async (id) => {
+    try {
+      setFormLoading(true)
+      await serviceAPI.rejectService(id)
+      await loadData()
+      showToast('Service record rejected successfully!', 'error')
+      addControllerNotification(`Service record rejected`, 'SERVICE_REJECTION', '/service')
+    } catch (err) {
+      console.error('Reject service record error:', err)
+      showToast('Failed to reject service record', 'error')
     } finally {
       setFormLoading(false)
     }
@@ -2283,28 +2409,28 @@ const ServicePage = () => {
     if (sortBy === 'creationDesc') {
       const dateA = a.createdAt ? parseBackendDate(a.createdAt) : new Date(0);
       const dateB = b.createdAt ? parseBackendDate(b.createdAt) : new Date(0);
-      return dateB - dateA;
+      return (dateB - dateA) || (b.id || 0) - (a.id || 0);
     }
     if (sortBy === 'creationAsc') {
       const dateA = a.createdAt ? parseBackendDate(a.createdAt) : new Date(0);
       const dateB = b.createdAt ? parseBackendDate(b.createdAt) : new Date(0);
-      return dateA - dateB;
+      return (dateA - dateB) || (a.id || 0) - (b.id || 0);
     }
     if (sortBy === 'serviceDateDesc') {
       const dateA = a.serviceDate ? new Date(a.serviceDate) : new Date(0);
       const dateB = b.serviceDate ? new Date(b.serviceDate) : new Date(0);
-      return dateB - dateA;
+      return (dateB - dateA) || (b.id || 0) - (a.id || 0);
     }
     if (sortBy === 'serviceDateAsc') {
       const dateA = a.serviceDate ? new Date(a.serviceDate) : new Date(0);
       const dateB = b.serviceDate ? new Date(b.serviceDate) : new Date(0);
-      return dateA - dateB;
+      return (dateA - dateB) || (a.id || 0) - (b.id || 0);
     }
     if (sortBy === 'costDesc') {
-      return (b.serviceCost || 0) - (a.serviceCost || 0);
+      return (b.serviceCost || 0) - (a.serviceCost || 0) || (b.id || 0) - (a.id || 0);
     }
     if (sortBy === 'costAsc') {
-      return (a.serviceCost || 0) - (b.serviceCost || 0);
+      return (a.serviceCost || 0) - (b.serviceCost || 0) || (a.id || 0) - (b.id || 0);
     }
     return 0;
   })
@@ -2780,7 +2906,7 @@ const ServicePage = () => {
             return (
               <>
                 {/* Tabs Navigation (visible to all roles, limited tabs for drivers) */}
-                <div style={{
+                <div className="service-tabs" style={{
                   display: 'flex',
                   gap: 12,
                   marginBottom: 26,
@@ -3107,7 +3233,7 @@ const ServicePage = () => {
                 {displayTab === 'update' && isController && (
                   <div style={{ animation: 'fadeIn 0.3s ease', background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.12)' }}>
                     {/* Header and Bulk Save Actions */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14, padding: '22px 26px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }}>
+                    <div className="daily-mileage-header" style={{ borderBottom: `1px solid ${D.border}`, background: D.surfaceHi }}>
                       <div>
                         <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>
                           Daily Mileage Update
@@ -3116,9 +3242,9 @@ const ServicePage = () => {
                           Enter the evening odometer readings for all active fleet vehicles in one place
                         </p>
                       </div>
-                      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                      <div className="daily-mileage-actions">
                         {/* Search box */}
-                        <div style={{ position: 'relative', width: 220 }}>
+                        <div className="daily-mileage-search">
                           <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: D.textSub, opacity: 0.8 }} />
                           <input
                             type="text"
@@ -3138,6 +3264,7 @@ const ServicePage = () => {
                           )}
                         </div>
                         <button
+                          className="daily-mileage-save-btn"
                           onClick={handleSaveBulkMileage}
                           disabled={formLoading}
                           style={{
@@ -3978,6 +4105,7 @@ const ServicePage = () => {
                                   index={index}
                                   isDriver={isDriver}
                                   isAdmin={isAdmin}
+                                  isController={isController}
                                   currentUsername={user?.userName}
                                   vehicleCurrentKm={vehicleCurrentKm}
                                   isLatest={isLatest}
@@ -3987,6 +4115,8 @@ const ServicePage = () => {
                                   onViewAttachment={handleViewAttachment}
                                   D={D}
                                   vehicleImage={vc?.vehicleImage} vehicleName={vc && (vc.manufacturer || vc.model) ? `${vc.manufacturer || ''} ${vc.model || ''}`.trim() : null}
+                                  handleApproveService={handleApproveService}
+                                  handleRejectService={handleRejectService}
                                 />
                               )
                             })
@@ -4098,17 +4228,34 @@ const ServicePage = () => {
                                       </td>
 
                                       <td style={{ padding: '20px 26px' }}>
-                                        <span style={{
-                                          display: 'inline-flex', alignItems: 'center', gap: 5,
-                                          fontSize: '0.78rem', fontWeight: 800,
-                                          padding: '4px 10px', borderRadius: 999,
-                                          background: stConfig.bg, color: stConfig.color,
-                                          border: `1px solid ${stConfig.border}`,
-                                          whiteSpace: 'nowrap',
-                                        }}>
-                                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: stConfig.dot, flexShrink: 0 }} />
-                                          {status}
-                                        </span>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                          <span style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: 5,
+                                            fontSize: '0.78rem', fontWeight: 800,
+                                            padding: '4px 10px', borderRadius: 999,
+                                            background: stConfig.bg, color: stConfig.color,
+                                            border: `1px solid ${stConfig.border}`,
+                                            whiteSpace: 'nowrap',
+                                          }}>
+                                            <span style={{ width: 5, height: 5, borderRadius: '50%', background: stConfig.dot, flexShrink: 0 }} />
+                                            {status}
+                                          </span>
+                                          {(() => {
+                                            const ab = approvalBadge(s.status, D);
+                                            return (
+                                              <span style={{
+                                                display: 'inline-flex', alignItems: 'center', gap: 5,
+                                                fontSize: '0.78rem', fontWeight: 800,
+                                                padding: '4px 10px', borderRadius: 999,
+                                                background: ab.bg, color: ab.color,
+                                                border: `1px solid ${ab.border}`,
+                                                whiteSpace: 'nowrap',
+                                              }}>
+                                                {ab.label}
+                                              </span>
+                                            )
+                                          })()}
+                                        </div>
                                       </td>
 
                                       <td style={{ padding: '20px 26px' }} onClick={e => e.stopPropagation()}>
@@ -4704,22 +4851,23 @@ const ServicePage = () => {
                     </div>
                     <div style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      flexWrap: 'wrap', gap: 12,
                       background: D.surfaceHi, border: `1px solid ${D.border}`,
                       borderRadius: 12, padding: '12px 18px',
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
                         <div style={{
                           width: 36, height: 36, borderRadius: 8,
                           background: 'rgba(16,185,129,0.1)',
                           border: '1px solid rgba(16,185,129,0.2)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: '#10b981'
+                          color: '#10b981', flexShrink: 0
                         }}>
                           <Paperclip size={18} />
                         </div>
-                        <div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: '0.85rem', fontWeight: 700, color: D.text }}>Service Bill / Invoice</div>
-                          <div style={{ fontSize: '0.72rem', color: D.textSub }}>
+                          <div className="service-attachment-filename" style={{ color: D.textSub }}>
                             {(() => {
                               const path = r.attachmentPath || '';
                               let filename = path.substring(path.lastIndexOf('/') + 1);
@@ -4738,7 +4886,8 @@ const ServicePage = () => {
                           padding: '6px 16px', borderRadius: 8, fontSize: '0.78rem',
                           fontWeight: 700, background: '#10b981', color: '#fff',
                           border: 'none', cursor: 'pointer', transition: 'all 0.15s',
-                          boxShadow: '0 4px 12px rgba(16,185,129,0.25)'
+                          boxShadow: '0 4px 12px rgba(16,185,129,0.25)',
+                          flexShrink: 0, whiteSpace: 'nowrap'
                         }}
                         onMouseEnter={e => { e.currentTarget.style.background = '#059669'; e.currentTarget.style.transform = 'translateY(-1px)' }}
                         onMouseLeave={e => { e.currentTarget.style.background = '#10b981'; e.currentTarget.style.transform = 'translateY(0)' }}
@@ -4840,13 +4989,13 @@ const ServicePage = () => {
                               {fields.length > 0 ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                   {fields.map((f, fi) => (
-                                    <div key={fi} style={{ display: 'grid', gridTemplateColumns: '140px 1fr 18px 1fr', alignItems: 'center', gap: 6, fontSize: '0.75rem' }}>
-                                      <span style={{ fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.65rem' }}>{f.field}</span>
-                                      <span style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444', padding: '2px 8px', borderRadius: 5, border: '1px solid rgba(239,68,68,0.15)', fontWeight: 600, textDecoration: 'line-through', textDecorationColor: 'rgba(239,68,68,0.4)' }}>
+                                    <div key={fi} className="service-change-entry">
+                                      <span className="service-change-field" style={{ fontWeight: 700, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.65rem' }}>{f.field}</span>
+                                      <span className="service-change-from" style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444', padding: '2px 8px', borderRadius: 5, border: '1px solid rgba(239,68,68,0.15)', fontWeight: 600, textDecoration: 'line-through', textDecorationColor: 'rgba(239,68,68,0.4)' }}>
                                         {f.from}
                                       </span>
-                                      <span style={{ textAlign: 'center', color: D.textSub, fontWeight: 700 }}>→</span>
-                                      <span style={{ background: 'rgba(16,185,129,0.08)', color: '#10b981', padding: '2px 8px', borderRadius: 5, border: '1px solid rgba(16,185,129,0.15)', fontWeight: 600 }}>
+                                      <span className="service-change-arrow" style={{ textAlign: 'center', color: D.textSub, fontWeight: 700 }}>→</span>
+                                      <span className="service-change-to" style={{ background: 'rgba(16,185,129,0.08)', color: '#10b981', padding: '2px 8px', borderRadius: 5, border: '1px solid rgba(16,185,129,0.15)', fontWeight: 600 }}>
                                         {f.to}
                                       </span>
                                     </div>

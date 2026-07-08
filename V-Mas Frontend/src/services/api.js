@@ -129,6 +129,8 @@ export const fuelAPI = {
   controllerDeleteLog:  (id)             => api.delete(`/fuel/controller/${id}`),
   getDeletedLogs:       ()               => api.get('/fuel/controller/deleted'),
   restoreLog:           (id)             => api.patch(`/fuel/controller/restore/${id}`),
+  approveLog:           (id)             => api.patch(`/fuel/controller/${id}/approve`),
+  rejectLog:            (id)             => api.patch(`/fuel/controller/${id}/reject`),
 
   // ── Efficiency Report ───────────────────────────────────────────────────
   getFuelEfficiencyReport: ()            => api.get('/fuel/efficiency'),
@@ -142,6 +144,8 @@ export const serviceAPI = {
   updateService:        (id, data)       => api.put(`/services/${id}`, data),
   deleteService:        (id)             => api.delete(`/services/${id}`),
   restoreService:       (id)             => api.patch(`/services/${id}/restore`),
+  approveService:       (id)             => api.patch(`/services/${id}/approve`),
+  rejectService:        (id)             => api.patch(`/services/${id}/reject`),
   getServiceHistory:    (id)             => api.get(`/services/${id}/history`),
   getServiceStats:      ()               => api.get('/services/stats'),
   getUpcomingServices:  ()               => api.get('/services/upcoming'),

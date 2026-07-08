@@ -243,5 +243,29 @@ public class FuelController {
         FuelLogDto restored = fuelService.restoreFuelLog(id);
         return ApiResponseUtil.success("Fuel log restored successfully", restored, HttpStatus.OK);
     }
+
+    /**
+     * PATCH /api/fuel/controller/{id}/approve
+     * Controller/Admin approves a pending fuel log.
+     */
+    @PreAuthorize("hasAnyRole('CONTROLLER', 'ADMIN')")
+    @PatchMapping("/controller/{id}/approve")
+    public ResponseEntity<ApiResponse<FuelLogDto>> approveFuelLog(@PathVariable Long id) {
+        log.info("PATCH /api/fuel/controller/{}/approve - Controller approving fuel log", id);
+        FuelLogDto approved = fuelService.approveFuelLog(id);
+        return ApiResponseUtil.success("Fuel log approved successfully", approved, HttpStatus.OK);
+    }
+
+    /**
+     * PATCH /api/fuel/controller/{id}/reject
+     * Controller/Admin rejects a pending fuel log.
+     */
+    @PreAuthorize("hasAnyRole('CONTROLLER', 'ADMIN')")
+    @PatchMapping("/controller/{id}/reject")
+    public ResponseEntity<ApiResponse<FuelLogDto>> rejectFuelLog(@PathVariable Long id) {
+        log.info("PATCH /api/fuel/controller/{}/reject - Controller rejecting fuel log", id);
+        FuelLogDto rejected = fuelService.rejectFuelLog(id);
+        return ApiResponseUtil.success("Fuel log rejected successfully", rejected, HttpStatus.OK);
+    }
 }
 

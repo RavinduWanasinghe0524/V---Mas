@@ -3,6 +3,7 @@ package net.javaguids.ems_backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import net.javaguids.ems_backend.enums.ServiceType;
+import net.javaguids.ems_backend.enums.ApprovalStatus;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
@@ -74,6 +75,10 @@ public class ServiceRecord {
     /** Classification: ROUTINE or AD_HOC */
     @Column(name = "service_classification", nullable = false, length = 50, columnDefinition = "VARCHAR(50) DEFAULT 'ROUTINE'")
     private String serviceClassification = "ROUTINE";
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 50, columnDefinition = "VARCHAR(50) DEFAULT 'APPROVED'")
+    private ApprovalStatus status = ApprovalStatus.APPROVED;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

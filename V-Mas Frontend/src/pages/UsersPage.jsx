@@ -86,6 +86,13 @@ const UsersPage = () => {
     dateJoined: '', experience: ''
   })
   const [licenseFile, setLicenseFile] = useState(null)
+  const [attachmentViewer, setAttachmentViewer] = useState({
+    isOpen: false,
+    url: '',
+    type: '',
+    filename: '',
+    loading: false
+  })
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
@@ -812,8 +819,8 @@ const UsersPage = () => {
                             onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)' }}>
 
                             {/* Header row */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }}>
                                 {/* Avatar */}
                                 <div style={{ flexShrink: 0 }}>
                                   {u.profilePicture ? (
@@ -836,15 +843,15 @@ const UsersPage = () => {
                                   )}
                                 </div>
                                 {/* Name and Subtitle */}
-                                <div>
-                                  <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em' }}>{u.userName}</h4>
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                  <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={u.userName}>{u.userName}</h4>
                                   {u.role === 'DRIVER' ? (
-                                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500 }}>
-                                      Active Driver
+                                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      Fleet Driver
                                     </p>
                                   ) : (
-                                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500 }}>
-                                      {u.role === 'ADMIN' ? 'System Administrator' : 'Fleet Controller'}
+                                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={u.role === 'ADMIN' ? 'Fleet Administrator' : 'Fleet Controller'}>
+                                      {u.role === 'ADMIN' ? 'Fleet Administrator' : 'Fleet Controller'}
                                     </p>
                                   )}
                                 </div>
@@ -930,7 +937,7 @@ const UsersPage = () => {
                             {/* Action Buttons Row */}
                             {(u.accountStatus === 'PENDING' || (!isController || u.role !== 'ADMIN')) && (
                               <div style={{ borderTop: `1px solid ${D.border}`, margin: '8px 0 0', paddingTop: '16px', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                                {u.accountStatus === 'PENDING' && (
+                                {u.accountStatus === 'PENDING' ? (
                                   <>
                                     <button onClick={(e) => { e.stopPropagation(); handleApprove(u.id, u.userName); }} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: D.green, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.green}30` }}
                                       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
@@ -941,20 +948,21 @@ const UsersPage = () => {
                                       <X size={14} /> Reject
                                     </button>
                                   </>
-                                )}
-                                {(!isController || u.role !== 'ADMIN') && (
-                                  <>
-                                    <button onClick={(e) => { e.stopPropagation(); handleEdit(u); }} style={{ padding: '8px 16px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
-                                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.15)'; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.color = '#60a5fa' }}
-                                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
-                                      Edit
-                                    </button>
-                                    <button onClick={(e) => { e.stopPropagation(); setUserToDelete(u); }} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
-                                      onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
-                                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = D.red }}>
-                                      Delete
-                                    </button>
-                                  </>
+                                ) : (
+                                  (!isController || u.role !== 'ADMIN') && (
+                                    <>
+                                      <button onClick={(e) => { e.stopPropagation(); handleEdit(u); }} style={{ padding: '8px 16px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.15)'; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.color = '#60a5fa' }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
+                                        Edit
+                                      </button>
+                                      <button onClick={(e) => { e.stopPropagation(); setUserToDelete(u); }} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = D.red }}>
+                                        Delete
+                                      </button>
+                                    </>
+                                  )
                                 )}
                               </div>
                             )}
@@ -1112,9 +1120,34 @@ const UsersPage = () => {
                                   responseType: 'blob',
                                   headers: { 'Authorization': `Bearer ${token}` }
                                 })
-                                const blob = new Blob([res.data], { type: res.headers['content-type'] })
+                                const path = u.licenseDocumentPath || ''
+                                const lowerPath = path.toLowerCase()
+                                const rawBlob = res.data instanceof Blob ? res.data : new Blob([res.data])
+                                let contentType = rawBlob.type || res.headers['content-type'] || res.headers.get?.('content-type')
+                                if (!contentType || contentType === 'application/octet-stream') {
+                                  if (lowerPath.endsWith('.pdf')) contentType = 'application/pdf'
+                                  else if (lowerPath.endsWith('.png')) contentType = 'image/png'
+                                  else if (lowerPath.endsWith('.jpg') || lowerPath.endsWith('.jpeg')) contentType = 'image/jpeg'
+                                  else if (lowerPath.endsWith('.gif')) contentType = 'image/gif'
+                                  else if (lowerPath.endsWith('.webp')) contentType = 'image/webp'
+                                  else if (lowerPath.endsWith('.avif')) contentType = 'image/avif'
+                                  else if (lowerPath.endsWith('.svg')) contentType = 'image/svg+xml'
+                                  else contentType = 'image/jpeg' // default fallback
+                                }
+                                const blob = rawBlob.type === contentType ? rawBlob : new Blob([rawBlob], { type: contentType })
                                 const url = window.URL.createObjectURL(blob)
-                                window.open(url, '_blank')
+                                if (contentType.includes('pdf')) {
+                                  window.open(url, '_blank')
+                                } else {
+                                  const filename = path.substring(path.lastIndexOf('/') + 1)
+                                  setAttachmentViewer({
+                                    isOpen: true,
+                                    url,
+                                    type: contentType,
+                                    filename: filename.includes('_') ? filename.substring(filename.indexOf('_') + 1) : filename,
+                                    loading: false
+                                  })
+                                }
                               } catch (err) {
                                 let errMsg = "Failed to load document."
                                 if (err.response?.data instanceof Blob) {
@@ -1146,11 +1179,24 @@ const UsersPage = () => {
 
               {/* Footer / Actions */}
               <div style={{ borderTop: `1px solid ${D.border}`, padding: '18px 32px', background: D.surfaceHi, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-                {(!isController || u.role !== 'ADMIN') && (
-                  <button onClick={() => { closeProfile(); handleEdit(u); }} style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(37,99,235,0.2)' }}
-                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                    Edit Details
-                  </button>
+                {u.accountStatus === 'PENDING' ? (
+                  <>
+                    <button onClick={() => { closeProfile(); handleApprove(u.id, u.userName); }} style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: D.green, color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.green}30` }}
+                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                      <Check size={16} /> Approve
+                    </button>
+                    <button onClick={() => { closeProfile(); handleReject(u.id, u.userName); }} style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: D.red, color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.red}30` }}
+                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                      <X size={16} /> Reject
+                    </button>
+                  </>
+                ) : (
+                  (!isController || u.role !== 'ADMIN') && (
+                    <button onClick={() => { closeProfile(); handleEdit(u); }} style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(37,99,235,0.2)' }}
+                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                      Edit Details
+                    </button>
+                  )
                 )}
                 <button onClick={closeProfile} style={{ padding: '10px 20px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>
@@ -1273,9 +1319,34 @@ const UsersPage = () => {
                                   responseType: 'blob',
                                   headers: { 'Authorization': `Bearer ${token}` }
                                 })
-                                const blob = new Blob([res.data], { type: res.headers['content-type'] })
+                                const path = editingUser.licenseDocumentPath || ''
+                                const lowerPath = path.toLowerCase()
+                                const rawBlob = res.data instanceof Blob ? res.data : new Blob([res.data])
+                                let contentType = rawBlob.type || res.headers['content-type'] || res.headers.get?.('content-type')
+                                if (!contentType || contentType === 'application/octet-stream') {
+                                  if (lowerPath.endsWith('.pdf')) contentType = 'application/pdf'
+                                  else if (lowerPath.endsWith('.png')) contentType = 'image/png'
+                                  else if (lowerPath.endsWith('.jpg') || lowerPath.endsWith('.jpeg')) contentType = 'image/jpeg'
+                                  else if (lowerPath.endsWith('.gif')) contentType = 'image/gif'
+                                  else if (lowerPath.endsWith('.webp')) contentType = 'image/webp'
+                                  else if (lowerPath.endsWith('.avif')) contentType = 'image/avif'
+                                  else if (lowerPath.endsWith('.svg')) contentType = 'image/svg+xml'
+                                  else contentType = 'image/jpeg' // default fallback
+                                }
+                                const blob = rawBlob.type === contentType ? rawBlob : new Blob([rawBlob], { type: contentType })
                                 const url = window.URL.createObjectURL(blob)
-                                window.open(url, '_blank')
+                                if (contentType.includes('pdf')) {
+                                  window.open(url, '_blank')
+                                } else {
+                                  const filename = path.substring(path.lastIndexOf('/') + 1)
+                                  setAttachmentViewer({
+                                    isOpen: true,
+                                    url,
+                                    type: contentType,
+                                    filename: filename.includes('_') ? filename.substring(filename.indexOf('_') + 1) : filename,
+                                    loading: false
+                                  })
+                                }
                               } catch (err) {
                                 let errMsg = "Failed to load document."
                                 if (err.response?.data instanceof Blob) {
@@ -1410,26 +1481,26 @@ const UsersPage = () => {
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20, animation: 'fadeIn 0.2s ease' }}>
           <div onClick={e => e.stopPropagation()}
             style={{ position: 'relative', width: '100%', maxWidth: 440, background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 32px 80px rgba(0,0,0,0.5)', padding: '36px 32px', textAlign: 'center', animation: 'scaleIn 0.25s cubic-bezier(0.16,1,0.3,1)' }}>
-            <button 
+            <button
               type="button"
-              onClick={() => !deleting && setUserToDelete(null)} 
+              onClick={() => !deleting && setUserToDelete(null)}
               disabled={deleting}
-              style={{ 
+              style={{
                 position: 'absolute',
                 top: 20,
                 right: 20,
-                background: 'transparent', 
-                border: 'none', 
-                borderRadius: 10, 
-                padding: 8, 
-                color: D.textSub, 
-                cursor: deleting ? 'not-allowed' : 'pointer', 
+                background: 'transparent',
+                border: 'none',
+                borderRadius: 10,
+                padding: 8,
+                color: D.textSub,
+                cursor: deleting ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
-              }} 
-              onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }} 
+              }}
+              onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
               <X size={18} />
@@ -1444,50 +1515,50 @@ const UsersPage = () => {
               This account will be moved to Deleted Users. It will be removed from the active list but can be restored at any time.
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-              <button 
-                type="button" 
-                onClick={() => setUserToDelete(null)} 
+              <button
+                type="button"
+                onClick={() => setUserToDelete(null)}
                 disabled={deleting}
-                style={{ 
-                  flex: 1, 
+                style={{
+                  flex: 1,
                   maxWidth: 170,
-                  padding: '11px 20px', 
-                  borderRadius: 12, 
-                  border: `1px solid ${D.border}`, 
-                  background: 'transparent', 
-                  color: D.text, 
-                  cursor: deleting ? 'not-allowed' : 'pointer', 
-                  fontSize: '0.88rem', 
-                  fontWeight: 700, 
+                  padding: '11px 20px',
+                  borderRadius: 12,
+                  border: `1px solid ${D.border}`,
+                  background: 'transparent',
+                  color: D.text,
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
                   transition: 'all 0.2s',
                   fontFamily: 'inherit'
-                }} 
-                onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }} 
+                }}
+                onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 Cancel
               </button>
-              <button 
-                type="button" 
-                onClick={confirmDelete} 
+              <button
+                type="button"
+                onClick={confirmDelete}
                 disabled={deleting}
-                style={{ 
-                  flex: 1, 
+                style={{
+                  flex: 1,
                   maxWidth: 170,
-                  padding: '11px 20px', 
-                  borderRadius: 12, 
-                  border: 'none', 
-                  background: D.red, 
-                  color: '#fff', 
-                  fontSize: '0.88rem', 
-                  fontWeight: 700, 
-                  cursor: deleting ? 'not-allowed' : 'pointer', 
-                  transition: 'all 0.2s', 
+                  padding: '11px 20px',
+                  borderRadius: 12,
+                  border: 'none',
+                  background: D.red,
+                  color: '#fff',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
                   boxShadow: isDark ? '0 4px 12px rgba(239,68,68,0.3)' : '0 4px 12px rgba(239,68,68,0.2)',
                   fontFamily: 'inherit',
                   opacity: deleting ? 0.7 : 1
-                }} 
-                onMouseEnter={e => { if (!deleting) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = isDark ? '0 6px 16px rgba(239,68,68,0.4)' : '0 6px 16px rgba(239,68,68,0.3)' } }} 
+                }}
+                onMouseEnter={e => { if (!deleting) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = isDark ? '0 6px 16px rgba(239,68,68,0.4)' : '0 6px 16px rgba(239,68,68,0.3)' } }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isDark ? '0 4px 12px rgba(239,68,68,0.3)' : '0 4px 12px rgba(239,68,68,0.2)' }}
               >
                 {deleting ? 'Deleting…' : 'Delete'}
@@ -1538,7 +1609,7 @@ const UsersPage = () => {
             </h3>
             <p style={{ margin: '0 0 30px', fontSize: '0.9rem', color: D.textSub, lineHeight: 1.65 }}>
               {confirmAction.type === 'approve'
-                ? <>Activating <strong style={{ color: D.text }}>{confirmAction.username}</strong>'s account will grant them full system access based on their assigned role.</>  
+                ? <>Activating <strong style={{ color: D.text }}>{confirmAction.username}</strong>'s account will grant them full system access based on their assigned role.</>
                 : <>Rejecting <strong style={{ color: D.text }}>{confirmAction.username}</strong>'s request will set their account to <strong style={{ color: D.red }}>Inactive</strong>. They will not be able to log in.</>}
             </p>
 
@@ -1866,6 +1937,92 @@ const UsersPage = () => {
                 ))
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Attachment Lightbox Modal ─────────────────────────────────── */}
+      {attachmentViewer.isOpen && (
+        <div
+          onClick={() => setAttachmentViewer(prev => ({ ...prev, isOpen: false }))}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(10px)', zIndex: 9999,
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', padding: '24px',
+          }}
+        >
+          {/* Header controls */}
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'absolute', top: 24, left: 24, right: 24,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              color: '#fff', zIndex: 10,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <FileText size={18} color="#10b981" />
+              <div>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  License Document
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>
+                  {attachmentViewer.filename}
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              {/* Download button */}
+              <a
+                href={attachmentViewer.url}
+                download={attachmentViewer.filename}
+                style={{
+                  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 10, color: '#fff', padding: '8px 16px', fontSize: '0.8rem',
+                  fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center',
+                  gap: 6, textDecoration: 'none', transition: 'all 0.15s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              >
+                Download
+              </a>
+              {/* Close button */}
+              <button
+                onClick={() => setAttachmentViewer(prev => ({ ...prev, isOpen: false }))}
+                style={{
+                  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 10, color: '#fff', padding: '8px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Image Container */}
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'relative', width: '100%', height: '100%',
+              maxWidth: '85vw', maxHeight: '75vh', marginTop: '40px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <img
+              src={attachmentViewer.url}
+              alt="License Attachment"
+              style={{
+                maxWidth: '100%', maxHeight: '100%', borderRadius: 16,
+                boxShadow: '0 24px 60px rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)',
+                objectFit: 'contain', background: '#000',
+              }}
+            />
           </div>
         </div>
       )}
