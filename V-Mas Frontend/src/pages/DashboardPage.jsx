@@ -1394,28 +1394,27 @@ const DriverFuelChart = ({ logs = [], isDark }) => {
   )
 }
 
-const DriverDashboard = ({ navigate, isDark, vehicleCount, fuelLogs, accountStatus }) => {
+const DriverDashboard = ({ navigate, isDark }) => {
   const A = useAccents(isDark)
-  const logs = fuelLogs || []
-  const now = new Date()
-  const monthLogs = logs.filter(l => { const d = new Date(l.date); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() })
-  const monthLitres = monthLogs.reduce((s, l) => s + (Number(l.liters) || 0), 0)
-  const monthCost = monthLogs.reduce((s, l) => s + (Number(l.totalCost) || 0), 0)
-  const last = logs.length ? [...logs].sort((a, b) => new Date(b.date) - new Date(a.date))[0] : null
-  const lastDate = last?.date ? new Date(last.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'
-  const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7)
-  const weekCount = logs.filter(l => l.date && new Date(l.date) >= weekAgo).length
-  const statusActive = (accountStatus || 'ACTIVE').toUpperCase() === 'ACTIVE'
+
   return (
     <>
       <SectionHeader title="My Overview" />
-      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
-        <StatCard icon={<Car size={20} color={A.purple}/>} label="Fleet Vehicles" value={vehicleCount} colorDim={A.purpleDim} colorHex={A.purple} change="Available to use" onClick={() => navigate('/vehicles')} />
-        <StatCard icon={<ClipboardList size={20} color={A.blue}/>} label="My Fuel Entries" value={logs.length} colorDim={A.blueDim} colorHex={A.blue} change="Total records logged" onClick={() => navigate('/fuel-log')} />
-        <StatCard icon={<Fuel size={20} color={A.green}/>} label="Fuel This Month" value={`${monthLitres.toLocaleString()} L`} colorDim={A.greenDim} colorHex={A.green} change={`Rs. ${monthCost.toLocaleString()} spent`} onClick={() => navigate('/fuel-log')} />
-        <StatCard icon={<Clock size={20} color={A.gold}/>} label="Last Fill-up" value={lastDate} colorDim={A.goldDim} colorHex={A.gold} change={last ? last.vehicleRegNumber : 'No records yet'} onClick={() => navigate('/fuel-log')} />
-        <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Completed" value={weekCount} colorDim={A.greenDim} colorHex={A.green} change="Fuel logs this week" onClick={() => navigate('/fuel-log')} />
-        <StatCard icon={<Activity size={20} color={A.green}/>} label="Status" value={statusActive ? 'Active' : (accountStatus || 'Active')} colorDim={A.greenDim} colorHex={A.green} change={statusActive ? 'Ready to drive' : `Account ${(accountStatus || '').toLowerCase()}`} />
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16, marginBottom: 36 }}>
+        <StatCard
+          icon={<Car size={20} color={A.purple}/>}
+          label="Assigned Vehicle"
+          value="—"
+          colorDim={A.purpleDim} colorHex={A.purple}
+          change="No active assignment"
+        />
+        <StatCard
+          icon={<MapPin size={20} color={A.blue}/>}
+          label="Assigned Trip"
+          value="None"
+          colorDim={A.blueDim} colorHex={A.blue}
+          change="Nothing assigned yet"
+        />
       </div>
 
       <SectionHeader title="Driver Tools" />
@@ -1437,8 +1436,6 @@ const DashboardPage = () => {
   const [stats, setStats] = useState({ totalUsers: 0, admins: 0, controllers: 0, drivers: 0, activeUsers: 0, inactiveUsers: 0, suspendedUsers: 0, pendingUsers: 0 })
   const [monthlyCostData, setMonthlyCostData] = useState([])
   const [controllerStats, setControllerStats] = useState({ total: 0, active: 0, maintenance: 0, available: 0 })
-  const [driverVehicleCount, setDriverVehicleCount] = useState(0)
-  const [driverFuelLogs, setDriverFuelLogs] = useState([])
   const [fleetChartData, setFleetChartData] = useState([])
   const [statusData, setStatusData] = useState([])
   const [alerts, setAlerts] = useState([])
@@ -1624,23 +1621,6 @@ const DashboardPage = () => {
           } catch (err) {
             console.error('Error loading status data:', err)
           }
-        } else if (user?.role === 'DRIVER') {
-          // Fetch total fleet vehicle count for driver dashboard (drivers can use any vehicle)
-          try {
-            const vehicleRes = await vehicleAPI.getAllVehicles()
-            const vehicles = vehicleRes.data.data || []
-            setDriverVehicleCount(vehicles.filter(v => !v.isDeleted).length)
-          } catch (err) {
-            console.error('Error loading fleet vehicle count for driver:', err)
-          }
-          // Fetch the driver's own fuel logs for overview metrics
-          try {
-            const logsRes = await fuelAPI.getMyLogs()
-            const logs = (logsRes.data.data || []).filter(l => !l.isDeleted && !l.deleted)
-            setDriverFuelLogs(logs)
-          } catch (err) {
-            console.error('Error loading driver fuel logs:', err)
-          }
         }
       } catch (err) {
         console.error('Error loading stats:', err)
@@ -1730,7 +1710,7 @@ const DashboardPage = () => {
               pendingServiceCount={pendingServiceCount}
             />
           )}
-          {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} vehicleCount={driverVehicleCount} fuelLogs={driverFuelLogs} accountStatus={user?.accountStatus} />}
+          {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} />}
         </div>
       </div>
 
