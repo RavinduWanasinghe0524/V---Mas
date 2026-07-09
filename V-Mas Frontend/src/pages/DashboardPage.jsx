@@ -1,12 +1,12 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useTheme, useD } from '../context/ThemeContext'
-import { userAPI, fuelAPI, serviceAPI, vehicleAPI, alertAPI, notificationAPI } from '../services/api'
+import { userAPI, fuelAPI, serviceAPI, vehicleAPI, alertAPI, notificationAPI, tripAPI } from '../services/api'
 import * as notifService from '../services/notificationService'
-import { Users, Shield, Gamepad2, Car, CheckCircle, Ban, Wrench, Fuel, MapPin, BarChart3, UserCog, Activity, AlertTriangle, FileText, ShieldAlert, Clock, TrendingUp, Settings2, Info, Gauge, X, ClipboardList } from 'lucide-react'
+import { Users, Shield, Gamepad2, Car, CheckCircle, Ban, Wrench, Fuel, MapPin, BarChart3, UserCog, Activity, AlertTriangle, FileText, ShieldAlert, Clock, TrendingUp, Settings2, Info, Gauge, X, ClipboardList, Navigation, Play, Route } from 'lucide-react'
 
 const StatCard = ({ icon, label, value, colorDim, colorHex, change, onClick }) => (
   <div onClick={onClick} style={{
@@ -1385,28 +1385,139 @@ const DriverFuelChart = ({ logs = [], isDark }) => {
   )
 }
 
-const DriverDashboard = ({ navigate, isDark }) => {
+/* ── Driver's active-trip panel with Start / Decline / Complete actions ── */
+const ActiveTripPanel = ({ trip, isDark, onChanged, navigate }) => {
   const A = useAccents(isDark)
+  const [busy, setBusy] = useState(false)
+  const status = (trip.status || 'ASSIGNED').toUpperCase()
+
+  const act = async (action) => {
+    setBusy(true)
+    try {
+      if (action === 'start') await tripAPI.startTrip(trip.id)
+      if (action === 'complete') await tripAPI.completeTrip(trip.id)
+      if (action === 'decline') {
+        const reason = window.prompt('Reason for declining this trip (optional):') || ''
+        await tripAPI.declineTrip(trip.id, reason)
+      }
+      await onChanged?.()
+    } catch (err) {
+      console.error('Trip action failed:', err)
+      alert(err.response?.data?.message || 'Action failed. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const statusMeta = status === 'STARTED'
+    ? { label: 'In Progress', color: A.blue, dim: A.blueDim }
+    : { label: 'Awaiting your response', color: A.gold, dim: A.goldDim }
+
+  return (
+    <div style={{
+      background: 'var(--surface)', borderRadius: 24, border: '1px solid var(--surface-border)',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: 28, marginBottom: 36,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 46, height: 46, borderRadius: 13, background: A.blueDim, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Navigation size={22} color={A.blue} />
+          </div>
+          <div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              {trip.origin ? `${trip.origin} → ` : ''}{trip.destination}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2 }}>Trip #{trip.id} · Vehicle {trip.vehicleRegNumber}</div>
+          </div>
+        </div>
+        <span style={{
+          fontSize: '0.7rem', fontWeight: 800, padding: '5px 12px', borderRadius: 999,
+          background: statusMeta.dim, color: statusMeta.color, border: `1px solid ${statusMeta.color}40`,
+          textTransform: 'uppercase', letterSpacing: '0.04em',
+        }}>{statusMeta.label}</span>
+      </div>
+
+      {trip.purpose && (
+        <p style={{ margin: '0 0 18px', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+          {trip.purpose}
+        </p>
+      )}
+
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        {status === 'ASSIGNED' && (
+          <>
+            <button onClick={() => act('start')} disabled={busy} style={tripBtnStyle('linear-gradient(135deg,#059669,#10b981)', '#fff', busy)}>
+              <Play size={15} /> Start Trip
+            </button>
+            <button onClick={() => act('decline')} disabled={busy} style={tripBtnStyle(A.redDim, A.red, busy, `1px solid ${A.red}40`)}>
+              <X size={15} /> Decline
+            </button>
+          </>
+        )}
+        {status === 'STARTED' && (
+          <button onClick={() => act('complete')} disabled={busy} style={tripBtnStyle('linear-gradient(135deg,#2563eb,#3b82f6)', '#fff', busy)}>
+            <CheckCircle size={15} /> Complete Trip
+          </button>
+        )}
+        <button onClick={() => navigate('/trips')} style={tripBtnStyle('var(--surface-hi)', 'var(--text-primary)', false, '1px solid var(--surface-border)')}>
+          View all my trips →
+        </button>
+      </div>
+    </div>
+  )
+}
+
+const tripBtnStyle = (bg, color, busy, border) => ({
+  display: 'inline-flex', alignItems: 'center', gap: 7,
+  padding: '10px 20px', borderRadius: 12, border: border || 'none',
+  background: bg, color, fontSize: '0.83rem', fontWeight: 700,
+  cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1,
+  fontFamily: 'inherit', transition: 'all 0.15s',
+})
+
+const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
+  const A = useAccents(isDark)
+  const allTrips = trips || []
+  // The trip the driver needs to act on / is currently running (newest first from API)
+  const activeTrip = allTrips.find(t => ['ASSIGNED', 'STARTED'].includes((t.status || '').toUpperCase()))
+  const assignedVehicle = activeTrip?.vehicleRegNumber || '—'
+  const tripStatusLabel = { ASSIGNED: 'Awaiting response', STARTED: 'In progress' }
+  const activeStatus = (activeTrip?.status || '').toUpperCase()
 
   return (
     <>
       <SectionHeader title="My Overview" />
-      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16, marginBottom: 36 }}>
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16, marginBottom: 32 }}>
         <StatCard
           icon={<Car size={20} color={A.purple}/>}
           label="Assigned Vehicle"
-          value="—"
+          value={assignedVehicle}
           colorDim={A.purpleDim} colorHex={A.purple}
-          change="No active assignment"
+          change={activeTrip ? 'For your current trip' : 'No active assignment'}
+          onClick={() => navigate('/trips')}
         />
         <StatCard
-          icon={<MapPin size={20} color={A.blue}/>}
+          icon={<Route size={20} color={A.blue}/>}
           label="Assigned Trip"
-          value="None"
+          value={activeTrip ? activeTrip.destination : 'None'}
           colorDim={A.blueDim} colorHex={A.blue}
-          change="Nothing assigned yet"
+          change={activeTrip ? (tripStatusLabel[activeStatus] || activeStatus) : 'Nothing assigned yet'}
+          onClick={() => navigate('/trips')}
         />
       </div>
+
+      {activeTrip ? (
+        <ActiveTripPanel trip={activeTrip} isDark={isDark} onChanged={onTripChanged} navigate={navigate} />
+      ) : (
+        <div style={{
+          background: 'var(--surface)', borderRadius: 24, border: '1px solid var(--surface-border)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: 48, marginBottom: 36, textAlign: 'center',
+        }}>
+          <Route size={40} color="var(--text-muted)" style={{ marginBottom: 12 }} />
+          <div style={{ fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4 }}>No trip assigned right now</div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Your controller will assign a trip and a vehicle here.</div>
+        </div>
+      )}
     </>
   )
 }
@@ -1428,6 +1539,17 @@ const DashboardPage = () => {
   const [pendingServiceCount, setPendingServiceCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [driverTrips, setDriverTrips] = useState([])
+
+  // Reload the driver's trips (used on initial load and after start/decline/complete)
+  const loadDriverTrips = useCallback(async () => {
+    try {
+      const res = await tripAPI.getMyTrips()
+      setDriverTrips(res.data.data || [])
+    } catch (err) {
+      console.error('Error loading driver trips:', err)
+    }
+  }, [])
 
   const [alertFilter, setAlertFilter] = useState(['SERVICE', 'INSURANCE', 'FUEL', 'OVERDUE'])
   useEffect(() => {
@@ -1604,6 +1726,9 @@ const DashboardPage = () => {
           } catch (err) {
             console.error('Error loading status data:', err)
           }
+        } else if (user?.role === 'DRIVER') {
+          // Fetch the driver's assigned trips for the dashboard
+          await loadDriverTrips()
         }
       } catch (err) {
         console.error('Error loading stats:', err)
@@ -1615,7 +1740,7 @@ const DashboardPage = () => {
     // Real-time refresh: re-fetch dashboard data every 30 seconds
     const refreshId = setInterval(loadDashboardData, 30000)
     return () => clearInterval(refreshId)
-  }, [isAdmin, user?.role])
+  }, [isAdmin, user?.role, loadDriverTrips])
 
   const roleLabel = { ADMIN: 'Administrator', CONTROLLER: 'Fleet Controller', DRIVER: 'Vehicle Driver' }
   const roleEmoji = { ADMIN: <Shield size={32} color="#fff"/>, CONTROLLER: <Gamepad2 size={32} color="#fff"/>, DRIVER: <Car size={32} color="#fff"/> }
@@ -1708,7 +1833,7 @@ const DashboardPage = () => {
               pendingServiceCount={pendingServiceCount}
             />
           )}
-          {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} />}
+          {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} trips={driverTrips} onTripChanged={loadDriverTrips} />}
         </div>
       </div>
 
