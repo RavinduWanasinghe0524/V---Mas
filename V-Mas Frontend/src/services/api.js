@@ -164,6 +164,23 @@ export const serviceAPI = {
   updateIntervalsBulk:  (payload)        => api.put('/services/intervals', payload),
 }
 
+export const tripAPI = {
+  // ── Controller / Admin ──────────────────────────────────────────────────
+  assignTrip:   (data)     => api.post('/trips', data),
+  getAllTrips:  ()         => api.get('/trips'),
+  updateTrip:   (id, data) => api.put(`/trips/${id}`, data),
+  cancelTrip:   (id)       => api.delete(`/trips/${id}`),
+
+  // ── Shared ──────────────────────────────────────────────────────────────
+  getTripById:  (id)       => api.get(`/trips/${id}`),
+
+  // ── Driver ──────────────────────────────────────────────────────────────
+  getMyTrips:   ()         => api.get('/trips/my'),
+  startTrip:    (id)       => api.patch(`/trips/${id}/start`),
+  declineTrip:  (id, reason) => api.patch(`/trips/${id}/decline`, { reason }),
+  completeTrip: (id)       => api.patch(`/trips/${id}/complete`),
+}
+
 export const notificationAPI = {
   create:               (data)           => api.post('/notifications', data),
   getUnread:            ()               => api.get('/notifications/unread'),
