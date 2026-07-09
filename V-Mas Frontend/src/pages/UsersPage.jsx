@@ -128,13 +128,17 @@ const UsersPage = () => {
     setDeletedLoading(true)
     try {
       const res = await userAPI.getDeletedUsers()
-      setDeletedUsers(res.data.data || [])
+      let data = res.data.data || []
+      if (isController) {
+        data = data.filter(u => u.role !== 'ADMIN')
+      }
+      setDeletedUsers(data)
     } catch (err) {
       console.error('Error loading deleted users:', err)
     } finally {
       setDeletedLoading(false)
     }
-  }, [])
+  }, [isController])
 
   useEffect(() => {
     if (deletedDrawer) loadDeletedUsers()
@@ -207,7 +211,11 @@ const UsersPage = () => {
       setError('')
       const res = await userAPI.getAllUsers()
       const data = res.data?.data || res.data || []
-      setUsers(Array.isArray(data) ? data : [])
+      let userList = Array.isArray(data) ? data : []
+      if (isController) {
+        userList = userList.filter(u => u.role !== 'ADMIN')
+      }
+      setUsers(userList)
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to load users')
       setUsers([])
@@ -702,7 +710,7 @@ const UsersPage = () => {
                     }}
                   >
                     <option value="ALL">All Roles</option>
-                    <option value="ADMIN">Admin</option>
+                    {!isController && <option value="ADMIN">Admin</option>}
                     <option value="CONTROLLER">Controller</option>
                     <option value="DRIVER">Driver</option>
                   </select>
