@@ -42,6 +42,8 @@ const TripsPage = () => {
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState(null)
   const [banner, setBanner] = useState(null) // { type: 'success'|'error', text }
+  const [tripToCancel, setTripToCancel] = useState(null)
+  const [cancelling, setCancelling] = useState(false)
 
   const emptyForm = { driverUsername: '', vehicleRegNumber: '', origin: '', destination: '', purpose: '', scheduledDate: '' }
   const [form, setForm] = useState(emptyForm)
@@ -97,16 +99,18 @@ const TripsPage = () => {
     }
   }
 
-  const handleCancel = async (id) => {
-    setBusyId(id)
+  const confirmCancel = async () => {
+    if (!tripToCancel) return
+    setCancelling(true)
     try {
-      await tripAPI.cancelTrip(id)
+      await tripAPI.cancelTrip(tripToCancel.id)
       flash('success', 'Trip cancelled')
+      setTripToCancel(null)
       loadTrips()
     } catch (err) {
       flash('error', err.response?.data?.message || 'Failed to cancel trip')
     } finally {
-      setBusyId(null)
+      setCancelling(false)
     }
   }
 
@@ -320,7 +324,7 @@ const TripsPage = () => {
 
                       {/* Controller actions */}
                       {canManage && (s === 'ASSIGNED' || s === 'STARTED') && (
-                        <ActionBtn onClick={() => handleCancel(trip.id)} disabled={busy}
+                        <ActionBtn onClick={() => setTripToCancel(trip)} disabled={busy}
                           bg={D.redDim} color={D.red} border={`1px solid ${D.red}40`} icon={<Ban size={14} />}>Cancel Trip</ActionBtn>
                       )}
                       {canManage && (s === 'DECLINED' || s === 'COMPLETED' || s === 'CANCELLED') && (
@@ -337,9 +341,49 @@ const TripsPage = () => {
         </div>
       </div>
 
+      {/* ── Cancel Trip Confirmation Modal ──────────────────────────── */}
+      {tripToCancel && (
+        <div onClick={() => !cancelling && setTripToCancel(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20, animation: 'fadeIn 0.2s ease' }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ position: 'relative', width: '100%', maxWidth: 440, background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 32px 80px rgba(0,0,0,0.5)', padding: '36px 32px', textAlign: 'center', animation: 'scaleIn 0.25s cubic-bezier(0.16,1,0.3,1)' }}>
+            <button type="button" onClick={() => !cancelling && setTripToCancel(null)} disabled={cancelling}
+              style={{ position: 'absolute', top: 20, right: 20, background: 'transparent', border: 'none', borderRadius: 10, padding: 8, color: D.textSub, cursor: cancelling ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              onMouseEnter={e => { if (!cancelling) e.currentTarget.style.background = 'var(--surface-hi)' }}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              <X size={18} />
+            </button>
+            <div style={{ width: 64, height: 64, borderRadius: 18, background: D.redDim, border: `1px solid ${D.red}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.red, margin: '0 auto 20px' }}>
+              <Ban size={28} />
+            </div>
+            <h3 style={{ margin: '0 0 10px', fontSize: '1.3rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+              Cancel trip to "{tripToCancel.destination}"?
+            </h3>
+            <p style={{ margin: '0 0 28px', fontSize: '0.9rem', color: D.textSub, lineHeight: 1.6 }}>
+              This trip assigned to <strong style={{ color: D.text }}>{tripToCancel.driverUsername}</strong> will be cancelled and the driver notified. This cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button type="button" onClick={() => setTripToCancel(null)} disabled={cancelling}
+                style={{ flex: 1, maxWidth: 170, padding: '11px 20px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'transparent', color: D.text, cursor: cancelling ? 'not-allowed' : 'pointer', fontSize: '0.88rem', fontWeight: 700, transition: 'all 0.2s', fontFamily: 'inherit' }}
+                onMouseEnter={e => { if (!cancelling) e.currentTarget.style.background = 'var(--surface-hi)' }}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                Keep Trip
+              </button>
+              <button type="button" onClick={confirmCancel} disabled={cancelling}
+                style={{ flex: 1, maxWidth: 170, padding: '11px 20px', borderRadius: 12, border: 'none', background: D.red, color: '#fff', fontSize: '0.88rem', fontWeight: 700, cursor: cancelling ? 'not-allowed' : 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(239,68,68,0.3)', fontFamily: 'inherit', opacity: cancelling ? 0.7 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+                {cancelling && <Loader2 size={15} className="spin" />}
+                {cancelling ? 'Cancelling…' : 'Cancel Trip'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .spin { animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
       `}</style>
     </div>
   )
