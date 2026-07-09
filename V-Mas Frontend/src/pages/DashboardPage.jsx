@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
+import TripActionModal from '../components/TripActionModal'
 import { useAuth } from '../context/AuthContext'
 import { useTheme, useD } from '../context/ThemeContext'
 import { userAPI, fuelAPI, serviceAPI, vehicleAPI, alertAPI, notificationAPI, tripAPI } from '../services/api'
@@ -1389,17 +1390,17 @@ const DriverFuelChart = ({ logs = [], isDark }) => {
 const ActiveTripPanel = ({ trip, isDark, onChanged, navigate }) => {
   const A = useAccents(isDark)
   const [busy, setBusy] = useState(false)
+  const [modalAction, setModalAction] = useState(null) // 'start' | 'decline' | 'complete'
   const status = (trip.status || 'ASSIGNED').toUpperCase()
 
-  const act = async (action) => {
+  const act = async (reason) => {
+    if (!modalAction) return
     setBusy(true)
     try {
-      if (action === 'start') await tripAPI.startTrip(trip.id)
-      if (action === 'complete') await tripAPI.completeTrip(trip.id)
-      if (action === 'decline') {
-        const reason = window.prompt('Reason for declining this trip (optional):') || ''
-        await tripAPI.declineTrip(trip.id, reason)
-      }
+      if (modalAction === 'start') await tripAPI.startTrip(trip.id)
+      if (modalAction === 'complete') await tripAPI.completeTrip(trip.id)
+      if (modalAction === 'decline') await tripAPI.declineTrip(trip.id, reason || '')
+      setModalAction(null)
       await onChanged?.()
     } catch (err) {
       console.error('Trip action failed:', err)
@@ -1446,16 +1447,16 @@ const ActiveTripPanel = ({ trip, isDark, onChanged, navigate }) => {
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         {status === 'ASSIGNED' && (
           <>
-            <button onClick={() => act('start')} disabled={busy} style={tripBtnStyle('linear-gradient(135deg,#059669,#10b981)', '#fff', busy)}>
+            <button onClick={() => setModalAction('start')} disabled={busy} style={tripBtnStyle('linear-gradient(135deg,#059669,#10b981)', '#fff', busy)}>
               <Play size={15} /> Start Trip
             </button>
-            <button onClick={() => act('decline')} disabled={busy} style={tripBtnStyle(A.redDim, A.red, busy, `1px solid ${A.red}40`)}>
+            <button onClick={() => setModalAction('decline')} disabled={busy} style={tripBtnStyle(A.redDim, A.red, busy, `1px solid ${A.red}40`)}>
               <X size={15} /> Decline
             </button>
           </>
         )}
         {status === 'STARTED' && (
-          <button onClick={() => act('complete')} disabled={busy} style={tripBtnStyle('linear-gradient(135deg,#2563eb,#3b82f6)', '#fff', busy)}>
+          <button onClick={() => setModalAction('complete')} disabled={busy} style={tripBtnStyle('linear-gradient(135deg,#2563eb,#3b82f6)', '#fff', busy)}>
             <CheckCircle size={15} /> Complete Trip
           </button>
         )}
@@ -1463,6 +1464,14 @@ const ActiveTripPanel = ({ trip, isDark, onChanged, navigate }) => {
           View all my trips →
         </button>
       </div>
+
+      <TripActionModal
+        action={modalAction}
+        trip={trip}
+        busy={busy}
+        onClose={() => !busy && setModalAction(null)}
+        onConfirm={act}
+      />
     </div>
   )
 }
