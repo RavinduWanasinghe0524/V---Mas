@@ -2,7 +2,6 @@ package net.javaguids.ems_backend.mapper;
 
 import net.javaguids.ems_backend.dto.ServiceRecordDto;
 import net.javaguids.ems_backend.entity.ServiceRecord;
-import net.javaguids.ems_backend.enums.ApprovalStatus;
 
 public class ServiceRecordMapper {
 

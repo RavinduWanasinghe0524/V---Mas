@@ -272,9 +272,6 @@ const AdminDashboard = ({ stats, loading, navigate, isDark, monthlyCostData, act
       <SectionHeader title="User Statistics" />
       <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
         <StatCard icon={<Users size={20} color={A.purple}/>} label="Total Users" value={stats.totalUsers} colorDim={A.purpleDim} colorHex={A.purple} change="Registered in system" onClick={() => navigate('/users')} />
-        <StatCard icon={<Shield size={20} color={A.indigo}/>} label="Admins" value={stats.admins} colorDim={A.indigoDim} colorHex={A.indigo} change="System administrators" onClick={() => navigate('/users', { state: { roleFilter: 'ADMIN' } })} />
-        <StatCard icon={<Gamepad2 size={20} color={A.blue}/>} label="Controllers" value={stats.controllers} colorDim={A.blueDim} colorHex={A.blue} change="Fleet controllers" onClick={() => navigate('/users', { state: { roleFilter: 'CONTROLLER' } })} />
-        <StatCard icon={<Car size={20} color={A.green}/>} label="Drivers" value={stats.drivers} colorDim={A.greenDim} colorHex={A.green} change="Vehicle operators" onClick={() => navigate('/users', { state: { roleFilter: 'DRIVER' } })} />
         <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Active" value={stats.activeUsers} colorDim={A.greenDim} colorHex={A.green} change="Currently active accounts" onClick={() => navigate('/users', { state: { statusFilter: 'ACTIVE' } })} />
         <StatCard icon={<Ban size={20} color={A.red}/>} label="Inactive" value={stats.inactiveUsers} colorDim={A.redDim} colorHex={A.red} change="Disabled accounts" onClick={() => navigate('/users', { state: { statusFilter: 'INACTIVE' } })} />
         <StatCard icon={<Clock size={20} color={stats.pendingUsers > 0 ? '#fbbf24' : A.gold}/>} label="Pending Approvals" value={stats.pendingUsers} colorDim={stats.pendingUsers > 0 ? 'rgba(251, 191, 36, 0.25)' : A.goldDim} colorHex={stats.pendingUsers > 0 ? '#fbbf24' : A.gold} change={stats.pendingUsers > 0 ? "Awaiting access review!" : "No pending accounts"} onClick={() => navigate('/users', { state: { statusFilter: 'PENDING' } })} />
@@ -1136,15 +1133,6 @@ const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, a
         </div>
       </div>
 
-      <SectionHeader title="Quick Navigation" />
-      <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20, marginBottom: 36 }}>
-        <FeatureCard icon={<Car size={24}/>} title="Vehicles" desc="Manage and monitor all fleet vehicles, statuses, assignments and details." onClick={() => navigate('/vehicles')} />
-        <FeatureCard icon={<Users size={24}/>} title="Users" desc="View users and manage driver accounts, roles and account status." onClick={() => navigate('/users')} />
-        <FeatureCard icon={<Wrench size={24}/>} title="Service" desc="Schedule and track vehicle service appointments and maintenance records." onClick={() => navigate('/service')} />
-        <FeatureCard icon={<Fuel size={24}/>} title="Fuel Analysis" desc="Monitor fuel consumption trends and cost analysis across the entire fleet." onClick={() => navigate('/fuel-analysis')} />
-        <FeatureCard icon={<BarChart3 size={24}/>} title="Reports" desc="Generate comprehensive reports on fleet performance and system activity." onClick={() => navigate('/reports')} />
-      </div>
-
       <style>{`
         @media (max-width: 1024px) {
           .dashboard-columns-grid {
@@ -1397,36 +1385,27 @@ const DriverFuelChart = ({ logs = [], isDark }) => {
   )
 }
 
-const DriverDashboard = ({ navigate, isDark, vehicleCount, fuelLogs, accountStatus }) => {
+const DriverDashboard = ({ navigate, isDark }) => {
   const A = useAccents(isDark)
-  const logs = fuelLogs || []
-  const now = new Date()
-  const monthLogs = logs.filter(l => { const d = new Date(l.date); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() })
-  const monthLitres = monthLogs.reduce((s, l) => s + (Number(l.liters) || 0), 0)
-  const monthCost = monthLogs.reduce((s, l) => s + (Number(l.totalCost) || 0), 0)
-  const last = logs.length ? [...logs].sort((a, b) => new Date(b.date) - new Date(a.date))[0] : null
-  const lastDate = last?.date ? new Date(last.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'
-  const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7)
-  const weekCount = logs.filter(l => l.date && new Date(l.date) >= weekAgo).length
-  const statusActive = (accountStatus || 'ACTIVE').toUpperCase() === 'ACTIVE'
+
   return (
     <>
       <SectionHeader title="My Overview" />
-      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
-        <StatCard icon={<Car size={20} color={A.purple}/>} label="Fleet Vehicles" value={vehicleCount} colorDim={A.purpleDim} colorHex={A.purple} change="Available to use" onClick={() => navigate('/vehicles')} />
-        <StatCard icon={<ClipboardList size={20} color={A.blue}/>} label="My Fuel Entries" value={logs.length} colorDim={A.blueDim} colorHex={A.blue} change="Total records logged" onClick={() => navigate('/fuel-log')} />
-        <StatCard icon={<Fuel size={20} color={A.green}/>} label="Fuel This Month" value={`${monthLitres.toLocaleString()} L`} colorDim={A.greenDim} colorHex={A.green} change={`Rs. ${monthCost.toLocaleString()} spent`} onClick={() => navigate('/fuel-log')} />
-        <StatCard icon={<Clock size={20} color={A.gold}/>} label="Last Fill-up" value={lastDate} colorDim={A.goldDim} colorHex={A.gold} change={last ? last.vehicleRegNumber : 'No records yet'} onClick={() => navigate('/fuel-log')} />
-        <StatCard icon={<CheckCircle size={20} color={A.green}/>} label="Completed" value={weekCount} colorDim={A.greenDim} colorHex={A.green} change="Fuel logs this week" onClick={() => navigate('/fuel-log')} />
-        <StatCard icon={<Activity size={20} color={A.green}/>} label="Status" value={statusActive ? 'Active' : (accountStatus || 'Active')} colorDim={A.greenDim} colorHex={A.green} change={statusActive ? 'Ready to drive' : `Account ${(accountStatus || '').toLowerCase()}`} />
-      </div>
-
-      <SectionHeader title="Driver Tools" />
-      <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
-        <FeatureCard icon={<Fuel size={24}/>} title="Add Fuel Log" desc="Record a new fuel fill-up with the latest mileage and cost." onClick={() => navigate('/fuel-log')} />
-        <FeatureCard icon={<Wrench size={24}/>} title="Service History" desc="View maintenance and service records across the fleet." onClick={() => navigate('/service')} />
-        <FeatureCard icon={<Car size={24}/>} title="Vehicle Details" desc="Browse fleet vehicles and view their full details." onClick={() => navigate('/vehicles')} />
-        <FeatureCard icon={<UserCog size={24}/>} title="My Profile" desc="Manage your personal details and account settings." onClick={() => navigate('/profile')} />
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16, marginBottom: 36 }}>
+        <StatCard
+          icon={<Car size={20} color={A.purple}/>}
+          label="Assigned Vehicle"
+          value="—"
+          colorDim={A.purpleDim} colorHex={A.purple}
+          change="No active assignment"
+        />
+        <StatCard
+          icon={<MapPin size={20} color={A.blue}/>}
+          label="Assigned Trip"
+          value="None"
+          colorDim={A.blueDim} colorHex={A.blue}
+          change="Nothing assigned yet"
+        />
       </div>
     </>
   )
@@ -1440,8 +1419,6 @@ const DashboardPage = () => {
   const [stats, setStats] = useState({ totalUsers: 0, admins: 0, controllers: 0, drivers: 0, activeUsers: 0, inactiveUsers: 0, suspendedUsers: 0, pendingUsers: 0 })
   const [monthlyCostData, setMonthlyCostData] = useState([])
   const [controllerStats, setControllerStats] = useState({ total: 0, active: 0, maintenance: 0, available: 0 })
-  const [driverVehicleCount, setDriverVehicleCount] = useState(0)
-  const [driverFuelLogs, setDriverFuelLogs] = useState([])
   const [fleetChartData, setFleetChartData] = useState([])
   const [statusData, setStatusData] = useState([])
   const [alerts, setAlerts] = useState([])
@@ -1627,23 +1604,6 @@ const DashboardPage = () => {
           } catch (err) {
             console.error('Error loading status data:', err)
           }
-        } else if (user?.role === 'DRIVER') {
-          // Fetch total fleet vehicle count for driver dashboard (drivers can use any vehicle)
-          try {
-            const vehicleRes = await vehicleAPI.getAllVehicles()
-            const vehicles = vehicleRes.data.data || []
-            setDriverVehicleCount(vehicles.filter(v => !v.isDeleted).length)
-          } catch (err) {
-            console.error('Error loading fleet vehicle count for driver:', err)
-          }
-          // Fetch the driver's own fuel logs for overview metrics
-          try {
-            const logsRes = await fuelAPI.getMyLogs()
-            const logs = (logsRes.data.data || []).filter(l => !l.isDeleted && !l.deleted)
-            setDriverFuelLogs(logs)
-          } catch (err) {
-            console.error('Error loading driver fuel logs:', err)
-          }
         }
       } catch (err) {
         console.error('Error loading stats:', err)
@@ -1705,6 +1665,21 @@ const DashboardPage = () => {
                   <span style={{ background: isDark ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.15)', color: '#dbeafe', padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: isDark ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(255,255,255,0.2)' }}>
                     {roleLabel[user?.role] || user?.role}
                   </span>
+                  {user?.role === 'DRIVER' && user?.accountStatus && (() => {
+                    const st = (user.accountStatus || '').toUpperCase()
+                    const meta = {
+                      ACTIVE:    { label: 'Active',    color: '#34d399', bg: 'rgba(16,185,129,0.22)',  border: 'rgba(16,185,129,0.45)' },
+                      INACTIVE:  { label: 'Inactive',  color: '#cbd5e1', bg: 'rgba(148,163,184,0.22)', border: 'rgba(148,163,184,0.45)' },
+                      PENDING:   { label: 'Pending',   color: '#fbbf24', bg: 'rgba(251,191,36,0.22)',  border: 'rgba(251,191,36,0.45)' },
+                      SUSPENDED: { label: 'Suspended', color: '#f87171', bg: 'rgba(239,68,68,0.22)',   border: 'rgba(239,68,68,0.45)' },
+                    }[st] || { label: st.charAt(0) + st.slice(1).toLowerCase(), color: '#cbd5e1', bg: 'rgba(148,163,184,0.22)', border: 'rgba(148,163,184,0.45)' }
+                    return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: meta.bg, color: meta.color, padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: `1px solid ${meta.border}` }}>
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: meta.color, display: 'inline-block', boxShadow: `0 0 6px ${meta.color}` }} />
+                        {meta.label}
+                      </span>
+                    )
+                  })()}
                 </div>
                 <p style={{ margin: '6px 0 0', color: isDark ? '#93c5fd' : '#60a5fa', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                   Here's how your fleet is doing today.
@@ -1733,7 +1708,7 @@ const DashboardPage = () => {
               pendingServiceCount={pendingServiceCount}
             />
           )}
-          {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} vehicleCount={driverVehicleCount} fuelLogs={driverFuelLogs} accountStatus={user?.accountStatus} />}
+          {user?.role === 'DRIVER' && <DriverDashboard navigate={navigate} isDark={isDark} />}
         </div>
       </div>
 
