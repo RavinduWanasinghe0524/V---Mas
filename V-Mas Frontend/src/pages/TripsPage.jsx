@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
+import TripActionModal from '../components/TripActionModal'
 import { useD, useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { tripAPI, userAPI, vehicleAPI } from '../services/api'
@@ -44,6 +45,7 @@ const TripsPage = () => {
   const [banner, setBanner] = useState(null) // { type: 'success'|'error', text }
   const [tripToCancel, setTripToCancel] = useState(null)
   const [cancelling, setCancelling] = useState(false)
+  const [driverModal, setDriverModal] = useState(null) // { action, trip }
 
   const emptyForm = { driverUsername: '', vehicleRegNumber: '', origin: '', destination: '', purpose: '', scheduledDate: '' }
   const [form, setForm] = useState(emptyForm)
@@ -114,17 +116,16 @@ const TripsPage = () => {
     }
   }
 
-  // ── Driver: act on a trip ──────────────────────────────────────────────
-  const driverAction = async (id, action) => {
-    setBusyId(id)
+  // ── Driver: act on a trip (confirmed via TripActionModal) ───────────────
+  const runDriverAction = async (reason) => {
+    if (!driverModal) return
+    const { action, trip } = driverModal
+    setBusyId(trip.id)
     try {
-      if (action === 'start') { await tripAPI.startTrip(id); flash('success', 'Trip started — drive safe!') }
-      if (action === 'complete') { await tripAPI.completeTrip(id); flash('success', 'Trip completed') }
-      if (action === 'decline') {
-        const reason = window.prompt('Reason for declining this trip (optional):') || ''
-        await tripAPI.declineTrip(id, reason)
-        flash('success', 'Trip declined')
-      }
+      if (action === 'start') { await tripAPI.startTrip(trip.id); flash('success', 'Trip started — drive safe!') }
+      if (action === 'complete') { await tripAPI.completeTrip(trip.id); flash('success', 'Trip completed') }
+      if (action === 'decline') { await tripAPI.declineTrip(trip.id, reason || ''); flash('success', 'Trip declined') }
+      setDriverModal(null)
       loadTrips()
     } catch (err) {
       flash('error', err.response?.data?.message || 'Action failed')
@@ -306,14 +307,14 @@ const TripsPage = () => {
                       {/* Driver actions */}
                       {!canManage && s === 'ASSIGNED' && (
                         <>
-                          <ActionBtn onClick={() => driverAction(trip.id, 'start')} disabled={busy}
+                          <ActionBtn onClick={() => setDriverModal({ action: 'start', trip })} disabled={busy}
                             bg="linear-gradient(135deg,#059669,#10b981)" color="#fff" icon={<Play size={14} />}>Start</ActionBtn>
-                          <ActionBtn onClick={() => driverAction(trip.id, 'decline')} disabled={busy}
+                          <ActionBtn onClick={() => setDriverModal({ action: 'decline', trip })} disabled={busy}
                             bg={D.redDim} color={D.red} border={`1px solid ${D.red}40`} icon={<X size={14} />}>Decline</ActionBtn>
                         </>
                       )}
                       {!canManage && s === 'STARTED' && (
-                        <ActionBtn onClick={() => driverAction(trip.id, 'complete')} disabled={busy}
+                        <ActionBtn onClick={() => setDriverModal({ action: 'complete', trip })} disabled={busy}
                           bg="linear-gradient(135deg,#2563eb,#3b82f6)" color="#fff" icon={<CheckCircle size={14} />}>Complete Trip</ActionBtn>
                       )}
                       {!canManage && (s === 'DECLINED' || s === 'COMPLETED' || s === 'CANCELLED') && (
@@ -340,6 +341,15 @@ const TripsPage = () => {
           )}
         </div>
       </div>
+
+      {/* ── Driver action (start / decline / complete) confirmation ─── */}
+      <TripActionModal
+        action={driverModal?.action}
+        trip={driverModal?.trip}
+        busy={busyId === driverModal?.trip?.id}
+        onClose={() => setDriverModal(null)}
+        onConfirm={runDriverAction}
+      />
 
       {/* ── Cancel Trip Confirmation Modal ──────────────────────────── */}
       {tripToCancel && (
