@@ -4,11 +4,105 @@ import Topbar from '../components/Topbar'
 import TripActionModal from '../components/TripActionModal'
 import { useD, useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
-import { tripAPI, userAPI, vehicleAPI } from '../services/api'
+import { tripAPI, userAPI, vehicleAPI, serviceAPI } from '../services/api'
 import {
   MapPin, Navigation, Car, User, Calendar, Plus, Loader2,
-  Play, X, CheckCircle, Ban, Route, Clock, MoreVertical, ClipboardList,
+  Play, X, CheckCircle, Ban, Clock, MoreVertical, ClipboardList, Wrench, Fuel, AlertTriangle, UserCheck,
 } from 'lucide-react'
+
+// ── Helpers to parse job type from purpose field ──────────────────────────
+const getJobType = (purposeText) => {
+  const p = purposeText || ''
+  if (p.startsWith('[Service]')) return 'SERVICE'
+  if (p.startsWith('[Fuel]')) return 'FUEL'
+  return 'TRIP'
+}
+
+const getCleanPurpose = (purposeText) => {
+  const p = purposeText || ''
+  return p.replace(/^\[(Service|Fuel|Trip)\]\s*/i, '')
+}
+
+// ── Helpers for checking overdue services (sync with ServicePage) ────────
+const getStatus = (s) => {
+  if (!s.serviceDate) return 'SCHEDULED'
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const scheduled = new Date(s.serviceDate)
+  scheduled.setHours(0, 0, 0, 0)
+  return scheduled > today ? 'SCHEDULED' : 'COMPLETED'
+}
+
+const getVehicleMilestones = (vehicle, services, intervals) => {
+  if (!vehicle || !intervals) return []
+  const vehicleIntervals = intervals.filter(i => i.vehicleType === vehicle.vehicleType)
+  
+  return vehicleIntervals.map(interval => {
+    const completed = services.filter(s =>
+      s.vehicleRegNumber === vehicle.registrationNo &&
+      s.serviceType === interval.serviceType &&
+      getStatus(s) === 'COMPLETED'
+    )
+    
+    let lastServiceMileage = vehicle.initialMileageKm != null ? Number(vehicle.initialMileageKm) : Number(vehicle.currentMileageKm || 0)
+    if (completed.length > 0) {
+      completed.sort((a, b) => Number(b.currentMileageKm || 0) - Number(a.currentMileageKm || 0))
+      lastServiceMileage = Number(completed[0].currentMileageKm || 0)
+    }
+    
+    const nextDueMileage = lastServiceMileage + interval.intervalKm
+    const currentMileage = vehicle.currentMileageKm || 0
+    const remainingKm = nextDueMileage - currentMileage
+    
+    let status = 'OK'
+    if (remainingKm <= 0) {
+      status = 'OVERDUE'
+    } else if (remainingKm <= 200) {
+      status = 'DUE_SOON'
+    }
+    
+    return {
+      serviceType: interval.serviceType,
+      status
+    }
+  })
+}
+
+const isServiceOverdueForVehicle = (vehicle, serviceType, services, intervals) => {
+  if (!vehicle) return false
+
+  // 1. Check mileage milestones
+  if (intervals && intervals.length > 0) {
+    const milestones = getVehicleMilestones(vehicle, services, intervals)
+    const m = milestones.find(ms => ms.serviceType === serviceType)
+    if (m && m.status === 'OVERDUE') return true
+  }
+
+  // 2. Check date-based overdue scheduled tasks
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const isOverdueDate = services.some(s => 
+    s.vehicleRegNumber === vehicle.registrationNo &&
+    s.serviceType === serviceType &&
+    getStatus(s) === 'SCHEDULED' &&
+    s.serviceDate &&
+    new Date(s.serviceDate) < today
+  )
+
+  return isOverdueDate
+}
+
+const SERVICE_TYPES = [
+  { value: 'OIL_CHANGE', label: 'Oil Change' },
+  { value: 'ENGINE_TUNE_UP', label: 'Engine Tune Up' },
+  { value: 'BRAKE_SERVICE', label: 'Brake Service' },
+  { value: 'TIRE_ROTATION', label: 'Tire Rotation' },
+  { value: 'TRANSMISSION_SERVICE', label: 'Transmission Service' },
+  { value: 'AC_SERVICE', label: 'AC Service' },
+  { value: 'BATTERY_REPLACEMENT', label: 'Battery Replacement' },
+  { value: 'GENERAL_INSPECTION', label: 'General Inspection' },
+  { value: 'OTHER', label: 'Other' },
+]
 
 // ── Status → badge styling ────────────────────────────────────────────────
 const statusBadge = (status) => {
@@ -42,11 +136,14 @@ const TripsPage = () => {
   const [trips, setTrips] = useState([])
   const [drivers, setDrivers] = useState([])
   const [vehicles, setVehicles] = useState([])
+  const [allServices, setAllServices] = useState([])
+  const [allIntervals, setAllIntervals] = useState([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState(null)
   const [banner, setBanner] = useState(null) // { type: 'success'|'error', text }
 
   const [showAssignModal, setShowAssignModal] = useState(false)
+  const [activeTab, setActiveTab] = useState('TRIP') // 'TRIP' | 'SERVICE' | 'FUEL'
   const emptyForm = { driverUsername: '', vehicleRegNumber: '', origin: '', destination: '', purpose: '', scheduledDate: '' }
   const [form, setForm] = useState(emptyForm)
   const [submitting, setSubmitting] = useState(false)
@@ -68,8 +165,8 @@ const TripsPage = () => {
       const res = canManage ? await tripAPI.getAllTrips() : await tripAPI.getMyTrips()
       setTrips(res.data.data || [])
     } catch (err) {
-      console.error('Error loading trips:', err)
-      flash('error', 'Could not load trips')
+      console.error('Error loading jobs:', err)
+      flash('error', 'Could not load jobs')
     } finally {
       setLoading(false)
     }
@@ -84,6 +181,12 @@ const TripsPage = () => {
       vehicleAPI.getAllVehicles()
         .then(res => setVehicles((res.data.data || []).filter(v => !v.deleted && !v.isDeleted)))
         .catch(err => console.error('Error loading vehicles:', err))
+      serviceAPI.getAllServices()
+        .then(res => setAllServices(res.data.data || []))
+        .catch(err => console.error('Error loading services:', err))
+      serviceAPI.getAllIntervals()
+        .then(res => setAllIntervals(res.data.data || []))
+        .catch(err => console.error('Error loading intervals:', err))
     }
   }, [loadTrips, canManage])
 
@@ -94,22 +197,33 @@ const TripsPage = () => {
     return () => { document.body.style.overflow = '' }
   }, [showAssignModal, tripToCancel, driverModal])
 
-  // ── Controller: assign a trip ──────────────────────────────────────────
+  // ── Controller: assign a job ──────────────────────────────────────────
   const handleAssign = async (e) => {
     e.preventDefault()
     if (!form.driverUsername || !form.vehicleRegNumber || !form.destination.trim()) {
-      flash('error', 'Driver, vehicle and destination are required')
+      flash('error', 'Driver, vehicle and destination/location are required')
+      return
+    }
+    if (activeTab === 'SERVICE' && !form.purpose) {
+      flash('error', 'Service Description is required')
       return
     }
     setSubmitting(true)
     try {
-      await tripAPI.assignTrip({ ...form, scheduledDate: form.scheduledDate || null })
-      flash('success', 'Trip assigned successfully')
+      const prefix = activeTab === 'SERVICE' ? '[Service] ' : activeTab === 'FUEL' ? '[Fuel] ' : '[Trip] '
+      const finalPurpose = prefix + (form.purpose || '').trim()
+
+      await tripAPI.assignTrip({
+        ...form,
+        purpose: finalPurpose,
+        scheduledDate: form.scheduledDate || null
+      })
+      flash('success', `${activeTab === 'SERVICE' ? 'Service' : activeTab === 'FUEL' ? 'Fuel' : 'Trip'} job assigned successfully`)
       setForm(emptyForm)
       setShowAssignModal(false)
       loadTrips()
     } catch (err) {
-      flash('error', err.response?.data?.message || 'Failed to assign trip')
+      flash('error', err.response?.data?.message || 'Failed to assign job')
     } finally {
       setSubmitting(false)
     }
@@ -117,30 +231,42 @@ const TripsPage = () => {
 
   const closeAssignModal = () => { if (!submitting) { setShowAssignModal(false); setForm(emptyForm) } }
 
+  // When a vehicle is selected in the modal, auto-fill the assigned driver (but allow override)
+  const handleVehicleChange = (regNo) => {
+    const selected = vehicles.find(v => v.registrationNo === regNo)
+    setForm(prev => ({
+      ...prev,
+      vehicleRegNumber: regNo,
+      // Auto-fill driver only if the vehicle has one and the driver field is currently empty OR
+      // was previously auto-filled (i.e. no manual override)
+      driverUsername: selected?.driverUsername || prev.driverUsername
+    }))
+  }
+
   const confirmCancel = async () => {
     if (!tripToCancel) return
     setCancelling(true)
     try {
       await tripAPI.cancelTrip(tripToCancel.id)
-      flash('success', 'Trip cancelled')
+      flash('success', 'Job cancelled')
       setTripToCancel(null)
       loadTrips()
     } catch (err) {
-      flash('error', err.response?.data?.message || 'Failed to cancel trip')
+      flash('error', err.response?.data?.message || 'Failed to cancel job')
     } finally {
       setCancelling(false)
     }
   }
 
-  // ── Driver: act on a trip (confirmed via TripActionModal) ───────────────
+  // ── Driver: act on a job (confirmed via TripActionModal) ───────────────
   const runDriverAction = async (reason) => {
     if (!driverModal) return
     const { action, trip } = driverModal
     setBusyId(trip.id)
     try {
-      if (action === 'start') { await tripAPI.startTrip(trip.id); flash('success', 'Trip started — drive safe!') }
-      if (action === 'complete') { await tripAPI.completeTrip(trip.id); flash('success', 'Trip completed') }
-      if (action === 'decline') { await tripAPI.declineTrip(trip.id, reason || ''); flash('success', 'Trip declined') }
+      if (action === 'start') { await tripAPI.startTrip(trip.id); flash('success', 'Job accepted successfully!') }
+      if (action === 'complete') { await tripAPI.completeTrip(trip.id); flash('success', 'Job completed') }
+      if (action === 'decline') { await tripAPI.declineTrip(trip.id, reason || ''); flash('success', 'Job declined') }
       setDriverModal(null)
       loadTrips()
     } catch (err) {
@@ -173,19 +299,26 @@ const TripsPage = () => {
   const onBlur = e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }
 
   const statCards = [
-    { label: 'Total Trips', value: stat.total, icon: <Route size={24} />, color: D.blue, bg: D.blueDim },
+    { label: 'Total Jobs', value: stat.total, icon: <ClipboardList size={24} />, color: D.blue, bg: D.blueDim },
     { label: 'Awaiting Response', value: stat.assigned, icon: <Clock size={24} />, color: D.gold, bg: D.goldDim },
     { label: 'In Progress', value: stat.started, icon: <Navigation size={24} />, color: D.indigo, bg: D.indigoDim },
     { label: 'Completed', value: stat.completed, icon: <CheckCircle size={24} />, color: D.green, bg: D.greenDim },
   ]
 
+  // Find selected vehicle and determine overdue services
+  const selectedVehicle = vehicles.find(v => v.registrationNo === form.vehicleRegNumber)
+  const sortedServiceTypes = [...SERVICE_TYPES].map(type => {
+    const isOverdue = isServiceOverdueForVehicle(selectedVehicle, type.value, allServices, allIntervals)
+    return { ...type, isOverdue }
+  }).sort((a, b) => (b.isOverdue ? 1 : 0) - (a.isOverdue ? 1 : 0))
+
   if (loading) return (
     <div className="app-shell" style={{ background: D.bg, minHeight: '100vh' }}>
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: D.bg }}>
-        <Topbar title="Trips" subtitle={canManage ? 'Home / Trip Assignments' : 'Home / My Trips'} onMenuToggle={() => setSidebarOpen(o => !o)} />
+        <Topbar title="Jobs" subtitle={canManage ? 'Home / Job Assignments' : 'Home / My Jobs'} onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 80, color: D.textSub }}>
-          <Loader2 size={20} className="spin" /> Loading trips…
+          <Loader2 size={20} className="spin" /> Loading jobs…
         </div>
       </div>
     </div>
@@ -195,7 +328,7 @@ const TripsPage = () => {
     <div className="app-shell" style={{ background: D.bg, minHeight: '100vh' }}>
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: D.bg }}>
-        <Topbar title="Trips" subtitle={canManage ? 'Home / Trip Assignments' : 'Home / My Trips'} onMenuToggle={() => setSidebarOpen(o => !o)} />
+        <Topbar title="Jobs" subtitle={canManage ? 'Home / Job Assignments' : 'Home / My Jobs'} onMenuToggle={() => setSidebarOpen(o => !o)} />
         <div className="page-body">
 
           {banner && (
@@ -223,29 +356,54 @@ const TripsPage = () => {
             {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
               <div style={{ background: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', backdropFilter: 'blur(8px)', border: isDark ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(255,255,255,0.15)', boxShadow: isDark ? '0 0 20px rgba(59,130,246,0.3), 0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.2)' }}>
-                <Route size={32} strokeWidth={1.5} />
+                <ClipboardList size={32} strokeWidth={1.5} />
               </div>
               <div>
                 <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  {canManage ? 'Fleet Trip Management' : 'My Assigned Trips'}
+                  {canManage ? 'Fleet Job Management' : 'My Assigned Jobs'}
                 </h1>
                 <p style={{ margin: '4px 0 0', color: '#60a5fa', fontSize: '0.9rem' }}>
-                  {canManage ? 'Assign trips & vehicles, track driver progress' : 'Start, decline or complete the trips assigned to you'}
+                  {canManage ? 'Assign jobs & vehicles, track driver progress' : 'Start, decline or complete the jobs assigned to you'}
                 </p>
               </div>
             </div>
-            {canManage && (
-              <div style={{ position: 'relative', display: 'flex', gap: 16, flexShrink: 0 }}>
-                <button onClick={() => setShowAssignModal(true)} style={{
-                  padding: '14px 28px', borderRadius: 16, border: 'none', background: '#fff', color: '#1e3a8a', cursor: 'pointer',
-                  fontWeight: 800, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 10,
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.25)', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}>
-                  <Plus size={20} strokeWidth={3} /> Assign Trip
-                </button>
-              </div>
-            )}
           </div>
+
+          {/* ── Quick Action Cards (Controller only) ──────────────────── */}
+          {canManage && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, marginBottom: 36 }}>
+              {[
+                { type: 'TRIP', label: 'Trip Assignment', desc: 'Assign driver and vehicle for transport trips', icon: <Navigation size={22} />, color: D.blue, bg: D.blueDim },
+                { type: 'SERVICE', label: 'Service Assignment', desc: 'Dispatch driver for maintenance & services', icon: <Wrench size={22} />, color: D.gold, bg: D.goldDim },
+                { type: 'FUEL', label: 'Fuel Assignment', desc: 'Assign driver to fill up gas before trip or when low', icon: <Fuel size={22} />, color: D.green, bg: D.greenDim },
+              ].map(act => (
+                <div key={act.type} onClick={() => { setActiveTab(act.type); setShowAssignModal(true) }}
+                  style={{
+                    background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, padding: '24px',
+                    display: 'flex', alignItems: 'center', gap: 20, cursor: 'pointer', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.borderColor = act.color + '60';
+                    e.currentTarget.style.boxShadow = `0 12px 28px ${act.color}15`;
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.borderColor = D.border;
+                    e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
+                  }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 16, background: act.bg, color: act.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${act.color}30` }}>
+                    {act.icon}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.92rem', fontWeight: 800, color: D.text, marginBottom: 4 }}>{act.label}</div>
+                    <div style={{ fontSize: '0.78rem', color: D.textSub, lineHeight: 1.4 }}>{act.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* ── Stats Grid ────────────────────────────────────────────── */}
           <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
@@ -292,39 +450,54 @@ const TripsPage = () => {
                 )}
               </div>
               <span style={{ fontSize: '0.8rem', fontWeight: 800, color: D.text, padding: '10px 16px', borderRadius: 12, background: D.surface, border: `1px solid ${D.border}`, whiteSpace: 'nowrap' }}>
-                {filteredTrips.length} Trip{filteredTrips.length === 1 ? '' : 's'}
+                {filteredTrips.length} Job{filteredTrips.length === 1 ? '' : 's'}
               </span>
             </div>
 
-            {/* Trip rows */}
+            {/* Job rows */}
             {filteredTrips.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 64, color: D.textSub }}>
-                <Route size={40} color={D.textFaint} style={{ marginBottom: 12 }} />
-                <div style={{ fontWeight: 700, color: D.text, marginBottom: 4 }}>No trips found</div>
-                <div style={{ fontSize: '0.85rem' }}>{canManage ? 'Assign a trip with the button above.' : 'You have no assigned trips right now.'}</div>
+                <ClipboardList size={40} color={D.textFaint} style={{ marginBottom: 12 }} />
+                <div style={{ fontWeight: 700, color: D.text, marginBottom: 4 }}>No jobs found</div>
+                <div style={{ fontSize: '0.85rem' }}>{canManage ? 'Assign a job with the buttons above.' : 'You have no assigned jobs right now.'}</div>
               </div>
             ) : (
               filteredTrips.map((trip, i) => {
+                const type = getJobType(trip.purpose)
+                const cleanPurpose = getCleanPurpose(trip.purpose)
                 const badge = statusBadge(trip.status)
                 const s = up(trip.status)
                 const busy = busyId === trip.id
+
+                const typeConfig = {
+                  TRIP: { icon: <Navigation size={20} color={D.blue} />, bg: D.blueDim, label: 'Trip' },
+                  SERVICE: { icon: <Wrench size={20} color={D.gold} />, bg: D.goldDim, label: 'Service' },
+                  FUEL: { icon: <Fuel size={20} color={D.green} />, bg: D.greenDim, label: 'Fuel' },
+                }[type] || { icon: <Navigation size={20} color={D.blue} />, bg: D.blueDim, label: 'Trip' }
+
                 return (
                   <div key={trip.id} style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '20px 32px', borderBottom: i < filteredTrips.length - 1 ? `1px solid ${D.border}` : 'none', flexWrap: 'wrap', transition: 'background 0.18s' }}
                     onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     {/* Route + meta */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: '1 1 260px', minWidth: 0 }}>
-                      <div style={{ width: 44, height: 44, borderRadius: 12, background: D.blueDim, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Navigation size={20} color={D.blue} />
+                      <div style={{ width: 44, height: 44, borderRadius: 12, background: typeConfig.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {typeConfig.icon}
                       </div>
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: '0.98rem', fontWeight: 800, color: D.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {trip.origin ? `${trip.origin} → ` : ''}{trip.destination}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: typeConfig.bg, color: typeConfig.icon.props.color, border: `1px solid ${typeConfig.icon.props.color}30`, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            {typeConfig.label}
+                          </span>
+                          <div style={{ fontSize: '0.98rem', fontWeight: 800, color: D.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {type === 'TRIP' && trip.origin ? `${trip.origin} → ` : ''}{trip.destination}
+                          </div>
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: D.textSub, marginTop: 3, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                        <div style={{ fontSize: '0.75rem', color: D.textSub, marginTop: 3, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Car size={13} /> {trip.vehicleRegNumber}</span>
                           {canManage && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><User size={13} /> {trip.driverUsername}</span>}
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Calendar size={13} /> {fmtDate(trip.scheduledDate)}</span>
+                          {cleanPurpose && <span style={{ color: D.textSub, fontWeight: 500 }}>· {cleanPurpose}</span>}
                         </div>
                       </div>
                     </div>
@@ -337,7 +510,7 @@ const TripsPage = () => {
                       {/* Driver */}
                       {!canManage && s === 'ASSIGNED' && (
                         <>
-                          <ActionBtn onClick={() => setDriverModal({ action: 'start', trip })} disabled={busy} bg="linear-gradient(135deg,#059669,#10b981)" color="#fff" icon={<Play size={14} />}>Start</ActionBtn>
+                          <ActionBtn onClick={() => setDriverModal({ action: 'start', trip })} disabled={busy} bg="linear-gradient(135deg,#059669,#10b981)" color="#fff" icon={<Play size={14} />}>Accept</ActionBtn>
                           <ActionBtn onClick={() => setDriverModal({ action: 'decline', trip })} disabled={busy} bg={D.redDim} color={D.red} border={`1px solid ${D.red}40`} icon={<X size={14} />}>Decline</ActionBtn>
                         </>
                       )}
@@ -362,16 +535,26 @@ const TripsPage = () => {
         </div>
       </div>
 
-      {/* ── Assign Trip Modal (popup) ───────────────────────────────── */}
+      {/* ── Assign Job Modal (popup) ───────────────────────────────── */}
       {showAssignModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20, animation: 'fadeIn 0.25s ease' }} onClick={closeAssignModal}>
           <div style={{ background: D.surface, borderRadius: 24, width: '92%', maxWidth: 560, maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }} onClick={e => e.stopPropagation()}>
             <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 2 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}><Route size={18} /></div>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
+                  {{
+                    TRIP: <Navigation size={18} />,
+                    SERVICE: <Wrench size={18} />,
+                    FUEL: <Fuel size={18} />,
+                  }[activeTab] || <ClipboardList size={18} />}
+                </div>
                 <div>
-                  <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>Assign a Trip</h2>
-                  <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600 }}>Assign a trip and a vehicle to a driver</p>
+                  <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>
+                    Assign a {activeTab === 'TRIP' ? 'Trip' : activeTab === 'SERVICE' ? 'Service Job' : 'Fuel Job'}
+                  </h2>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600 }}>
+                    {activeTab === 'TRIP' ? 'Assign a trip and a vehicle to a driver' : activeTab === 'SERVICE' ? 'Assign driver to perform vehicle service' : 'Assign driver to fill up gas for a vehicle'}
+                  </p>
                 </div>
               </div>
               <button onClick={closeAssignModal} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
@@ -388,34 +571,85 @@ const TripsPage = () => {
                 </div>
                 <div>
                   <label style={labelStyle}>Vehicle *</label>
-                  <select style={inputStyle} value={form.vehicleRegNumber} onChange={e => setForm(f => ({ ...f, vehicleRegNumber: e.target.value }))} onFocus={onFocus} onBlur={onBlur}>
+                  <select style={inputStyle} value={form.vehicleRegNumber} onChange={e => handleVehicleChange(e.target.value)} onFocus={onFocus} onBlur={onBlur}>
                     <option value="">Select vehicle…</option>
-                    {vehicles.map(v => <option key={v.id} value={v.registrationNo}>{v.registrationNo}{v.model ? ` — ${v.model}` : ''}</option>)}
+                    {vehicles.map(v => <option key={v.id} value={v.registrationNo}>{v.registrationNo}{v.model ? ` — ${v.model}` : ''}{v.driverUsername ? ` 👤 ${v.driverUsername}` : ''}</option>)}
                   </select>
+                  {/* Show auto-fill hint */}
+                  {form.vehicleRegNumber && vehicles.find(v => v.registrationNo === form.vehicleRegNumber)?.driverUsername && (
+                    <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: D.green, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <UserCheck size={11} /> Driver auto-filled from vehicle assignment
+                    </p>
+                  )}
                 </div>
-                <div>
-                  <label style={labelStyle}>Origin</label>
-                  <input style={inputStyle} placeholder="e.g. Colombo" value={form.origin} onChange={e => setForm(f => ({ ...f, origin: e.target.value }))} onFocus={onFocus} onBlur={onBlur} />
+                
+                {activeTab === 'TRIP' && (
+                  <div>
+                    <label style={labelStyle}>Origin</label>
+                    <input style={inputStyle} placeholder="e.g. Colombo" value={form.origin} onChange={e => setForm(f => ({ ...f, origin: e.target.value }))} onFocus={onFocus} onBlur={onBlur} />
+                  </div>
+                )}
+                
+                <div style={{ gridColumn: activeTab === 'TRIP' ? 'auto' : 'span 2' }}>
+                  <label style={labelStyle}>
+                    {activeTab === 'TRIP' ? 'Destination *' : activeTab === 'SERVICE' ? 'Service Center / Location *' : 'Fuel Station / Location *'}
+                  </label>
+                  <input style={inputStyle} 
+                    placeholder={activeTab === 'TRIP' ? 'e.g. Kandy' : activeTab === 'SERVICE' ? 'e.g. Toyota Service Center, Colombo' : 'e.g. Lanka IOC Station, Kandy'} 
+                    value={form.destination} 
+                    onChange={e => setForm(f => ({ ...f, destination: e.target.value }))} 
+                    onFocus={onFocus} 
+                    onBlur={onBlur} 
+                  />
                 </div>
-                <div>
-                  <label style={labelStyle}>Destination *</label>
-                  <input style={inputStyle} placeholder="e.g. Kandy" value={form.destination} onChange={e => setForm(f => ({ ...f, destination: e.target.value }))} onFocus={onFocus} onBlur={onBlur} />
-                </div>
+                
                 <div>
                   <label style={labelStyle}>Scheduled Date</label>
                   <input type="date" style={inputStyle} value={form.scheduledDate} onChange={e => setForm(f => ({ ...f, scheduledDate: e.target.value }))} onFocus={onFocus} onBlur={onBlur} />
                 </div>
+                
                 <div>
-                  <label style={labelStyle}>Purpose</label>
-                  <input style={inputStyle} placeholder="e.g. Cargo delivery" value={form.purpose} onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))} onFocus={onFocus} onBlur={onBlur} />
+                  <label style={labelStyle}>
+                    {activeTab === 'TRIP' ? 'Purpose' : activeTab === 'SERVICE' ? 'Service Description *' : 'Instructions'}
+                  </label>
+                  {activeTab === 'SERVICE' ? (
+                    <select style={inputStyle} value={form.purpose} onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))} onFocus={onFocus} onBlur={onBlur}>
+                      <option value="">Select service type…</option>
+                      {sortedServiceTypes.map(t => (
+                        <option key={t.value} value={t.label} style={{ color: t.isOverdue ? '#ef4444' : 'inherit', fontWeight: t.isOverdue ? 'bold' : 'normal' }}>
+                          {t.isOverdue ? `⚠️ [OVERDUE] ${t.label}` : t.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input style={inputStyle} 
+                      placeholder={activeTab === 'TRIP' ? 'e.g. Cargo delivery' : 'e.g. Fill full tank Octane 95 before trip'} 
+                      value={form.purpose} 
+                      onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))} 
+                      onFocus={onFocus} 
+                      onBlur={onBlur} 
+                    />
+                  )}
                 </div>
+
+                {/* Overdue alert banner inside the form */}
+                {activeTab === 'SERVICE' && selectedVehicle && sortedServiceTypes.some(t => t.isOverdue) && (
+                  <div style={{
+                    gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '12px 16px', borderRadius: 12, background: 'rgba(239,68,68,0.1)',
+                    color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', fontSize: '0.82rem', fontWeight: 600,
+                  }}>
+                    <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+                    This vehicle has overdue service milestones! Please prioritize them (marked with ⚠️).
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: 14, marginTop: 28 }}>
                 <button type="button" disabled={submitting} onClick={closeAssignModal} style={{ flex: 1, padding: '15px', borderRadius: 16, border: `1px solid ${D.border}`, background: D.surfaceHi, color: D.textSub, fontSize: '0.95rem', fontWeight: 800, cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }} onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = D.border }} onMouseLeave={e => e.currentTarget.style.background = D.surfaceHi}>Discard</button>
                 <button type="submit" disabled={submitting} style={{ flex: 1, padding: '15px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg, #2563eb, #3b82f6)', color: '#fff', fontSize: '0.95rem', fontWeight: 800, cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: '0 8px 24px rgba(59,130,246,0.35)', opacity: submitting ? 0.7 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   {submitting ? <Loader2 size={17} className="spin" /> : <Plus size={17} strokeWidth={3} />}
-                  {submitting ? 'Assigning…' : 'Assign Trip'}
+                  {submitting ? 'Assigning…' : `Assign ${activeTab === 'TRIP' ? 'Trip' : activeTab === 'SERVICE' ? 'Service' : 'Fuel'}`}
                 </button>
               </div>
             </form>
@@ -432,7 +666,7 @@ const TripsPage = () => {
         onConfirm={runDriverAction}
       />
 
-      {/* ── Cancel Trip Confirmation Modal ──────────────────────────── */}
+      {/* ── Cancel Job Confirmation Modal ──────────────────────────── */}
       {tripToCancel && (
         <div onClick={() => !cancelling && setTripToCancel(null)}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20, animation: 'fadeIn 0.2s ease' }}>
@@ -448,22 +682,22 @@ const TripsPage = () => {
               <Ban size={28} />
             </div>
             <h3 style={{ margin: '0 0 10px', fontSize: '1.3rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
-              Cancel trip to "{tripToCancel.destination}"?
+              Cancel job to "{tripToCancel.destination}"?
             </h3>
             <p style={{ margin: '0 0 28px', fontSize: '0.9rem', color: D.textSub, lineHeight: 1.6 }}>
-              This trip assigned to <strong style={{ color: D.text }}>{tripToCancel.driverUsername}</strong> will be cancelled and the driver notified. This cannot be undone.
+              This job assigned to <strong style={{ color: D.text }}>{tripToCancel.driverUsername}</strong> will be cancelled and the driver notified. This cannot be undone.
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
               <button type="button" onClick={() => setTripToCancel(null)} disabled={cancelling}
                 style={{ flex: 1, maxWidth: 170, padding: '11px 20px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'transparent', color: D.text, cursor: cancelling ? 'not-allowed' : 'pointer', fontSize: '0.88rem', fontWeight: 700, transition: 'all 0.2s', fontFamily: 'inherit' }}
                 onMouseEnter={e => { if (!cancelling) e.currentTarget.style.background = D.surfaceHi }}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                Keep Trip
+                Keep Job
               </button>
               <button type="button" onClick={confirmCancel} disabled={cancelling}
                 style={{ flex: 1, maxWidth: 170, padding: '11px 20px', borderRadius: 12, border: 'none', background: D.red, color: '#fff', fontSize: '0.88rem', fontWeight: 700, cursor: cancelling ? 'not-allowed' : 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(239,68,68,0.3)', fontFamily: 'inherit', opacity: cancelling ? 0.7 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
                 {cancelling && <Loader2 size={15} className="spin" />}
-                {cancelling ? 'Cancelling…' : 'Cancel Trip'}
+                {cancelling ? 'Cancelling…' : 'Cancel Job'}
               </button>
             </div>
           </div>
@@ -485,7 +719,7 @@ const ActionBtn = ({ children, onClick, disabled, bg, color, border, icon }) => 
   <button onClick={onClick} disabled={disabled} style={{
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '8px 16px', borderRadius: 10, border: border || 'none',
-    background: bg, color, fontSize: '0.8rem', fontWeight: 700,
+    background: bg, color, fontSize: '0.81rem', fontWeight: 700,
     cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.6 : 1,
     fontFamily: 'inherit', transition: 'all 0.15s',
   }}>

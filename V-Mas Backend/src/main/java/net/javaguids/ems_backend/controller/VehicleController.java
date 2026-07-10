@@ -160,4 +160,27 @@ public class VehicleController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + originalFilename + "\"")
                 .body(resource);
     }
+
+    // PATCH /api/vehicles/{id}/assign-driver — Assign or unassign a driver to a vehicle
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
+    @PatchMapping("/{id}/assign-driver")
+    public ResponseEntity<ApiResponse<VehicleDto>> assignDriver(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, String> body) {
+        String driverUsername = body.get("driverUsername"); // null = unassign
+        VehicleDto updated = vehicleService.assignDriver(id, driverUsername);
+        String msg = (driverUsername == null || driverUsername.isBlank())
+                ? "Driver unassigned from vehicle successfully"
+                : "Driver '" + driverUsername + "' assigned to vehicle successfully";
+        return ApiResponseUtil.success(msg, updated, HttpStatus.OK);
+    }
+
+    // GET /api/vehicles/my-vehicle — Driver fetches their currently assigned vehicle
+    @PreAuthorize("hasAnyRole('DRIVER', 'ADMIN', 'CONTROLLER')")
+    @GetMapping("/my-vehicle")
+    public ResponseEntity<ApiResponse<VehicleDto>> getMyVehicle(
+            @AuthenticationPrincipal UserDetails currentUser) {
+        VehicleDto vehicle = vehicleService.getMyVehicle(currentUser.getUsername());
+        return ApiResponseUtil.success("Assigned vehicle fetched successfully", vehicle, HttpStatus.OK);
+    }
 }
