@@ -122,7 +122,7 @@ function App() {
             <Route path="/fuel-management"  element={<PrivateRoute><FuelManagementPage /></PrivateRoute>} />
             <Route path="/location"         element={<PrivateRoute><LocationPage /></PrivateRoute>} />
             <Route path="/reports"          element={<PrivateRoute><ReportsPage /></PrivateRoute>} />
-            <Route path="/trips"            element={<PrivateRoute><TripsPage /></PrivateRoute>} />
+            <Route path="/jobs"             element={<PrivateRoute><TripsPage /></PrivateRoute>} />
             <Route path="/"                 element={<Navigate to="/login" replace />} />
           </Routes>
         </Suspense>
