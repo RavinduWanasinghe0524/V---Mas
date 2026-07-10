@@ -120,7 +120,17 @@ const ProfilePage = () => {
   }
 
   // Handlers
-  const closeModal = () => setActiveModal(null)
+  const closeModal = () => {
+    setActiveModal(null)
+    setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
+    setPwError(''); setPwSuccess(''); setShowPasswords(false)
+  }
+
+  const openPasswordModal = () => {
+    setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
+    setPwError(''); setPwSuccess(''); setShowPasswords(false)
+    setActiveModal('password')
+  }
 
   const handlePasswordSubmit = async e => {
     e.preventDefault()
@@ -348,6 +358,22 @@ const ProfilePage = () => {
               </p>
             </div>
 
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <button
+                onClick={openPasswordModal}
+                style={{
+                  padding: '14px 26px', borderRadius: 16, border: 'none',
+                  background: '#fff', color: '#1e3a8a', cursor: 'pointer',
+                  fontWeight: 800, fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: 10,
+                  boxShadow: '0 8px 30px rgba(0,0,0,0.25)', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  fontFamily: 'inherit',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}
+              >
+                <Key size={18} strokeWidth={2.5} /> Change Password
+              </button>
+            </div>
 
           </div>
 
@@ -617,20 +643,10 @@ const ProfilePage = () => {
 
             </div>
 
-            {/* ── Security & Password ─────────────────────────────────── */}
-            <div className="responsive-card-settings" style={{
-              width: '100%', background: D.surface, borderRadius: 24,
-              border: `1px solid ${D.border}`,
-              boxShadow: '0 4px 24px rgba(0,0,0,0.15)', position: 'relative',
-              padding: '28px 32px'
-            }}>
-              <div style={{ animation: 'fadeIn 0.3s ease' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 11, background: D.indigoDim, border: `1px solid ${D.indigo}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.indigo, flexShrink: 0 }}>
-                    <Lock size={19} />
-                  </div>
-                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: D.text }}>Security &amp; Password</h3>
-                </div>
+            {/* ── Change Password Modal (opened from the hero banner) ─── */}
+            {activeModal === 'password' && (
+              <Modal title="Change Password" icon={<Lock size={18} color={D.indigo} />} onClose={closeModal} D={D} maxWidth={560}>
+                <div style={{ padding: '24px 28px 28px' }}>
                 <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: D.textSub }}>Change your login password. Use a strong, unique password you don't use elsewhere.</p>
 
                 {pwError && <div style={{ padding: '12px 14px', borderRadius: 10, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><AlertCircle size={16} /> {pwError}</div>}
@@ -729,8 +745,9 @@ const ProfilePage = () => {
                     </button>
                   </div>
                 </form>
-              </div>
-            </div>
+                </div>
+              </Modal>
+            )}
           </div>
 
         </div>
