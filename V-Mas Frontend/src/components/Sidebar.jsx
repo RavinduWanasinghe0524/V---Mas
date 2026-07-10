@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import {
   LayoutDashboard, Truck, Wrench, Users, Fuel,
-  BarChart2, User, ChevronLeft, LogOut, Route,
+  BarChart2, User, ChevronLeft, LogOut, ClipboardList,
 } from 'lucide-react'
 
 const navItems = {
@@ -24,12 +24,12 @@ const navItems = {
     { label: 'Users',           icon: <Users size={23} strokeWidth={1.5} />,           to: '/users'           },
     { label: 'Service',         icon: <Wrench size={23} strokeWidth={1.5} />,          to: '/service'         },
     { label: 'Fuel Management', icon: <Fuel size={23} strokeWidth={1.5} />,            to: '/fuel-management' },
-    { label: 'Trips',           icon: <Route size={23} strokeWidth={1.5} />,           to: '/trips'           },
+    { label: 'Job Management',  icon: <ClipboardList size={23} strokeWidth={1.5} />,   to: '/jobs'            },
     { label: 'My Profile',      icon: <User size={23} strokeWidth={1.5} />,            to: '/profile'         },
   ],
   DRIVER: [
     { label: 'Dashboard',       icon: <LayoutDashboard size={23} strokeWidth={1.5} />, to: '/dashboard' },
-    { label: 'My Trips',        icon: <Route size={23} strokeWidth={1.5} />,           to: '/trips'     },
+    { label: 'My Jobs',         icon: <ClipboardList size={23} strokeWidth={1.5} />,   to: '/jobs'     },
     { label: 'Vehicles',        icon: <Truck size={23} strokeWidth={1.5} />,           to: '/vehicles'  },
     { label: 'Service History', icon: <Wrench size={23} strokeWidth={1.5} />,          to: '/service'   },
     { label: 'Fuel Log',        icon: <Fuel size={23} strokeWidth={1.5} />,            to: '/fuel-log'  },

@@ -1384,6 +1384,21 @@ const ActiveTripPanel = ({ trip, isDark, onChanged, navigate }) => {
   const [modalAction, setModalAction] = useState(null) // 'start' | 'decline' | 'complete'
   const status = (trip.status || 'ASSIGNED').toUpperCase()
 
+  const getJobType = (purposeText) => {
+    const p = purposeText || ''
+    if (p.startsWith('[Service]')) return 'SERVICE'
+    if (p.startsWith('[Fuel]')) return 'FUEL'
+    return 'TRIP'
+  }
+
+  const getCleanPurpose = (purposeText) => {
+    const p = purposeText || ''
+    return p.replace(/^\[(Service|Fuel|Trip)\]\s*/i, '')
+  }
+
+  const jobType = getJobType(trip.purpose)
+  const cleanPurpose = getCleanPurpose(trip.purpose)
+
   const act = async (reason) => {
     if (!modalAction) return
     setBusy(true)
@@ -1405,6 +1420,12 @@ const ActiveTripPanel = ({ trip, isDark, onChanged, navigate }) => {
     ? { label: 'In Progress', color: A.blue, dim: A.blueDim }
     : { label: 'Awaiting your response', color: A.gold, dim: A.goldDim }
 
+  const typeConfig = {
+    TRIP: { icon: <Navigation size={22} color={A.blue} />, bg: A.blueDim, label: 'Trip Job' },
+    SERVICE: { icon: <Wrench size={22} color={A.gold} />, bg: A.goldDim, label: 'Service Job' },
+    FUEL: { icon: <Fuel size={22} color={A.green} />, bg: A.greenDim, label: 'Fuel Job' },
+  }[jobType] || { icon: <Navigation size={22} color={A.blue} />, bg: A.blueDim, label: 'Trip Job' }
+
   return (
     <div style={{
       background: 'var(--surface)', borderRadius: 24, border: '1px solid var(--surface-border)',
@@ -1412,14 +1433,19 @@ const ActiveTripPanel = ({ trip, isDark, onChanged, navigate }) => {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 46, height: 46, borderRadius: 13, background: A.blueDim, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Navigation size={22} color={A.blue} />
+          <div style={{ width: 46, height: 46, borderRadius: 13, background: typeConfig.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {typeConfig.icon}
           </div>
           <div>
-            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              {trip.origin ? `${trip.origin} → ` : ''}{trip.destination}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: typeConfig.bg, color: typeConfig.icon.props.color, border: `1px solid ${typeConfig.icon.props.color}30`, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {typeConfig.label}
+              </span>
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                {jobType === 'TRIP' && trip.origin ? `${trip.origin} → ` : ''}{trip.destination}
+              </div>
             </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2 }}>Trip #{trip.id} · Vehicle {trip.vehicleRegNumber}</div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>Job #{trip.id} · Vehicle {trip.vehicleRegNumber}</div>
           </div>
         </div>
         <span style={{
@@ -1429,17 +1455,17 @@ const ActiveTripPanel = ({ trip, isDark, onChanged, navigate }) => {
         }}>{statusMeta.label}</span>
       </div>
 
-      {trip.purpose && (
-        <p style={{ margin: '0 0 18px', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-          {trip.purpose}
+      {cleanPurpose && (
+        <p style={{ margin: '0 0 18px', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6, fontStyle: 'italic' }}>
+          {cleanPurpose}
         </p>
       )}
 
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         {status === 'ASSIGNED' && (
           <>
             <button onClick={() => setModalAction('start')} disabled={busy} style={tripBtnStyle('linear-gradient(135deg,#059669,#10b981)', '#fff', busy)}>
-              <Play size={15} /> Start Trip
+              <Play size={15} /> Accept Job
             </button>
             <button onClick={() => setModalAction('decline')} disabled={busy} style={tripBtnStyle(A.redDim, A.red, busy, `1px solid ${A.red}40`)}>
               <X size={15} /> Decline
@@ -1448,11 +1474,11 @@ const ActiveTripPanel = ({ trip, isDark, onChanged, navigate }) => {
         )}
         {status === 'STARTED' && (
           <button onClick={() => setModalAction('complete')} disabled={busy} style={tripBtnStyle('linear-gradient(135deg,#2563eb,#3b82f6)', '#fff', busy)}>
-            <CheckCircle size={15} /> Complete Trip
+            <CheckCircle size={15} /> Complete Job
           </button>
         )}
-        <button onClick={() => navigate('/trips')} style={tripBtnStyle('var(--surface-hi)', 'var(--text-primary)', false, '1px solid var(--surface-border)')}>
-          View all my trips →
+        <button onClick={() => navigate('/jobs')} style={tripBtnStyle('var(--surface-hi)', 'var(--text-primary)', false, '1px solid var(--surface-border)')}>
+          View all my jobs →
         </button>
       </div>
 
@@ -1493,16 +1519,16 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
           label="Assigned Vehicle"
           value={assignedVehicle}
           colorDim={A.purpleDim} colorHex={A.purple}
-          change={activeTrip ? 'For your current trip' : 'No active assignment'}
-          onClick={() => navigate('/trips')}
+          change={activeTrip ? 'For your current job' : 'No active assignment'}
+          onClick={() => navigate('/jobs')}
         />
         <StatCard
-          icon={<Route size={20} color={A.blue}/>}
-          label="Assigned Trip"
+          icon={<ClipboardList size={20} color={A.blue}/>}
+          label="Assigned Job"
           value={activeTrip ? activeTrip.destination : 'None'}
           colorDim={A.blueDim} colorHex={A.blue}
           change={activeTrip ? (tripStatusLabel[activeStatus] || activeStatus) : 'Nothing assigned yet'}
-          onClick={() => navigate('/trips')}
+          onClick={() => navigate('/jobs')}
         />
       </div>
 
@@ -1513,9 +1539,9 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
           background: 'var(--surface)', borderRadius: 24, border: '1px solid var(--surface-border)',
           boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: 48, marginBottom: 36, textAlign: 'center',
         }}>
-          <Route size={40} color="var(--text-muted)" style={{ marginBottom: 12 }} />
-          <div style={{ fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4 }}>No trip assigned right now</div>
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Your controller will assign a trip and a vehicle here.</div>
+          <ClipboardList size={40} color="var(--text-muted)" style={{ marginBottom: 12 }} />
+          <div style={{ fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4 }}>No job assigned right now</div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Your controller will assign a job and a vehicle here.</div>
         </div>
       )}
     </>

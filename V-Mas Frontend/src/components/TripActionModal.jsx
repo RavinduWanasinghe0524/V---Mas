@@ -3,9 +3,9 @@ import { useD } from '../context/ThemeContext'
 import { X, Play, CheckCircle, Ban, Loader2 } from 'lucide-react'
 
 const META = {
-  start:    { verb: 'Start',    Icon: Play,        color: '#10b981', confirm: 'Start Trip' },
-  decline:  { verb: 'Decline',  Icon: Ban,         color: '#ef4444', confirm: 'Decline Trip' },
-  complete: { verb: 'Complete', Icon: CheckCircle, color: '#3b82f6', confirm: 'Complete Trip' },
+  start:    { verb: 'Accept',   Icon: Play,        color: '#10b981', confirm: 'Accept Job' },
+  decline:  { verb: 'Decline',  Icon: Ban,         color: '#ef4444', confirm: 'Decline Job' },
+  complete: { verb: 'Complete', Icon: CheckCircle, color: '#3b82f6', confirm: 'Complete Job' },
 }
 
 /**
@@ -26,9 +26,9 @@ const TripActionModal = ({ action, trip, busy, onClose, onConfirm }) => {
   const { Icon } = meta
 
   const body = {
-    start: `You're about to start the trip to "${trip.destination}" with vehicle ${trip.vehicleRegNumber}. Your controller will be notified.`,
-    decline: `Let your controller know why you can't take the trip to "${trip.destination}".`,
-    complete: `Mark the trip to "${trip.destination}" as completed. Your controller will be notified.`,
+    start: `You're about to accept the job to "${trip.destination}" with vehicle ${trip.vehicleRegNumber}. Your controller will be notified.`,
+    decline: `Let your controller know why you can't take the job to "${trip.destination}".`,
+    complete: `Mark the job to "${trip.destination}" as completed. Your controller will be notified.`,
   }[action]
 
   return (
@@ -42,17 +42,17 @@ const TripActionModal = ({ action, trip, busy, onClose, onConfirm }) => {
           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
           <X size={18} />
         </button>
-
+ 
         <div style={{ width: 64, height: 64, borderRadius: 18, background: `${meta.color}22`, border: `1px solid ${meta.color}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: meta.color, margin: '0 auto 20px' }}>
           <Icon size={28} />
         </div>
         <h3 style={{ margin: '0 0 10px', fontSize: '1.3rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
-          {meta.verb} trip to "{trip.destination}"?
+          {meta.verb} job to "{trip.destination}"?
         </h3>
         <p style={{ margin: '0 0 22px', fontSize: '0.9rem', color: D.textSub, lineHeight: 1.6 }}>
           {body}
         </p>
-
+ 
         {action === 'decline' && (
           <textarea
             value={reason}
@@ -63,13 +63,13 @@ const TripActionModal = ({ action, trip, busy, onClose, onConfirm }) => {
             style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, background: D.inputBg, color: D.text, fontSize: '0.85rem', fontFamily: 'inherit', outline: 'none', resize: 'vertical', marginBottom: 24, boxSizing: 'border-box' }}
           />
         )}
-
+ 
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
           <button type="button" onClick={onClose} disabled={busy}
             style={{ flex: 1, maxWidth: 170, padding: '11px 20px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'transparent', color: D.text, cursor: busy ? 'not-allowed' : 'pointer', fontSize: '0.88rem', fontWeight: 700, fontFamily: 'inherit', transition: 'all 0.2s' }}
             onMouseEnter={e => { if (!busy) e.currentTarget.style.background = 'var(--surface-hi)' }}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            {action === 'decline' ? 'Keep Trip' : 'Not now'}
+            {action === 'decline' ? 'Keep Job' : 'Not now'}
           </button>
           <button type="button" onClick={() => onConfirm(reason)} disabled={busy}
             style={{ flex: 1, maxWidth: 170, padding: '11px 20px', borderRadius: 12, border: 'none', background: meta.color, color: '#fff', fontSize: '0.88rem', fontWeight: 700, cursor: busy ? 'not-allowed' : 'pointer', boxShadow: `0 4px 12px ${meta.color}55`, fontFamily: 'inherit', opacity: busy ? 0.7 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
