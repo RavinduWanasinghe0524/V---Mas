@@ -93,6 +93,13 @@ const ProfilePage = () => {
   const [activeModal, setActiveModal] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  // Change-password section
+  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
+  const [pwLoading, setPwLoading] = useState(false)
+  const [pwError, setPwError] = useState('')
+  const [pwSuccess, setPwSuccess] = useState('')
+  const [showPasswords, setShowPasswords] = useState(false)
+
   // Refs
   const fileInputRef = useRef(null)
   // Guard: prevents the form from submitting immediately after entering edit mode.
@@ -114,6 +121,27 @@ const ProfilePage = () => {
 
   // Handlers
   const closeModal = () => setActiveModal(null)
+
+  const handlePasswordSubmit = async e => {
+    e.preventDefault()
+    setPwError(''); setPwSuccess('')
+    if (pwForm.newPassword !== pwForm.confirmPassword) { setPwError('New passwords do not match'); return }
+    if (pwForm.newPassword.length < 6) { setPwError('New password must be at least 6 characters'); return }
+    setPwLoading(true)
+    try {
+      await profileAPI.changePassword({
+        currentPassword: pwForm.currentPassword,
+        newPassword: pwForm.newPassword,
+        confirmPassword: pwForm.confirmPassword,
+      })
+      setPwSuccess('Password changed successfully')
+      setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
+    } catch (err) {
+      setPwError(err.response?.data?.message || 'Failed to change password')
+    } finally {
+      setPwLoading(false)
+    }
+  }
 
 
 
@@ -587,6 +615,121 @@ const ProfilePage = () => {
                 </div>
 
 
+            </div>
+
+            {/* ── Security & Password ─────────────────────────────────── */}
+            <div className="responsive-card-settings" style={{
+              width: '100%', background: D.surface, borderRadius: 24,
+              border: `1px solid ${D.border}`,
+              boxShadow: '0 4px 24px rgba(0,0,0,0.15)', position: 'relative',
+              padding: '28px 32px'
+            }}>
+              <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 11, background: D.indigoDim, border: `1px solid ${D.indigo}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.indigo, flexShrink: 0 }}>
+                    <Lock size={19} />
+                  </div>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: D.text }}>Security &amp; Password</h3>
+                </div>
+                <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: D.textSub }}>Change your login password. Use a strong, unique password you don't use elsewhere.</p>
+
+                {pwError && <div style={{ padding: '12px 14px', borderRadius: 10, background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><AlertCircle size={16} /> {pwError}</div>}
+                {pwSuccess && <div style={{ padding: '12px 14px', borderRadius: 10, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, marginBottom: 16, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><CheckCircle size={16} /> {pwSuccess}</div>}
+
+                <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 24px' }}>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={labelStyle}>Current Password</label>
+                      <div style={{ position: 'relative' }}>
+                        <input type={showPasswords ? 'text' : 'password'} value={pwForm.currentPassword} onChange={e => setPwForm(prev => ({ ...prev, currentPassword: e.target.value }))} required autoComplete="current-password" style={{ ...inputStyle, paddingRight: 45 }} onFocus={onFocus} onBlur={onBlur} />
+                        <button type="button" onClick={() => setShowPasswords(p => !p)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, display: 'flex', alignItems: 'center' }}>
+                          {showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>New Password</label>
+                      <div style={{ position: 'relative' }}>
+                        <input type={showPasswords ? 'text' : 'password'} value={pwForm.newPassword} onChange={e => setPwForm(prev => ({ ...prev, newPassword: e.target.value }))} required autoComplete="new-password" style={{ ...inputStyle, paddingRight: 45 }} onFocus={onFocus} onBlur={onBlur} />
+                        <button type="button" onClick={() => setShowPasswords(p => !p)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, display: 'flex', alignItems: 'center' }}>
+                          {showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Confirm New Password</label>
+                      <div style={{ position: 'relative' }}>
+                        <input type={showPasswords ? 'text' : 'password'} value={pwForm.confirmPassword} onChange={e => setPwForm(prev => ({ ...prev, confirmPassword: e.target.value }))} required autoComplete="new-password" style={{ ...inputStyle, paddingRight: 45 }} onFocus={onFocus} onBlur={onBlur} />
+                        <button type="button" onClick={() => setShowPasswords(p => !p)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: D.textSub, display: 'flex', alignItems: 'center' }}>
+                          {showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Circular strength indicator */}
+                  {pwForm.newPassword.length > 0 && (() => {
+                    const pw = pwForm.newPassword
+                    const criteria = [
+                      pw.length >= 8,
+                      /[A-Z]/.test(pw),
+                      /[a-z]/.test(pw),
+                      /[0-9]/.test(pw),
+                      /[^A-Za-z0-9]/.test(pw),
+                    ]
+                    const score = criteria.filter(Boolean).length
+                    const pct = score * 20
+                    const R = 36, CIRC = 2 * Math.PI * R, offset = CIRC * (1 - pct / 100)
+                    const clr = score <= 1 ? D.red : score === 2 ? D.orange : score === 3 ? D.gold : score === 4 ? D.blue : D.green
+                    const lbl = ['—', 'Very Weak', 'Weak', 'Fair', 'Good', 'Strong'][score]
+                    return (
+                      <div style={{ padding: '16px 20px', borderRadius: 16, background: D.surfaceHi, border: `1px solid ${D.border}`, display: 'flex', gap: 20, alignItems: 'center', marginTop: 8 }}>
+                        <div style={{ flexShrink: 0 }}>
+                          <svg width="80" height="80" viewBox="0 0 88 88">
+                            <circle cx="44" cy="44" r={R} fill="none" stroke={D.border} strokeWidth="7" />
+                            <circle cx="44" cy="44" r={R} fill="none" stroke={clr} strokeWidth="7" strokeLinecap="round" strokeDasharray={CIRC} strokeDashoffset={offset} transform="rotate(-90 44 44)" style={{ transition: 'stroke-dashoffset 0.4s ease, stroke 0.3s ease' }} />
+                            <text x="44" y="41" textAnchor="middle" fontSize="14" fontWeight="900" fill={clr} fontFamily="inherit">{pct}%</text>
+                            <text x="44" y="55" textAnchor="middle" fontSize="8.5" fontWeight="700" fill={D.textSub} fontFamily="inherit">{lbl}</text>
+                          </svg>
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Password Strength</div>
+                          <div style={{ fontSize: '1.1rem', fontWeight: 900, color: clr }}>{lbl}</div>
+                          <div style={{ width: '100%', height: 6, borderRadius: 3, background: D.border, marginTop: 4 }}>
+                            <div style={{ width: `${pct}%`, height: '100%', borderRadius: 3, background: clr, transition: 'width 0.4s ease, background 0.3s ease' }} />
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+                    <button
+                      type="submit"
+                      disabled={pwLoading}
+                      style={{
+                        padding: '12px 24px', borderRadius: 12, border: 'none',
+                        background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                        color: '#fff', fontSize: '0.9rem', fontWeight: 800,
+                        cursor: pwLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+                        transition: 'all 0.25s', boxShadow: '0 4px 12px rgba(37,99,235,0.2)',
+                        opacity: pwLoading ? 0.7 : 1, fontFamily: 'inherit',
+                      }}
+                      onMouseEnter={e => { if (!pwLoading) e.currentTarget.style.transform = 'translateY(-1px)' }}
+                      onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                    >
+                      {pwLoading ? (
+                        <>
+                          <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite' }} />
+                          Updating...
+                        </>
+                      ) : (
+                        <><Key size={16} /> Change Password</>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
 
