@@ -126,6 +126,11 @@ public class UserController {
     public ResponseEntity<ApiResponse<List<UserDto>>> getAllUsers() {
         log.info("Get all users request received");
         List<UserDto> users = userService.getAllUsers();
+        if (!isAdmin() && isController()) {
+            users = users.stream()
+                    .filter(u -> !Role.ADMIN.equals(u.getRole()))
+                    .collect(Collectors.toList());
+        }
         log.info("Returning {} users", users.size());
         return ApiResponseUtil.success("Users fetched successfully", users, HttpStatus.OK);
     }
@@ -198,6 +203,11 @@ public class UserController {
     public ResponseEntity<ApiResponse<List<UserDto>>> getDeletedUsers() {
         log.info("Get deleted users request received");
         List<UserDto> deleted = userService.getDeletedUsers();
+        if (!isAdmin() && isController()) {
+            deleted = deleted.stream()
+                    .filter(u -> !Role.ADMIN.equals(u.getRole()))
+                    .collect(Collectors.toList());
+        }
         return ApiResponseUtil.success("Deleted users fetched successfully", deleted, HttpStatus.OK);
     }
 

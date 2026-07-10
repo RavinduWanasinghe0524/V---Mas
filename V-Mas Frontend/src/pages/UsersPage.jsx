@@ -17,7 +17,7 @@ import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import api, { userAPI } from '../services/api'
 import { getDriverMetrics } from '../utils/driverUtils'
-import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car, BarChart2, Star, Activity, CheckCircle, RotateCcw, Archive, Trash2, User, FileText, Upload, Search } from 'lucide-react'
+import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car, BarChart2, Star, Activity, CheckCircle, RotateCcw, Archive, Trash2, User, FileText, Upload, Search, UserCog } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
@@ -128,13 +128,17 @@ const UsersPage = () => {
     setDeletedLoading(true)
     try {
       const res = await userAPI.getDeletedUsers()
-      setDeletedUsers(res.data.data || [])
+      let data = res.data.data || []
+      if (isController) {
+        data = data.filter(u => u.role !== 'ADMIN')
+      }
+      setDeletedUsers(data)
     } catch (err) {
       console.error('Error loading deleted users:', err)
     } finally {
       setDeletedLoading(false)
     }
-  }, [])
+  }, [isController])
 
   useEffect(() => {
     if (deletedDrawer) loadDeletedUsers()
@@ -181,6 +185,8 @@ const UsersPage = () => {
 
   const totalUsersCount = users.length
   const activeUsersCount = users.filter(u => u.accountStatus === 'ACTIVE').length
+  const controllersCount = users.filter(u => u.role === 'CONTROLLER').length
+  const driversCount = users.filter(u => u.role === 'DRIVER').length
   const pendingUsersCount = pendingUsers.length
   const suspendedUsersCount = users.filter(u => u.accountStatus === 'SUSPENDED').length
 
@@ -207,7 +213,11 @@ const UsersPage = () => {
       setError('')
       const res = await userAPI.getAllUsers()
       const data = res.data?.data || res.data || []
-      setUsers(Array.isArray(data) ? data : [])
+      let userList = Array.isArray(data) ? data : []
+      if (isController) {
+        userList = userList.filter(u => u.role !== 'ADMIN')
+      }
+      setUsers(userList)
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to load users')
       setUsers([])
@@ -457,6 +467,270 @@ const UsersPage = () => {
     }
   }
 
+  const renderUserCard = (u, i) => {
+    const metrics = getDriverMetrics(u, [])
+    const initials = u.userName
+      ? u.userName.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
+      : 'U'
+
+    // Duty status badge styles
+    let dutyStyles = {
+      bg: 'rgba(255,255,255,0.05)',
+      color: D.textSub,
+      border: `1px solid ${D.border}`
+    }
+    if (metrics.status === 'On Duty' || metrics.status === 'Active') {
+      dutyStyles = {
+        bg: 'rgba(52, 211, 153, 0.12)',
+        color: '#34d399',
+        border: '1px solid rgba(52, 211, 153, 0.25)'
+      }
+    } else if (metrics.status === 'On Leave' || metrics.status === 'Pending') {
+      dutyStyles = {
+        bg: 'rgba(251, 191, 36, 0.12)',
+        color: '#fbbf24',
+        border: '1px solid rgba(251, 191, 36, 0.25)'
+      }
+    } else if (metrics.status === 'Suspended' || metrics.status === 'Inactive') {
+      dutyStyles = {
+        bg: 'rgba(248, 113, 113, 0.12)',
+        color: '#f87171',
+        border: '1px solid rgba(248, 113, 113, 0.25)'
+      }
+    }
+
+    // Deterministic/Custom stats based on role
+    let statsToShow = []
+    if (u.role === 'ADMIN') {
+      statsToShow = [
+        { value: 'Full', label: 'Access' },
+        { value: 'Admin', label: 'Role' },
+        { value: metrics.status || 'Active', label: 'Status' }
+      ]
+    } else if (u.role === 'CONTROLLER') {
+      statsToShow = [
+        { value: 'High', label: 'Access' },
+        { value: 'Controller', label: 'Role' },
+        { value: metrics.status || 'Active', label: 'Status' }
+      ]
+    } else {
+      statsToShow = [
+        { value: 'Standard', label: 'Access' },
+        { value: u.role === 'DRIVER' ? 'Driver' : (u.role || 'User'), label: 'Role' },
+        { value: metrics.status || 'Active', label: 'Status' }
+      ]
+    }
+
+    return (
+      <div key={u.id} style={{
+        background: D.surface, border: `1px solid ${D.border}`, borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column', gap: 20,
+        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+        cursor: 'pointer'
+      }}
+        onClick={() => openProfile(u)}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.2)' }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)' }}>
+
+        {/* Header row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }}>
+            {/* Avatar */}
+            <div style={{ flexShrink: 0 }}>
+              {u.profilePicture ? (
+                <img
+                  src={u.profilePicture}
+                  alt={u.userName}
+                  style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${D.border}`, transition: 'transform 0.2s ease', cursor: 'pointer' }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.12)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                  onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`; }}
+                />
+              ) : (
+                <div
+                  style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, #38bdf8, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1rem', fontWeight: 800, border: `2px solid ${D.border}`, transition: 'transform 0.2s ease', cursor: 'pointer' }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.12)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  {initials}
+                </div>
+              )}
+            </div>
+            {/* Name and Subtitle */}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={u.userName}>{u.userName}</h4>
+              {u.role === 'DRIVER' ? (
+                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  Fleet Driver
+                </p>
+              ) : (
+                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={u.role === 'ADMIN' ? 'Fleet Administrator' : 'Fleet Controller'}>
+                  {u.role === 'ADMIN' ? 'Fleet Administrator' : 'Fleet Controller'}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Duty Status Badge */}
+          <div style={{
+            padding: '4px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 700,
+            background: dutyStyles.bg, color: dutyStyles.color, border: dutyStyles.border,
+            textTransform: 'uppercase', letterSpacing: '0.02em', flexShrink: 0
+          }}>
+            {metrics.status}
+          </div>
+        </div>
+
+        {/* Stats Cards Row */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+          {statsToShow.map((st, sidx) => {
+            let themeStyles = {}
+            let stIcon = null
+
+            if (sidx === 0) {
+              themeStyles = {
+                bg: isDark ? 'rgba(59, 130, 246, 0.04)' : 'rgba(59, 130, 246, 0.02)',
+                border: isDark ? '1px solid rgba(59, 130, 246, 0.15)' : '1px solid rgba(59, 130, 246, 0.1)',
+                color: D.blue
+              }
+              stIcon = u.role === 'DRIVER' ? <BarChart2 size={11} style={{ color: D.blue }} /> : <ShieldCheck size={11} style={{ color: D.blue }} />
+            } else if (sidx === 1) {
+              themeStyles = {
+                bg: isDark ? 'rgba(245, 158, 11, 0.03)' : 'rgba(245, 158, 11, 0.02)',
+                border: isDark ? '1px solid rgba(245, 158, 11, 0.15)' : '1px solid rgba(245, 158, 11, 0.1)',
+                color: '#fbbf24'
+              }
+              stIcon = u.role === 'DRIVER' ? <Star size={11} style={{ color: '#fbbf24' }} /> : <Shield size={11} style={{ color: '#fbbf24' }} />
+            } else {
+              themeStyles = {
+                bg: isDark ? 'rgba(16, 185, 129, 0.04)' : 'rgba(16, 185, 129, 0.02)',
+                border: isDark ? '1px solid rgba(16, 185, 129, 0.15)' : '1px solid rgba(16, 185, 129, 0.1)',
+                color: '#10b981'
+              }
+              stIcon = u.role === 'DRIVER' ? <Activity size={11} style={{ color: '#10b981' }} /> : <CheckCircle size={11} style={{ color: '#10b981' }} />
+            }
+
+            return (
+              <div key={sidx} style={{
+                background: themeStyles.bg,
+                border: themeStyles.border,
+                borderRadius: 16, padding: '14px 6px', textAlign: 'center',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                  {stIcon}
+                  <span style={{ fontSize: '0.62rem', fontWeight: 800, color: themeStyles.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{st.label}</span>
+                </div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 900, color: st.isRating || st.isSafety ? themeStyles.color : D.text }}>{st.value}</div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Contact & License Info */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
+            <Phone size={14} style={{ color: D.textSub, flexShrink: 0 }} />
+            <span>{u.phoneNumber || metrics.phone}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
+            {u.role === 'DRIVER' ? (
+              <>
+                <IdCard size={14} style={{ color: D.textSub, flexShrink: 0 }} />
+                <span>{u.licenseNumber || metrics.license}</span>
+              </>
+            ) : (
+              <>
+                <Shield size={14} style={{ color: D.textSub, flexShrink: 0 }} />
+                <span>NIC: {u.nic || 'N/A'} · Gender: {u.gender || 'N/A'}</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Action Buttons Row */}
+        {(u.accountStatus === 'PENDING' || (!isController || u.role !== 'ADMIN')) && (
+          <div style={{ borderTop: `1px solid ${D.border}`, margin: '8px 0 0', paddingTop: '16px', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            {u.accountStatus === 'PENDING' ? (
+              <>
+                <button onClick={(e) => { e.stopPropagation(); handleApprove(u.id, u.userName); }} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: D.green, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.green}30` }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                  <Check size={14} /> Approve
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); handleReject(u.id, u.userName); }} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: D.red, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.red}30` }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                  <X size={14} /> Reject
+                </button>
+              </>
+            ) : (
+              (!isController || u.role !== 'ADMIN') && (
+                <>
+                  <button onClick={(e) => { e.stopPropagation(); handleEdit(u); }} style={{ padding: '8px 16px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.15)'; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.color = '#60a5fa' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
+                    Edit
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); setUserToDelete(u); }} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = D.red }}>
+                    Delete
+                  </button>
+                </>
+              )
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const renderGroup = (title, items) => {
+    if (items.length === 0) return null
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 40 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: `2px solid ${D.border}`, paddingBottom: 12 }}>
+          <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>{title}</h3>
+          <span style={{ background: D.surfaceHi, color: D.textSub, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700 }}>{items.length}</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 }}>
+          {items.map((u, i) => renderUserCard(u, i))}
+        </div>
+      </div>
+    )
+  }
+
+  const renderGroupedUsers = () => {
+    if (roleFilter === 'ALL') {
+      const admins = filteredUsers.filter(u => u.role === 'ADMIN')
+      const controllers = filteredUsers.filter(u => u.role === 'CONTROLLER')
+      const drivers = filteredUsers.filter(u => u.role === 'DRIVER')
+
+      return (
+        <>
+          {renderGroup("Administrators", admins)}
+          {renderGroup("Controllers", controllers)}
+          {renderGroup("Drivers", drivers)}
+        </>
+      )
+    } else {
+      const activeItems = filteredUsers.filter(u => u.accountStatus === 'ACTIVE')
+      const pendingItems = filteredUsers.filter(u => u.accountStatus === 'PENDING')
+      const suspendedItems = filteredUsers.filter(u => u.accountStatus === 'SUSPENDED')
+      const inactiveItems = filteredUsers.filter(u => u.accountStatus === 'INACTIVE')
+
+      // Capitalize role name for title
+      const roleTitle = roleFilter.charAt(0) + roleFilter.slice(1).toLowerCase() + 's'
+
+      return (
+        <>
+          {renderGroup(`Active ${roleTitle}`, activeItems)}
+          {renderGroup(`Pending ${roleTitle}`, pendingItems)}
+          {renderGroup(`Suspended ${roleTitle}`, suspendedItems)}
+          {renderGroup(`Inactive ${roleTitle}`, inactiveItems)}
+        </>
+      )
+    }
+  }
+
   if (!isAdmin && !isController) {
     return (
       <div className="app-shell" style={{ background: D.bg }}>
@@ -546,19 +820,74 @@ const UsersPage = () => {
             {isAdmin && (
               <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
                 {[
-                  { label: 'Total Users', count: totalUsersCount, icon: <Users size={24} />, color: D.blue, bg: D.blueDim },
-                  { label: 'Active Users', count: activeUsersCount, icon: <UserCheck size={24} />, color: D.green, bg: D.greenDim },
-                  { label: 'Pending Approvals', count: pendingUsersCount, icon: <Clock size={24} />, color: D.gold, bg: D.goldDim },
-                  { label: 'Suspended', count: suspendedUsersCount, icon: <AlertCircle size={24} />, color: D.red, bg: D.redDim },
+                  {
+                    label: 'Total Users',
+                    count: totalUsersCount,
+                    icon: <Users size={24} />,
+                    color: D.purple,
+                    bg: D.purpleDim,
+                    isActive: roleFilter === 'ALL' && statusFilter === 'ALL',
+                    onClick: () => { setRoleFilter('ALL'); setStatusFilter('ALL'); setSearchTerm(''); }
+                  },
+                  {
+                    label: 'Controllers',
+                    count: controllersCount,
+                    icon: <UserCog size={24} />,
+                    color: D.blue,
+                    bg: D.blueDim,
+                    isActive: roleFilter === 'CONTROLLER' && statusFilter === 'ALL',
+                    onClick: () => { setRoleFilter('CONTROLLER'); setStatusFilter('ALL'); setSearchTerm(''); }
+                  },
+                  {
+                    label: 'Drivers',
+                    count: driversCount,
+                    icon: <Car size={24} />,
+                    color: D.green,
+                    bg: D.greenDim,
+                    isActive: roleFilter === 'DRIVER' && statusFilter === 'ALL',
+                    onClick: () => { setRoleFilter('DRIVER'); setStatusFilter('ALL'); setSearchTerm(''); }
+                  },
+                  {
+                    label: 'Pending Approvals',
+                    count: pendingUsersCount,
+                    icon: <Clock size={24} />,
+                    color: D.gold,
+                    bg: D.goldDim,
+                    isActive: statusFilter === 'PENDING',
+                    onClick: () => { setRoleFilter('ALL'); setStatusFilter('PENDING'); setSearchTerm(''); }
+                  },
                 ].map((card, idx) => (
                   <div
                     key={idx}
+                    onClick={card.onClick}
                     style={{
-                      background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 4px 24px rgba(0,0,0,0.25)', overflow: 'hidden', padding: '28px', display: 'flex', alignItems: 'center', gap: 24,
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', cursor: 'default'
+                      background: card.isActive ? card.bg : D.surface,
+                      borderRadius: 24,
+                      border: card.isActive ? `2px solid ${card.color}` : `1px solid ${D.border}`,
+                      boxShadow: card.isActive ? `0 12px 30px ${card.color}25` : '0 4px 24px rgba(0,0,0,0.25)',
+                      overflow: 'hidden',
+                      padding: '28px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 24,
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      cursor: 'pointer',
+                      transform: card.isActive ? 'translateY(-4px)' : 'translateY(0)'
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.borderColor = card.color + '50'; e.currentTarget.style.boxShadow = `0 16px 32px ${card.color}20` }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)' }}
+                    onMouseEnter={e => {
+                      if (!card.isActive) {
+                        e.currentTarget.style.transform = 'translateY(-6px)';
+                        e.currentTarget.style.borderColor = card.color + '50';
+                        e.currentTarget.style.boxShadow = `0 16px 32px ${card.color}20`;
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!card.isActive) {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.borderColor = D.border;
+                        e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)';
+                      }
+                    }}
                   >
                     <div style={{ width: 60, height: 60, borderRadius: 18, background: card.bg, color: card.color, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${card.color}30`, flexShrink: 0 }}>
                       {card.icon}
@@ -702,7 +1031,7 @@ const UsersPage = () => {
                     }}
                   >
                     <option value="ALL">All Roles</option>
-                    <option value="ADMIN">Admin</option>
+                    {!isController && <option value="ADMIN">Admin</option>}
                     <option value="CONTROLLER">Controller</option>
                     <option value="DRIVER">Driver</option>
                   </select>
@@ -753,224 +1082,7 @@ const UsersPage = () => {
                   ) : filteredUsers.length === 0 ? (
                     <div style={{ textAlign: 'center', color: D.textSub, padding: 40 }}>No users found matching filters.</div>
                   ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 }}>
-                      {filteredUsers.map((u, i) => {
-                        const metrics = getDriverMetrics(u, [])
-                        const initials = u.userName
-                          ? u.userName.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
-                          : 'U'
-
-                        // Duty status badge styles
-                        let dutyStyles = {
-                          bg: 'rgba(255,255,255,0.05)',
-                          color: D.textSub,
-                          border: `1px solid ${D.border}`
-                        }
-                        if (metrics.status === 'On Duty' || metrics.status === 'Active') {
-                          dutyStyles = {
-                            bg: 'rgba(52, 211, 153, 0.12)',
-                            color: '#34d399',
-                            border: '1px solid rgba(52, 211, 153, 0.25)'
-                          }
-                        } else if (metrics.status === 'On Leave' || metrics.status === 'Pending') {
-                          dutyStyles = {
-                            bg: 'rgba(251, 191, 36, 0.12)',
-                            color: '#fbbf24',
-                            border: '1px solid rgba(251, 191, 36, 0.25)'
-                          }
-                        } else if (metrics.status === 'Suspended' || metrics.status === 'Inactive') {
-                          dutyStyles = {
-                            bg: 'rgba(248, 113, 113, 0.12)',
-                            color: '#f87171',
-                            border: '1px solid rgba(248, 113, 113, 0.25)'
-                          }
-                        }
-
-                        // Deterministic/Custom stats based on role
-                        let statsToShow = []
-                        if (u.role === 'ADMIN') {
-                          statsToShow = [
-                            { value: 'Full', label: 'Access' },
-                            { value: 'Admin', label: 'Role' },
-                            { value: metrics.status || 'Active', label: 'Status' }
-                          ]
-                        } else if (u.role === 'CONTROLLER') {
-                          statsToShow = [
-                            { value: 'High', label: 'Access' },
-                            { value: 'Controller', label: 'Role' },
-                            { value: metrics.status || 'Active', label: 'Status' }
-                          ]
-                        } else {
-                          statsToShow = [
-                            { value: 'Standard', label: 'Access' },
-                            { value: u.role === 'DRIVER' ? 'Driver' : (u.role || 'User'), label: 'Role' },
-                            { value: metrics.status || 'Active', label: 'Status' }
-                          ]
-                        }
-
-                        return (
-                          <div key={u.id} style={{
-                            background: D.surface, border: `1px solid ${D.border}`, borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column', gap: 20,
-                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                            cursor: 'pointer'
-                          }}
-                            onClick={() => openProfile(u)}
-                            onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.2)' }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)' }}>
-
-                            {/* Header row */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }}>
-                                {/* Avatar */}
-                                <div style={{ flexShrink: 0 }}>
-                                  {u.profilePicture ? (
-                                    <img
-                                      src={u.profilePicture}
-                                      alt={u.userName}
-                                      style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${D.border}`, transition: 'transform 0.2s ease', cursor: 'pointer' }}
-                                      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.12)'}
-                                      onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                                      onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`; }}
-                                    />
-                                  ) : (
-                                    <div
-                                      style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, #38bdf8, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1rem', fontWeight: 800, border: `2px solid ${D.border}`, transition: 'transform 0.2s ease', cursor: 'pointer' }}
-                                      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.12)'}
-                                      onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                                    >
-                                      {initials}
-                                    </div>
-                                  )}
-                                </div>
-                                {/* Name and Subtitle */}
-                                <div style={{ minWidth: 0, flex: 1 }}>
-                                  <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={u.userName}>{u.userName}</h4>
-                                  {u.role === 'DRIVER' ? (
-                                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                      Fleet Driver
-                                    </p>
-                                  ) : (
-                                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={u.role === 'ADMIN' ? 'Fleet Administrator' : 'Fleet Controller'}>
-                                      {u.role === 'ADMIN' ? 'Fleet Administrator' : 'Fleet Controller'}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Duty Status Badge */}
-                              <div style={{
-                                padding: '4px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 700,
-                                background: dutyStyles.bg, color: dutyStyles.color, border: dutyStyles.border,
-                                textTransform: 'uppercase', letterSpacing: '0.02em', flexShrink: 0
-                              }}>
-                                {metrics.status}
-                              </div>
-                            </div>
-
-                            {/* Stats Cards Row */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-                              {statsToShow.map((st, sidx) => {
-                                let themeStyles = {}
-                                let stIcon = null
-
-                                if (sidx === 0) {
-                                  themeStyles = {
-                                    bg: isDark ? 'rgba(59, 130, 246, 0.04)' : 'rgba(59, 130, 246, 0.02)',
-                                    border: isDark ? '1px solid rgba(59, 130, 246, 0.15)' : '1px solid rgba(59, 130, 246, 0.1)',
-                                    color: D.blue
-                                  }
-                                  stIcon = u.role === 'DRIVER' ? <BarChart2 size={11} style={{ color: D.blue }} /> : <ShieldCheck size={11} style={{ color: D.blue }} />
-                                } else if (sidx === 1) {
-                                  themeStyles = {
-                                    bg: isDark ? 'rgba(245, 158, 11, 0.03)' : 'rgba(245, 158, 11, 0.02)',
-                                    border: isDark ? '1px solid rgba(245, 158, 11, 0.15)' : '1px solid rgba(245, 158, 11, 0.1)',
-                                    color: '#fbbf24'
-                                  }
-                                  stIcon = u.role === 'DRIVER' ? <Star size={11} style={{ color: '#fbbf24' }} /> : <Shield size={11} style={{ color: '#fbbf24' }} />
-                                } else {
-                                  themeStyles = {
-                                    bg: isDark ? 'rgba(16, 185, 129, 0.04)' : 'rgba(16, 185, 129, 0.02)',
-                                    border: isDark ? '1px solid rgba(16, 185, 129, 0.15)' : '1px solid rgba(16, 185, 129, 0.1)',
-                                    color: '#10b981'
-                                  }
-                                  stIcon = u.role === 'DRIVER' ? <Activity size={11} style={{ color: '#10b981' }} /> : <CheckCircle size={11} style={{ color: '#10b981' }} />
-                                }
-
-                                return (
-                                  <div key={sidx} style={{
-                                    background: themeStyles.bg,
-                                    border: themeStyles.border,
-                                    borderRadius: 16, padding: '14px 6px', textAlign: 'center',
-                                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
-                                  }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
-                                      {stIcon}
-                                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: themeStyles.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{st.label}</span>
-                                    </div>
-                                    <div style={{ fontSize: '1.1rem', fontWeight: 900, color: st.isRating || st.isSafety ? themeStyles.color : D.text }}>{st.value}</div>
-                                  </div>
-                                )
-                              })}
-                            </div>
-
-                            {/* Contact & License Info */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
-                                <Phone size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                                <span>{u.phoneNumber || metrics.phone}</span>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
-                                {u.role === 'DRIVER' ? (
-                                  <>
-                                    <IdCard size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                                    <span>{u.licenseNumber || metrics.license}</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Shield size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                                    <span>NIC: {u.nic || 'N/A'} · Gender: {u.gender || 'N/A'}</span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Action Buttons Row */}
-                            {(u.accountStatus === 'PENDING' || (!isController || u.role !== 'ADMIN')) && (
-                              <div style={{ borderTop: `1px solid ${D.border}`, margin: '8px 0 0', paddingTop: '16px', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                                {u.accountStatus === 'PENDING' ? (
-                                  <>
-                                    <button onClick={(e) => { e.stopPropagation(); handleApprove(u.id, u.userName); }} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: D.green, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.green}30` }}
-                                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                                      <Check size={14} /> Approve
-                                    </button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleReject(u.id, u.userName); }} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: D.red, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.red}30` }}
-                                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                                      <X size={14} /> Reject
-                                    </button>
-                                  </>
-                                ) : (
-                                  (!isController || u.role !== 'ADMIN') && (
-                                    <>
-                                      <button onClick={(e) => { e.stopPropagation(); handleEdit(u); }} style={{ padding: '8px 16px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
-                                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.15)'; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.color = '#60a5fa' }}
-                                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
-                                        Edit
-                                      </button>
-                                      <button onClick={(e) => { e.stopPropagation(); setUserToDelete(u); }} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
-                                        onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
-                                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = D.red }}>
-                                        Delete
-                                      </button>
-                                    </>
-                                  )
-                                )}
-                              </div>
-                            )}
-
-                          </div>
-                        )
-                      })}
-                    </div>
+                    renderGroupedUsers()
                   )}
                 </div>
               </div>

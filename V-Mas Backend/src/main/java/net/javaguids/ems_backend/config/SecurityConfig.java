@@ -69,6 +69,9 @@ public class SecurityConfig {
                         // ── Fuel ────────────────────────────────────────────────
                         .requestMatchers("/api/fuel/**").authenticated()
 
+                        // ── Trips — endpoint-level rules enforced via @PreAuthorize ──
+                        .requestMatchers("/api/trips/**").authenticated()
+
                         // ── Vehicles ─────────────────────────────────────────────
                         .requestMatchers("/api/vehicles/**").authenticated()
 

@@ -3,7 +3,7 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useD, useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
-import { fuelAPI, vehicleAPI } from '../services/api'
+import { fuelAPI, vehicleAPI, tripAPI } from '../services/api'
 import { addDriverNotification } from '../services/notificationService'
 import { Fuel, CircleDollarSign, BarChart2, Car, Check, X, Plus, Loader2, Calendar, Gauge } from 'lucide-react'
 
@@ -85,6 +85,7 @@ const FuelLogPage = () => {
   const [loading, setLoading] = useState(true)
   const [allVehicles, setAllVehicles] = useState([])
   const [selectedVehicleInfo, setSelectedVehicleInfo] = useState(null)
+  const [activeTrip, setActiveTrip] = useState(null)
 
   const [formData, setFormData] = useState({
     vehicleRegNumber: '',
@@ -105,9 +106,10 @@ const FuelLogPage = () => {
     const loadData = async () => {
       try {
         setLoading(true)
-        const [logsRes, vehicleRes] = await Promise.allSettled([
+        const [logsRes, vehicleRes, tripsRes] = await Promise.allSettled([
           fuelAPI.getMyLogs(),
           vehicleAPI.getAllVehicles(),
+          user?.role === 'DRIVER' ? tripAPI.getMyTrips() : Promise.resolve(null)
         ])
         
         if (logsRes.status === 'fulfilled') {
@@ -123,6 +125,12 @@ const FuelLogPage = () => {
           const vList = vehicleRes.value.data.data || []
           setAllVehicles(vList)
         }
+
+        if (tripsRes && tripsRes.status === 'fulfilled' && tripsRes.value) {
+          const tripsList = tripsRes.value.data?.data || []
+          const activeStartedTrip = tripsList.find(t => (t.status || '').toUpperCase() === 'STARTED')
+          setActiveTrip(activeStartedTrip || null)
+        }
       } catch (err) {
         console.error('Error loading fuel log data:', err)
       } finally {
@@ -131,6 +139,32 @@ const FuelLogPage = () => {
     }
     loadData()
   }, [user])
+
+  // Pre-fill active trip vehicle when opening modal
+  useEffect(() => {
+    if (showAddModal && activeTrip?.vehicleRegNumber && allVehicles.length > 0) {
+      const reg = activeTrip.vehicleRegNumber
+      const selectedVehicle = allVehicles.find(v => v.registrationNo === reg)
+      setSelectedVehicleInfo(selectedVehicle || null)
+      
+      const vehicleLogs = myVehicleLogs.filter(log => log.vehicleRegNumber === reg)
+      const lastLogMil = vehicleLogs.length > 0 ? Number(vehicleLogs[0].mileage) : 0
+      const vehicleMil = selectedVehicle?.currentMileageKm ? Number(selectedVehicle.currentMileageKm) : 0
+      const baselineMil = Math.max(lastLogMil, vehicleMil) || null
+      setPreviousMileage(baselineMil)
+
+      setFormData(prev => ({
+        ...prev,
+        vehicleRegNumber: reg,
+        fuelType: selectedVehicle?.fuelType ? getFuelLogType(selectedVehicle.fuelType) : prev.fuelType,
+        mileage: baselineMil != null ? String(baselineMil) : '',
+        chargingCost: '',
+        liters: '',
+        costPerLiter: '',
+      }))
+      setMileageError('')
+    }
+  }, [showAddModal, activeTrip, allVehicles, myVehicleLogs])
 
   // Handle form input change
   const handleInputChange = (e) => {
@@ -470,22 +504,53 @@ const FuelLogPage = () => {
             <form onSubmit={handleAddFuelLog} style={{ padding: '36px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 30px', marginBottom: 40 }}>
                 <div style={{ gridColumn: '1 / -1' }}>
+                  {activeTrip && (
+                    <div style={{
+                      marginBottom: 12,
+                      padding: '10px 14px',
+                      borderRadius: 8,
+                      background: 'rgba(59,130,246,0.1)',
+                      border: '1px solid rgba(59,130,246,0.2)',
+                      fontSize: '0.8rem',
+                      color: D.textSub,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8
+                    }}>
+                      <span style={{ color: D.indigo, fontWeight: 700 }}>⚠️ Active Trip:</span>
+                      You are currently on an active trip. You can only log fuel for the vehicle assigned to this trip ({activeTrip.vehicleRegNumber}).
+                    </div>
+                  )}
                   <label style={labelStyle}>Vehicle <span style={{ color: D.red }}>*</span></label>
                   <select
                     name="vehicleRegNumber"
                     value={formData.vehicleRegNumber}
                     onChange={handleInputChange}
                     required
-                    style={{ ...inputStyle, cursor: 'pointer' }}
+                    style={{ ...inputStyle, cursor: activeTrip ? 'not-allowed' : 'pointer' }}
                     onFocus={onFocus}
                     onBlur={onBlur}
+                    disabled={!!activeTrip}
                   >
-                    <option value="" style={{ background: D.surfaceHi }}>— Select a vehicle —</option>
-                    {allVehicles.map(v => (
-                      <option key={v.id} value={v.registrationNo} style={{ background: D.surfaceHi }}>
-                        {v.registrationNo} — {v.manufacturer} {v.model} {v.currentMileageKm ? `(${v.currentMileageKm.toLocaleString()} km)` : ''}
-                      </option>
-                    ))}
+                    {activeTrip ? (
+                      (() => {
+                        const v = allVehicles.find(veh => veh.registrationNo === activeTrip.vehicleRegNumber);
+                        return (
+                          <option value={activeTrip.vehicleRegNumber} style={{ background: D.surfaceHi }}>
+                            {activeTrip.vehicleRegNumber} {v ? `— ${v.manufacturer} ${v.model}` : ''}
+                          </option>
+                        );
+                      })()
+                    ) : (
+                      <>
+                        <option value="" style={{ background: D.surfaceHi }}>— Select a vehicle —</option>
+                        {allVehicles.map(v => (
+                          <option key={v.id} value={v.registrationNo} style={{ background: D.surfaceHi }}>
+                            {v.registrationNo} — {v.manufacturer} {v.model} {v.currentMileageKm ? `(${v.currentMileageKm.toLocaleString()} km)` : ''}
+                          </option>
+                        ))}
+                      </>
+                    )}
                   </select>
 
                   {/* Live vehicle info card — shown when a vehicle is selected */}

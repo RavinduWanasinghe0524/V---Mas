@@ -21,6 +21,7 @@ const FuelLogPage       = lazy(() => import('./pages/FuelLogPage'))
 const FuelManagementPage = lazy(() => import('./pages/FuelManagementPage'))
 const LocationPage      = lazy(() => import('./pages/LocationPage'))
 const ReportsPage       = lazy(() => import('./pages/ReportsPage'))
+const TripsPage         = lazy(() => import('./pages/TripsPage'))
 
 // ── Suspense fallback — matches the app's dark theme ─────────────────────
 const PageLoader = () => (
@@ -121,6 +122,7 @@ function App() {
             <Route path="/fuel-management"  element={<PrivateRoute><FuelManagementPage /></PrivateRoute>} />
             <Route path="/location"         element={<PrivateRoute><LocationPage /></PrivateRoute>} />
             <Route path="/reports"          element={<PrivateRoute><ReportsPage /></PrivateRoute>} />
+            <Route path="/trips"            element={<PrivateRoute><TripsPage /></PrivateRoute>} />
             <Route path="/"                 element={<Navigate to="/login" replace />} />
           </Routes>
         </Suspense>

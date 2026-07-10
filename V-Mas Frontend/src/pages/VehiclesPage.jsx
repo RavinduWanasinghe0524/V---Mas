@@ -20,29 +20,35 @@ const onBlur = e => {
 }
 
 
-const StatBadge = ({ label, value, icon, colorDim, colorHex, D, total }) => {
+const StatBadge = ({ label, value, icon, colorDim, colorHex, D, total, isActive, onClick }) => {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0
   return (
     <div
+      onClick={onClick}
       style={{
-        background: D.surface,
+        background: isActive ? colorDim : D.surface,
         borderRadius: 20,
-        border: `1px solid ${D.border}`,
+        border: isActive ? `2px solid ${colorHex}` : `1px solid ${D.border}`,
         overflow: 'hidden',
         position: 'relative',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        cursor: 'default',
-        boxShadow: `0 4px 24px rgba(0,0,0,0.2)`,
+        cursor: onClick ? 'pointer' : 'default',
+        boxShadow: isActive ? `0 8px 24px ${colorHex}25` : `0 4px 24px rgba(0,0,0,0.2)`,
+        transform: isActive ? 'translateY(-4px)' : 'translateY(0)'
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translateY(-5px)'
-        e.currentTarget.style.borderColor = colorHex + '55'
-        e.currentTarget.style.boxShadow = `0 16px 40px ${colorHex}25, 0 4px 12px rgba(0,0,0,0.25)`
+        if (!isActive && onClick) {
+          e.currentTarget.style.transform = 'translateY(-5px)'
+          e.currentTarget.style.borderColor = colorHex + '55'
+          e.currentTarget.style.boxShadow = `0 16px 40px ${colorHex}25, 0 4px 12px rgba(0,0,0,0.25)`
+        }
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.transform = 'translateY(0)'
-        e.currentTarget.style.borderColor = D.border
-        e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.2)'
+        if (!isActive && onClick) {
+          e.currentTarget.style.transform = 'translateY(0)'
+          e.currentTarget.style.borderColor = D.border
+          e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.2)'
+        }
       }}
     >
       {/* Top gradient accent bar */}
@@ -1424,10 +1430,10 @@ const VehiclesPage = () => {
 
             {/* Stats row */}
             <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, marginBottom: 36 }}>
-              <StatBadge label="Total Vehicles" value={vehicles.length} icon={<Car size={22} />} colorDim={D.purpleDim} colorHex={D.purple} D={D} total={0} />
-              <StatBadge label="Active" value={counts.ACTIVE} icon={<CheckCircle size={22} />} colorDim={D.greenDim} colorHex={D.green} D={D} total={vehicles.length} />
-              <StatBadge label="In Service" value={counts.SERVICE} icon={<Wrench size={22} />} colorDim={D.orangeDim} colorHex={D.orange} D={D} total={vehicles.length} />
-              <StatBadge label="Available" value={counts.AVAILABLE} icon={<Circle size={22} />} colorDim={D.blueDim} colorHex={D.blue} D={D} total={vehicles.length} />
+              <StatBadge label="Total Vehicles" value={vehicles.length} icon={<Car size={22} />} colorDim={D.purpleDim} colorHex={D.purple} D={D} total={0} isActive={filter === 'ALL'} onClick={() => setFilter('ALL')} />
+              <StatBadge label="Active" value={counts.ACTIVE} icon={<CheckCircle size={22} />} colorDim={D.greenDim} colorHex={D.green} D={D} total={vehicles.length} isActive={filter === 'ACTIVE'} onClick={() => setFilter('ACTIVE')} />
+              <StatBadge label="In Service" value={counts.SERVICE} icon={<Wrench size={22} />} colorDim={D.orangeDim} colorHex={D.orange} D={D} total={vehicles.length} isActive={filter === 'SERVICE'} onClick={() => setFilter('SERVICE')} />
+              <StatBadge label="Available" value={counts.AVAILABLE} icon={<Circle size={22} />} colorDim={D.blueDim} colorHex={D.blue} D={D} total={vehicles.length} isActive={filter === 'AVAILABLE'} onClick={() => setFilter('AVAILABLE')} />
             </div>
 
             {/* Toolbar & List Container */}
