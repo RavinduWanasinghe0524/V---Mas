@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import { tripAPI, userAPI, vehicleAPI, serviceAPI } from '../services/api'
 import {
   MapPin, Navigation, Car, User, Calendar, Plus, Loader2,
-  Play, X, CheckCircle, Ban, Clock, MoreVertical, ClipboardList, Wrench, Fuel, AlertTriangle,
+  Play, X, CheckCircle, Ban, Clock, MoreVertical, ClipboardList, Wrench, Fuel, AlertTriangle, UserCheck,
 } from 'lucide-react'
 
 // ── Helpers to parse job type from purpose field ──────────────────────────
@@ -230,6 +230,18 @@ const TripsPage = () => {
   }
 
   const closeAssignModal = () => { if (!submitting) { setShowAssignModal(false); setForm(emptyForm) } }
+
+  // When a vehicle is selected in the modal, auto-fill the assigned driver (but allow override)
+  const handleVehicleChange = (regNo) => {
+    const selected = vehicles.find(v => v.registrationNo === regNo)
+    setForm(prev => ({
+      ...prev,
+      vehicleRegNumber: regNo,
+      // Auto-fill driver only if the vehicle has one and the driver field is currently empty OR
+      // was previously auto-filled (i.e. no manual override)
+      driverUsername: selected?.driverUsername || prev.driverUsername
+    }))
+  }
 
   const confirmCancel = async () => {
     if (!tripToCancel) return
@@ -559,10 +571,16 @@ const TripsPage = () => {
                 </div>
                 <div>
                   <label style={labelStyle}>Vehicle *</label>
-                  <select style={inputStyle} value={form.vehicleRegNumber} onChange={e => setForm(f => ({ ...f, vehicleRegNumber: e.target.value }))} onFocus={onFocus} onBlur={onBlur}>
+                  <select style={inputStyle} value={form.vehicleRegNumber} onChange={e => handleVehicleChange(e.target.value)} onFocus={onFocus} onBlur={onBlur}>
                     <option value="">Select vehicle…</option>
-                    {vehicles.map(v => <option key={v.id} value={v.registrationNo}>{v.registrationNo}{v.model ? ` — ${v.model}` : ''}</option>)}
+                    {vehicles.map(v => <option key={v.id} value={v.registrationNo}>{v.registrationNo}{v.model ? ` — ${v.model}` : ''}{v.driverUsername ? ` 👤 ${v.driverUsername}` : ''}</option>)}
                   </select>
+                  {/* Show auto-fill hint */}
+                  {form.vehicleRegNumber && vehicles.find(v => v.registrationNo === form.vehicleRegNumber)?.driverUsername && (
+                    <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: D.green, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <UserCheck size={11} /> Driver auto-filled from vehicle assignment
+                    </p>
+                  )}
                 </div>
                 
                 {activeTab === 'TRIP' && (

@@ -3,10 +3,13 @@ package net.javaguids.ems_backend.service.impl;
 import lombok.AllArgsConstructor;
 import net.javaguids.ems_backend.dto.VehicleDto;
 import net.javaguids.ems_backend.dto.VehicleMileageUpdateDto;
+import net.javaguids.ems_backend.entity.User;
 import net.javaguids.ems_backend.entity.Vehicle;
 import net.javaguids.ems_backend.entity.ServiceRecord;
+import net.javaguids.ems_backend.enums.Role;
 import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.mapper.VehicleMapper;
+import net.javaguids.ems_backend.repository.UserRepository;
 import net.javaguids.ems_backend.repository.VehicleRepository;
 import net.javaguids.ems_backend.repository.ServiceIntervalRepository;
 import net.javaguids.ems_backend.repository.ServiceRecordRepository;
@@ -23,6 +26,7 @@ import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
+@SuppressWarnings("null")
 public class VehicleServiceImpl implements VehicleService {
 
     private final VehicleRepository vehicleRepository;
@@ -30,6 +34,7 @@ public class VehicleServiceImpl implements VehicleService {
     private final ServiceIntervalRepository serviceIntervalRepository;
     private final ServiceRecordRepository serviceRecordRepository;
     private final StorageService storageService;
+    private final UserRepository userRepository;
 
 
     @Override
@@ -330,5 +335,52 @@ public class VehicleServiceImpl implements VehicleService {
                 );
             }
         }
+    }
+
+    // ── Assign / Unassign Driver ─────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public VehicleDto assignDriver(Long vehicleId, String driverUsername) {
+        Vehicle vehicle = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found: " + vehicleId));
+
+        if (driverUsername == null || driverUsername.isBlank()) {
+            // Unassign current driver
+            vehicle.setDriver(null);
+        } else {
+            User driver = userRepository.findByUserName(driverUsername)
+                    .orElseThrow(() -> new ResourceNotFoundException("Driver not found: " + driverUsername));
+
+            if (driver.getRole() != Role.DRIVER) {
+                throw new RuntimeException("User '" + driverUsername + "' is not a Driver.");
+            }
+
+            // Check if this driver is already assigned to a DIFFERENT vehicle
+            vehicleRepository.findByAssigneeUsername(driverUsername).ifPresent(existing -> {
+                if (!existing.getId().equals(vehicleId)) {
+                    throw new RuntimeException("Driver '" + driverUsername + "' is already assigned to vehicle "
+                            + existing.getRegistrationNo() + ". Unassign them first.");
+                }
+            });
+
+            vehicle.setDriver(driver);
+
+            notificationService.createNotification(
+                    "ASSIGN-" + vehicle.getRegistrationNo(),
+                    "You have been assigned as the driver for vehicle " + vehicle.getRegistrationNo() + ".",
+                    "INFO"
+            );
+        }
+
+        Vehicle saved = vehicleRepository.save(vehicle);
+        return VehicleMapper.mapToVehicleDto(saved);
+    }
+
+    @Override
+    public VehicleDto getMyVehicle(String driverUsername) {
+        Vehicle vehicle = vehicleRepository.findByAssigneeUsername(driverUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("No vehicle is currently assigned to you."));
+        return VehicleMapper.mapToVehicleDto(vehicle);
     }
 }

@@ -104,7 +104,10 @@ export const vehicleAPI = {
   getDocumentUrl: (id, docType) => `${API_BASE_URL}/vehicles/${id}/document/${docType}`,
   getDeletedVehicles: () => api.get('/vehicles/deleted'),
   restoreVehicle: (id) => api.patch(`/vehicles/${id}/restore`),
-  updateBulkMileage: (payload) => api.post('/vehicles/bulk-mileage', payload)
+  updateBulkMileage: (payload) => api.post('/vehicles/bulk-mileage', payload),
+  assignDriver:   (id, driverUsername) => api.patch(`/vehicles/${id}/assign-driver`, { driverUsername: driverUsername ?? null }),
+  unassignDriver: (id)                 => api.patch(`/vehicles/${id}/assign-driver`, { driverUsername: null }),
+  getMyVehicle:   ()                   => api.get('/vehicles/my-vehicle'),
 }
 
 export const fuelAPI = {

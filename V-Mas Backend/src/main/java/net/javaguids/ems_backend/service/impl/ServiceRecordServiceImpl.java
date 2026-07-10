@@ -36,6 +36,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@SuppressWarnings("null")
 public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     private final ServiceRecordRepository serviceRecordRepository;

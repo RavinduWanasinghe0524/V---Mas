@@ -86,6 +86,7 @@ const FuelLogPage = () => {
   const [allVehicles, setAllVehicles] = useState([])
   const [selectedVehicleInfo, setSelectedVehicleInfo] = useState(null)
   const [activeTrip, setActiveTrip] = useState(null)
+  const [myAssignedVehicle, setMyAssignedVehicle] = useState(null)
 
   const [formData, setFormData] = useState({
     vehicleRegNumber: '',
@@ -106,19 +107,31 @@ const FuelLogPage = () => {
     const loadData = async () => {
       try {
         setLoading(true)
-        const [logsRes, vehicleRes, tripsRes] = await Promise.allSettled([
+        const [logsRes, vehicleRes, tripsRes, myVehicleRes] = await Promise.allSettled([
           fuelAPI.getMyLogs(),
           vehicleAPI.getAllVehicles(),
-          user?.role === 'DRIVER' ? tripAPI.getMyTrips() : Promise.resolve(null)
+          user?.role === 'DRIVER' ? tripAPI.getMyTrips() : Promise.resolve(null),
+          user?.role === 'DRIVER' ? vehicleAPI.getMyVehicle() : Promise.resolve(null)
         ])
         
+        let driverVeh = null
+        if (myVehicleRes && myVehicleRes.status === 'fulfilled' && myVehicleRes.value) {
+          driverVeh = myVehicleRes.value.data?.data || null
+          setMyAssignedVehicle(driverVeh)
+        }
+
         if (logsRes.status === 'fulfilled') {
           const logs = (logsRes.value.data.data || []).filter(log => !log.isDeleted)
           const vehList = vehicleRes.status === 'fulfilled' ? (vehicleRes.value.data.data || []) : []
           computeLogsEfficiency(logs, vehList)
           // Sort newest-first so logs[0] is always the most recent entry
           const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date))
-          setMyVehicleLogs(sorted)
+          
+          // Filter logs to show only the driver's assigned vehicle logs
+          const filtered = (user?.role === 'DRIVER' && driverVeh)
+            ? sorted.filter(log => log.vehicleRegNumber === driverVeh.registrationNo)
+            : sorted
+          setMyVehicleLogs(filtered)
         }
         
         if (vehicleRes.status === 'fulfilled') {
@@ -140,31 +153,39 @@ const FuelLogPage = () => {
     loadData()
   }, [user])
 
-  // Pre-fill active trip vehicle when opening modal
+  // Pre-fill active trip or assigned vehicle when opening modal
   useEffect(() => {
-    if (showAddModal && activeTrip?.vehicleRegNumber && allVehicles.length > 0) {
-      const reg = activeTrip.vehicleRegNumber
-      const selectedVehicle = allVehicles.find(v => v.registrationNo === reg)
-      setSelectedVehicleInfo(selectedVehicle || null)
-      
-      const vehicleLogs = myVehicleLogs.filter(log => log.vehicleRegNumber === reg)
-      const lastLogMil = vehicleLogs.length > 0 ? Number(vehicleLogs[0].mileage) : 0
-      const vehicleMil = selectedVehicle?.currentMileageKm ? Number(selectedVehicle.currentMileageKm) : 0
-      const baselineMil = Math.max(lastLogMil, vehicleMil) || null
-      setPreviousMileage(baselineMil)
+    if (showAddModal && allVehicles.length > 0) {
+      let reg = null
+      if (user?.role === 'DRIVER' && myAssignedVehicle) {
+        reg = myAssignedVehicle.registrationNo
+      } else if (activeTrip?.vehicleRegNumber) {
+        reg = activeTrip.vehicleRegNumber
+      }
 
-      setFormData(prev => ({
-        ...prev,
-        vehicleRegNumber: reg,
-        fuelType: selectedVehicle?.fuelType ? getFuelLogType(selectedVehicle.fuelType) : prev.fuelType,
-        mileage: baselineMil != null ? String(baselineMil) : '',
-        chargingCost: '',
-        liters: '',
-        costPerLiter: '',
-      }))
-      setMileageError('')
+      if (reg) {
+        const selectedVehicle = allVehicles.find(v => v.registrationNo === reg)
+        setSelectedVehicleInfo(selectedVehicle || null)
+        
+        const vehicleLogs = myVehicleLogs.filter(log => log.vehicleRegNumber === reg)
+        const lastLogMil = vehicleLogs.length > 0 ? Number(vehicleLogs[0].mileage) : 0
+        const vehicleMil = selectedVehicle?.currentMileageKm ? Number(selectedVehicle.currentMileageKm) : 0
+        const baselineMil = Math.max(lastLogMil, vehicleMil) || null
+        setPreviousMileage(baselineMil)
+
+        setFormData(prev => ({
+          ...prev,
+          vehicleRegNumber: reg,
+          fuelType: selectedVehicle?.fuelType ? getFuelLogType(selectedVehicle.fuelType) : prev.fuelType,
+          mileage: baselineMil != null ? String(baselineMil) : '',
+          chargingCost: '',
+          liters: '',
+          costPerLiter: '',
+        }))
+        setMileageError('')
+      }
     }
-  }, [showAddModal, activeTrip, allVehicles, myVehicleLogs])
+  }, [showAddModal, activeTrip, allVehicles, myVehicleLogs, myAssignedVehicle, user])
 
   // Handle form input change
   const handleInputChange = (e) => {
@@ -521,16 +542,50 @@ const FuelLogPage = () => {
                       You are currently on an active trip. You can only log fuel for the vehicle assigned to this trip ({activeTrip.vehicleRegNumber}).
                     </div>
                   )}
+                  {user?.role === 'DRIVER' && !myAssignedVehicle && !activeTrip && (
+                    <div style={{
+                      marginBottom: 12,
+                      padding: '10px 14px',
+                      borderRadius: 8,
+                      background: 'rgba(239,68,68,0.1)',
+                      border: '1px solid rgba(239,68,68,0.2)',
+                      fontSize: '0.8rem',
+                      color: D.red,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8
+                    }}>
+                      ⚠️ You do not have an assigned vehicle. Please contact your controller to assign a vehicle to you before logging fuel.
+                    </div>
+                  )}
+                  {user?.role === 'DRIVER' && myAssignedVehicle && !activeTrip && (
+                    <div style={{
+                      marginBottom: 12,
+                      padding: '10px 14px',
+                      borderRadius: 8,
+                      background: 'rgba(16,185,129,0.1)',
+                      border: '1px solid rgba(16,185,129,0.2)',
+                      fontSize: '0.8rem',
+                      color: D.green,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8
+                    }}>
+                      📝 Logging fuel for your assigned vehicle ({myAssignedVehicle.registrationNo}).
+                    </div>
+                  )}
                   <label style={labelStyle}>Vehicle <span style={{ color: D.red }}>*</span></label>
                   <select
                     name="vehicleRegNumber"
                     value={formData.vehicleRegNumber}
                     onChange={handleInputChange}
                     required
-                    style={{ ...inputStyle, cursor: activeTrip ? 'not-allowed' : 'pointer' }}
+                    style={{ ...inputStyle, cursor: (activeTrip || (user?.role === 'DRIVER' && myAssignedVehicle)) ? 'not-allowed' : 'pointer' }}
                     onFocus={onFocus}
                     onBlur={onBlur}
-                    disabled={!!activeTrip}
+                    disabled={!!activeTrip || (user?.role === 'DRIVER' && !!myAssignedVehicle)}
                   >
                     {activeTrip ? (
                       (() => {
@@ -541,6 +596,10 @@ const FuelLogPage = () => {
                           </option>
                         );
                       })()
+                    ) : user?.role === 'DRIVER' && myAssignedVehicle ? (
+                      <option value={myAssignedVehicle.registrationNo} style={{ background: D.surfaceHi }}>
+                        {myAssignedVehicle.registrationNo} — {myAssignedVehicle.manufacturer} {myAssignedVehicle.model}
+                      </option>
                     ) : (
                       <>
                         <option value="" style={{ background: D.surfaceHi }}>— Select a vehicle —</option>
@@ -692,7 +751,31 @@ const FuelLogPage = () => {
               </div>
 
               <div style={{ display: 'flex', gap: 20 }}>
-                <button type="submit" disabled={submitting} style={{ flex: 2, padding: '16px', borderRadius: 18, border: 'none', background: submitting ? 'rgba(37, 99, 235,0.5)' : 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', fontSize: '1.05rem', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: submitting ? 'none' : '0 10px 25px rgba(37, 99, 235,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }} onMouseEnter={e => { if(!submitting) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 15px 35px rgba(37, 99, 235,0.5)' } }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 10px 25px rgba(37, 99, 235,0.4)' }}>
+                <button
+                  type="submit"
+                  disabled={submitting || (user?.role === 'DRIVER' && !myAssignedVehicle && !activeTrip)}
+                  style={{
+                    flex: 2,
+                    padding: '16px',
+                    borderRadius: 18,
+                    border: 'none',
+                    background: (submitting || (user?.role === 'DRIVER' && !myAssignedVehicle && !activeTrip))
+                      ? 'rgba(37, 99, 235,0.3)'
+                      : 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                    color: '#fff',
+                    fontSize: '1.05rem',
+                    fontWeight: 900,
+                    cursor: (submitting || (user?.role === 'DRIVER' && !myAssignedVehicle && !activeTrip)) ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                    boxShadow: (submitting || (user?.role === 'DRIVER' && !myAssignedVehicle && !activeTrip)) ? 'none' : '0 10px 25px rgba(37, 99, 235,0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10
+                  }}
+                  onMouseEnter={e => { if(!submitting && !(user?.role === 'DRIVER' && !myAssignedVehicle && !activeTrip)) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 15px 35px rgba(37, 99, 235,0.5)' } }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = (submitting || (user?.role === 'DRIVER' && !myAssignedVehicle && !activeTrip)) ? 'none' : '0 10px 25px rgba(37, 99, 235,0.4)' }}
+                >
                   {submitting ? <Loader2 size={22} className="animate-spin" /> : <Check size={22} />}
                   {submitting ? 'Processing Entry...' : 'Complete Fuel Entry'}
                 </button>

@@ -26,4 +26,10 @@ public interface VehicleService {
 
     void updateBulkMileage(List<net.javaguids.ems_backend.dto.VehicleMileageUpdateDto> updates, String updatedBy);
 
+    /** Assign or unassign a driver to a vehicle. Pass null driverUsername to unassign. */
+    VehicleDto assignDriver(Long vehicleId, String driverUsername);
+
+    /** Fetch the vehicle that is assigned to the given driver username. */
+    VehicleDto getMyVehicle(String driverUsername);
+
 }

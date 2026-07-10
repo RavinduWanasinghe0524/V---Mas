@@ -34,7 +34,8 @@ public class VehicleMapper {
                 vehicle.isDeleted(),
                 vehicle.getDeletedBy(),
                 vehicle.getDeletedAt(),
-                vehicle.getFuelCapacity()
+                vehicle.getFuelCapacity(),
+                vehicle.getDriver() != null ? vehicle.getDriver().getUserName() : null
         );
     }
 

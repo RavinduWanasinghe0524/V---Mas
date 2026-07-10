@@ -45,4 +45,6 @@ public class VehicleDto {
     private java.time.LocalDateTime deletedAt;
 
     private Double fuelCapacity;
+
+    private String driverUsername;   // assigned driver's username (null if unassigned)
 }
