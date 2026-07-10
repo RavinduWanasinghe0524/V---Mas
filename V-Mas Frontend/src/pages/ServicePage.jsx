@@ -11,6 +11,13 @@ import { Settings, Droplet, Circle, RotateCcw, Thermometer, Battery, Search, Wre
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
 
+const approvalBadge = (status, D) => {
+  const s = (status || 'APPROVED').toUpperCase()
+  if (s === 'PENDING') return { label: 'Pending', bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: 'rgba(245,158,11,0.25)' }
+  if (s === 'REJECTED') return { label: 'Rejected', bg: 'rgba(239,68,68,0.12)', color: '#ef4444', border: 'rgba(239,68,68,0.25)' }
+  return { label: 'Approved', bg: 'rgba(16,185,129,0.12)', color: '#10b981', border: 'rgba(16,185,129,0.25)' }
+}
+
 /* ── Parse Backend Date Helper (Handles hosted UTC vs local tz) ── */
 const parseBackendDate = (dateStr) => {
   if (!dateStr) return new Date(0);
@@ -22,7 +29,7 @@ const parseBackendDate = (dateStr) => {
   if (normalized.endsWith('Z') || normalized.match(/[+-]\d{2}:\d{2}$/)) {
     return new Date(normalized);
   }
-  const isLocalhost = typeof window !== 'undefined' && 
+  const isLocalhost = typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   if (isLocalhost) {
     return new Date(normalized);
@@ -1001,7 +1008,7 @@ const ServiceCalendar = ({ services, onEdit, isDriver, getStatus, STATUS_CONFIG,
 const getVehicleMilestones = (vehicle, services, intervals) => {
   if (!vehicle || !intervals) return []
   const vehicleIntervals = intervals.filter(i => i.vehicleType === vehicle.vehicleType)
-  
+
   return vehicleIntervals.map(interval => {
     // Find completed services for this vehicle and service type
     const completed = services.filter(s =>
@@ -1009,24 +1016,24 @@ const getVehicleMilestones = (vehicle, services, intervals) => {
       s.serviceType === interval.serviceType &&
       getStatus(s) === 'COMPLETED'
     )
-    
+
     let lastServiceMileage = vehicle.initialMileageKm != null ? Number(vehicle.initialMileageKm) : Number(vehicle.currentMileageKm || 0)
     if (completed.length > 0) {
       completed.sort((a, b) => Number(b.currentMileageKm || 0) - Number(a.currentMileageKm || 0))
       lastServiceMileage = Number(completed[0].currentMileageKm || 0)
     }
-    
+
     const nextDueMileage = lastServiceMileage + interval.intervalKm
     const currentMileage = vehicle.currentMileageKm || 0
     const remainingKm = nextDueMileage - currentMileage
-    
+
     let status = 'OK'
     if (remainingKm <= 0) {
       status = 'OVERDUE'
     } else if (remainingKm <= 200) {
       status = 'DUE_SOON'
     }
-    
+
     return {
       serviceType: interval.serviceType,
       intervalKm: interval.intervalKm,
@@ -1843,22 +1850,30 @@ const ServicePage = () => {
         const loadedServices = servRes.data.data || []
         const loadedVehicles = vehicleRes?.data.data || []
         const loadedIntervals = intervalsRes?.data.data || []
-        setServices(loadedServices)
+
+        // Find driver's assigned vehicle using driverUsername
+        const driverVehicle = loadedVehicles.find(v => v.driverUsername === user?.userName)
+
+        // Filter services for the assigned vehicle only
+        const filteredServices = driverVehicle
+          ? loadedServices.filter(s => s.vehicleRegNumber === driverVehicle.registrationNo)
+          : []
+
+        setServices(filteredServices)
         setStats(statsRes?.data?.data || null)
         setAllVehicles(loadedVehicles)
         setAllDrivers([user])
         setIntervals(loadedIntervals)
         setLocalIntervals(loadedIntervals)
-        
-        // Compute alert records for all non-deleted vehicles
+
+        // Compute alert records ONLY for the assigned vehicle
         const alerts = []
-        loadedVehicles.forEach(v => {
-          if (v.isDeleted) return
-          const milestones = getVehicleMilestones(v, loadedServices, loadedIntervals)
+        if (driverVehicle && !driverVehicle.isDeleted) {
+          const milestones = getVehicleMilestones(driverVehicle, filteredServices, loadedIntervals)
           milestones.forEach(m => {
             if (m.status === 'OVERDUE' || m.status === 'DUE_SOON') {
-              const completed = loadedServices.filter(s =>
-                s.vehicleRegNumber === v.registrationNo &&
+              const completed = filteredServices.filter(s =>
+                s.vehicleRegNumber === driverVehicle.registrationNo &&
                 s.serviceType === m.serviceType &&
                 getStatus(s) === 'COMPLETED'
               )
@@ -1868,11 +1883,11 @@ const ServicePage = () => {
                 lastRecord = completed[0]
               }
               alerts.push({
-                id: lastRecord ? lastRecord.id : `pseudo-${v.registrationNo}-${m.serviceType}`,
-                vehicleRegNumber: v.registrationNo,
+                id: lastRecord ? lastRecord.id : `pseudo-${driverVehicle.registrationNo}-${m.serviceType}`,
+                vehicleRegNumber: driverVehicle.registrationNo,
                 serviceType: m.serviceType,
                 _alertLevel: m.status,
-                _vehicleCurrentKm: v.currentMileageKm || 0,
+                _vehicleCurrentKm: driverVehicle.currentMileageKm || 0,
                 currentMileageKm: lastRecord ? lastRecord.currentMileageKm : 0,
                 nextServiceMileageKm: m.nextDueMileage,
                 serviceDate: lastRecord ? lastRecord.serviceDate : null,
@@ -1881,7 +1896,7 @@ const ServicePage = () => {
               })
             }
           })
-        })
+        }
         setAlertRecords(alerts)
       } else {
         // Admin / Controller loading path
@@ -1928,7 +1943,7 @@ const ServicePage = () => {
         if (driversRes) {
           setAllDrivers(driversRes.data.data || driversRes.data || [])
         }
-        
+
         // Compute alerts for all vehicles
         const alerts = []
         loadedVehicles.forEach(v => {
@@ -1959,7 +1974,7 @@ const ServicePage = () => {
                 _isPseudo: !lastRecord
               }
               alerts.push(alertObj)
-              
+
               const notifKey = lastRecord ? `record-${lastRecord.id}` : `pseudo-${v.registrationNo}-${m.serviceType}`
               if (!notifiedRef.current.has(notifKey)) {
                 notifiedRef.current.add(notifKey)
@@ -1969,8 +1984,8 @@ const ServicePage = () => {
                   vehicleRegNumber: `VEH-${v.registrationNo}`,
                   message: msg,
                   type: m.status === 'OVERDUE' ? 'OVERDUE_SERVICE' : 'SERVICE_DUE'
-                }).catch(() => {})
-                
+                }).catch(() => { })
+
                 addControllerNotification(msg, m.status === 'OVERDUE' ? 'LOW_EFF' : 'SERVICE', '/service')
                 if (isDriver) {
                   addDriverNotification(msg, 'VEHICLE', '/service')
@@ -2330,7 +2345,7 @@ const ServicePage = () => {
     }))
   }
 
-  const myVehicle = allVehicles.find(v => String(v.driverId) === String(user?.id))
+  const myVehicle = allVehicles.find(v => v.driverUsername === user?.userName)
   const scheduled = services.filter(s => getStatus(s) === 'SCHEDULED').length
   const completed = completedServices.length
   const total = services.length
@@ -3006,7 +3021,7 @@ const ServicePage = () => {
                     {/* Grid of vehicle cards */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: 20 }}>
                       {allVehicles
-                        .filter(v => !v.isDeleted && (
+                        .filter(v => !v.isDeleted && (!isDriver || v.driverUsername === user?.userName) && (
                           (v.registrationNo || '').toLowerCase().includes(statusSearch.toLowerCase()) ||
                           `${v.manufacturer || ''} ${v.model || ''}`.toLowerCase().includes(statusSearch.toLowerCase())
                         ))
@@ -3887,7 +3902,7 @@ const ServicePage = () => {
                       </div>
 
                       {/* Search + Export */}
-                       <div className="service-filter-bar" style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '14px 26px', borderBottom: `1px solid ${D.border}` }}>
+                      <div className="service-filter-bar" style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '14px 26px', borderBottom: `1px solid ${D.border}` }}>
                         <div style={{ position: 'relative', flex: 1 }}>
                           <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, opacity: 0.8 }} />
                           <input
@@ -3935,9 +3950,9 @@ const ServicePage = () => {
                             onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; e.target.style.background = D.surface }}
                             onBlur={e => { e.target.style.borderColor = vehicleFilter !== 'ALL' ? 'rgba(99,102,241,0.4)' : D.inputBorder; e.target.style.background = D.inputBg }}
                           >
-                            <option value="ALL" style={{ background: D.surfaceHi, color: D.text }}>All Vehicles</option>
+                            {!isDriver && <option value="ALL" style={{ background: D.surfaceHi, color: D.text }}>All Vehicles</option>}
                             {allVehicles
-                              .filter(v => !v.isDeleted)
+                              .filter(v => !v.isDeleted && (!isDriver || v.driverUsername === user?.userName))
                               .map(v => (
                                 <option key={v.id} value={v.registrationNo} style={{ background: D.surfaceHi, color: D.text }}>
                                   {v.registrationNo}
@@ -4727,7 +4742,7 @@ const ServicePage = () => {
         const icon = SERVICE_TYPE_ICONS[r.serviceType] || <Wrench size={24} />
         const closeDetail = () => setDetailModal({ isOpen: false, record: null })
         const visibleHistory = showAllEdits ? serviceHistory : serviceHistory.slice(0, 1)
-        
+
         const vc = allVehicles.find(v => v.registrationNo === r.vehicleRegNumber)
         const vehicleName = vc && (vc.manufacturer || vc.model) ? `${vc.manufacturer || ''} ${vc.model || ''}`.trim() : null
 
@@ -5038,40 +5053,40 @@ const ServicePage = () => {
 
               {/* Footer */}
               <div style={{ padding: '16px 28px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 10, background: D.surfaceHi, flexShrink: 0 }}>
-                 {/* Controller: show Edit + Delete */}
-                 {!isDriver && !isAdmin && !r._isPseudo && (
-                   <>
-                     <button
-                       onClick={() => { closeDetail(); openEditModal(r.id) }}
-                       style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
-                     >
-                       <Edit2 size={15} /> Edit Record
-                     </button>
-                     <button
-                       onClick={() => { closeDetail(); confirmDelete(r.id) }}
-                       style={{ flex: 0.6, padding: '10px 0', borderRadius: 10, border: `1px solid rgba(239,68,68,0.3)`, background: D.redDim, color: D.red, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
-                     >
-                       <Trash2 size={15} /> Delete
-                     </button>
-                   </>
-                 )}
-                 {/* Driver: only show Edit if they created this record */}
-                 {isDriver && !r._isPseudo && r.createdBy === user?.userName && (
-                   <button
-                     onClick={() => { closeDetail(); openEditModal(r.id) }}
-                     style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
-                   >
-                     <Edit2 size={15} /> Edit Record
-                   </button>
-                 )}
-                 {r._isPseudo && !isAdmin && (
-                   <button
-                     onClick={() => { closeDetail(); openAddModal({ vehicleRegNumber: r.vehicleRegNumber, serviceType: r.serviceType }) }}
-                     style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
-                   >
-                     <Wrench size={15} /> Log Completed Service
-                   </button>
-                 )}
+                {/* Controller: show Edit + Delete */}
+                {!isDriver && !isAdmin && !r._isPseudo && (
+                  <>
+                    <button
+                      onClick={() => { closeDetail(); openEditModal(r.id) }}
+                      style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
+                    >
+                      <Edit2 size={15} /> Edit Record
+                    </button>
+                    <button
+                      onClick={() => { closeDetail(); confirmDelete(r.id) }}
+                      style={{ flex: 0.6, padding: '10px 0', borderRadius: 10, border: `1px solid rgba(239,68,68,0.3)`, background: D.redDim, color: D.red, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
+                    >
+                      <Trash2 size={15} /> Delete
+                    </button>
+                  </>
+                )}
+                {/* Driver: only show Edit if they created this record */}
+                {isDriver && !r._isPseudo && r.createdBy === user?.userName && (
+                  <button
+                    onClick={() => { closeDetail(); openEditModal(r.id) }}
+                    style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
+                  >
+                    <Edit2 size={15} /> Edit Record
+                  </button>
+                )}
+                {r._isPseudo && !isAdmin && (
+                  <button
+                    onClick={() => { closeDetail(); openAddModal({ vehicleRegNumber: r.vehicleRegNumber, serviceType: r.serviceType }) }}
+                    style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
+                  >
+                    <Wrench size={15} /> Log Completed Service
+                  </button>
+                )}
                 <button
                   onClick={closeDetail}
                   style={{ flex: 0.5, padding: '10px 0', borderRadius: 10, border: `1px solid ${D.border}`, background: 'transparent', color: D.textSub, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700 }}

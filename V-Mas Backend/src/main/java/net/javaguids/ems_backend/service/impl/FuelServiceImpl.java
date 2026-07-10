@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @AllArgsConstructor
+@SuppressWarnings("null")
 public class FuelServiceImpl implements FuelService {
 
     private FuelLogRepository fuelLogRepository;
