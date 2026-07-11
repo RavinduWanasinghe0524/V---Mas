@@ -8,6 +8,7 @@ import { tripAPI, userAPI, vehicleAPI, serviceAPI } from '../services/api'
 import {
   MapPin, Navigation, Car, User, Calendar, Plus, Loader2,
   Play, X, CheckCircle, Ban, Clock, MoreVertical, ClipboardList, Wrench, Fuel, AlertTriangle, UserCheck,
+  Trash2, Archive
 } from 'lucide-react'
 
 // ── Helpers to parse job type from purpose field ──────────────────────────
@@ -152,12 +153,69 @@ const TripsPage = () => {
   const [cancelling, setCancelling] = useState(false)
   const [driverModal, setDriverModal] = useState(null) // { action, trip }
 
+  const [deletedDrawer, setDeletedDrawer] = useState(false)
+  const [deletedTrips, setDeletedTrips] = useState([])
+  const [loadingDeleted, setLoadingDeleted] = useState(false)
+  const [deletedDetail, setDeletedDetail] = useState(null)
+  const [restoringId, setRestoringId] = useState(null)
+  const [deleteConfirmTrip, setDeleteConfirmTrip] = useState(null)
+  const [deletingId, setDeletingId] = useState(null)
+
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterDriver, setFilterDriver] = useState('all')
 
   const flash = (type, text) => {
     setBanner({ type, text })
     setTimeout(() => setBanner(null), 4000)
+  }
+
+  const loadDeletedTrips = async () => {
+    try {
+      setLoadingDeleted(true)
+      const res = await tripAPI.getDeletedTrips()
+      setDeletedTrips(res.data?.data || [])
+    } catch (err) {
+      console.error('Failed to load deleted jobs:', err)
+      flash('error', 'Failed to load deleted jobs')
+    } finally {
+      setLoadingDeleted(false)
+    }
+  }
+
+  useEffect(() => {
+    if (deletedDrawer) {
+      loadDeletedTrips()
+    }
+  }, [deletedDrawer])
+
+  const handleDeleteTrip = async (tripId) => {
+    setDeletingId(tripId)
+    try {
+      await tripAPI.deleteTrip(tripId)
+      flash('success', 'Job deleted successfully')
+      setDeleteConfirmTrip(null)
+      loadTrips()
+    } catch (err) {
+      flash('error', err.response?.data?.message || 'Failed to delete job')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const handleRestoreTrip = async (tripId) => {
+    setRestoringId(tripId)
+    try {
+      await tripAPI.restoreTrip(tripId)
+      flash('success', 'Job restored successfully')
+      loadTrips()
+      if (deletedDrawer) {
+        loadDeletedTrips()
+      }
+    } catch (err) {
+      flash('error', err.response?.data?.message || 'Failed to restore job')
+    } finally {
+      setRestoringId(null)
+    }
   }
 
   const loadTrips = useCallback(async () => {
@@ -405,20 +463,6 @@ const TripsPage = () => {
             </div>
           )}
 
-          {/* ── Stats Grid ────────────────────────────────────────────── */}
-          <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 36 }}>
-            {statCards.map(s => (
-              <div key={s.label} style={{ ...card, padding: '28px', display: 'flex', alignItems: 'center', gap: 24, transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', cursor: 'default' }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.borderColor = s.color + '50'; e.currentTarget.style.boxShadow = `0 16px 32px ${s.color}20` }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)' }}>
-                <div style={{ width: 60, height: 60, borderRadius: 18, background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${s.color}30`, flexShrink: 0 }}>{s.icon}</div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{s.label}</div>
-                  <div style={{ fontSize: '1.6rem', fontWeight: 900, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.1 }}>{s.value}</div>
-                </div>
-              </div>
-            ))}
-          </div>
 
           {/* ── Controls & List ───────────────────────────────────────── */}
           <div style={{ ...card, padding: 0 }}>
@@ -449,9 +493,28 @@ const TripsPage = () => {
                   </div>
                 )}
               </div>
-              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: D.text, padding: '10px 16px', borderRadius: 12, background: D.surface, border: `1px solid ${D.border}`, whiteSpace: 'nowrap' }}>
-                {filteredTrips.length} Job{filteredTrips.length === 1 ? '' : 's'}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {canManage && (
+                  <button
+                    onClick={() => setDeletedDrawer(true)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '10px 16px', borderRadius: 12,
+                      background: D.surface, border: `1px solid ${D.border}`,
+                      color: D.textSub, fontSize: '0.8rem', fontWeight: 800,
+                      cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.28)'; e.currentTarget.style.color = '#f87171' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = D.surface; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.textSub }}
+                  >
+                    <Archive size={13} />
+                    Deleted Jobs
+                  </button>
+                )}
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: D.text, padding: '10px 16px', borderRadius: 12, background: D.surface, border: `1px solid ${D.border}`, whiteSpace: 'nowrap' }}>
+                  {filteredTrips.length} Job{filteredTrips.length === 1 ? '' : 's'}
+                </span>
+              </div>
             </div>
 
             {/* Job rows */}
@@ -518,10 +581,20 @@ const TripsPage = () => {
                         <ActionBtn onClick={() => setDriverModal({ action: 'complete', trip })} disabled={busy} bg="linear-gradient(135deg,#2563eb,#3b82f6)" color="#fff" icon={<CheckCircle size={14} />}>Complete</ActionBtn>
                       )}
                       {/* Controller */}
-                      {canManage && (s === 'ASSIGNED' || s === 'STARTED') && (
-                        <ActionBtn onClick={() => setTripToCancel(trip)} disabled={busy} bg={D.redDim} color={D.red} border={`1px solid ${D.red}40`} icon={<Ban size={14} />}>Cancel</ActionBtn>
+                      {canManage && (
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          {(s === 'DECLINED' || s === 'COMPLETED' || s === 'CANCELLED') && (
+                            <span style={{ fontSize: '0.76rem', color: D.textSub, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginRight: 4 }}>
+                              {s === 'DECLINED' && trip.declineReason ? `Reason: ${trip.declineReason}` : <><Clock size={13} /> Closed</>}
+                            </span>
+                          )}
+                          {(s === 'ASSIGNED' || s === 'STARTED') && (
+                            <ActionBtn onClick={() => setTripToCancel(trip)} disabled={busy} bg={D.redDim} color={D.red} border={`1px solid ${D.red}40`} icon={<Ban size={14} />}>Cancel</ActionBtn>
+                          )}
+                          <ActionBtn onClick={() => setDeleteConfirmTrip(trip)} disabled={busy} bg="rgba(239,68,68,0.1)" color="#ef4444" border="1px solid rgba(239,68,68,0.2)" icon={<Trash2 size={14} />}>Delete</ActionBtn>
+                        </div>
                       )}
-                      {(s === 'DECLINED' || s === 'COMPLETED' || s === 'CANCELLED') && (
+                      {!canManage && (s === 'DECLINED' || s === 'COMPLETED' || s === 'CANCELLED') && (
                         <span style={{ fontSize: '0.76rem', color: D.textSub, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                           {s === 'DECLINED' && trip.declineReason ? `Reason: ${trip.declineReason}` : <><Clock size={13} /> Closed</>}
                         </span>
@@ -699,6 +772,173 @@ const TripsPage = () => {
                 {cancelling && <Loader2 size={15} className="spin" />}
                 {cancelling ? 'Cancelling…' : 'Cancel Job'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Job Confirmation Modal ──────────────────────────── */}
+      {deleteConfirmTrip && (
+        <div onClick={() => !deletingId && setDeleteConfirmTrip(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20, animation: 'fadeIn 0.2s ease' }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ position: 'relative', width: '100%', maxWidth: 440, background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 32px 80px rgba(0,0,0,0.5)', padding: '36px 32px', textAlign: 'center', animation: 'scaleIn 0.25s cubic-bezier(0.16,1,0.3,1)' }}>
+            <button type="button" onClick={() => !deletingId && setDeleteConfirmTrip(null)} disabled={!!deletingId}
+              style={{ position: 'absolute', top: 20, right: 20, background: 'transparent', border: 'none', borderRadius: 10, padding: 8, color: D.textSub, cursor: deletingId ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              onMouseEnter={e => { if (!deletingId) e.currentTarget.style.background = D.surfaceHi }}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              <X size={18} />
+            </button>
+            <div style={{ width: 64, height: 64, borderRadius: 18, background: D.redDim, border: `1px solid ${D.red}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.red, margin: '0 auto 20px' }}>
+              <Trash2 size={28} />
+            </div>
+            <h3 style={{ margin: '0 0 10px', fontSize: '1.3rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+              Delete job to "{deleteConfirmTrip.destination}"?
+            </h3>
+            <p style={{ margin: '0 0 28px', fontSize: '0.9rem', color: D.textSub, lineHeight: 1.6 }}>
+              This will soft-delete the job. You can find and restore it from the **Deleted Jobs** tab.
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button type="button" onClick={() => setDeleteConfirmTrip(null)} disabled={!!deletingId}
+                style={{ flex: 1, maxWidth: 170, padding: '11px 20px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'transparent', color: D.text, cursor: deletingId ? 'not-allowed' : 'pointer', fontSize: '0.88rem', fontWeight: 700, transition: 'all 0.2s', fontFamily: 'inherit' }}
+                onMouseEnter={e => { if (!deletingId) e.currentTarget.style.background = D.surfaceHi }}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                Cancel
+              </button>
+              <button type="button" onClick={() => handleDeleteTrip(deleteConfirmTrip.id)} disabled={!!deletingId}
+                style={{ flex: 1, maxWidth: 170, padding: '11px 20px', borderRadius: 12, border: 'none', background: D.red, color: '#fff', fontSize: '0.88rem', fontWeight: 700, cursor: deletingId ? 'not-allowed' : 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(239,68,68,0.3)', fontFamily: 'inherit', opacity: deletingId ? 0.7 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+                {deletingId && <Loader2 size={15} className="spin" />}
+                {deletingId ? 'Deleting…' : 'Delete Job'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Deleted Jobs Drawer ─────────────────────────────────── */}
+      {deletedDrawer && (
+        <div
+          onClick={() => { setDeletedDrawer(false); setDeletedDetail(null) }}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(6px)', zIndex: 1200,
+            animation: 'fadeIn 0.18s ease',
+          }}
+        >
+          {/* Drawer panel */}
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'fixed', top: 0, right: 0, bottom: 0,
+              width: '100%', maxWidth: 700,
+              background: D.bg, display: 'flex', flexDirection: 'column',
+              boxShadow: '-20px 0 60px rgba(0,0,0,0.4)',
+              animation: 'slideInRight 0.28s cubic-bezier(0.22,1,0.36,1)',
+              borderLeft: `1px solid ${D.border}`,
+            }}
+          >
+            {/* Drawer Header */}
+            <div style={{
+              background: 'linear-gradient(135deg,#7f1d1d 0%,#991b1b 45%,#dc2626 100%)',
+              padding: '22px 28px', display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between', flexShrink: 0, gap: 16,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 12,
+                  background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+                }}>
+                  <Archive size={24} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#fff', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                    Deleted Jobs
+                  </h2>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)' }}>
+                    Soft-deleted jobs are preserved — not permanently removed
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setDeletedDrawer(false); setDeletedDetail(null) }}
+                style={{
+                  background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8, cursor: 'pointer', color: '#fff',
+                  padding: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Drawer Body */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '28px' }}>
+              {loadingDeleted ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: D.indigo }}>
+                  <Loader2 className="spin" size={28} />
+                </div>
+              ) : deletedTrips.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 0', color: D.textSub }}>
+                  <ClipboardList size={40} opacity={0.3} style={{ marginBottom: 12 }} />
+                  <div style={{ fontWeight: 700, color: D.text }}>No deleted jobs found</div>
+                  <div style={{ fontSize: '0.85rem' }}>Deleted jobs will appear here.</div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {deletedTrips.map(trip => {
+                    const type = getJobType(trip.purpose)
+                    const cleanPurpose = getCleanPurpose(trip.purpose)
+                    const s = up(trip.status)
+                    const isRestoring = restoringId === trip.id
+
+                    return (
+                      <div key={trip.id} style={{
+                        background: D.surface, border: `1px solid ${D.border}`,
+                        borderRadius: 16, padding: '18px 22px', display: 'flex',
+                        justifyContent: 'space-between', alignItems: 'center', gap: 16
+                      }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                            <span style={{ fontWeight: 800, fontSize: '0.9rem', color: D.text }}>{trip.destination}</span>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '3px 8px', borderRadius: 6, background: D.surfaceHi, color: D.textSub, border: `1px solid ${D.border}` }}>
+                              {type}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: D.textSub }}>
+                            Driver: <strong>{trip.driverUsername}</strong> | Vehicle: <strong>{trip.vehicleRegNumber}</strong>
+                          </div>
+                          {cleanPurpose && (
+                            <div style={{ fontSize: '0.78rem', color: D.textSub, marginTop: 4, fontStyle: 'italic' }}>
+                              "{cleanPurpose}"
+                            </div>
+                          )}
+                          {trip.deletedBy && (
+                            <div style={{ fontSize: '0.72rem', color: D.red, marginTop: 6, fontWeight: 600 }}>
+                              Deleted by {trip.deletedBy} on {fmtDate(trip.deletedAt)}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleRestoreTrip(trip.id)}
+                          disabled={isRestoring}
+                          style={{
+                            background: D.indigoDim, color: D.indigo, border: 'none',
+                            padding: '8px 14px', borderRadius: 10, fontSize: '0.78rem',
+                            fontWeight: 800, cursor: isRestoring ? 'not-allowed' : 'pointer',
+                            display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={e => { if (!isRestoring) e.currentTarget.style.background = D.indigo; e.currentTarget.style.color = '#fff'; }}
+                          onMouseLeave={e => { if (!isRestoring) e.currentTarget.style.background = D.indigoDim; e.currentTarget.style.color = D.indigo; }}
+                        >
+                          {isRestoring ? <Loader2 size={13} className="spin" /> : <UserCheck size={13} />}
+                          Restore
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -9,6 +9,8 @@ import net.javaguids.ems_backend.entity.FuelLog;
 import net.javaguids.ems_backend.enums.ApprovalStatus;
 import net.javaguids.ems_backend.exception.ResourceNotFoundException;
 import net.javaguids.ems_backend.repository.FuelLogRepository;
+import net.javaguids.ems_backend.repository.VehicleRepository;
+import net.javaguids.ems_backend.entity.Vehicle;
 import net.javaguids.ems_backend.service.FuelService;
 import net.javaguids.ems_backend.service.NotificationService;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,7 @@ public class FuelServiceImpl implements FuelService {
 
     private FuelLogRepository fuelLogRepository;
     private NotificationService notificationService;
+    private VehicleRepository vehicleRepository;
 
     // ==================== DRIVER-SCOPED METHODS ====================
 
@@ -68,15 +71,21 @@ public class FuelServiceImpl implements FuelService {
 
     @Override
     public List<FuelLogDto> getMyFuelLogs(String driverUsername) {
-        log.info("Driver '{}' fetching their own fuel logs", driverUsername);
-        return fuelLogRepository.findByDriverUsernameOrLegacy(driverUsername)
+        log.info("Driver '{}' fetching fuel logs", driverUsername);
+        String vehicleRegNumber = vehicleRepository.findByAssigneeUsername(driverUsername)
+                .map(Vehicle::getRegistrationNo)
+                .orElse(null);
+        return fuelLogRepository.findByDriverUsernameOrLegacyOrVehicle(driverUsername, vehicleRegNumber)
                 .stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
     @Override
     public FuelLogDto getMyFuelLogById(Long id, String driverUsername) {
         log.info("Driver '{}' fetching fuel log id: {}", driverUsername, id);
-        FuelLog fuelLog = fuelLogRepository.findByIdAndDriverUsernameOrLegacy(id, driverUsername)
+        String vehicleRegNumber = vehicleRepository.findByAssigneeUsername(driverUsername)
+                .map(Vehicle::getRegistrationNo)
+                .orElse(null);
+        FuelLog fuelLog = fuelLogRepository.findByIdAndDriverUsernameOrLegacyOrVehicle(id, driverUsername, vehicleRegNumber)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Fuel log not found with id: " + id + " for driver: " + driverUsername));
         return mapToDto(fuelLog);
@@ -86,8 +95,10 @@ public class FuelServiceImpl implements FuelService {
     @Transactional
     public FuelLogDto updateMyFuelLog(Long id, FuelLogDto fuelLogDto, String driverUsername) {
         log.info("Driver '{}' updating fuel log id: {}", driverUsername, id);
-
-        FuelLog fuelLog = fuelLogRepository.findByIdAndDriverUsernameOrLegacy(id, driverUsername)
+        String vehicleRegNumber = vehicleRepository.findByAssigneeUsername(driverUsername)
+                .map(Vehicle::getRegistrationNo)
+                .orElse(null);
+        FuelLog fuelLog = fuelLogRepository.findByIdAndDriverUsernameOrLegacyOrVehicle(id, driverUsername, vehicleRegNumber)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Fuel log not found with id: " + id + " for driver: " + driverUsername));
 

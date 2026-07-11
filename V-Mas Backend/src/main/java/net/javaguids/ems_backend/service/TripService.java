@@ -37,4 +37,9 @@ public interface TripService {
 
     /** Driver marks a started trip as completed (only their own). */
     TripDto completeTrip(Long id, String driverUsername);
+
+    // ---- Deleted Records Tab ----
+    void deleteTrip(Long id, String deletedBy);
+    void restoreTrip(Long id);
+    List<TripDto> getDeletedTrips();
 }

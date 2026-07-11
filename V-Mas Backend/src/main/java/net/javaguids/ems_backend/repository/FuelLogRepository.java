@@ -56,17 +56,29 @@ public interface FuelLogRepository extends JpaRepository<FuelLog, Long> {
      * Returns logs belonging to this driver PLUS legacy logs (driverUsername IS NULL).
      * This ensures every driver can see their own logs and any old data before the migration.
      */
-    @Query("SELECT f FROM FuelLog f WHERE (f.driverUsername = :driverUsername OR f.driverUsername IS NULL) AND (f.isDeleted = false OR f.isDeleted IS NULL) ORDER BY f.date DESC, f.id DESC")
-    List<FuelLog> findByDriverUsernameOrLegacy(@Param("driverUsername") String driverUsername);
+    @Query("SELECT f FROM FuelLog f WHERE " +
+           "((f.driverUsername = :driverUsername OR f.driverUsername IS NULL) " +
+           " OR (:vehicleRegNumber IS NOT NULL AND f.vehicleRegNumber = :vehicleRegNumber)) " +
+           "AND (f.isDeleted = false OR f.isDeleted IS NULL) " +
+           "ORDER BY f.date DESC, f.id DESC")
+    List<FuelLog> findByDriverUsernameOrLegacyOrVehicle(
+            @Param("driverUsername") String driverUsername,
+            @Param("vehicleRegNumber") String vehicleRegNumber);
 
     @Query("SELECT f FROM FuelLog f WHERE f.isDeleted = true ORDER BY f.deletedAt DESC")
     List<FuelLog> findAllDeleted();
 
     /**
-     * Returns a single log that belongs to this driver OR is a legacy log.
+     * Returns a single log that belongs to this driver OR is a legacy log OR belongs to their vehicle.
      */
-    @Query("SELECT f FROM FuelLog f WHERE f.id = :id AND (f.driverUsername = :driverUsername OR f.driverUsername IS NULL) AND (f.isDeleted = false OR f.isDeleted IS NULL)")
-    Optional<FuelLog> findByIdAndDriverUsernameOrLegacy(@Param("id") Long id, @Param("driverUsername") String driverUsername);
+    @Query("SELECT f FROM FuelLog f WHERE f.id = :id AND " +
+           "((f.driverUsername = :driverUsername OR f.driverUsername IS NULL) " +
+           " OR (:vehicleRegNumber IS NOT NULL AND f.vehicleRegNumber = :vehicleRegNumber)) " +
+           "AND (f.isDeleted = false OR f.isDeleted IS NULL)")
+    Optional<FuelLog> findByIdAndDriverUsernameOrLegacyOrVehicle(
+            @Param("id") Long id,
+            @Param("driverUsername") String driverUsername,
+            @Param("vehicleRegNumber") String vehicleRegNumber);
 
     /**
      * Previous log for efficiency notification — driver's own + legacy entries for this vehicle.
