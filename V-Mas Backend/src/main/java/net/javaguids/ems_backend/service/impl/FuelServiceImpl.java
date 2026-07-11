@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @AllArgsConstructor
-@SuppressWarnings("null")
 public class FuelServiceImpl implements FuelService {
 
     private FuelLogRepository fuelLogRepository;
@@ -72,9 +71,8 @@ public class FuelServiceImpl implements FuelService {
     @Override
     public List<FuelLogDto> getMyFuelLogs(String driverUsername) {
         log.info("Driver '{}' fetching fuel logs", driverUsername);
-        String vehicleRegNumber = vehicleRepository.findByAssigneeUsername(driverUsername)
-                .map(Vehicle::getRegistrationNo)
-                .orElse(null);
+        Optional<Vehicle> assignedVehicle = vehicleRepository.findByAssigneeUsername(driverUsername);
+        String vehicleRegNumber = assignedVehicle.isPresent() ? assignedVehicle.get().getRegistrationNo() : null;
         return fuelLogRepository.findByDriverUsernameOrLegacyOrVehicle(driverUsername, vehicleRegNumber)
                 .stream().map(this::mapToDto).collect(Collectors.toList());
     }
@@ -82,9 +80,8 @@ public class FuelServiceImpl implements FuelService {
     @Override
     public FuelLogDto getMyFuelLogById(Long id, String driverUsername) {
         log.info("Driver '{}' fetching fuel log id: {}", driverUsername, id);
-        String vehicleRegNumber = vehicleRepository.findByAssigneeUsername(driverUsername)
-                .map(Vehicle::getRegistrationNo)
-                .orElse(null);
+        Optional<Vehicle> assignedVehicle = vehicleRepository.findByAssigneeUsername(driverUsername);
+        String vehicleRegNumber = assignedVehicle.isPresent() ? assignedVehicle.get().getRegistrationNo() : null;
         FuelLog fuelLog = fuelLogRepository.findByIdAndDriverUsernameOrLegacyOrVehicle(id, driverUsername, vehicleRegNumber)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Fuel log not found with id: " + id + " for driver: " + driverUsername));
@@ -95,9 +92,8 @@ public class FuelServiceImpl implements FuelService {
     @Transactional
     public FuelLogDto updateMyFuelLog(Long id, FuelLogDto fuelLogDto, String driverUsername) {
         log.info("Driver '{}' updating fuel log id: {}", driverUsername, id);
-        String vehicleRegNumber = vehicleRepository.findByAssigneeUsername(driverUsername)
-                .map(Vehicle::getRegistrationNo)
-                .orElse(null);
+        Optional<Vehicle> assignedVehicle = vehicleRepository.findByAssigneeUsername(driverUsername);
+        String vehicleRegNumber = assignedVehicle.isPresent() ? assignedVehicle.get().getRegistrationNo() : null;
         FuelLog fuelLog = fuelLogRepository.findByIdAndDriverUsernameOrLegacyOrVehicle(id, driverUsername, vehicleRegNumber)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Fuel log not found with id: " + id + " for driver: " + driverUsername));
@@ -605,7 +601,7 @@ public class FuelServiceImpl implements FuelService {
     @Transactional
     public FuelLogDto approveFuelLog(Long id) {
         log.info("Approving fuel log ID: {}", id);
-        FuelLog fuelLog = fuelLogRepository.findById(id)
+        FuelLog fuelLog = fuelLogRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Fuel log not found with id: " + id));
         fuelLog.setStatus(ApprovalStatus.APPROVED);
         FuelLog saved = fuelLogRepository.save(fuelLog);
@@ -625,7 +621,7 @@ public class FuelServiceImpl implements FuelService {
     @Transactional
     public FuelLogDto rejectFuelLog(Long id) {
         log.info("Rejecting fuel log ID: {}", id);
-        FuelLog fuelLog = fuelLogRepository.findById(id)
+        FuelLog fuelLog = fuelLogRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Fuel log not found with id: " + id));
         fuelLog.setStatus(ApprovalStatus.REJECTED);
         FuelLog saved = fuelLogRepository.save(fuelLog);
