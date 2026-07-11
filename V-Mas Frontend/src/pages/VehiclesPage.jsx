@@ -1492,69 +1492,73 @@ const VehiclesPage = () => {
             )}
 
             {/* Stats row */}
-            <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, marginBottom: 36 }}>
-              <StatBadge label="Total Vehicles" value={vehicles.length} icon={<Car size={22} />} colorDim={D.purpleDim} colorHex={D.purple} D={D} total={0} isActive={filter === 'ALL'} onClick={() => setFilter('ALL')} />
-              <StatBadge label="Active" value={counts.ACTIVE} icon={<CheckCircle size={22} />} colorDim={D.greenDim} colorHex={D.green} D={D} total={vehicles.length} isActive={filter === 'ACTIVE'} onClick={() => setFilter('ACTIVE')} />
-              <StatBadge label="In Service" value={counts.SERVICE} icon={<Wrench size={22} />} colorDim={D.orangeDim} colorHex={D.orange} D={D} total={vehicles.length} isActive={filter === 'SERVICE'} onClick={() => setFilter('SERVICE')} />
-              <StatBadge label="Available" value={counts.AVAILABLE} icon={<Circle size={22} />} colorDim={D.blueDim} colorHex={D.blue} D={D} total={vehicles.length} isActive={filter === 'AVAILABLE'} onClick={() => setFilter('AVAILABLE')} />
-            </div>
+            {!isDriver && (
+              <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, marginBottom: 36 }}>
+                <StatBadge label="Total Vehicles" value={vehicles.length} icon={<Car size={22} />} colorDim={D.purpleDim} colorHex={D.purple} D={D} total={0} isActive={filter === 'ALL'} onClick={() => setFilter('ALL')} />
+                <StatBadge label="Active" value={counts.ACTIVE} icon={<CheckCircle size={22} />} colorDim={D.greenDim} colorHex={D.green} D={D} total={vehicles.length} isActive={filter === 'ACTIVE'} onClick={() => setFilter('ACTIVE')} />
+                <StatBadge label="In Service" value={counts.SERVICE} icon={<Wrench size={22} />} colorDim={D.orangeDim} colorHex={D.orange} D={D} total={vehicles.length} isActive={filter === 'SERVICE'} onClick={() => setFilter('SERVICE')} />
+                <StatBadge label="Available" value={counts.AVAILABLE} icon={<Circle size={22} />} colorDim={D.blueDim} colorHex={D.blue} D={D} total={vehicles.length} isActive={filter === 'AVAILABLE'} onClick={() => setFilter('AVAILABLE')} />
+              </div>
+            )}
 
             {/* Toolbar & List Container */}
             <div style={{ background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 4px 24px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
               <div style={{ padding: '22px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, background: D.surfaceHi, flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, flexWrap: 'wrap' }}>
-                  <div style={{ position: 'relative', minWidth: 200 }}>
-                    <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, pointerEvents: 'none' }} />
-                    <input
-                      type="text"
-                      placeholder="Search by reg, make or model…"
-                      value={search}
-                      onChange={e => setSearch(e.target.value)}
-                      style={{ ...inputStyle, paddingLeft: 38 }}
-                      onFocus={onFocus} onBlur={onBlur}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                    {['ALL', 'ACTIVE', 'AVAILABLE', 'SERVICE', 'INACTIVE'].map(s => (
-                      <button
-                        key={s}
-                        onClick={() => setFilter(s)}
+                {!isDriver && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, flexWrap: 'wrap' }}>
+                    <div style={{ position: 'relative', minWidth: 200 }}>
+                      <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, pointerEvents: 'none' }} />
+                      <input
+                        type="text"
+                        placeholder="Search by reg, make or model…"
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        style={{ ...inputStyle, paddingLeft: 38 }}
+                        onFocus={onFocus} onBlur={onBlur}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                      {['ALL', 'ACTIVE', 'AVAILABLE', 'SERVICE', 'INACTIVE'].map(s => (
+                        <button
+                          key={s}
+                          onClick={() => setFilter(s)}
+                          style={{
+                            padding: '10px 18px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800,
+                            border: filter === s ? 'none' : `1px solid ${D.border}`,
+                            background: filter === s ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'rgba(255,255,255,0.05)',
+                            color: filter === s ? '#fff' : D.textSub,
+                            cursor: 'pointer', transition: 'all 0.15s ease',
+                            boxShadow: filter === s ? '0 4px 12px rgba(37, 99, 235,0.3)' : 'none',
+                          }}
+                        >
+                          {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
+                        </button>
+                      ))}
+
+                      <select
+                        value={fuelFilter}
+                        onChange={e => setFuelFilter(e.target.value)}
                         style={{
                           padding: '10px 18px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800,
-                          border: filter === s ? 'none' : `1px solid ${D.border}`,
-                          background: filter === s ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'rgba(255,255,255,0.05)',
-                          color: filter === s ? '#fff' : D.textSub,
+                          border: `1px solid ${D.border}`,
+                          background: 'rgba(255,255,255,0.05)',
+                          color: D.textSub,
                           cursor: 'pointer', transition: 'all 0.15s ease',
-                          boxShadow: filter === s ? '0 4px 12px rgba(37, 99, 235,0.3)' : 'none',
+                          outline: 'none',
+                          fontFamily: 'inherit'
                         }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = D.blue; e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
                       >
-                        {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
-                      </button>
-                    ))}
-
-                    <select
-                      value={fuelFilter}
-                      onChange={e => setFuelFilter(e.target.value)}
-                      style={{
-                        padding: '10px 18px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800,
-                        border: `1px solid ${D.border}`,
-                        background: 'rgba(255,255,255,0.05)',
-                        color: D.textSub,
-                        cursor: 'pointer', transition: 'all 0.15s ease',
-                        outline: 'none',
-                        fontFamily: 'inherit'
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = D.blue; e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-                    >
-                      <option value="ALL" style={{ background: D.surface, color: D.text }}>All Fuel Types</option>
-                      <option value="PETROL" style={{ background: D.surface, color: D.text }}>Petrol 92 Octane</option>
-                      <option value="SUPER_PETROL" style={{ background: D.surface, color: D.text }}>Petrol 95 Octane</option>
-                      <option value="DIESEL" style={{ background: D.surface, color: D.text }}>Auto Diesel</option>
-                      <option value="SUPER_DIESEL" style={{ background: D.surface, color: D.text }}>Super Diesel</option>
-                    </select>
+                        <option value="ALL" style={{ background: D.surface, color: D.text }}>All Fuel Types</option>
+                        <option value="PETROL" style={{ background: D.surface, color: D.text }}>Petrol 92 Octane</option>
+                        <option value="SUPER_PETROL" style={{ background: D.surface, color: D.text }}>Petrol 95 Octane</option>
+                        <option value="DIESEL" style={{ background: D.surface, color: D.text }}>Auto Diesel</option>
+                        <option value="SUPER_DIESEL" style={{ background: D.surface, color: D.text }}>Super Diesel</option>
+                      </select>
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className="vehicles-toolbar-right">
                   {/* View Toggler */}
                   <div style={{

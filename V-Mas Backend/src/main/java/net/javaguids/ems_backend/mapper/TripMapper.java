@@ -22,6 +22,9 @@ public class TripMapper {
         dto.setRespondedAt(trip.getRespondedAt());
         dto.setCompletedAt(trip.getCompletedAt());
         dto.setUpdatedAt(trip.getUpdatedAt());
+        dto.setDeleted(trip.isDeleted());
+        dto.setDeletedBy(trip.getDeletedBy());
+        dto.setDeletedAt(trip.getDeletedAt());
         return dto;
     }
 
@@ -36,6 +39,9 @@ public class TripMapper {
         if (dto.getStatus() != null) {
             trip.setStatus(dto.getStatus());
         }
+        trip.setDeleted(dto.isDeleted());
+        trip.setDeletedBy(dto.getDeletedBy());
+        trip.setDeletedAt(dto.getDeletedAt());
         // assignedBy, status transitions and timestamps are managed by the service layer
         return trip;
     }
