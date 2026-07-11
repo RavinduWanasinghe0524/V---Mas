@@ -79,7 +79,7 @@ public class TripServiceImpl implements TripService {
 
     @Override
     public List<TripDto> getAllTrips() {
-        return tripRepository.findAllByOrderByCreatedAtDesc().stream()
+        return tripRepository.findByDeletedFalseOrderByCreatedAtDesc().stream()
                 .map(this::toEnrichedDto)
                 .collect(Collectors.toList());
     }
@@ -145,7 +145,7 @@ public class TripServiceImpl implements TripService {
 
     @Override
     public List<TripDto> getMyTrips(String driverUsername) {
-        return tripRepository.findByDriverUsernameOrderByCreatedAtDesc(driverUsername).stream()
+        return tripRepository.findByDriverUsernameAndDeletedFalseOrderByCreatedAtDesc(driverUsername).stream()
                 .map(this::toEnrichedDto)
                 .collect(Collectors.toList());
     }
@@ -233,5 +233,37 @@ public class TripServiceImpl implements TripService {
 
     private TripDto toEnrichedDto(Trip trip) {
         return TripMapper.mapToTripDto(trip);
+    }
+
+    @Override
+    @Transactional
+    public void deleteTrip(Long id, String deletedBy) {
+        Trip trip = findTripOrThrow(id);
+        trip.setDeleted(true);
+        trip.setDeletedBy(deletedBy != null ? deletedBy : "unknown");
+        trip.setDeletedAt(LocalDateTime.now());
+        tripRepository.save(trip);
+        log.info("Trip {} soft-deleted by '{}'", id, deletedBy);
+    }
+
+    @Override
+    @Transactional
+    public void restoreTrip(Long id) {
+        Trip trip = findTripOrThrow(id);
+        if (!trip.isDeleted()) {
+            throw new RuntimeException("Trip is not deleted.");
+        }
+        trip.setDeleted(false);
+        trip.setDeletedBy(null);
+        trip.setDeletedAt(null);
+        tripRepository.save(trip);
+        log.info("Trip {} restored", id);
+    }
+
+    @Override
+    public List<TripDto> getDeletedTrips() {
+        return tripRepository.findByDeletedTrueOrderByDeletedAtDesc().stream()
+                .map(this::toEnrichedDto)
+                .collect(Collectors.toList());
     }
 }

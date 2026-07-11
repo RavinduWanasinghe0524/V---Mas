@@ -10,11 +10,13 @@ import java.util.List;
 @Repository
 public interface TripRepository extends JpaRepository<Trip, Long> {
 
-    List<Trip> findAllByOrderByCreatedAtDesc();
+    List<Trip> findByDeletedFalseOrderByCreatedAtDesc();
 
-    List<Trip> findByDriverUsernameOrderByCreatedAtDesc(String driverUsername);
+    List<Trip> findByDriverUsernameAndDeletedFalseOrderByCreatedAtDesc(String driverUsername);
 
-    List<Trip> findByStatusOrderByCreatedAtDesc(TripStatus status);
+    List<Trip> findByStatusAndDeletedFalseOrderByCreatedAtDesc(TripStatus status);
 
-    List<Trip> findByDriverUsernameAndStatusInOrderByCreatedAtDesc(String driverUsername, List<TripStatus> statuses);
+    List<Trip> findByDriverUsernameAndStatusInAndDeletedFalseOrderByCreatedAtDesc(String driverUsername, List<TripStatus> statuses);
+
+    List<Trip> findByDeletedTrueOrderByDeletedAtDesc();
 }

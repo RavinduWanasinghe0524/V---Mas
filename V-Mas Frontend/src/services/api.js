@@ -173,6 +173,9 @@ export const tripAPI = {
   getAllTrips:  ()         => api.get('/trips'),
   updateTrip:   (id, data) => api.put(`/trips/${id}`, data),
   cancelTrip:   (id)       => api.delete(`/trips/${id}`),
+  deleteTrip:   (id)       => api.delete(`/trips/${id}/delete`),
+  restoreTrip:  (id)       => api.patch(`/trips/${id}/restore`),
+  getDeletedTrips: ()      => api.get('/trips/deleted'),
 
   // ── Shared ──────────────────────────────────────────────────────────────
   getTripById:  (id)       => api.get(`/trips/${id}`),

@@ -77,6 +77,30 @@ public class TripController {
         return ApiResponseUtil.success("Trip cancelled successfully", null, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAnyRole('CONTROLLER', 'ADMIN')")
+    @DeleteMapping("/{id}/delete")
+    public ResponseEntity<ApiResponse<Void>> deleteTrip(@PathVariable Long id, Principal principal) {
+        String deletedBy = principal.getName();
+        log.info("DELETE /api/trips/{}/delete - soft-deleting trip by '{}'", id, deletedBy);
+        tripService.deleteTrip(id, deletedBy);
+        return ApiResponseUtil.success("Trip deleted successfully", null, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAnyRole('CONTROLLER', 'ADMIN')")
+    @PatchMapping("/{id}/restore")
+    public ResponseEntity<ApiResponse<Void>> restoreTrip(@PathVariable Long id) {
+        log.info("PATCH /api/trips/{}/restore - restoring trip", id);
+        tripService.restoreTrip(id);
+        return ApiResponseUtil.success("Trip restored successfully", null, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAnyRole('CONTROLLER', 'ADMIN')")
+    @GetMapping("/deleted")
+    public ResponseEntity<ApiResponse<List<TripDto>>> getDeletedTrips() {
+        log.info("GET /api/trips/deleted - fetching deleted trips");
+        return ApiResponseUtil.success("Deleted trips retrieved successfully", tripService.getDeletedTrips(), HttpStatus.OK);
+    }
+
     // ==================== SHARED ====================
 
     /**

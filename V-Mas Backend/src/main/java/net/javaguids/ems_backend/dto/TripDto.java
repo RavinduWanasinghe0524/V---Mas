@@ -32,4 +32,9 @@ public class TripDto {
     private LocalDateTime respondedAt;
     private LocalDateTime completedAt;
     private LocalDateTime updatedAt;
+
+    // Soft-delete fields
+    private boolean deleted;
+    private String deletedBy;
+    private LocalDateTime deletedAt;
 }

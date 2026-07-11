@@ -21,8 +21,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import net.javaguids.ems_backend.entity.Trip;
+import net.javaguids.ems_backend.enums.TripStatus;
+import net.javaguids.ems_backend.repository.TripRepository;
 
 @Service
 @AllArgsConstructor
@@ -35,6 +39,7 @@ public class VehicleServiceImpl implements VehicleService {
     private final ServiceRecordRepository serviceRecordRepository;
     private final StorageService storageService;
     private final UserRepository userRepository;
+    private final TripRepository tripRepository;
 
 
     @Override
@@ -55,15 +60,16 @@ public class VehicleServiceImpl implements VehicleService {
             throw new IllegalArgumentException("Id must not be null");
         }
         Vehicle vehicle = vehicleRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
-        return VehicleMapper.mapToVehicleDto(vehicle);
+        return enrichWithActiveTripDriver(VehicleMapper.mapToVehicleDto(vehicle));
     }
 
     @Override
     public List<VehicleDto> getAllVehicles() {
-        return vehicleRepository.findAll().stream()
+        List<VehicleDto> dtos = vehicleRepository.findAll().stream()
                 .filter(v -> !v.isDeleted())
                 .map(VehicleMapper::mapToVehicleDto)
                 .collect(Collectors.toList());
+        return enrichWithActiveTripDriver(dtos);
     }
 
     @Override
@@ -379,8 +385,51 @@ public class VehicleServiceImpl implements VehicleService {
 
     @Override
     public VehicleDto getMyVehicle(String driverUsername) {
-        Vehicle vehicle = vehicleRepository.findByAssigneeUsername(driverUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("No vehicle is currently assigned to you."));
-        return VehicleMapper.mapToVehicleDto(vehicle);
+        Optional<Vehicle> vehicleOpt = vehicleRepository.findByAssigneeUsername(driverUsername);
+        if (vehicleOpt.isPresent()) {
+            return enrichWithActiveTripDriver(VehicleMapper.mapToVehicleDto(vehicleOpt.get()));
+        }
+
+        // If no vehicle assigned directly, check active trips
+        List<Trip> activeTrips = tripRepository.findByDriverUsernameAndStatusInAndDeletedFalseOrderByCreatedAtDesc(
+                driverUsername, java.util.List.of(TripStatus.STARTED));
+        if (!activeTrips.isEmpty()) {
+            String vehicleReg = activeTrips.get(0).getVehicleRegNumber();
+            Vehicle vehicle = vehicleRepository.findByRegistrationNo(vehicleReg)
+                    .orElseThrow(() -> new ResourceNotFoundException("Assigned vehicle not found: " + vehicleReg));
+            return enrichWithActiveTripDriver(VehicleMapper.mapToVehicleDto(vehicle));
+        }
+
+        throw new ResourceNotFoundException("No vehicle is currently assigned to you.");
+    }
+
+    private VehicleDto enrichWithActiveTripDriver(VehicleDto dto) {
+        if (dto != null && dto.getDriverUsername() == null) {
+            List<Trip> activeTrips = tripRepository.findByStatusAndDeletedFalseOrderByCreatedAtDesc(TripStatus.STARTED);
+            for (Trip trip : activeTrips) {
+                if (trip.getVehicleRegNumber().equals(dto.getRegistrationNo())) {
+                    dto.setDriverUsername(trip.getDriverUsername());
+                    break;
+                }
+            }
+        }
+        return dto;
+    }
+
+    private List<VehicleDto> enrichWithActiveTripDriver(List<VehicleDto> dtos) {
+        if (dtos != null && !dtos.isEmpty()) {
+            List<Trip> activeTrips = tripRepository.findByStatusAndDeletedFalseOrderByCreatedAtDesc(TripStatus.STARTED);
+            for (VehicleDto dto : dtos) {
+                if (dto.getDriverUsername() == null) {
+                    for (Trip trip : activeTrips) {
+                        if (trip.getVehicleRegNumber().equals(dto.getRegistrationNo())) {
+                            dto.setDriverUsername(trip.getDriverUsername());
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return dtos;
     }
 }

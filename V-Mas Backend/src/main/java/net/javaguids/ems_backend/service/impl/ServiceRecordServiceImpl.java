@@ -32,8 +32,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import net.javaguids.ems_backend.entity.Trip;
+import net.javaguids.ems_backend.enums.TripStatus;
+import net.javaguids.ems_backend.repository.TripRepository;
 
 @Service
 @SuppressWarnings("null")
@@ -45,6 +49,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
     private final NotificationService notificationService;
     private final ServiceIntervalRepository serviceIntervalRepository;
     private final StorageService storageService;
+    private final TripRepository tripRepository;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Value("${app.upload.dir:uploads/service-attachments}")
@@ -55,13 +60,15 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
                                     VehicleRepository vehicleRepository,
                                     NotificationService notificationService,
                                     ServiceIntervalRepository serviceIntervalRepository,
-                                    StorageService storageService) {
+                                    StorageService storageService,
+                                    TripRepository tripRepository) {
         this.serviceRecordRepository = serviceRecordRepository;
         this.auditRepository = auditRepository;
         this.vehicleRepository = vehicleRepository;
         this.notificationService = notificationService;
         this.serviceIntervalRepository = serviceIntervalRepository;
         this.storageService = storageService;
+        this.tripRepository = tripRepository;
     }
 
     @Override
@@ -508,7 +515,16 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     @Override
     public List<ServiceRecordDto> getServiceRecordsForDriver(String driverUsername) {
-        return vehicleRepository.findByAssigneeUsername(driverUsername)
+        Optional<Vehicle> vehicleOpt = vehicleRepository.findByAssigneeUsername(driverUsername);
+        if (vehicleOpt.isEmpty()) {
+            List<Trip> activeTrips = tripRepository.findByDriverUsernameAndStatusInAndDeletedFalseOrderByCreatedAtDesc(
+                    driverUsername, java.util.List.of(TripStatus.STARTED));
+            if (!activeTrips.isEmpty()) {
+                String vehicleReg = activeTrips.get(0).getVehicleRegNumber();
+                vehicleOpt = vehicleRepository.findByRegistrationNo(vehicleReg);
+            }
+        }
+        return vehicleOpt
                 .map(vehicle -> serviceRecordRepository
                         .findByVehicleRegNumberAndDeletedFalse(vehicle.getRegistrationNo())
                         .stream()
@@ -519,7 +535,16 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     @Override
     public net.javaguids.ems_backend.dto.ServiceRecordStatsDto getServiceStatsForDriver(String driverUsername) {
-        return vehicleRepository.findByAssigneeUsername(driverUsername)
+        Optional<Vehicle> vehicleOpt = vehicleRepository.findByAssigneeUsername(driverUsername);
+        if (vehicleOpt.isEmpty()) {
+            List<Trip> activeTrips = tripRepository.findByDriverUsernameAndStatusInAndDeletedFalseOrderByCreatedAtDesc(
+                    driverUsername, java.util.List.of(TripStatus.STARTED));
+            if (!activeTrips.isEmpty()) {
+                String vehicleReg = activeTrips.get(0).getVehicleRegNumber();
+                vehicleOpt = vehicleRepository.findByRegistrationNo(vehicleReg);
+            }
+        }
+        return vehicleOpt
                 .map(vehicle -> {
                     List<ServiceRecord> records = serviceRecordRepository
                             .findByVehicleRegNumberAndDeletedFalse(vehicle.getRegistrationNo());
