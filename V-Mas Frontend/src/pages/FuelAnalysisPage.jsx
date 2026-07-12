@@ -980,21 +980,21 @@ const FuelAnalysisPage = () => {
           {(isAdmin || isController) ? (
             <div style={{
               background: isDark
-                ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
-                : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+                ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, var(--primary-dark) 85%, var(--primary) 100%)'
+                : 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
               borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
               boxShadow: isDark
-                ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
-                : '0 16px 48px rgba(0,0,0,0.4)',
-              border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : `1px solid ${D.border}`,
+                ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.04)'
+                : '0 16px 48px rgba(0,0,0,0.15), 0 8px 32px var(--primary-glow)',
+              border: '1px solid var(--border-strong)',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20,
             }}>
               {/* Neon radial glow for dark */}
-              {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
+              {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, var(--primary-light) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
               {/* Decorative blobs */}
-              <div style={{ position: 'absolute', top: '-30px', right: '10%', width: 220, height: 220, borderRadius: '50%', background: 'rgba(99,102,241,0.08)', pointerEvents: 'none' }} />
-              <div style={{ position: 'absolute', bottom: '-40px', right: '30%', width: 160, height: 160, borderRadius: '50%', background: 'rgba(6,182,212,0.07)', pointerEvents: 'none' }} />
-              <div style={{ position: 'absolute', top: '20%', left: '60%', width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.03)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', top: '-30px', right: '10%', width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.02)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', bottom: '-40px', right: '30%', width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.01)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', top: '20%', left: '60%', width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.01)', pointerEvents: 'none' }} />
 
               {/* Left: Icon + Text */}
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -1006,11 +1006,11 @@ const FuelAnalysisPage = () => {
                     <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
                       Fuel &amp; Analysis, {user?.firstName || user?.username || (isAdmin ? 'Admin' : 'Controller')}!
                     </h1>
-                    <span style={{ background: 'rgba(6,182,212,0.18)', border: '1px solid rgba(6,182,212,0.4)', color: '#67e8f9', fontSize: '0.7rem', fontWeight: 800, padding: '3px 10px', borderRadius: 999, letterSpacing: '0.05em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                    <span style={{ background: 'var(--primary-light)', border: '1px solid var(--border)', color: 'var(--primary)', fontSize: '0.7rem', fontWeight: 800, padding: '3px 10px', borderRadius: 999, letterSpacing: '0.05em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                       Consumption Insights
                     </span>
                   </div>
-                  <p style={{ margin: 0, color: '#93c5fd', fontSize: '0.875rem', fontWeight: 500 }}>
+                  <p style={{ margin: 0, color: isDark ? 'var(--text-secondary)' : '#e0e7ff', fontSize: '0.875rem', fontWeight: 500 }}>
                     Track fuel spend, efficiency and consumption patterns across every vehicle.
                   </p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
@@ -1028,17 +1028,17 @@ const FuelAnalysisPage = () => {
             /* Driver hero banner (updated to premium style) */
             <div style={{
               background: isDark
-                ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
-                : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+                ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, var(--primary-dark) 85%, var(--primary) 100%)'
+                : 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
               borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
               boxShadow: isDark
-                ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
-                : '0 16px 48px rgba(0,0,0,0.4)',
-              border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : `1px solid ${D.border}`,
+                ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.04)'
+                : '0 16px 48px rgba(0,0,0,0.15), 0 8px 32px var(--primary-glow)',
+              border: '1px solid var(--border-strong)',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20,
             }}>
               {/* Neon radial glow for dark */}
-              {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
+              {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, var(--primary-light) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
               {/* Decorative blobs */}
               <div style={{ position: 'absolute', top: '-30px', right: '10%', width: 220, height: 220, borderRadius: '50%', background: 'rgba(99,102,241,0.08)', pointerEvents: 'none' }} />
               <div style={{ position: 'absolute', bottom: '-40px', right: '30%', width: 160, height: 160, borderRadius: '50%', background: 'rgba(6,182,212,0.07)', pointerEvents: 'none' }} />
@@ -1054,11 +1054,11 @@ const FuelAnalysisPage = () => {
                     <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
                       Fuel &amp; Analysis, {user?.firstName || user?.username || 'Driver'}!
                     </h1>
-                    <span style={{ background: 'rgba(6,182,212,0.18)', border: '1px solid rgba(6,182,212,0.4)', color: '#67e8f9', fontSize: '0.7rem', fontWeight: 800, padding: '3px 10px', borderRadius: 999, letterSpacing: '0.05em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                    <span style={{ background: 'var(--primary-light)', border: '1px solid var(--border)', color: 'var(--primary)', fontSize: '0.7rem', fontWeight: 800, padding: '3px 10px', borderRadius: 999, letterSpacing: '0.05em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                       My Vehicle Insights
                     </span>
                   </div>
-                  <p style={{ margin: 0, color: '#93c5fd', fontSize: '0.875rem', fontWeight: 500 }}>
+                  <p style={{ margin: 0, color: isDark ? 'var(--text-secondary)' : '#e0e7ff', fontSize: '0.875rem', fontWeight: 500 }}>
                     Track your fuel fills, efficiency and mileage history.
                   </p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
