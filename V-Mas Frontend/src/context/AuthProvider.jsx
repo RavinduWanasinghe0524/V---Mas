@@ -47,6 +47,15 @@ export const AuthProvider = ({ children }) => {
     setLoading(false)
   }, [])
 
+  // Apply user role data attribute to html node for dynamic CSS variables
+  useEffect(() => {
+    if (user?.role) {
+      document.documentElement.setAttribute('data-role', user.role);
+    } else {
+      document.documentElement.removeAttribute('data-role');
+    }
+  }, [user]);
+
   // ── LOGIN ──────────────────────────────────────────────────────────
   const login = async (userName, password) => {
     try {

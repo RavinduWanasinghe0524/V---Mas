@@ -75,7 +75,7 @@ const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "
         e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)'
       }
     }}>
-    <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--primary-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, border: '1px solid rgba(59, 130, 246, 0.25)', color: 'var(--primary)', flexShrink: 0, boxShadow: '0 4px 12px rgba(59,130,246,0.15)' }}>
+    <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, border: '1px solid var(--border)', color: 'var(--primary)', flexShrink: 0, boxShadow: '0 4px 12px var(--primary-glow)' }}>
       {icon}
     </div>
     <h3 style={{ margin: '0 0 10px', fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{title}</h3>
@@ -87,9 +87,9 @@ const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "
       ) : (
         <button style={{
           padding: '10px 20px', borderRadius: 12, border: 'none',
-          background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+          background: 'linear-gradient(135deg, var(--primary-dark), var(--primary))',
           color: '#fff', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
-          boxShadow: '0 4px 16px rgba(59, 130, 246, 0.35)',
+          boxShadow: '0 4px 16px var(--primary-glow)',
           transition: 'all 0.2s ease',
         }}>
           {btnText}
@@ -101,6 +101,7 @@ const FeatureCard = ({ icon, title, desc, onClick, disabled = false, btnText = "
 
 /* ── Accent colors (theme-aware) ──────────────────────── */
 const useAccents = (isDark) => ({
+  // Generic accents
   purple:    isDark ? '#60a5fa' : '#1d4ed8',
   purpleDim: isDark ? 'rgba(59, 130, 246, 0.18)' : 'rgba(29, 78, 216, 0.1)',
   indigo:    isDark ? '#818cf8' : '#1e40af',
@@ -113,6 +114,19 @@ const useAccents = (isDark) => ({
   redDim:    isDark ? 'rgba(248, 113, 113, 0.15)' : 'rgba(220, 38, 38, 0.1)',
   gold:      isDark ? '#fbbf24' : '#d97706',
   goldDim:   isDark ? 'rgba(251, 191, 36, 0.15)' : 'rgba(217, 119, 6, 0.1)',
+  // ── Role colours ─────────────────────────────────────────────────
+  // Admin  = Royal Violet
+  adminColor:      isDark ? '#a78bfa' : '#6d28d9',
+  adminDim:        isDark ? 'rgba(124,58,237,0.18)' : 'rgba(124,58,237,0.1)',
+  adminBorder:     isDark ? 'rgba(124,58,237,0.35)' : 'rgba(124,58,237,0.25)',
+  // Controller = Amber / Gold
+  controllerColor: isDark ? '#fbbf24' : '#b45309',
+  controllerDim:   isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.1)',
+  controllerBorder:isDark ? 'rgba(245,158,11,0.35)' : 'rgba(245,158,11,0.25)',
+  // Driver = Emerald
+  driverColor:     isDark ? '#34d399' : '#047857',
+  driverDim:       isDark ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.1)',
+  driverBorder:    isDark ? 'rgba(16,185,129,0.35)' : 'rgba(16,185,129,0.25)',
 })
 
 /* ── Monthly Cost Trend (Maintenance vs Fuel) — SVG line chart ── */
@@ -194,9 +208,9 @@ const MonthlyCostTrendChart = ({ data = [], isDark }) => {
 const UserStatsPieChart = ({ stats }) => {
   const [mode, setMode] = useState('role')
   const roleData = [
-    { label: 'Admins', value: stats.admins || 0, color: '#3b82f6' },
-    { label: 'Controllers', value: stats.controllers || 0, color: '#fbbf24' },
-    { label: 'Drivers', value: stats.drivers || 0, color: '#34d399' },
+    { label: 'Admins', value: stats.admins || 0, color: '#7c3aed' },
+    { label: 'Controllers', value: stats.controllers || 0, color: '#d97706' },
+    { label: 'Drivers', value: stats.drivers || 0, color: '#10b981' },
   ]
   const statusData = [
     { label: 'Active', value: stats.activeUsers || 0, color: '#34d399' },
@@ -273,8 +287,8 @@ const AdminDashboard = ({ stats, loading, navigate, isDark, monthlyCostData, act
       <SectionHeader title="User Statistics" />
       <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
         <StatCard icon={<Users size={20} color={A.purple}/>} label="Total Users" value={stats.totalUsers} colorDim={A.purpleDim} colorHex={A.purple} change="Registered in system" onClick={() => navigate('/users')} />
-        <StatCard icon={<UserCog size={20} color={A.indigo}/>} label="Controllers" value={stats.controllers} colorDim={A.indigoDim} colorHex={A.indigo} change="Fleet control team" onClick={() => navigate('/users', { state: { roleFilter: 'CONTROLLER' } })} />
-        <StatCard icon={<Car size={20} color={A.green}/>} label="Drivers" value={stats.drivers} colorDim={A.greenDim} colorHex={A.green} change="Active vehicle drivers" onClick={() => navigate('/users', { state: { roleFilter: 'DRIVER' } })} />
+        <StatCard icon={<UserCog size={20} color={A.controllerColor}/>} label="Controllers" value={stats.controllers} colorDim={A.controllerDim} colorHex={A.controllerColor} change="Fleet control team" onClick={() => navigate('/users', { state: { roleFilter: 'CONTROLLER' } })} />
+        <StatCard icon={<Car size={20} color={A.driverColor}/>} label="Drivers" value={stats.drivers} colorDim={A.driverDim} colorHex={A.driverColor} change="Active vehicle drivers" onClick={() => navigate('/users', { state: { roleFilter: 'DRIVER' } })} />
         <StatCard icon={<Clock size={20} color={stats.pendingUsers > 0 ? '#fbbf24' : A.gold}/>} label="Pending Approvals" value={stats.pendingUsers} colorDim={stats.pendingUsers > 0 ? 'rgba(251, 191, 36, 0.25)' : A.goldDim} colorHex={stats.pendingUsers > 0 ? '#fbbf24' : A.gold} change={stats.pendingUsers > 0 ? "Awaiting access review!" : "No pending accounts"} onClick={() => navigate('/users', { state: { statusFilter: 'PENDING' } })} />
       </div>
 
@@ -822,7 +836,7 @@ const QuickActionsPanel = ({ navigate }) => {
     { icon: <Wrench size={18} color="#fbbf24" />, bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.25)', label: 'Add Service Record', onClick: () => navigate('/service', { state: { openAddServiceModal: true, fromOneClick: true } }) },
     { icon: <Gauge size={18} color="#a855f7" />, bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.25)', label: 'Daily Mileage Update', onClick: () => navigate('/service', { state: { activeTab: 'update' } }) },
     { icon: <UserCog size={18} color="#34d399" />, bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', label: 'Driver Check-in', onClick: () => navigate('/users', { state: { roleFilter: 'DRIVER' } }) },
-    { icon: <Car size={18} color="#3b82f6" />, bg: 'rgba(59, 130, 246,0.12)', border: 'rgba(59, 130, 246,0.25)', label: 'Register Vehicle', onClick: () => navigate('/vehicles', { state: { openAddVehicle: true, fromOneClick: true } }) },
+    { icon: <Car size={18} color="var(--primary)" />, bg: 'var(--primary-light)', border: 'var(--border)', label: 'Register Vehicle', onClick: () => navigate('/vehicles', { state: { openAddVehicle: true, fromOneClick: true } }) },
     { icon: <Fuel size={18} color="#38bdf8" />, bg: 'rgba(56,189,248,0.12)', border: 'rgba(56,189,248,0.25)', label: 'Record Fuel Fill-up', onClick: () => navigate('/fuel-management', { state: { openAddFuelLog: true, fromOneClick: true } }) },
   ]
 
@@ -1473,7 +1487,7 @@ const ActiveTripPanel = ({ trip, isDark, onChanged, navigate }) => {
           </>
         )}
         {status === 'STARTED' && (
-          <button onClick={() => setModalAction('complete')} disabled={busy} style={tripBtnStyle('linear-gradient(135deg,#2563eb,#3b82f6)', '#fff', busy)}>
+          <button onClick={() => setModalAction('complete')} disabled={busy} style={tripBtnStyle('linear-gradient(135deg,var(--primary-dark),var(--primary))', '#fff', busy)}>
             <CheckCircle size={15} /> Complete Job
           </button>
         )}
@@ -1530,18 +1544,18 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
       <SectionHeader title="My Overview" />
       <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16, marginBottom: 32 }}>
         <StatCard
-          icon={<Car size={20} color={A.purple}/>}
+          icon={<Car size={20} color={A.driverColor}/>}
           label="Assigned Vehicle"
           value={vehicleLoading ? '…' : (myVehicle ? myVehicle.registrationNo : '—')}
-          colorDim={A.purpleDim} colorHex={A.purple}
+          colorDim={A.driverDim} colorHex={A.driverColor}
           change={myVehicle ? `${myVehicle.manufacturer || ''} ${myVehicle.model || ''}`.trim() || 'My vehicle' : 'No vehicle assigned'}
           onClick={() => navigate('/vehicles')}
         />
         <StatCard
-          icon={<ClipboardList size={20} color={A.blue}/>}
+          icon={<ClipboardList size={20} color={A.driverColor}/>}
           label="Assigned Job"
           value={activeTrip ? activeTrip.destination : 'None'}
-          colorDim={A.blueDim} colorHex={A.blue}
+          colorDim={A.driverDim} colorHex={A.driverColor}
           change={activeTrip ? (tripStatusLabel[activeStatus] || activeStatus) : 'Nothing assigned yet'}
           onClick={() => navigate('/jobs')}
         />
@@ -1593,7 +1607,7 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
                   )
                 })()}
                 <button onClick={() => navigate('/vehicles')}
-                  style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#3b82f6)', color: '#fff', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(59,130,246,0.3)' }}>
+                  style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--primary-dark), var(--primary))', color: '#fff', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 12px var(--primary-glow)' }}>
                   View Details
                 </button>
               </div>
@@ -1846,6 +1860,13 @@ const DashboardPage = () => {
 
   const roleLabel = { ADMIN: 'Administrator', CONTROLLER: 'Fleet Controller', DRIVER: 'Vehicle Driver' }
   const roleEmoji = { ADMIN: <Shield size={32} color="#fff"/>, CONTROLLER: <Gamepad2 size={32} color="#fff"/>, DRIVER: <Car size={32} color="#fff"/> }
+  // Role badge colours — violet / amber / emerald
+  const roleBadgeMeta = {
+    ADMIN:      { color: isDark ? '#a78bfa' : '#c4b5fd', bg: isDark ? 'rgba(124,58,237,0.28)' : 'rgba(124,58,237,0.22)', border: isDark ? 'rgba(124,58,237,0.45)' : 'rgba(124,58,237,0.35)' },
+    CONTROLLER: { color: isDark ? '#fbbf24' : '#fde68a', bg: isDark ? 'rgba(245,158,11,0.25)' : 'rgba(245,158,11,0.22)', border: isDark ? 'rgba(245,158,11,0.45)' : 'rgba(245,158,11,0.35)' },
+    DRIVER:     { color: isDark ? '#6ee7b7' : '#a7f3d0', bg: isDark ? 'rgba(16,185,129,0.22)' : 'rgba(16,185,129,0.20)', border: isDark ? 'rgba(16,185,129,0.45)' : 'rgba(16,185,129,0.35)' },
+  }
+  const currentRoleMeta = roleBadgeMeta[user?.role] || { color: '#dbeafe', bg: 'rgba(59,130,246,0.25)', border: 'rgba(59,130,246,0.3)' }
 
   return (
     <div className="app-shell" style={{ background: 'var(--bg-body)' }}>
@@ -1855,65 +1876,71 @@ const DashboardPage = () => {
         <div className="page-body">
 
           {/* Hero Banner — Dynamic glassmorphic design */}
-          <div style={{
-            background: isDark
-              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
-              : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
-            borderRadius: 28, padding: '40px', marginBottom: 32,
-            position: 'relative', overflow: 'hidden',
-            boxShadow: isDark
-              ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
-              : '0 16px 48px rgba(0,0,0,0.4)',
-            border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid rgba(37, 99, 235, 0.2)',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16,
-          }}>
-            {/* Decorative circles */}
-            {[['80%', '-20px', '220px', 'rgba(59,130,246,0.04)'], ['20%', '60%', '150px', 'rgba(99,102,241,0.04)'], ['55%', '80%', '100px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
-              <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
-            ))}
-            {/* Neon glow accent for dark mode */}
-            {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
+          {(() => {
+            const heroBg = isDark
+              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, var(--primary-dark) 85%, var(--primary) 100%)'
+              : 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)';
+
+            return (
               <div style={{
-                background: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.1)',
-                borderRadius: 16, width: 64, height: 64,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', backdropFilter: 'blur(8px)',
-                border: isDark ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(255,255,255,0.15)',
-                boxShadow: isDark ? '0 0 20px rgba(59,130,246,0.3), 0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.2)',
+                background: heroBg,
+                borderRadius: 28, padding: '40px', marginBottom: 32,
+                position: 'relative', overflow: 'hidden',
+                boxShadow: isDark
+                  ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.04)'
+                  : '0 16px 48px rgba(0,0,0,0.15), 0 8px 32px var(--primary-glow)',
+                border: '1px solid var(--border-strong)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16,
               }}>
-                {roleEmoji[user?.role] || <Car size={32} color="#fff" />}
-              </div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                    Good day, {user?.userName}!
-                  </h1>
-                  <span style={{ background: isDark ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.15)', color: '#dbeafe', padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: isDark ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(255,255,255,0.2)' }}>
-                    {roleLabel[user?.role] || user?.role}
-                  </span>
-                  {user?.role === 'DRIVER' && user?.accountStatus && (() => {
-                    const st = (user.accountStatus || '').toUpperCase()
-                    const meta = {
-                      ACTIVE:    { label: 'Active',    color: '#34d399', bg: 'rgba(16,185,129,0.22)',  border: 'rgba(16,185,129,0.45)' },
-                      INACTIVE:  { label: 'Inactive',  color: '#cbd5e1', bg: 'rgba(148,163,184,0.22)', border: 'rgba(148,163,184,0.45)' },
-                      PENDING:   { label: 'Pending',   color: '#fbbf24', bg: 'rgba(251,191,36,0.22)',  border: 'rgba(251,191,36,0.45)' },
-                      SUSPENDED: { label: 'Suspended', color: '#f87171', bg: 'rgba(239,68,68,0.22)',   border: 'rgba(239,68,68,0.45)' },
-                    }[st] || { label: st.charAt(0) + st.slice(1).toLowerCase(), color: '#cbd5e1', bg: 'rgba(148,163,184,0.22)', border: 'rgba(148,163,184,0.45)' }
-                    return (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: meta.bg, color: meta.color, padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: `1px solid ${meta.border}` }}>
-                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: meta.color, display: 'inline-block', boxShadow: `0 0 6px ${meta.color}` }} />
-                        {meta.label}
+                {/* Decorative circles */}
+                {[['80%', '-20px', '220px', 'rgba(255,255,255,0.02)'], ['20%', '60%', '150px', 'rgba(255,255,255,0.02)'], ['55%', '80%', '100px', 'rgba(255,255,255,0.01)']].map(([t, l, s, bg], i) => (
+                  <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
+                ))}
+                {/* Neon glow accent for dark mode */}
+                {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, var(--primary-light) 0.06%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
+                  <div style={{
+                    background: isDark ? 'var(--primary-light)' : 'rgba(255,255,255,0.15)',
+                    borderRadius: 16, width: 64, height: 64,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#fff', backdropFilter: 'blur(8px)',
+                    border: '1px solid var(--border)',
+                    boxShadow: isDark ? '0 0 20px var(--primary-glow), 0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.15)',
+                  }}>
+                    {roleEmoji[user?.role] || <Car size={32} color="#fff" />}
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                        Good day, {user?.userName}!
+                      </h1>
+                      <span style={{ background: 'var(--primary-light)', color: isDark ? 'var(--primary)' : '#fff', padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: '1px solid var(--border)' }}>
+                        {roleLabel[user?.role] || user?.role}
                       </span>
-                    )
-                  })()}
+                      {user?.role === 'DRIVER' && user?.accountStatus && (() => {
+                        const st = (user.accountStatus || '').toUpperCase()
+                        const meta = {
+                          ACTIVE:    { label: 'Active',    color: '#34d399', bg: 'rgba(16,185,129,0.22)',  border: 'rgba(16,185,129,0.45)' },
+                          INACTIVE:  { label: 'Inactive',  color: '#cbd5e1', bg: 'rgba(148,163,184,0.22)', border: 'rgba(148,163,184,0.45)' },
+                          PENDING:   { label: 'Pending',   color: '#fbbf24', bg: 'rgba(251,191,36,0.22)',  border: 'rgba(251,191,36,0.45)' },
+                          SUSPENDED: { label: 'Suspended', color: '#f87171', bg: 'rgba(239,68,68,0.22)',   border: 'rgba(239,68,68,0.45)' },
+                        }[st] || { label: st.charAt(0) + st.slice(1).toLowerCase(), color: '#cbd5e1', bg: 'rgba(148,163,184,0.22)', border: 'rgba(148,163,184,0.45)' }
+                        return (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: meta.bg, color: meta.color, padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: `1px solid ${meta.border}` }}>
+                            <span style={{ width: 7, height: 7, borderRadius: '50%', background: meta.color, display: 'inline-block', boxShadow: `0 0 6px ${meta.color}` }} />
+                            {meta.label}
+                          </span>
+                        )
+                      })()}
+                    </div>
+                    <p style={{ margin: '6px 0 0', color: isDark ? 'var(--text-secondary)' : '#e0e7ff', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      Here's how your fleet is doing today.
+                    </p>
+                  </div>
                 </div>
-                <p style={{ margin: '6px 0 0', color: isDark ? '#93c5fd' : '#60a5fa', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  Here's how your fleet is doing today.
-                </p>
               </div>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Alerts Section - Show for Admin and Controller */}
           {(isAdmin || user?.role === 'CONTROLLER') && (

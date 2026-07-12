@@ -2544,16 +2544,16 @@ const ServicePage = () => {
           <div style={{
             position: 'relative',
             background: isDark
-              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
-              : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, var(--primary-dark) 85%, var(--primary) 100%)'
+              : 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
             borderRadius: 28,
             padding: '40px',
             marginBottom: 32,
             overflow: 'hidden',
-            border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid rgba(37, 99, 235, 0.2)',
+            border: '1px solid var(--border-strong)',
             boxShadow: isDark
-              ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
-              : '0 16px 48px rgba(0,0,0,0.4)',
+              ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.04)'
+              : '0 16px 48px rgba(0,0,0,0.15), 0 8px 32px var(--primary-glow)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -2562,22 +2562,22 @@ const ServicePage = () => {
             animation: 'fadeSlideUp 0.5s ease both',
           }}>
             {/* Decorative circles */}
-            {[['80%', '-20px', '220px', 'rgba(59,130,246,0.04)'], ['20%', '60%', '150px', 'rgba(99,102,241,0.04)'], ['55%', '80%', '100px', 'rgba(255,255,255,0.02)']].map(([t, l, s, bg], i) => (
+            {[['80%', '-20px', '220px', 'rgba(255,255,255,0.02)'], ['20%', '60%', '150px', 'rgba(255,255,255,0.02)'], ['55%', '80%', '100px', 'rgba(255,255,255,0.01)']].map(([t, l, s, bg], i) => (
               <div key={i} style={{ position: 'absolute', top: t, left: l, width: s, height: s, borderRadius: '50%', background: bg, pointerEvents: 'none' }} />
             ))}
             {/* Neon radial glow for dark */}
-            {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
+            {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, var(--primary-light) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
 
             {/* Left — identity */}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20, zIndex: 2 }}>
               {/* Wrench icon in glowing ring */}
               <div style={{
                 width: 64, height: 64, borderRadius: 16,
-                background: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.1)',
+                background: isDark ? 'var(--primary-light)' : 'rgba(255,255,255,0.15)',
                 backdropFilter: 'blur(8px)',
-                border: isDark ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(255,255,255,0.15)',
+                border: `1px solid var(--border)`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
-                boxShadow: isDark ? '0 0 20px rgba(59,130,246,0.3), 0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.2)',
+                boxShadow: isDark ? '0 0 20px var(--primary-glow), 0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.2)',
                 flexShrink: 0,
               }}>
                 <Wrench size={32} color="#fff" strokeWidth={1.5} />
@@ -2593,19 +2593,19 @@ const ServicePage = () => {
                   </h1>
                   {isDriver && (
                     <span style={{
-                      background: isDark ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.15)',
-                      color: '#dbeafe',
+                      background: 'var(--primary-light)',
+                      color: 'var(--text-accent)',
                       padding: '3px 10px', borderRadius: 999,
                       fontSize: '0.75rem', fontWeight: 700,
                       backdropFilter: 'blur(4px)',
-                      border: isDark ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(255,255,255,0.2)',
+                      border: `1px solid var(--border)`,
                     }}>
                       Read Only
                     </span>
                   )}
                 </div>
 
-                <p style={{ margin: '6px 0 0', color: isDark ? '#93c5fd' : '#60a5fa', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <p style={{ margin: '6px 0 0', color: isDark ? 'var(--primary)' : '#e0e7ff', fontSize: '0.88rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
                   {isDriver
                     ? 'Browse all service records and track maintenance milestones across the fleet (read-only).'
                     : 'Schedule services, manage work orders and minimise fleet downtime.'}
@@ -2952,9 +2952,9 @@ const ServicePage = () => {
                           borderRadius: 12,
                           fontSize: '0.9rem',
                           fontWeight: isActive ? 800 : 600,
-                          background: isActive ? 'rgba(99,102,241,0.15)' : 'transparent',
-                          color: isActive ? '#a5b4fc' : D.textSub,
-                          border: isActive ? '1px solid rgba(99,102,241,0.3)' : '1px solid transparent',
+                          background: isActive ? 'var(--primary-light)' : 'transparent',
+                          color: isActive ? 'var(--primary)' : D.textSub,
+                          border: isActive ? '1px solid var(--border)' : '1px solid transparent',
                           cursor: 'pointer',
                           transition: 'all 0.2s ease',
                         }}

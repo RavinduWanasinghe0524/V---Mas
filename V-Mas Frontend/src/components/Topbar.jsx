@@ -539,16 +539,16 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
             borderRadius: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: isDark
-              ? 'linear-gradient(135deg, #2563eb, #3b82f6)'
+              ? 'linear-gradient(135deg, var(--primary-dark), var(--primary))'
               : 'linear-gradient(135deg, #ffffff, #f0f4ff)',
             boxShadow: isDark
-              ? '0 2px 8px rgba(37, 99, 235,0.6), 0 0 12px rgba(37, 99, 235,0.4)'
+              ? '0 2px 8px var(--primary-glow), 0 0 12px var(--primary-glow)'
               : '0 2px 6px rgba(29, 78, 216,0.25), 0 1px 2px rgba(0,0,0,0.08)',
             transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease, box-shadow 0.3s ease',
           }}>
             {isDark
               ? <Moon size={12} color="#fff" />
-              : <Sun size={12} color="#1d4ed8" />
+              : <Sun size={12} color="var(--primary)" />
             }
           </span>
           {/* Background icon hints */}
@@ -594,7 +594,7 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
                 <Bell 
                   size={22} 
                   color={showNotifications || totalUnread > 0 
-                    ? (isDark ? '#3b82f6' : '#2563eb') 
+                    ? (isDark ? 'var(--primary)' : 'var(--primary-dark)') 
                     : (isDark ? '#94a3b8' : '#6b7280')} 
                   style={{ transition: 'color 0.2s' }}
                 />
@@ -606,7 +606,7 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
                     position: 'absolute', 
                     top: 2, 
                     right: 2,
-                    background: alertCount > 0 ? '#ef4444' : '#3b82f6',
+                    background: alertCount > 0 ? '#ef4444' : 'var(--primary)',
                     color: '#fff', 
                     fontSize: '0.62rem', 
                     fontWeight: 800, 
