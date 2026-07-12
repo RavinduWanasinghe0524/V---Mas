@@ -90,6 +90,49 @@
     radial-gradient(ellipse at 80% 100%, rgba(37, 99, 235, 0.04) 0%, transparent 60%);
 }
 
+/* ── Light Mode Role Overrides ────────────────────────────────────── */
+[data-role="ADMIN"] {
+  --primary: #7c3aed;
+  --primary-dark: #6d28d9;
+  --primary-light: rgba(124, 58, 237, 0.1);
+  --primary-muted: rgba(124, 58, 237, 0.06);
+  --primary-glow: rgba(124, 58, 237, 0.22);
+  --border: rgba(124, 58, 237, 0.1);
+  --border-strong: rgba(124, 58, 237, 0.2);
+  --border-focus: #7c3aed;
+  --text-accent: #7c3aed;
+  --body-gradient: radial-gradient(ellipse at 20% 0%, rgba(124, 58, 237, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(109, 40, 217, 0.04) 0%, transparent 60%);
+}
+
+[data-role="CONTROLLER"] {
+  --primary: #d97706;
+  --primary-dark: #b45309;
+  --primary-light: rgba(245, 158, 11, 0.1);
+  --primary-muted: rgba(245, 158, 11, 0.06);
+  --primary-glow: rgba(245, 158, 11, 0.22);
+  --border: rgba(245, 158, 11, 0.1);
+  --border-strong: rgba(245, 158, 11, 0.2);
+  --border-focus: #d97706;
+  --text-accent: #d97706;
+  --body-gradient: radial-gradient(ellipse at 20% 0%, rgba(245, 158, 11, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(217, 119, 6, 0.04) 0%, transparent 60%);
+}
+
+[data-role="DRIVER"] {
+  --primary: #10b981;
+  --primary-dark: #047857;
+  --primary-light: rgba(16, 185, 129, 0.1);
+  --primary-muted: rgba(16, 185, 129, 0.06);
+  --primary-glow: rgba(16, 185, 129, 0.22);
+  --border: rgba(16, 185, 129, 0.1);
+  --border-strong: rgba(16, 185, 129, 0.2);
+  --border-focus: #10b981;
+  --text-accent: #10b981;
+  --body-gradient: radial-gradient(ellipse at 20% 0%, rgba(16, 185, 129, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(5, 150, 105, 0.04) 0%, transparent 60%);
+}
+
 /* â”€â”€ Dark (Space Blue) Theme Overrides â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 [data-theme="blue"] {
   /* â”€ Brand â”€ Electric neon blue that pops on dark â”€ */
@@ -121,12 +164,12 @@
   --bg-gray-50: #0e1d35;
   --bg-gray-100: #122040;
 
-  /* â”€ Borders â€” luminous electric hairlines â”€ */
+  /* ─ Borders ─ luminous electric hairlines ─ */
   --border: rgba(59, 130, 246, 0.13);
   --border-strong: rgba(59, 130, 246, 0.28);
   --border-focus: #3b82f6;
 
-  /* â”€ Text â”€ */
+  /* ─ Text ─ */
   --text-primary: #e8eeff;
   --text-secondary: #bfdbfe;
   --text-muted: #7889b4;
@@ -134,14 +177,15 @@
   --text-white: #ffffff;
   --text-accent: #60a5fa;
 
-  /* â”€ Sidebar â”€ Deep glass with neon â”€ */
+  /* ─ Sidebar ─ Deep glass with neon ─ */
   --sidebar-bg: rgba(10, 22, 40, 0.97);
 
-  /* â”€ Topbar â”€ */
+  /* ─ Topbar ─ */
+  --navbar-h: 64px;
   --topbar-bg: rgba(8, 14, 28, 0.94);
   --topbar-border: rgba(59, 130, 246, 0.12);
 
-  /* â”€ Surface tokens â”€ */
+  /* ─ Surface tokens ─ */
   --surface: rgba(10, 22, 40, 0.9);
   --surface-hi: rgba(14, 29, 53, 0.9);
   --surface-border: rgba(59, 130, 246, 0.1);
@@ -163,6 +207,55 @@
     radial-gradient(ellipse at 50% 50%, rgba(20, 20, 60, 0.4) 0%, transparent 80%);
 }
 
+/* ── Dark Mode Role Overrides ─────────────────────────────────────── */
+[data-theme="blue"][data-role="ADMIN"] {
+  --primary: #a78bfa;
+  --primary-dark: #7c3aed;
+  --primary-light: rgba(124, 58, 237, 0.15);
+  --primary-muted: rgba(124, 58, 237, 0.18);
+  --primary-glow: rgba(124, 58, 237, 0.45);
+  --border: rgba(124, 58, 237, 0.15);
+  --border-strong: rgba(124, 58, 237, 0.3);
+  --border-focus: #a78bfa;
+  --text-accent: #a78bfa;
+  --scrollbar-thumb: rgba(124, 58, 237, 0.25);
+  --body-gradient: radial-gradient(ellipse at 15% 0%, rgba(124, 58, 237, 0.16) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 100%, rgba(139, 92, 246, 0.08) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 50%, rgba(15, 10, 30, 0.4) 0%, transparent 80%);
+}
+
+[data-theme="blue"][data-role="CONTROLLER"] {
+  --primary: #fbbf24;
+  --primary-dark: #d97706;
+  --primary-light: rgba(245, 158, 11, 0.15);
+  --primary-muted: rgba(245, 158, 11, 0.18);
+  --primary-glow: rgba(245, 158, 11, 0.45);
+  --border: rgba(245, 158, 11, 0.15);
+  --border-strong: rgba(245, 158, 11, 0.3);
+  --border-focus: #fbbf24;
+  --text-accent: #fbbf24;
+  --scrollbar-thumb: rgba(245, 158, 11, 0.25);
+  --body-gradient: radial-gradient(ellipse at 15% 0%, rgba(245, 158, 11, 0.16) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 100%, rgba(251, 146, 60, 0.08) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 50%, rgba(30, 20, 10, 0.4) 0%, transparent 80%);
+}
+
+[data-theme="blue"][data-role="DRIVER"] {
+  --primary: #34d399;
+  --primary-dark: #10b981;
+  --primary-light: rgba(16, 185, 129, 0.15);
+  --primary-muted: rgba(16, 185, 129, 0.18);
+  --primary-glow: rgba(16, 185, 129, 0.45);
+  --border: rgba(16, 185, 129, 0.15);
+  --border-strong: rgba(16, 185, 129, 0.3);
+  --border-focus: #34d399;
+  --text-accent: #34d399;
+  --scrollbar-thumb: rgba(16, 185, 129, 0.25);
+  --body-gradient: radial-gradient(ellipse at 15% 0%, rgba(16, 185, 129, 0.16) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 100%, rgba(52, 211, 153, 0.08) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 50%, rgba(10, 30, 20, 0.4) 0%, transparent 80%);
+}
+
 /* Dark theme scrollbar */
 [data-theme="blue"] ::-webkit-scrollbar-track {
   background: #080d1a;
@@ -176,19 +269,20 @@
   background: rgba(37, 99, 235, 0.4);
 }
 
-/* Dark theme badge overrides */
+/* ── Dark theme badge overrides ─────────────────────────────────────── */
+/* Role colours: Admin = Royal Violet | Controller = Amber/Gold | Driver = Emerald */
 [data-theme="blue"] .badge-admin {
-  background: rgba(37, 99, 235, 0.18);
-  color: #3b82f6;
+  background: rgba(124, 58, 237, 0.18);
+  color: #a78bfa;
 }
 
 [data-theme="blue"] .badge-controller {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
 }
 
 [data-theme="blue"] .badge-driver {
-  background: rgba(52, 211, 153, 0.15);
+  background: rgba(16, 185, 129, 0.15);
   color: #34d399;
 }
 
@@ -232,18 +326,21 @@
   color: #3b82f6;
 }
 
-[data-theme="blue"] .role-badge.role-admin {
-  background: rgba(37, 99, 235, 0.18);
-  color: #3b82f6;
+[data-theme="blue"] .role-badge.role-admin,
+[data-theme="blue"] .user-role.role-admin {
+  background: rgba(124, 58, 237, 0.18);
+  color: #a78bfa;
 }
 
-[data-theme="blue"] .role-badge.role-controller {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
+[data-theme="blue"] .role-badge.role-controller,
+[data-theme="blue"] .user-role.role-controller {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
 }
 
-[data-theme="blue"] .role-badge.role-driver {
-  background: rgba(52, 211, 153, 0.15);
+[data-theme="blue"] .role-badge.role-driver,
+[data-theme="blue"] .user-role.role-driver {
+  background: rgba(16, 185, 129, 0.15);
   color: #34d399;
 }
 
@@ -651,8 +748,8 @@ img {
 
 .sidebar-subtitle {
   font-size: 0.72rem;
-  color: var(--text-light);
-  font-weight: 500;
+  color: var(--primary);
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -690,10 +787,10 @@ img {
 
 .nav-section-label {
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-light);
+  color: var(--primary);
   padding: 10px 14px 6px;
   white-space: nowrap;
   overflow: hidden;
@@ -739,15 +836,15 @@ img {
 
 /* â”€â”€ Dark mode enhanced nav states â”€â”€â”€â”€ */
 [data-theme="blue"] .nav-item:hover {
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--primary-muted);
   color: #e8eeff;
 }
 
 [data-theme="blue"] .nav-item.active {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(37, 99, 235, 0.2) 100%);
+  background: linear-gradient(135deg, var(--primary-muted) 0%, var(--primary-light) 100%);
   color: #fff;
-  border: 1px solid rgba(59, 130, 246, 0.35);
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 0 20px var(--primary-glow), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   position: relative;
 }
 
@@ -759,9 +856,9 @@ img {
   transform: translateY(-50%);
   width: 3px;
   height: 60%;
-  background: linear-gradient(180deg, #60a5fa, #3b82f6);
+  background: linear-gradient(180deg, var(--primary), var(--primary-dark));
   border-radius: 0 2px 2px 0;
-  box-shadow: 0 0 8px rgba(96, 165, 250, 0.8);
+  box-shadow: 0 0 8px var(--primary-glow);
 }
 
 .nav-icon {
@@ -975,7 +1072,8 @@ img {
 
 .topbar-breadcrumb {
   font-size: 0.78rem;
-  color: var(--text-light);
+  color: var(--primary);
+  font-weight: 600;
 }
 
 .topbar-right {
@@ -1450,19 +1548,20 @@ img {
   text-transform: uppercase;
 }
 
+/* Role colours (light mode): Admin = Royal Violet | Controller = Amber | Driver = Emerald */
 .badge-admin {
-  background: var(--primary-light);
-  color: var(--primary-dark);
+  background: rgba(124, 58, 237, 0.1);
+  color: #6d28d9;
 }
 
 .badge-controller {
-  background: var(--info-bg);
-  color: var(--info-text);
+  background: rgba(245, 158, 11, 0.1);
+  color: #b45309;
 }
 
 .badge-driver {
-  background: var(--success-bg);
-  color: var(--success-text);
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
 }
 
 .badge-active {
@@ -1519,20 +1618,20 @@ img {
 
 .role-badge.role-admin,
 .user-role.role-admin {
-  background: var(--primary-light);
-  color: var(--primary-dark);
+  background: rgba(124, 58, 237, 0.1);
+  color: #6d28d9;
 }
 
 .role-badge.role-controller,
 .user-role.role-controller {
-  background: var(--info-bg);
-  color: var(--info-text);
+  background: rgba(245, 158, 11, 0.1);
+  color: #b45309;
 }
 
 .role-badge.role-driver,
 .user-role.role-driver {
-  background: var(--success-bg);
-  color: var(--success-text);
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
 }
 
 .status-badge {
@@ -4514,3 +4613,62 @@ svg.lucide {
     max-width: 90px;
   }
 }
+
+/* ==========================================================================
+   21. ROLE PROFILE THEME COLOR SYNCHRONIZATION OVERRIDES
+   Dynamically aligns all inline blue gradients, button highlights,
+   shadows, active tab selections, and accents to the logged-in profile role.
+   ========================================================================== */
+
+/* Buttons & Interactive Elements */
+[data-role] button[style*="linear-gradient"],
+[data-role] button[style*="gradient("],
+[data-role] button[style*="#2563eb"],
+[data-role] button[style*="#3b82f6"],
+[data-role] button[style*="rgb(37,"],
+[data-role] button[style*="rgba(37,"],
+[data-role] .btn-submit,
+[data-role] .action-btn-primary {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary)) !important;
+  box-shadow: 0 4px 16px var(--primary-glow) !important;
+  border: none !important;
+}
+
+[data-role] button[style*="linear-gradient"]:hover,
+[data-role] button[style*="gradient("]:hover,
+[data-role] button[style*="#2563eb"]:hover,
+[data-role] button[style*="#3b82f6"]:hover,
+[data-role] button[style*="rgb(37,"]:hover,
+[data-role] button[style*="rgba(37,"]:hover {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark)) !important;
+  box-shadow: 0 6px 20px var(--primary-glow) !important;
+}
+
+/* Active Navigation Tabs & Filters (excluding charts) */
+[data-role] div:not(.fuel-chart):not(.cost-chart) > div[style*="linear-gradient(135deg, #2563eb, #1d4ed8)"],
+[data-role] div:not(.fuel-chart):not(.cost-chart) > div[style*="linear-gradient(135deg, #2563eb, #3b82f6)"] {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark)) !important;
+}
+
+[data-role] span:not(.fuel-chart) > span[style*="linear-gradient"] {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark)) !important;
+}
+
+/* Form Input & Element Focus Rings */
+[data-role] input:focus,
+[data-role] select:focus,
+[data-role] textarea:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px var(--primary-glow) !important;
+}
+
+/* Text Accent Overrides (excluding fuel type specific charts) */
+[data-role] .text-accent,
+[data-role] a[style*="#3b82f6"],
+[data-role] a[style*="#2563eb"],
+[data-role] span[style*="color: rgb(59, 130, 246)"],
+[data-role] span[style*="color:#3b82f6"],
+[data-role] div[style*="color:#3b82f6"],
+[data-role] div[style*="color:#2563eb"] {
+  color: var(--text-accent) !important;
+}

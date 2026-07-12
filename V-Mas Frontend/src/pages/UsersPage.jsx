@@ -22,8 +22,8 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
 const onFocus = e => {
-  e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'
-  e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235,0.1)'
+  e.target.style.borderColor = 'var(--primary)'
+  e.target.style.boxShadow = '0 0 0 3px var(--primary-glow)'
 }
 const onBlur = e => {
   e.target.style.borderColor = ''
@@ -755,13 +755,13 @@ const UsersPage = () => {
             {/* Hero Banner */}
             <div style={{
               background: isDark
-                ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
-                : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+                ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, var(--primary-dark) 85%, var(--primary) 100%)'
+                : 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
               borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
               boxShadow: isDark
-                ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
-                : '0 16px 48px rgba(0,0,0,0.4)',
-              border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : `1px solid ${D.border}`,
+                ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.04)'
+                : '0 16px 48px rgba(0,0,0,0.15), 0 8px 32px var(--primary-glow)',
+              border: '1px solid var(--border-strong)',
               display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16
             }}>
               {/* decorative circles */}

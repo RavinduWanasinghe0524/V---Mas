@@ -8,8 +8,8 @@ import { User, Key, ShieldCheck, Shield, Globe, Fuel, Ruler, Calendar, Car, Wren
 import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 const onFocus = e => {
-  e.target.style.borderColor = 'rgba(37, 99, 235,0.5)'
-  e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235,0.1)'
+  e.target.style.borderColor = 'var(--primary)'
+  e.target.style.boxShadow = '0 0 0 3px var(--primary-glow)'
 }
 const onBlur = e => {
   e.target.style.borderColor = ''
@@ -324,15 +324,15 @@ const ProfilePage = () => {
           {/* Top Banner Header */}
           <div style={{
             background: isDark
-              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, #1a3a7a 85%, #1e40af 100%)'
-              : 'linear-gradient(135deg, #172554 0%, #1e3a8a 45%, #1e40af 100%)',
+              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, var(--primary-dark) 85%, var(--primary) 100%)'
+              : 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
             borderRadius: 24, padding: '32px 36px', marginBottom: 32,
             position: 'relative', overflow: 'hidden',
-            boxShadow: isDark
-              ? '0 20px 60px rgba(0,0,0,0.6), 0 0 80px rgba(59,130,246,0.06)'
-              : '0 8px 32px rgba(0,0,0,0.25)',
-            border: isDark ? '1px solid rgba(59, 130, 246, 0.2)' : `1px solid ${D.border}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 28, flexWrap: 'wrap'
+             boxShadow: isDark
+               ? '0 20px 60px rgba(0,0,0,0.6), 0 0 80px var(--primary-glow)'
+               : '0 8px 32px rgba(0,0,0,0.15), 0 4px 20px var(--primary-glow)',
+             border: '1px solid var(--border-strong)',
+             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 28, flexWrap: 'wrap'
           }}>
             {/* decorative circles */}
             {[['80%','-20px','180px','rgba(255,255,255,0.03)'],['20%','60%','120px','rgba(255,255,255,0.04)'],['55%','80%','90px','rgba(255,255,255,0.02)']].map(([t,l,s,bg],i) => (
@@ -343,7 +343,7 @@ const ProfilePage = () => {
               <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                 Settings, {user?.userName || 'Admin'}!
               </h1>
-              <p style={{ margin: '6px 0 0', fontSize: '0.88rem', color: '#93c5fd', opacity: 0.9 }}>
+              <p style={{ margin: '6px 0 0', fontSize: '0.88rem', color: isDark ? 'var(--primary)' : '#e0e7ff', opacity: 0.9, fontWeight: 500 }}>
                 Manage your profile details, password, system notifications, theme options, and default fleet measurement units.
               </p>
             </div>

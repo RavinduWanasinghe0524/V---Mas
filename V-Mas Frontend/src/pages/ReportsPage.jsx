@@ -873,7 +873,7 @@ const ReportsPage = () => {
         .palette-chip:hover { transform: scale(1.06); box-shadow: 0 6px 16px rgba(0,0,0,0.18); }
         .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px; animation:fadeIn 0.2s ease; backdrop-filter:blur(4px); }
         .modal-box { background:${D.surface}; border-radius:24px; border:1.5px solid ${D.border}; width:100%; max-width:860px; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; animation:fadeInUp 0.25s ease; box-shadow:0 40px 100px rgba(0,0,0,0.5); }
-        .reports-hero { background: ${isDark ? 'linear-gradient(135deg,#030712 0%,#0a1628 30%,#0f2345 60%,#1a3a7a 85%,#1e40af 100%)' : 'linear-gradient(135deg,#172554 0%,#1e3a8a 45%,#1e40af 100%)'}; border:${isDark ? '1px solid rgba(59,130,246,0.2)' : '1px solid rgba(37,99,235,0.2)'}; box-shadow:${isDark ? '0 20px 60px rgba(0,0,0,0.7),0 0 80px rgba(59,130,246,0.08),inset 0 1px 0 rgba(255,255,255,0.04)' : '0 16px 48px rgba(0,0,0,0.4)'}; }
+        .reports-hero { background: ${isDark ? 'linear-gradient(135deg,#030712 0%,#0a1628 30%,#0f2345 60%,var(--primary-dark) 85%,var(--primary) 100%)' : 'linear-gradient(135deg,var(--primary-dark) 0%,var(--primary) 45%,var(--primary-light) 100%)'}; border: 1px solid var(--border-strong); box-shadow:${isDark ? '0 20px 60px rgba(0,0,0,0.7),0 0 80px var(--primary-glow),inset 0 1px 0 rgba(255,255,255,0.04)' : '0 16px 48px rgba(0,0,0,0.15), 0 8px 32px var(--primary-glow)'}; }
         input[type='date']::-webkit-calendar-picker-indicator { filter: ${isDark ? 'invert(1) opacity(0.5)' : 'opacity(0.6)'}; cursor:pointer; }
       `}</style>
 
