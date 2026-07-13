@@ -2543,9 +2543,7 @@ const ServicePage = () => {
           ══════════════════════════════════════════════════════ */}
           <div style={{
             position: 'relative',
-            background: isDark
-              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, var(--primary-dark) 85%, var(--primary) 100%)'
-              : 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
+            background: 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
             borderRadius: 28,
             padding: '40px',
             marginBottom: 32,
@@ -2594,7 +2592,7 @@ const ServicePage = () => {
                   {isDriver && (
                     <span style={{
                       background: 'var(--primary-light)',
-                      color: 'var(--text-accent)',
+                      color: '#fff',
                       padding: '3px 10px', borderRadius: 999,
                       fontSize: '0.75rem', fontWeight: 700,
                       backdropFilter: 'blur(4px)',
@@ -2605,7 +2603,7 @@ const ServicePage = () => {
                   )}
                 </div>
 
-                <p style={{ margin: '6px 0 0', color: isDark ? 'var(--primary)' : '#e0e7ff', fontSize: '0.88rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <p style={{ margin: '6px 0 0', color: '#f8fafc', fontSize: '0.88rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
                   {isDriver
                     ? 'Browse all service records and track maintenance milestones across the fleet (read-only).'
                     : 'Schedule services, manage work orders and minimise fleet downtime.'}

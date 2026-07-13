@@ -1099,30 +1099,7 @@ const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, a
   return (
     <>
       <SectionHeader title="Fleet Overview" />
-      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 32 }}>
-        <StatCard icon={<Car size={20} color="var(--primary)"/>} label="Total Vehicles" value={stats.total} colorDim="var(--primary-muted)" colorHex="var(--primary)" change="Under fleet management" onClick={() => navigate('/vehicles')} />
-        <StatCard icon={<CheckCircle size={20} color="var(--success)"/>} label="Active" value={stats.active} colorDim="var(--success-bg)" colorHex="var(--success)" change="Currently active" onClick={() => navigate('/vehicles')} />
-        <StatCard icon={<Wrench size={20} color="var(--warning)"/>} label="In Service" value={stats.maintenance} colorDim="var(--warning-bg)" colorHex="var(--warning)" change="Under maintenance" onClick={() => navigate('/service')} />
-        <StatCard icon={<Activity size={20} color="var(--info)"/>} label="Available" value={stats.available} colorDim="var(--info-bg)" colorHex="var(--info)" change="Ready to assign" onClick={() => navigate('/vehicles')} />
-        <StatCard
-          icon={<Fuel size={20} color={pendingFuelCount > 0 ? '#fbbf24' : 'var(--primary)'}/>}
-          label="Pending Fuel Logs"
-          value={pendingFuelCount}
-          colorDim={pendingFuelCount > 0 ? 'rgba(251, 191, 36, 0.25)' : 'rgba(59, 130, 246, 0.1)'}
-          colorHex={pendingFuelCount > 0 ? '#fbbf24' : 'var(--primary)'}
-          change={pendingFuelCount > 0 ? "Awaiting your approval" : "All logs approved"}
-          onClick={() => navigate('/fuel-management')}
-        />
-        <StatCard
-          icon={<Wrench size={20} color={pendingServiceCount > 0 ? '#fbbf24' : 'var(--primary)'}/>}
-          label="Pending Service Records"
-          value={pendingServiceCount}
-          colorDim={pendingServiceCount > 0 ? 'rgba(251, 191, 36, 0.25)' : 'rgba(59, 130, 246, 0.1)'}
-          colorHex={pendingServiceCount > 0 ? '#fbbf24' : 'var(--primary)'}
-          change={pendingServiceCount > 0 ? "Awaiting your approval" : "All records approved"}
-          onClick={() => navigate('/service')}
-        />
-      </div>
+
 
       <div className="dashboard-columns-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start', marginBottom: 36 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -1877,9 +1854,7 @@ const DashboardPage = () => {
 
           {/* Hero Banner — Dynamic glassmorphic design */}
           {(() => {
-            const heroBg = isDark
-              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, var(--primary-dark) 85%, var(--primary) 100%)'
-              : 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)';
+            const heroBg = 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)';
 
             return (
               <div style={{
@@ -1914,7 +1889,7 @@ const DashboardPage = () => {
                       <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                         Good day, {user?.userName}!
                       </h1>
-                      <span style={{ background: 'var(--primary-light)', color: isDark ? 'var(--primary)' : '#fff', padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: '1px solid var(--border)' }}>
+                      <span style={{ background: 'var(--primary-light)', color: '#fff', padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: '1px solid var(--border)' }}>
                         {roleLabel[user?.role] || user?.role}
                       </span>
                       {user?.role === 'DRIVER' && user?.accountStatus && (() => {
@@ -1933,7 +1908,7 @@ const DashboardPage = () => {
                         )
                       })()}
                     </div>
-                    <p style={{ margin: '6px 0 0', color: isDark ? 'var(--text-secondary)' : '#e0e7ff', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <p style={{ margin: '6px 0 0', color: '#f8fafc', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                       Here's how your fleet is doing today.
                     </p>
                   </div>
