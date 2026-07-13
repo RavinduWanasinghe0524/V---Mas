@@ -543,9 +543,7 @@ const FuelManagementPage = () => {
 
           {/* Hero Banner */}
           <div style={{
-            background: isDark
-              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, var(--primary-dark) 85%, var(--primary) 100%)'
-              : 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
+            background: 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
             borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
             boxShadow: isDark
               ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.04)'
@@ -565,7 +563,7 @@ const FuelManagementPage = () => {
               </div>
               <div>
                 <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Fleet Fuel Intelligence</h1>
-                <p style={{ margin: '4px 0 0', color: '#60a5fa', fontSize: '0.9rem' }}>Centralized monitoring, cost analysis &amp; efficiency tracking</p>
+                <p style={{ margin: '4px 0 0', color: '#f8fafc', fontSize: '0.9rem' }}>Centralized monitoring, cost analysis &amp; efficiency tracking</p>
               </div>
             </div>
             <div style={{ position: 'relative', display: 'flex', gap: 16, flexShrink: 0 }}>

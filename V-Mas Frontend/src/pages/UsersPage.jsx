@@ -754,9 +754,7 @@ const UsersPage = () => {
 
             {/* Hero Banner */}
             <div style={{
-              background: isDark
-                ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, var(--primary-dark) 85%, var(--primary) 100%)'
-                : 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
+              background: 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
               borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
               boxShadow: isDark
                 ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.04)'
@@ -785,7 +783,7 @@ const UsersPage = () => {
                       </span>
                     )}
                   </div>
-                  <p style={{ margin: '6px 0 0', color: isDark ? '#93c5fd' : '#60a5fa', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <p style={{ margin: '6px 0 0', color: '#f8fafc', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <ShieldCheck size={14} />
                     {isAdmin ? 'Manage system users, roles, permissions & access approvals across the platform' : 'Review and process pending driver account requests'}
                   </p>
