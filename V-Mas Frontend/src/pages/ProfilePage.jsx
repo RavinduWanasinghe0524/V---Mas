@@ -323,9 +323,7 @@ const ProfilePage = () => {
 
           {/* Top Banner Header */}
           <div style={{
-            background: isDark
-              ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, var(--primary-dark) 85%, var(--primary) 100%)'
-              : 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
+            background: 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
             borderRadius: 24, padding: '32px 36px', marginBottom: 32,
             position: 'relative', overflow: 'hidden',
              boxShadow: isDark
@@ -343,9 +341,9 @@ const ProfilePage = () => {
               <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                 Settings, {user?.userName || 'Admin'}!
               </h1>
-              <p style={{ margin: '6px 0 0', fontSize: '0.88rem', color: isDark ? 'var(--primary)' : '#e0e7ff', opacity: 0.9, fontWeight: 500 }}>
-                Manage your profile details, password, system notifications, theme options, and default fleet measurement units.
-              </p>
+                <p style={{ margin: '6px 0 0', fontSize: '0.88rem', color: '#f8fafc', opacity: 0.9, fontWeight: 500 }}>
+                  Manage your account details, preferences, security options and global system parameters.
+                </p>
             </div>
 
 

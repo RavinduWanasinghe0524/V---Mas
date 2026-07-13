@@ -979,9 +979,7 @@ const FuelAnalysisPage = () => {
           {/* Hero Banner — admin/controller variant */}
           {(isAdmin || isController) ? (
             <div style={{
-              background: isDark
-                ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, var(--primary-dark) 85%, var(--primary) 100%)'
-                : 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
+              background: 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
               borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
               boxShadow: isDark
                 ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.04)'
@@ -1006,11 +1004,11 @@ const FuelAnalysisPage = () => {
                     <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
                       Fuel &amp; Analysis, {user?.firstName || user?.username || (isAdmin ? 'Admin' : 'Controller')}!
                     </h1>
-                    <span style={{ background: 'var(--primary-light)', border: '1px solid var(--border)', color: 'var(--primary)', fontSize: '0.7rem', fontWeight: 800, padding: '3px 10px', borderRadius: 999, letterSpacing: '0.05em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                    <span style={{ background: 'var(--primary-light)', border: '1px solid var(--border)', color: '#fff', fontSize: '0.7rem', fontWeight: 800, padding: '3px 10px', borderRadius: 999, letterSpacing: '0.05em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                       Consumption Insights
                     </span>
                   </div>
-                  <p style={{ margin: 0, color: isDark ? 'var(--text-secondary)' : '#e0e7ff', fontSize: '0.875rem', fontWeight: 500 }}>
+                  <p style={{ margin: 0, color: '#f8fafc', fontSize: '0.875rem', fontWeight: 500 }}>
                     Track fuel spend, efficiency and consumption patterns across every vehicle.
                   </p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
@@ -1027,9 +1025,7 @@ const FuelAnalysisPage = () => {
           ) : (
             /* Driver hero banner (updated to premium style) */
             <div style={{
-              background: isDark
-                ? 'linear-gradient(135deg, #030712 0%, #0a1628 30%, #0f2345 60%, var(--primary-dark) 85%, var(--primary) 100%)'
-                : 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
+              background: 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
               borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
               boxShadow: isDark
                 ? '0 20px 60px rgba(0,0,0,0.7), 0 0 80px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.04)'
@@ -1054,11 +1050,11 @@ const FuelAnalysisPage = () => {
                     <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
                       Fuel &amp; Analysis, {user?.firstName || user?.username || 'Driver'}!
                     </h1>
-                    <span style={{ background: 'var(--primary-light)', border: '1px solid var(--border)', color: 'var(--primary)', fontSize: '0.7rem', fontWeight: 800, padding: '3px 10px', borderRadius: 999, letterSpacing: '0.05em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                    <span style={{ background: 'var(--primary-light)', border: '1px solid var(--border)', color: '#fff', fontSize: '0.7rem', fontWeight: 800, padding: '3px 10px', borderRadius: 999, letterSpacing: '0.05em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                       My Vehicle Insights
                     </span>
                   </div>
-                  <p style={{ margin: 0, color: isDark ? 'var(--text-secondary)' : '#e0e7ff', fontSize: '0.875rem', fontWeight: 500 }}>
+                  <p style={{ margin: 0, color: '#f8fafc', fontSize: '0.875rem', fontWeight: 500 }}>
                     Track your fuel fills, efficiency and mileage history.
                   </p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
