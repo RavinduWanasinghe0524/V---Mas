@@ -17,7 +17,7 @@ import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import api, { userAPI } from '../services/api'
 import { getDriverMetrics } from '../utils/driverUtils'
-import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car, BarChart2, Star, Activity, CheckCircle, RotateCcw, Archive, Trash2, User, FileText, Upload, Search, UserCog } from 'lucide-react'
+import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car, BarChart2, Star, Activity, CheckCircle, RotateCcw, Archive, Trash2, User, FileText, Upload, Search, UserCog, Mail, ClipboardList, Eye } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
@@ -473,33 +473,33 @@ const UsersPage = () => {
       ? u.userName.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
       : 'U'
 
-    // Duty status badge styles
-    let dutyStyles = {
-      bg: 'rgba(255,255,255,0.05)',
-      color: D.textSub,
-      border: `1px solid ${D.border}`
+    // Status mapping for header
+    const statusGradients = {
+      ACTIVE: {
+        bg: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+        glow: 'rgba(16, 185, 129, 0.35)',
+      },
+      PENDING: {
+        bg: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
+        glow: 'rgba(251, 191, 36, 0.35)',
+      },
+      INACTIVE: {
+        bg: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+        glow: 'rgba(239, 68, 68, 0.35)',
+      },
+      SUSPENDED: {
+        bg: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+        glow: 'rgba(139, 92, 246, 0.35)',
+      }
     }
-    if (metrics.status === 'On Duty' || metrics.status === 'Active') {
-      dutyStyles = {
-        bg: 'rgba(52, 211, 153, 0.12)',
-        color: '#34d399',
-        border: '1px solid rgba(52, 211, 153, 0.25)'
-      }
-    } else if (metrics.status === 'On Leave' || metrics.status === 'Pending') {
-      dutyStyles = {
-        bg: 'rgba(251, 191, 36, 0.12)',
-        color: '#fbbf24',
-        border: '1px solid rgba(251, 191, 36, 0.25)'
-      }
-    } else if (metrics.status === 'Suspended' || metrics.status === 'Inactive') {
-      dutyStyles = {
-        bg: 'rgba(248, 113, 113, 0.12)',
-        color: '#f87171',
-        border: '1px solid rgba(248, 113, 113, 0.25)'
-      }
+    
+    const userStatus = (u.accountStatus || 'ACTIVE').toUpperCase()
+    const activeGradient = statusGradients[userStatus] || {
+      bg: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+      glow: 'rgba(59, 130, 246, 0.35)'
     }
 
-    // Deterministic/Custom stats based on role
+    // Deterministic stats
     let statsToShow = []
     if (u.role === 'ADMIN') {
       statsToShow = [
@@ -521,164 +521,245 @@ const UsersPage = () => {
       ]
     }
 
+    const friendlyRole = u.role === 'ADMIN' ? 'Fleet Administrator' : u.role === 'CONTROLLER' ? 'Fleet Controller' : 'Fleet Driver'
+
     return (
       <div key={u.id} style={{
-        background: D.surface, border: `1px solid ${D.border}`, borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column', gap: 20,
-        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-        cursor: 'pointer'
+        background: D.surface,
+        border: `1px solid ${D.border}`,
+        borderRadius: 28,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 0,
+        position: 'relative',
+        overflow: 'hidden',
+        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+        animation: `fadeUp 0.4s ease ${i * 0.05}s both`,
+        boxShadow: isDark 
+          ? '0 12px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03)' 
+          : '0 8px 24px rgba(0,0,0,0.08)',
+        cursor: 'pointer',
+        height: '100%'
       }}
         onClick={() => openProfile(u)}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.2)' }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)' }}>
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = 'translateY(-4px)';
+          e.currentTarget.style.boxShadow = isDark 
+            ? '0 20px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)' 
+            : '0 16px 36px rgba(0,0,0,0.15)';
+          e.currentTarget.style.borderColor = D.purple + '40';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = isDark 
+            ? '0 12px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03)' 
+            : '0 8px 24px rgba(0,0,0,0.08)';
+          e.currentTarget.style.borderColor = D.border;
+        }}
+      >
+        {/* Dynamic Status Header */}
+        <div style={{
+          background: activeGradient.bg,
+          padding: '24px 24px 20px 24px',
+          position: 'relative',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16
+        }}>
+          {/* Header decorative shapes */}
+          <div style={{ position: 'absolute', top: '-10px', right: '-10px', width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', bottom: '-20px', left: '10%', width: 60, height: 60, borderRadius: '50%', background: 'rgba(255,255,255,0.02)', pointerEvents: 'none' }} />
 
-        {/* Header row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }}>
-            {/* Avatar */}
-            <div style={{ flexShrink: 0 }}>
-              {u.profilePicture ? (
-                <img
-                  src={u.profilePicture}
-                  alt={u.userName}
-                  style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${D.border}`, transition: 'transform 0.2s ease', cursor: 'pointer' }}
-                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.12)'}
-                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                  onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`; }}
-                />
-              ) : (
-                <div
-                  style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, #38bdf8, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1rem', fontWeight: 800, border: `2px solid ${D.border}`, transition: 'transform 0.2s ease', cursor: 'pointer' }}
-                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.12)'}
-                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                >
-                  {initials}
-                </div>
-              )}
-            </div>
-            {/* Name and Subtitle */}
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={u.userName}>{u.userName}</h4>
-              {u.role === 'DRIVER' ? (
-                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  Fleet Driver
-                </p>
-              ) : (
-                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={u.role === 'ADMIN' ? 'Fleet Administrator' : 'Fleet Controller'}>
-                  {u.role === 'ADMIN' ? 'Fleet Administrator' : 'Fleet Controller'}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Duty Status Badge */}
-          <div style={{
-            padding: '4px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 700,
-            background: dutyStyles.bg, color: dutyStyles.color, border: dutyStyles.border,
-            textTransform: 'uppercase', letterSpacing: '0.02em', flexShrink: 0
-          }}>
-            {metrics.status}
-          </div>
-        </div>
-
-        {/* Stats Cards Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-          {statsToShow.map((st, sidx) => {
-            let themeStyles = {}
-            let stIcon = null
-
-            if (sidx === 0) {
-              themeStyles = {
-                bg: isDark ? 'rgba(59, 130, 246, 0.04)' : 'rgba(59, 130, 246, 0.02)',
-                border: isDark ? '1px solid rgba(59, 130, 246, 0.15)' : '1px solid rgba(59, 130, 246, 0.1)',
-                color: D.blue
-              }
-              stIcon = u.role === 'DRIVER' ? <BarChart2 size={11} style={{ color: D.blue }} /> : <ShieldCheck size={11} style={{ color: D.blue }} />
-            } else if (sidx === 1) {
-              themeStyles = {
-                bg: isDark ? 'rgba(245, 158, 11, 0.03)' : 'rgba(245, 158, 11, 0.02)',
-                border: isDark ? '1px solid rgba(245, 158, 11, 0.15)' : '1px solid rgba(245, 158, 11, 0.1)',
-                color: '#fbbf24'
-              }
-              stIcon = u.role === 'DRIVER' ? <Star size={11} style={{ color: '#fbbf24' }} /> : <Shield size={11} style={{ color: '#fbbf24' }} />
-            } else {
-              themeStyles = {
-                bg: isDark ? 'rgba(16, 185, 129, 0.04)' : 'rgba(16, 185, 129, 0.02)',
-                border: isDark ? '1px solid rgba(16, 185, 129, 0.15)' : '1px solid rgba(16, 185, 129, 0.1)',
-                color: '#10b981'
-              }
-              stIcon = u.role === 'DRIVER' ? <Activity size={11} style={{ color: '#10b981' }} /> : <CheckCircle size={11} style={{ color: '#10b981' }} />
-            }
-
-            return (
-              <div key={sidx} style={{
-                background: themeStyles.bg,
-                border: themeStyles.border,
-                borderRadius: 16, padding: '14px 6px', textAlign: 'center',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
-                  {stIcon}
-                  <span style={{ fontSize: '0.62rem', fontWeight: 800, color: themeStyles.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{st.label}</span>
-                </div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 900, color: st.isRating || st.isSafety ? themeStyles.color : D.text }}>{st.value}</div>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Contact & License Info */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
-            <Phone size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-            <span>{u.phoneNumber || metrics.phone}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
-            {u.role === 'DRIVER' ? (
-              <>
-                <IdCard size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                <span>{u.licenseNumber || metrics.license}</span>
-              </>
+          {/* User Profile Avatar */}
+          <div style={{ flexShrink: 0, position: 'relative', zIndex: 1 }}>
+            {u.profilePicture ? (
+              <img
+                src={u.profilePicture}
+                alt={u.userName}
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 14,
+                  objectFit: 'cover',
+                  border: '2px solid rgba(255,255,255,0.8)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.25)'
+                }}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=ffffff&color=2563eb&bold=true`;
+                }}
+              />
             ) : (
-              <>
-                <Shield size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                <span>NIC: {u.nic || 'N/A'} · Gender: {u.gender || 'N/A'}</span>
-              </>
+              <div style={{
+                width: 52,
+                height: 52,
+                borderRadius: 14,
+                background: 'rgba(255,255,255,0.15)',
+                backdropFilter: 'blur(8px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                fontSize: '1rem',
+                fontWeight: 800,
+                border: '2px solid rgba(255,255,255,0.8)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+              }}>
+                {initials}
+              </div>
             )}
           </div>
+
+          {/* User Meta Data */}
+          <div style={{ minWidth: 0, flex: 1, position: 'relative', zIndex: 1 }}>
+            <h4 style={{
+              margin: 0,
+              fontSize: '1.2rem',
+              fontWeight: 800,
+              color: '#ffffff',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              letterSpacing: '-0.025em',
+              textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }} title={u.userName}>
+              {u.userName}
+            </h4>
+            <p style={{
+              margin: '3px 0 0',
+              fontSize: '0.78rem',
+              color: 'rgba(255,255,255,0.85)',
+              fontWeight: 600,
+              textShadow: '0 1px 1px rgba(0,0,0,0.15)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              {friendlyRole}
+            </p>
+          </div>
+
+          {/* Status Badge */}
+          <span style={{
+            position: 'absolute',
+            top: 20,
+            right: 20,
+            background: 'rgba(255,255,255,0.12)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255,255,255,0.25)',
+            color: '#ffffff',
+            padding: '3px 10px',
+            borderRadius: 999,
+            fontSize: '0.68rem',
+            fontWeight: 800,
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+            zIndex: 1
+          }}>
+            {userStatus}
+          </span>
         </div>
 
-        {/* Action Buttons Row */}
-        {(u.accountStatus === 'PENDING' || (!isController || u.role !== 'ADMIN')) && (
-          <div style={{ borderTop: `1px solid ${D.border}`, margin: '8px 0 0', paddingTop: '16px', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+        {/* Card Body - Nested Details Container */}
+        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20, flex: 1 }}>
+          <div style={{
+            background: D.surfaceHi || 'rgba(255,255,255,0.02)',
+            borderRadius: 20,
+            padding: '16px 20px',
+            border: `1px solid ${D.border}`,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
+              <ShieldCheck size={14} style={{ color: D.blue }} />
+              <span><strong>Access:</strong> {statsToShow[0].value}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
+              <Mail size={14} style={{ color: '#fbbf24' }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={u.email}>
+                <strong>Email:</strong> {u.email || 'N/A'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
+              <Phone size={14} style={{ color: '#10b981' }} />
+              <span><strong>Phone:</strong> {u.phoneNumber || metrics.phone || 'N/A'}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
+              <Users size={14} style={{ color: '#8b5cf6' }} />
+              <span><strong>Gender:</strong> {u.gender || 'N/A'}</span>
+            </div>
+            {u.role === 'DRIVER' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
+                <ClipboardList size={14} style={{ color: '#ec4899' }} />
+                <span><strong>License:</strong> {u.licenseNumber || metrics.license || 'N/A'}</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
+                <IdCard size={14} style={{ color: '#ec4899' }} />
+                <span><strong>NIC:</strong> {u.nic || 'N/A'}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons Row */}
+          <div style={{ display: 'flex', gap: 10, marginTop: 'auto', width: '100%' }}>
             {u.accountStatus === 'PENDING' ? (
               <>
-                <button onClick={(e) => { e.stopPropagation(); handleApprove(u.id, u.userName); }} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: D.green, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.green}30` }}
+                <button onClick={(e) => { e.stopPropagation(); handleApprove(u.id, u.userName); }} style={{ flex: 1, padding: '10px 14px', borderRadius: 12, border: 'none', background: D.green, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.green}30` }}
                   onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
                   <Check size={14} /> Approve
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); handleReject(u.id, u.userName); }} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: D.red, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.red}30` }}
+                <button onClick={(e) => { e.stopPropagation(); handleReject(u.id, u.userName); }} style={{ flex: 1, padding: '10px 14px', borderRadius: 12, border: 'none', background: D.red, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.red}30` }}
                   onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
                   <X size={14} /> Reject
                 </button>
               </>
             ) : (
-              (!isController || u.role !== 'ADMIN') && (
-                <>
-                  <button onClick={(e) => { e.stopPropagation(); handleEdit(u); }} style={{ padding: '8px 16px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.15)'; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.color = '#60a5fa' }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
-                    Edit
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); setUserToDelete(u); }} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = D.red }}>
-                    Delete
-                  </button>
-                </>
-              )
+              <>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); openProfile(u); }} 
+                  title="Profile" 
+                  className={`user-profile-btn-${userStatus.toLowerCase()}`}
+                  style={{ 
+                    flex: 2,
+                    padding: '10px 14px', 
+                    borderRadius: 12, 
+                    cursor: 'pointer', 
+                    fontWeight: 800, 
+                    fontSize: '0.8rem', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    gap: 6, 
+                    transition: 'all 0.2s', 
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  <Eye size={14} /> Profile
+                </button>
+                {(!isController || u.role !== 'ADMIN') && (
+                  <>
+                    <button onClick={(e) => { e.stopPropagation(); handleEdit(u); }} style={{ flex: 1, padding: '10px 14px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37, 99, 235, 0.15)'; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.color = '#60a5fa' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
+                      Edit
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setUserToDelete(u); }} style={{ width: 40, height: 40, borderRadius: 12, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = D.red }}
+                      title="Delete User"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </>
+                )}
+              </>
             )}
           </div>
-        )}
+        </div>
       </div>
     )
   }
@@ -750,6 +831,52 @@ const UsersPage = () => {
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="main-content" style={{ background: D.bg }}>
           <Topbar title="System User Management" subtitle="Admin / User Management" onMenuToggle={() => setSidebarOpen(o => !o)} />
+          <style>{`
+            .user-profile-btn-active {
+              background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+              color: #ffffff !important;
+              border: none !important;
+              box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35) !important;
+            }
+            .user-profile-btn-active:hover {
+              background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+              box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5) !important;
+              transform: translateY(-1px) !important;
+            }
+            .user-profile-btn-pending {
+              background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%) !important;
+              color: #ffffff !important;
+              border: none !important;
+              box-shadow: 0 4px 12px rgba(251, 191, 36, 0.35) !important;
+            }
+            .user-profile-btn-pending:hover {
+              background: linear-gradient(135deg, #d97706 0%, #fbbf24 100%) !important;
+              box-shadow: 0 6px 16px rgba(251, 191, 36, 0.5) !important;
+              transform: translateY(-1px) !important;
+            }
+            .user-profile-btn-inactive {
+              background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+              color: #ffffff !important;
+              border: none !important;
+              box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35) !important;
+            }
+            .user-profile-btn-inactive:hover {
+              background: linear-gradient(135deg, #b91c1c 0%, #ef4444 100%) !important;
+              box-shadow: 0 6px 16px rgba(239, 68, 68, 0.5) !important;
+              transform: translateY(-1px) !important;
+            }
+            .user-profile-btn-suspended {
+              background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%) !important;
+              color: #ffffff !important;
+              border: none !important;
+              box-shadow: 0 4px 12px rgba(139, 92, 246, 0.35) !important;
+            }
+            .user-profile-btn-suspended:hover {
+              background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%) !important;
+              box-shadow: 0 6px 16px rgba(139, 92, 246, 0.5) !important;
+              transform: translateY(-1px) !important;
+            }
+          `}</style>
           <div className="page-body">
 
             {/* Hero Banner */}
@@ -769,9 +896,6 @@ const UsersPage = () => {
               {/* Neon radial glow for dark */}
               {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-                <div style={{ background: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.1)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', backdropFilter: 'blur(8px)', border: isDark ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(255,255,255,0.15)', boxShadow: isDark ? '0 0 20px rgba(59,130,246,0.3), 0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.2)' }}>
-                  <Users size={32} strokeWidth={1.5} />
-                </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -959,36 +1083,94 @@ const UsersPage = () => {
 
               {/* All Users List */}
               <div style={{ background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.25)' }}>
-                <div style={{ padding: '22px 32px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: D.blueDim, border: `1px solid ${D.blue}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.blue }}>
-                      <Users size={20} />
+
+
+                {/* Search, Filter, and Action Toolbar */}
+                <div style={{ padding: '20px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'center', background: D.surface }}>
+                  {/* Left Controls: Search & Filters */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 300, flexWrap: 'wrap' }}>
+                    <div style={{ position: 'relative', flex: '2 1 350px', maxWidth: '500px', minWidth: 220 }}>
+                      <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, pointerEvents: 'none' }} />
+                      <input
+                        type="text"
+                        placeholder="Search by name or email..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        style={{
+                          padding: '10px 16px 10px 38px', height: '40px', borderRadius: 12, border: `1px solid ${D.border}`, background: D.bg, color: D.text, fontSize: '0.8rem', outline: 'none', width: '100%', boxSizing: 'border-box', transition: 'all 0.2s'
+                        }}
+                        onFocus={e => { e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.boxShadow = `0 0 0 3px ${D.purple}20` }}
+                        onBlur={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = 'none' }}
+                      />
                     </div>
-                    <div>
-                      <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.1rem' }}>All Users</h3>
-                      <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: D.textSub }}>System user directory</p>
-                    </div>
-                    {!loading && (
-                      <span style={{ background: 'rgba(255,255,255,0.1)', color: D.text, padding: '4px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 800, marginLeft: 8 }}>{users.length}</span>
+
+                    {['ALL', 'ACTIVE', 'PENDING', 'INACTIVE', 'SUSPENDED'].map(s => (
+                      <button
+                        key={s}
+                        onClick={() => setStatusFilter(s)}
+                        style={{
+                          padding: '10px 18px', height: '40px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800,
+                          border: statusFilter === s ? 'none' : `1px solid ${D.border}`,
+                          background: statusFilter === s ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'rgba(255,255,255,0.05)',
+                          color: statusFilter === s ? '#fff' : D.textSub,
+                          cursor: 'pointer', transition: 'all 0.15s ease',
+                          boxShadow: statusFilter === s ? '0 4px 12px rgba(37, 99, 235, 0.3)' : 'none',
+                        }}
+                      >
+                        {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
+                      </button>
+                    ))}
+
+                    <select
+                      value={roleFilter}
+                      onChange={e => setRoleFilter(e.target.value)}
+                      style={{
+                        padding: '10px 18px', height: '40px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800,
+                        border: `1px solid ${D.border}`,
+                        background: 'rgba(255,255,255,0.05)',
+                        color: D.textSub,
+                        cursor: 'pointer', transition: 'all 0.15s ease',
+                        outline: 'none',
+                        fontFamily: 'inherit'
+                      }}
+                    >
+                      <option value="ALL">All Roles</option>
+                      {!isController && <option value="ADMIN">Admin</option>}
+                      <option value="CONTROLLER">Controller</option>
+                      <option value="DRIVER">Driver</option>
+                    </select>
+
+                    {(searchTerm || roleFilter !== 'ALL' || statusFilter !== 'ALL') && (
+                      <button
+                        onClick={() => { setSearchTerm(''); setRoleFilter('ALL'); setStatusFilter('ALL'); }}
+                        style={{
+                          padding: '10px 20px', height: '40px', borderRadius: 12, border: `1px solid ${D.red}40`, background: D.redDim, color: D.red, fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s ease', animation: 'fadeIn 0.2s ease',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
+                      >
+                        <RotateCcw size={14} /> Clear Filters
+                      </button>
                     )}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+
+                  {/* Right Controls: Action Buttons */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, flexWrap: 'wrap' }}>
                     <button onClick={handleExportCSV} style={{
-                      padding: '10px 16px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.03)', color: D.textSub, fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s'
+                      padding: '10px 16px', height: '40px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.03)', color: D.textSub, fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s'
                     }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = D.text }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = D.textSub }}>
                       Export CSV
                     </button>
                     <button onClick={handleExportPDF} style={{
-                      padding: '10px 16px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.03)', color: D.textSub, fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s'
+                      padding: '10px 16px', height: '40px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.03)', color: D.textSub, fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s'
                     }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = D.text }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = D.textSub }}>
                       Export PDF
                     </button>
-                    {/* Deleted Users Button */}
                     <button
                       onClick={() => setDeletedDrawer(true)}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '10px 16px', borderRadius: 12,
+                        padding: '10px 16px', height: '40px', borderRadius: 12,
                         background: 'rgba(255,255,255,0.03)', border: `1px solid ${D.border}`,
                         color: D.textSub, fontSize: '0.8rem', fontWeight: 800,
                         cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
@@ -999,66 +1181,10 @@ const UsersPage = () => {
                       <Archive size={14} />
                       Deleted Users
                     </button>
-                    <button onClick={loadUsers} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 8, borderRadius: 8, transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'none'} title="Refresh users list">
+                    <button onClick={loadUsers} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 8, borderRadius: 8, transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'none'} title="Refresh users list">
                       <RefreshCw size={18} />
                     </button>
                   </div>
-                </div>
-
-                {/* Search and filter row */}
-                <div style={{ padding: '20px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', background: D.surface }}>
-                  <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-                    <Search size={18} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: D.textSub }} />
-                    <input
-                      type="text"
-                      placeholder="Search by name or email..."
-                      value={searchTerm}
-                      onChange={e => setSearchTerm(e.target.value)}
-                      style={{
-                        padding: '12px 16px 12px 42px', borderRadius: 12, border: `1px solid ${D.border}`, background: D.bg, color: D.text, fontSize: '0.85rem', outline: 'none', width: '100%', boxSizing: 'border-box', transition: 'all 0.2s'
-                      }}
-                      onFocus={e => { e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.boxShadow = `0 0 0 3px ${D.purple}20` }}
-                      onBlur={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.boxShadow = 'none' }}
-                    />
-                  </div>
-                  <select
-                    value={roleFilter}
-                    onChange={e => setRoleFilter(e.target.value)}
-                    style={{
-                      padding: '12px 16px', borderRadius: 12, border: `1px solid ${D.border}`, background: D.bg, color: D.text, fontSize: '0.85rem', outline: 'none', cursor: 'pointer', transition: 'all 0.2s'
-                    }}
-                  >
-                    <option value="ALL">All Roles</option>
-                    {!isController && <option value="ADMIN">Admin</option>}
-                    <option value="CONTROLLER">Controller</option>
-                    <option value="DRIVER">Driver</option>
-                  </select>
-                  <select
-                    value={statusFilter}
-                    onChange={e => setStatusFilter(e.target.value)}
-                    style={{
-                      padding: '12px 16px', borderRadius: 12, border: `1px solid ${D.border}`, background: D.bg, color: D.text, fontSize: '0.85rem', outline: 'none', cursor: 'pointer', transition: 'all 0.2s'
-                    }}
-                  >
-                    <option value="ALL">All Statuses</option>
-                    <option value="ACTIVE">Active</option>
-                    <option value="PENDING">Pending</option>
-                    <option value="INACTIVE">Inactive</option>
-                    <option value="SUSPENDED">Suspended</option>
-                  </select>
-
-                  {(searchTerm || roleFilter !== 'ALL' || statusFilter !== 'ALL') && (
-                    <button
-                      onClick={() => { setSearchTerm(''); setRoleFilter('ALL'); setStatusFilter('ALL'); }}
-                      style={{
-                        padding: '12px 20px', borderRadius: 12, border: `1px solid ${D.red}40`, background: D.redDim, color: D.red, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s ease', animation: 'fadeIn 0.2s ease',
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
-                    >
-                      <RotateCcw size={14} /> Clear Filters
-                    </button>
-                  )}
                 </div>
 
                 {/* Filter status sub-banner */}

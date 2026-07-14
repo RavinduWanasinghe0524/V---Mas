@@ -1005,14 +1005,6 @@ const ReportsPage = () => {
 
             {/* Left: title block */}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 22, flex: 1, minWidth: 260 }}>
-              <div style={{
-                background: 'rgba(255,255,255,0.12)', borderRadius: 20, width: 72, height: 72,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
-                backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.18)',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.25)', flexShrink: 0
-              }}>
-                <BarChart2 size={36} strokeWidth={1.5} />
-              </div>
               <div>
                 <h1 style={{ margin: 0, fontSize: '1.85rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.025em', fontFamily: "'Plus Jakarta Sans',sans-serif", lineHeight: 1.15 }}>
                   Reports & Analytics

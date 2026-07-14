@@ -994,11 +994,7 @@ const FuelAnalysisPage = () => {
               <div style={{ position: 'absolute', bottom: '-40px', right: '30%', width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.01)', pointerEvents: 'none' }} />
               <div style={{ position: 'absolute', top: '20%', left: '60%', width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.01)', pointerEvents: 'none' }} />
 
-              {/* Left: Icon + Text */}
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-                <div style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(6px)', borderRadius: 16, width: 60, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0 }}>
-                  <Fuel size={30} strokeWidth={1.5} />
-                </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
                     <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
@@ -1040,11 +1036,7 @@ const FuelAnalysisPage = () => {
               <div style={{ position: 'absolute', bottom: '-40px', right: '30%', width: 160, height: 160, borderRadius: '50%', background: 'rgba(6,182,212,0.07)', pointerEvents: 'none' }} />
               <div style={{ position: 'absolute', top: '20%', left: '60%', width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.03)', pointerEvents: 'none' }} />
 
-              {/* Left: Icon + Text */}
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-                <div style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(6px)', borderRadius: 16, width: 60, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0 }}>
-                  <Fuel size={30} strokeWidth={1.5} />
-                </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
                     <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
