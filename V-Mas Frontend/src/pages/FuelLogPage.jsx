@@ -354,9 +354,6 @@ const FuelLogPage = () => {
             {/* Neon radial glow for dark */}
             {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, var(--primary-light) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-              <div style={{ background: isDark ? 'var(--primary-light)' : 'rgba(255,255,255,0.15)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', backdropFilter: 'blur(8px)', border: `1px solid var(--border)`, boxShadow: isDark ? '0 0 20px var(--primary-glow), 0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.2)' }}>
-                <Fuel size={32} strokeWidth={1.5} />
-              </div>
               <div>
                 <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                   My Fuel Log
