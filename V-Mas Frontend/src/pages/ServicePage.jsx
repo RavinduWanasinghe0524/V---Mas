@@ -2568,19 +2568,6 @@ const ServicePage = () => {
 
             {/* Left — identity */}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20, zIndex: 2 }}>
-              {/* Wrench icon in glowing ring */}
-              <div style={{
-                width: 64, height: 64, borderRadius: 16,
-                background: isDark ? 'var(--primary-light)' : 'rgba(255,255,255,0.15)',
-                backdropFilter: 'blur(8px)',
-                border: `1px solid var(--border)`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
-                boxShadow: isDark ? '0 0 20px var(--primary-glow), 0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.2)',
-                flexShrink: 0,
-              }}>
-                <Wrench size={32} color="#fff" strokeWidth={1.5} />
-              </div>
-
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 5 }}>
                   <h1 style={{

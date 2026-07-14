@@ -20,115 +20,6 @@ const onBlur = e => {
 }
 
 
-const StatBadge = ({ label, value, icon, colorDim, colorHex, D, total, isActive, onClick }) => {
-  const pct = total > 0 ? Math.round((value / total) * 100) : 0
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        background: isActive ? colorDim : D.surface,
-        borderRadius: 20,
-        border: isActive ? `2px solid ${colorHex}` : `1px solid ${D.border}`,
-        overflow: 'hidden',
-        position: 'relative',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        cursor: onClick ? 'pointer' : 'default',
-        boxShadow: isActive ? `0 8px 24px ${colorHex}25` : `0 4px 24px rgba(0,0,0,0.2)`,
-        transform: isActive ? 'translateY(-4px)' : 'translateY(0)'
-      }}
-      onMouseEnter={e => {
-        if (!isActive && onClick) {
-          e.currentTarget.style.transform = 'translateY(-5px)'
-          e.currentTarget.style.borderColor = colorHex + '55'
-          e.currentTarget.style.boxShadow = `0 16px 40px ${colorHex}25, 0 4px 12px rgba(0,0,0,0.25)`
-        }
-      }}
-      onMouseLeave={e => {
-        if (!isActive && onClick) {
-          e.currentTarget.style.transform = 'translateY(0)'
-          e.currentTarget.style.borderColor = D.border
-          e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.2)'
-        }
-      }}
-    >
-      {/* Top gradient accent bar */}
-      <div style={{
-        height: 3,
-        background: `linear-gradient(90deg, ${colorHex}00 0%, ${colorHex} 40%, ${colorHex}cc 100%)`,
-      }} />
-
-      {/* Card body: horizontal flex */}
-      <div style={{ padding: '22px 24px', display: 'flex', alignItems: 'center', gap: 20 }}>
-        {/* Left column: Glowing icon bubble */}
-        <div style={{
-          width: 52, height: 52, borderRadius: 16,
-          background: colorDim,
-          color: colorHex,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          border: `1px solid ${colorHex}30`,
-          boxShadow: `0 0 14px ${colorHex}18`,
-          flexShrink: 0,
-        }}>
-          {icon}
-        </div>
-
-        {/* Right column: Info & metrics */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-            <span style={{
-              fontSize: '0.72rem', fontWeight: 800,
-              color: D.textSub,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-            }}>
-              {label}
-            </span>
-            {/* Percentage pill */}
-            {total > 0 && (
-              <span style={{
-                fontSize: '0.68rem', fontWeight: 800,
-                color: colorHex,
-                background: colorDim,
-                border: `1px solid ${colorHex}25`,
-                padding: '2px 8px',
-                borderRadius: 999,
-                letterSpacing: '0.02em',
-              }}>
-                {pct}%
-              </span>
-            )}
-          </div>
-
-          {/* Big number */}
-          <div style={{
-            fontSize: '1.7rem', fontWeight: 900,
-            color: D.text,
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            lineHeight: 1.1,
-            letterSpacing: '-0.02em',
-            marginBottom: total > 0 ? 8 : 0,
-          }}>
-            {value}
-          </div>
-
-          {/* Progress bar */}
-          {total > 0 && (
-            <div style={{ height: 4, borderRadius: 999, background: `${colorHex}18`, overflow: 'hidden' }}>
-              <div style={{
-                width: `${pct}%`,
-                height: '100%',
-                borderRadius: 999,
-                background: `linear-gradient(90deg, ${colorHex}99, ${colorHex})`,
-                transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-              }} />
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 
 const getVehicleMilestones = (vehicle, services, intervals) => {
   if (!vehicle || !intervals) return []
@@ -187,6 +78,7 @@ const VehiclesPage = () => {
   const D = useD()
   const { theme } = useTheme()
   const isDark = theme === 'blue'
+  const solidBlue = isDark ? '#60a5fa' : '#2563eb'
 
   const statusColors = {
     ACTIVE: { bg: D.greenDim, color: D.green, border: `${D.green}50` },
@@ -208,6 +100,7 @@ const VehiclesPage = () => {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('ALL')
   const [fuelFilter, setFuelFilter] = useState('ALL')
+  const [sortBy, setSortBy] = useState('URGENCY')
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('vmas_vehicles_view_mode') || 'grid')
 
   useEffect(() => {
@@ -1160,7 +1053,609 @@ const VehiclesPage = () => {
     return a.remainingKm - b.remainingKm
   })
 
+  const sorted = [...filtered].sort((a, b) => {
+    const alertA = vehicleAlerts[a.registrationNo]
+    const alertB = vehicleAlerts[b.registrationNo]
+    
+    const today = new Date()
+    const insExpiryA = a.insuranceExpiryDate ? new Date(a.insuranceExpiryDate) : null
+    const licExpiryA = a.licenseExpiryDate ? new Date(a.licenseExpiryDate) : null
+    const insDiffA = insExpiryA ? Math.ceil((insExpiryA - today) / (1000 * 60 * 60 * 24)) : null
+    const licDiffA = licExpiryA ? Math.ceil((licExpiryA - today) / (1000 * 60 * 60 * 24)) : null
+    const isExpiredA = (insDiffA !== null && insDiffA < 0) || (licDiffA !== null && licDiffA < 0) || (alertA?.level === 'OVERDUE')
+    const isAlertA = (insDiffA !== null && insDiffA <= 30) || (licDiffA !== null && licDiffA <= 30) || (alertA?.level === 'DUE_SOON')
 
+    const insExpiryB = b.insuranceExpiryDate ? new Date(b.insuranceExpiryDate) : null
+    const licExpiryB = b.licenseExpiryDate ? new Date(b.licenseExpiryDate) : null
+    const insDiffB = insExpiryB ? Math.ceil((insExpiryB - today) / (1000 * 60 * 60 * 24)) : null
+    const licDiffB = licExpiryB ? Math.ceil((licExpiryB - today) / (1000 * 60 * 60 * 24)) : null
+    const isExpiredB = (insDiffB !== null && insDiffB < 0) || (licDiffB !== null && licDiffB < 0) || (alertB?.level === 'OVERDUE')
+    const isAlertB = (insDiffB !== null && insDiffB <= 30) || (licDiffB !== null && licDiffB <= 30) || (alertB?.level === 'DUE_SOON')
+
+    if (sortBy === 'URGENCY') {
+      const scoreA = isExpiredA ? 3 : isAlertA ? 2 : 1
+      const scoreB = isExpiredB ? 3 : isAlertB ? 2 : 1
+      if (scoreA !== scoreB) return scoreB - scoreA
+      return (a.registrationNo || '').localeCompare(b.registrationNo || '')
+    }
+    
+    if (sortBy === 'REG_ASC') {
+      return (a.registrationNo || '').localeCompare(b.registrationNo || '')
+    }
+    
+    if (sortBy === 'MAKE_ASC') {
+      const nameA = `${a.manufacturer || ''} ${a.model || ''}`
+      const nameB = `${b.manufacturer || ''} ${b.model || ''}`
+      return nameA.localeCompare(nameB)
+    }
+    
+    if (sortBy === 'MILEAGE_ASC') {
+      return (a.currentMileageKm || 0) - (b.currentMileageKm || 0)
+    }
+
+    if (sortBy === 'MILEAGE_DESC') {
+      return (b.currentMileageKm || 0) - (a.currentMileageKm || 0)
+    }
+
+    if (sortBy === 'YEAR_DESC') {
+      return (b.year || 0) - (a.year || 0)
+    }
+
+    return 0
+  })
+
+  const renderVehicleTableRow = (v, i) => {
+    const s = statusColors[v.status] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
+
+    const today = new Date()
+    const insExpiry = v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate) : null
+    const licExpiry = v.licenseExpiryDate ? new Date(v.licenseExpiryDate) : null
+    const insDiff = insExpiry ? Math.ceil((insExpiry - today) / (1000 * 60 * 60 * 24)) : null
+    const licDiff = licExpiry ? Math.ceil((licExpiry - today) / (1000 * 60 * 60 * 24)) : null
+    const isInsExpired = insDiff !== null && insDiff < 0
+    const isLicExpired = licDiff !== null && licDiff < 0
+    const isInsAlert = insDiff !== null && insDiff <= 30
+    const isLicAlert = licDiff !== null && licDiff <= 30
+
+    const rowAlertBorder = (isInsExpired || isLicExpired)
+      ? `left 3px solid ${D.red}`
+      : (isInsAlert || isLicAlert)
+        ? `left 3px solid ${D.orange}`
+        : 'none'
+
+    return (
+      <tr
+        key={v.id}
+        style={{
+          borderBottom: `1px solid ${D.border}`,
+          transition: 'background 0.2s ease',
+          cursor: 'default',
+          background: D.surface
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = D.surfaceHi }}
+        onMouseLeave={e => { e.currentTarget.style.background = D.surface }}
+      >
+        <td style={{ padding: '14px 20px', fontWeight: 700, borderLeft: rowAlertBorder }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {v.vehicleImage ? (
+              <img src={v.vehicleImage} alt={v.registrationNo} style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover', border: `1px solid ${D.border}` }} />
+            ) : (
+              <div style={{ width: 32, height: 32, borderRadius: 6, background: D.indigoDim, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${D.border}`, color: D.indigo }}>
+                <Car size={14} />
+              </div>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ color: solidBlue, textDecoration: 'underline' }}>{v.registrationNo ?? 'N/A'}</span>
+              {(isInsExpired || isLicExpired) ? (
+                <AlertCircle size={13} style={{ color: D.red }} title={isInsExpired ? "Insurance Expired" : "License Expired"} />
+              ) : (isInsAlert || isLicAlert) ? (
+                <AlertTriangle size={13} style={{ color: D.orange }} title={isInsAlert ? "Insurance Expiring Soon" : "License Expiring Soon"} />
+              ) : null}
+            </div>
+          </div>
+        </td>
+        <td style={{ padding: '14px 20px', color: D.text, fontWeight: 600 }}>
+          {v.manufacturer ?? 'N/A'} {v.model ?? ''}
+        </td>
+        <td style={{ padding: '14px 20px' }}>
+          <span style={{
+            padding: '3px 10px', borderRadius: 99, fontSize: '0.7rem', fontWeight: 700,
+            background: s.bg, color: s.color, border: `1px solid ${s.border || (s.color + '30')}`,
+            textTransform: 'uppercase', letterSpacing: '0.02em', display: 'inline-block'
+          }}>
+            {v.status ?? 'N/A'}
+          </span>
+        </td>
+        <td style={{ padding: '14px 20px' }}>
+          <div
+            onClick={(e) => {
+              if (!isController) return;
+              e.stopPropagation();
+              openOdometerModal(e, v);
+            }}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '4px 8px', borderRadius: 8, border: `1px solid transparent`,
+              cursor: isController ? 'pointer' : 'default',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={e => {
+              if (!isController) return;
+              e.currentTarget.style.borderColor = D.purple;
+              e.currentTarget.style.background = D.purpleDim;
+            }}
+            onMouseLeave={e => {
+              if (!isController) return;
+              e.currentTarget.style.borderColor = 'transparent';
+              e.currentTarget.style.background = 'transparent';
+            }}
+            title={isController ? "Quick Update Mileage" : ""}
+          >
+            <span style={{ fontWeight: 750, color: D.text }}>
+              {v.currentMileageKm ? `${v.currentMileageKm.toLocaleString()} km` : '0 km'}
+            </span>
+            {isController && <Edit2 size={10} style={{ opacity: 0.6 }} />}
+          </div>
+        </td>
+        <td style={{ padding: '14px 20px', fontWeight: 600, color: D.textSub }}>
+          {formatFuelType(v.fuelType)}
+        </td>
+        <td style={{ padding: '14px 20px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+          <div style={{ display: 'inline-flex', gap: 8 }}>
+            <button
+              onClick={() => openProfile(v)}
+              style={{
+                background: 'none', border: 'none', padding: '4px 8px', borderRadius: 6,
+                color: solidBlue, cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
+                display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = solidBlue + '18' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+            >
+              <Eye size={13} />
+            </button>
+            {isController && (
+              <button
+                onClick={() => openEditModal(v)}
+                style={{
+                  background: 'none', border: 'none', padding: '4px 8px', borderRadius: 6,
+                  color: D.text, cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
+                  display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+              >
+                <Edit2 size={13} />
+              </button>
+            )}
+          </div>
+        </td>
+      </tr>
+    )
+  }
+
+  const renderVehicleCard = (v, i) => {
+    const s = statusColors[v.status] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
+    const alertInfo = vehicleAlerts[v.registrationNo]
+    const ac = alertInfo ? (ALERT_COLORS[alertInfo.level] || ALERT_COLORS.OK) : null
+
+    // Expiry checks
+    const today = new Date()
+    const insExpiry = v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate) : null
+    const licExpiry = v.licenseExpiryDate ? new Date(v.licenseExpiryDate) : null
+
+    const insDiff = insExpiry ? Math.ceil((insExpiry - today) / (1000 * 60 * 60 * 24)) : null
+    const licDiff = licExpiry ? Math.ceil((licExpiry - today) / (1000 * 60 * 60 * 24)) : null
+
+    const isInsAlert = insDiff !== null && insDiff <= 30
+    const isLicAlert = licDiff !== null && licDiff <= 30
+
+    const isInsExpired = insDiff !== null && insDiff < 0
+    const isLicExpired = licDiff !== null && licDiff < 0
+
+    const initials = v.manufacturer
+      ? (v.manufacturer.includes(' ')
+        ? v.manufacturer.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
+        : v.manufacturer.substring(0, 2).toUpperCase())
+      : 'V'
+
+    const cardAlertClass = (isInsExpired || isLicExpired)
+      ? 'pulse-warning-red'
+      : (isInsAlert || isLicAlert)
+        ? 'pulse-warning-orange'
+        : ''
+
+    const defaultBorderColor = (isInsExpired || isLicExpired)
+      ? 'rgba(239, 68, 68, 0.5)'
+      : (isInsAlert || isLicAlert)
+        ? 'rgba(245, 158, 11, 0.5)'
+        : D.border
+
+    // Define the dynamic gradient based on status for the premium header
+    const statusGradients = {
+      ACTIVE: {
+        bg: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+        glow: 'rgba(16, 185, 129, 0.35)',
+      },
+      AVAILABLE: {
+        bg: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+        glow: 'rgba(59, 130, 246, 0.35)',
+      },
+      SERVICE: {
+        bg: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+        glow: 'rgba(245, 158, 11, 0.35)',
+      },
+      INACTIVE: {
+        bg: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+        glow: 'rgba(239, 68, 68, 0.35)',
+      }
+    }
+    const activeGradient = statusGradients[v.status] || {
+      bg: `linear-gradient(135deg, ${D.purple} 0%, ${D.indigo} 100%)`,
+      glow: 'rgba(124, 58, 237, 0.35)'
+    }
+
+    return (
+      <div key={v.id}
+        className={cardAlertClass}
+        style={{
+          background: D.surface, border: `1px solid ${defaultBorderColor}`, borderRadius: 24, display: 'flex', flexDirection: 'column', gap: 0,
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+          cursor: 'default', overflow: 'hidden'
+        }}
+        onMouseEnter={e => { 
+          e.currentTarget.style.borderColor = D.purple + '80'; 
+          e.currentTarget.style.transform = 'translateY(-6px)'; 
+          e.currentTarget.style.boxShadow = `0 16px 36px ${activeGradient.glow}, 0 4px 15px rgba(0,0,0,0.15)`;
+        }}
+        onMouseLeave={e => { 
+          e.currentTarget.style.borderColor = defaultBorderColor; 
+          e.currentTarget.style.transform = 'translateY(0)'; 
+          e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)';
+        }}>
+
+        {/* Premium Header row with status gradient */}
+        <div style={{ 
+          background: activeGradient.bg, 
+          padding: '18px 20px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          gap: 12,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }}>
+            {/* Avatar */}
+            <div style={{ flexShrink: 0 }}>
+              {v.vehicleImage ? (
+                <img src={v.vehicleImage} alt={v.registrationNo} style={{ width: 54, height: 54, borderRadius: 14, objectFit: 'cover', border: '2px solid rgba(255, 255, 255, 0.8)', boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }} />
+              ) : (
+                <div style={{ width: 54, height: 54, borderRadius: 14, background: 'linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.1rem', fontWeight: 800, border: '2px solid rgba(255, 255, 255, 0.8)', boxShadow: '0 4px 10px rgba(0,0,0,0.15)', backdropFilter: 'blur(4px)' }}>
+                  {initials}
+                </div>
+              )}
+            </div>
+            {/* Name and Subtitle */}
+            <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <div
+                style={{
+                  fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', letterSpacing: '0.02em',
+                  display: 'flex', alignItems: 'center', gap: 6, textShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                }}
+              >
+                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.registrationNo ?? 'N/A'}</span>
+                {(isInsExpired || isLicExpired) ? (
+                  <AlertCircle size={15} style={{ color: '#fee2e2', flexShrink: 0 }} title={isInsExpired ? "Insurance Expired" : "License Expired"} />
+                ) : (isInsAlert || isLicAlert) ? (
+                  <AlertTriangle size={15} style={{ color: '#fef3c7', flexShrink: 0 }} title={isInsAlert ? "Insurance Expiring Soon" : "License Expiring Soon"} />
+                ) : null}
+              </div>
+              <p style={{ 
+                margin: '2px 0 0', fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.85)', fontWeight: 600, letterSpacing: '0.01em',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+              }}>
+                {v.manufacturer ?? 'N/A'} {v.model ?? ''} • {v.vehicleType ? (v.vehicleType.charAt(0) + v.vehicleType.slice(1).toLowerCase()) : 'N/A'}
+              </p>
+            </div>
+          </div>
+
+          {/* Status Badge */}
+          <div style={{
+            padding: '5px 12px', borderRadius: 99, fontSize: '0.7rem', fontWeight: 800,
+            background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff', border: '1px solid rgba(255, 255, 255, 0.35)',
+            textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0,
+            backdropFilter: 'blur(4px)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+          }}>
+            {v.status ?? 'N/A'}
+          </div>
+        </div>
+
+        {/* Card Body - Nested Details Container */}
+        <div style={{ padding: '20px 20px 10px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{
+            background: D.surfaceHi,
+            border: `1px solid ${D.border}`,
+            borderRadius: 20,
+            padding: 16,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
+          }}>
+            {/* Details section */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '2px 4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
+                <Car size={14} style={{ color: solidBlue, flexShrink: 0, opacity: 0.8 }} />
+                <span>
+                  <strong style={{ color: D.text, fontWeight: 600 }}>Type:</strong> {v.vehicleType ? (v.vehicleType.charAt(0) + v.vehicleType.slice(1).toLowerCase()) : 'N/A'}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.textSub, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`Chassis: ${v.chassisNumber || 'N/A'}`}>
+                <FileText size={14} style={{ color: D.purple, flexShrink: 0, opacity: 0.8 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <strong style={{ color: D.text, fontWeight: 600 }}>Chassis:</strong> {v.chassisNumber || 'N/A'}
+                </span>
+              </div>
+
+              <div 
+                onClick={(e) => {
+                  if (!isController) return;
+                  e.stopPropagation();
+                  openOdometerModal(e, v);
+                }}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 10, 
+                  fontSize: '0.8rem', 
+                  color: D.textSub, 
+                  fontWeight: 600,
+                  cursor: isController ? 'pointer' : 'default',
+                  transition: 'opacity 0.2s'
+                }}
+                onMouseEnter={e => { if (isController) e.currentTarget.style.opacity = 0.8; }}
+                onMouseLeave={e => { if (isController) e.currentTarget.style.opacity = 1; }}
+              >
+                <Gauge size={14} style={{ color: '#a855f7', flexShrink: 0, opacity: 0.8 }} />
+                <span>
+                  <strong style={{ color: D.text, fontWeight: 600 }}>Mileage:</strong> {v.currentMileageKm ? `${v.currentMileageKm.toLocaleString()} Km` : '0 Km'}
+                  {isController && <Edit2 size={12} style={{ color: '#a855f7', opacity: 0.5, marginLeft: 6, display: 'inline-block', verticalAlign: 'middle' }} />}
+                </span>
+              </div>
+
+              <div 
+                onClick={(e) => {
+                  if (!isController) return;
+                  e.stopPropagation();
+                  openFuelModal(e, v);
+                }}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 10, 
+                  fontSize: '0.8rem', 
+                  color: D.textSub, 
+                  fontWeight: 600,
+                  cursor: isController ? 'pointer' : 'default',
+                  transition: 'opacity 0.2s'
+                }}
+                onMouseEnter={e => { if (isController) e.currentTarget.style.opacity = 0.8; }}
+                onMouseLeave={e => { if (isController) e.currentTarget.style.opacity = 1; }}
+              >
+                <Fuel size={14} style={{ color: '#f59e0b', flexShrink: 0, opacity: 0.8 }} />
+                <span>
+                  <strong style={{ color: D.text, fontWeight: 600 }}>Fuel:</strong> {formatFuelType(v.fuelType)}
+                  {isController && <Edit2 size={12} style={{ color: '#f59e0b', opacity: 0.5, marginLeft: 6, display: 'inline-block', verticalAlign: 'middle' }} />}
+                </span>
+              </div>
+
+              <div 
+                onClick={(e) => { e.stopPropagation(); openProfile(v, 'services'); }}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 10, 
+                  fontSize: '0.8rem', 
+                  color: ac ? ac.color : D.textSub, 
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'opacity 0.2s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = 0.8; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = 1; }}
+              >
+                <Wrench size={14} style={{ color: ac ? ac.color : '#10b981', flexShrink: 0, opacity: 0.8 }} />
+                <span>
+                  <strong style={{ color: ac ? ac.color : D.text, fontWeight: 600 }}>Service:</strong> {ac ? ac.label : 'OK'}
+                  <ArrowUpRight size={12} style={{ color: ac ? ac.color : '#10b981', opacity: 0.5, marginLeft: 6, display: 'inline-block', verticalAlign: 'middle' }} />
+                </span>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: isInsExpired ? D.red : isInsAlert ? D.orange : D.textSub, fontWeight: 600 }}>
+                <Calendar size={14} style={{ flexShrink: 0, color: isInsExpired ? D.red : isInsAlert ? D.orange : D.green }} />
+                <span>
+                  <strong style={{ color: isInsExpired ? D.red : isInsAlert ? D.orange : D.text, fontWeight: 600 }}>Insurance:</strong> {v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate).toLocaleDateString() : 'N/A'}
+                  {isInsExpired ? ' (Expired)' : isInsAlert ? ` (${insDiff}d left)` : ''}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: isLicExpired ? D.red : isLicAlert ? D.orange : D.textSub, fontWeight: 600 }}>
+                <Clock size={14} style={{ flexShrink: 0, color: isLicExpired ? D.red : isLicAlert ? D.orange : solidBlue }} />
+                <span>
+                  <strong style={{ color: isLicExpired ? D.red : isLicAlert ? D.orange : D.text, fontWeight: 600 }}>License:</strong> {v.licenseExpiryDate ? new Date(v.licenseExpiryDate).toLocaleDateString() : 'N/A'}
+                  {isLicExpired ? ' (Expired)' : isLicAlert ? ` (${licDiff}d left)` : ''}
+                </span>
+              </div>
+            </div>
+
+            {/* Driver chip — shown for admins & controllers */}
+            {!isDriver && v.driverUsername && (
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 8, 
+                fontSize: '0.78rem', 
+                color: D.green, 
+                fontWeight: 700,
+                background: D.greenDim,
+                border: `1px solid ${D.green}20`,
+                padding: '6px 12px',
+                borderRadius: 12,
+                marginTop: 4
+              }}>
+                <UserCheck size={14} style={{ flexShrink: 0, color: D.green }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                  Driver: <strong style={{ color: D.text }}>{v.driverUsername}</strong>
+                </span>
+                <span style={{ fontSize: '0.6rem', padding: '2px 6px', borderRadius: 6, background: D.green, color: '#fff', fontWeight: 800, flexShrink: 0 }}>ASSIGNED</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action Buttons Row */}
+        <div style={{ 
+          padding: '10px 20px 20px 20px', 
+          display: 'flex', 
+          gap: 10, 
+          justifyContent: 'flex-end', 
+          width: '100%', 
+          marginTop: 'auto'
+        }}>
+          <button 
+            onClick={(e) => { e.stopPropagation(); openProfile(v); }} 
+            title="Profile" 
+            className={`profile-btn-${v.status ? v.status.toLowerCase() : 'available'}`}
+            style={{ 
+              flex: 1,
+              padding: '10px 14px', 
+              borderRadius: 12, 
+              cursor: 'pointer', 
+              fontWeight: 800, 
+              fontSize: '0.8rem', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              gap: 6, 
+              transition: 'all 0.2s', 
+              fontFamily: 'inherit'
+            }}
+          >
+            <Eye size={14} /> {isDriver ? 'View Details' : 'Profile'}
+          </button>
+          {isController && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); openEditModal(v); }} 
+              title="Edit" 
+              style={{ 
+                flex: 1,
+                padding: '10px 14px', 
+                borderRadius: 12, 
+                border: `1px solid ${D.border}`, 
+                background: 'rgba(255,255,255,0.02)', 
+                color: D.text, 
+                cursor: 'pointer', 
+                fontWeight: 800, 
+                fontSize: '0.8rem', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                gap: 6, 
+                transition: 'all 0.2s', 
+                fontFamily: 'inherit' 
+              }}
+              onMouseEnter={e => { 
+                e.currentTarget.style.background = 'rgba(37, 99, 235, 0.15)'; 
+                e.currentTarget.style.borderColor = D.purple; 
+                e.currentTarget.style.color = '#60a5fa';
+                e.currentTarget.style.boxShadow = `0 4px 12px rgba(37, 99, 235, 0.15)`;
+              }}
+              onMouseLeave={e => { 
+                e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; 
+                e.currentTarget.style.borderColor = D.border; 
+                e.currentTarget.style.color = D.text;
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <Edit2 size={14} /> Edit
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  const renderVehicleGroup = (title, items) => {
+    if (items.length === 0) return null
+
+    if (viewMode === 'table') {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 40 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: `2px solid ${D.border}`, paddingBottom: 12 }}>
+            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>{title}</h3>
+            <span style={{ background: D.surfaceHi, color: D.textSub, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700 }}>{items.length}</span>
+          </div>
+          <div style={{ overflowX: 'auto', background: 'rgba(255,255,255,0.01)', borderRadius: 16, border: `1px solid ${D.border}` }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ borderBottom: `2px solid ${D.border}`, background: D.surfaceHi }}>
+                  <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Reg Number</th>
+                  <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Make / Model</th>
+                  <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Status</th>
+                  <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Odometer</th>
+                  <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Fuel Type</th>
+                  <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em', textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((v, i) => renderVehicleTableRow(v, i))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 40 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: `2px solid ${D.border}`, paddingBottom: 12 }}>
+          <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>{title}</h3>
+          <span style={{ background: D.surfaceHi, color: D.textSub, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700 }}>{items.length}</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 }}>
+          {items.map((v, i) => renderVehicleCard(v, i))}
+        </div>
+      </div>
+    )
+  }
+
+  const renderGroupedVehicles = () => {
+    if (filter === 'ALL') {
+      const active = sorted.filter(v => v.status === 'ACTIVE')
+      const available = sorted.filter(v => v.status === 'AVAILABLE')
+      const service = sorted.filter(v => v.status === 'SERVICE')
+      const inactive = sorted.filter(v => v.status === 'INACTIVE')
+
+      return (
+        <>
+          {renderVehicleGroup("Active Vehicles", active)}
+          {renderVehicleGroup("Available Vehicles", available)}
+          {renderVehicleGroup("In Service Vehicles", service)}
+          {renderVehicleGroup("Inactive Vehicles", inactive)}
+        </>
+      )
+    } else {
+      const titleMap = {
+        ACTIVE: "Active Vehicles",
+        AVAILABLE: "Available Vehicles",
+        SERVICE: "In Service Vehicles",
+        INACTIVE: "Inactive Vehicles"
+      }
+      return renderVehicleGroup(titleMap[filter] || "Vehicles", sorted)
+    }
+  }
 
   return (
     <>
@@ -1171,6 +1666,50 @@ const VehiclesPage = () => {
           <style>{`
             @keyframes pulseBar {
               0%,100% { opacity: 1; } 50% { opacity: 0.55; }
+            }
+            .profile-btn-active {
+              background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+              color: #ffffff !important;
+              border: none !important;
+              box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35) !important;
+            }
+            .profile-btn-active:hover {
+              background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+              box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5) !important;
+              transform: translateY(-1px) !important;
+            }
+            .profile-btn-available {
+              background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+              color: #ffffff !important;
+              border: none !important;
+              box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35) !important;
+            }
+            .profile-btn-available:hover {
+              background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%) !important;
+              box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5) !important;
+              transform: translateY(-1px) !important;
+            }
+            .profile-btn-service {
+              background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+              color: #ffffff !important;
+              border: none !important;
+              box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35) !important;
+            }
+            .profile-btn-service:hover {
+              background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%) !important;
+              box-shadow: 0 6px 16px rgba(245, 158, 11, 0.5) !important;
+              transform: translateY(-1px) !important;
+            }
+            .profile-btn-inactive {
+              background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+              color: #ffffff !important;
+              border: none !important;
+              box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35) !important;
+            }
+            .profile-btn-inactive:hover {
+              background: linear-gradient(135deg, #b91c1c 0%, #ef4444 100%) !important;
+              box-shadow: 0 6px 16px rgba(239, 68, 68, 0.5) !important;
+              transform: translateY(-1px) !important;
             }
           `}</style>
           <div className="page-body">
@@ -1192,9 +1731,6 @@ const VehiclesPage = () => {
               {/* Neon radial glow for dark */}
               {isDark && <div style={{ position: 'absolute', top: '50%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, var(--primary-light) 0%, transparent 70%)', transform: 'translateY(-50%)', pointerEvents: 'none' }} />}
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-                <div style={{ background: isDark ? 'var(--primary-light)' : 'rgba(255,255,255,0.15)', borderRadius: 16, width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', backdropFilter: 'blur(8px)', border: `1px solid var(--border)`, boxShadow: isDark ? '0 0 20px var(--primary-glow), 0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.15)' }}>
-                  <Car size={32} strokeWidth={1.5} />
-                </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Vehicle Fleet</h1>
@@ -1489,15 +2025,7 @@ const VehiclesPage = () => {
               </div>
             )}
 
-            {/* Stats row */}
-            {!isDriver && (
-              <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, marginBottom: 36 }}>
-                <StatBadge label="Total Vehicles" value={vehicles.length} icon={<Car size={22} />} colorDim={D.purpleDim} colorHex={D.purple} D={D} total={0} isActive={filter === 'ALL'} onClick={() => setFilter('ALL')} />
-                <StatBadge label="Active" value={counts.ACTIVE} icon={<CheckCircle size={22} />} colorDim={D.greenDim} colorHex={D.green} D={D} total={vehicles.length} isActive={filter === 'ACTIVE'} onClick={() => setFilter('ACTIVE')} />
-                <StatBadge label="In Service" value={counts.SERVICE} icon={<Wrench size={22} />} colorDim={D.orangeDim} colorHex={D.orange} D={D} total={vehicles.length} isActive={filter === 'SERVICE'} onClick={() => setFilter('SERVICE')} />
-                <StatBadge label="Available" value={counts.AVAILABLE} icon={<Circle size={22} />} colorDim={D.blueDim} colorHex={D.blue} D={D} total={vehicles.length} isActive={filter === 'AVAILABLE'} onClick={() => setFilter('AVAILABLE')} />
-              </div>
-            )}
+
 
             {/* Toolbar & List Container */}
             <div style={{ background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 4px 24px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
@@ -1515,46 +2043,44 @@ const VehiclesPage = () => {
                         onFocus={onFocus} onBlur={onBlur}
                       />
                     </div>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                      {['ALL', 'ACTIVE', 'AVAILABLE', 'SERVICE', 'INACTIVE'].map(s => (
-                        <button
-                          key={s}
-                          onClick={() => setFilter(s)}
-                          style={{
-                            padding: '10px 18px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800,
-                            border: filter === s ? 'none' : `1px solid ${D.border}`,
-                            background: filter === s ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'rgba(255,255,255,0.05)',
-                            color: filter === s ? '#fff' : D.textSub,
-                            cursor: 'pointer', transition: 'all 0.15s ease',
-                            boxShadow: filter === s ? '0 4px 12px rgba(37, 99, 235,0.3)' : 'none',
-                          }}
-                        >
-                          {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
-                        </button>
-                      ))}
-
-                      <select
-                        value={fuelFilter}
-                        onChange={e => setFuelFilter(e.target.value)}
+                    {['ALL', 'ACTIVE', 'AVAILABLE', 'SERVICE', 'INACTIVE'].map(s => (
+                      <button
+                        key={s}
+                        onClick={() => setFilter(s)}
                         style={{
                           padding: '10px 18px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800,
-                          border: `1px solid ${D.border}`,
-                          background: 'rgba(255,255,255,0.05)',
-                          color: D.textSub,
+                          border: filter === s ? 'none' : `1px solid ${D.border}`,
+                          background: filter === s ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'rgba(255,255,255,0.05)',
+                          color: filter === s ? '#fff' : D.textSub,
                           cursor: 'pointer', transition: 'all 0.15s ease',
-                          outline: 'none',
-                          fontFamily: 'inherit'
+                          boxShadow: filter === s ? '0 4px 12px rgba(37, 99, 235,0.3)' : 'none',
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = D.blue; e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
                       >
-                        <option value="ALL" style={{ background: D.surface, color: D.text }}>All Fuel Types</option>
-                        <option value="PETROL" style={{ background: D.surface, color: D.text }}>Petrol 92 Octane</option>
-                        <option value="SUPER_PETROL" style={{ background: D.surface, color: D.text }}>Petrol 95 Octane</option>
-                        <option value="DIESEL" style={{ background: D.surface, color: D.text }}>Auto Diesel</option>
-                        <option value="SUPER_DIESEL" style={{ background: D.surface, color: D.text }}>Super Diesel</option>
-                      </select>
-                    </div>
+                        {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
+                      </button>
+                    ))}
+
+                    <select
+                      value={fuelFilter}
+                      onChange={e => setFuelFilter(e.target.value)}
+                      style={{
+                        padding: '10px 18px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800,
+                        border: `1px solid ${D.border}`,
+                        background: 'rgba(255,255,255,0.05)',
+                        color: D.textSub,
+                        cursor: 'pointer', transition: 'all 0.15s ease',
+                        outline: 'none',
+                        fontFamily: 'inherit'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = D.blue; e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                    >
+                      <option value="ALL" style={{ background: D.surface, color: D.text }}>All Fuel Types</option>
+                      <option value="PETROL" style={{ background: D.surface, color: D.text }}>Petrol 92 Octane</option>
+                      <option value="SUPER_PETROL" style={{ background: D.surface, color: D.text }}>Petrol 95 Octane</option>
+                      <option value="DIESEL" style={{ background: D.surface, color: D.text }}>Auto Diesel</option>
+                      <option value="SUPER_DIESEL" style={{ background: D.surface, color: D.text }}>Super Diesel</option>
+                    </select>
                   </div>
                 )}
                 <div className="vehicles-toolbar-right">
@@ -1615,7 +2141,6 @@ const VehiclesPage = () => {
                 </div>
               </div>
 
-              {/* Data List */}
               <div className="vehicles-data-list" style={{ padding: '24px 32px 40px' }}>
                 {filtered.length === 0 ? (
                   <div style={{ padding: '100px 0', textAlign: 'center' }}>
@@ -1629,409 +2154,9 @@ const VehiclesPage = () => {
                       {'Adjust your search terms or filters to find what you\'re looking for.'}
                     </p>
                   </div>
-                ) : viewMode === 'table' ? (
-                  <div style={{ overflowX: 'auto', background: 'rgba(255,255,255,0.01)', borderRadius: 16, border: `1px solid ${D.border}` }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
-                      <thead>
-                        <tr style={{ borderBottom: `2px solid ${D.border}`, background: D.surfaceHi }}>
-                          <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Reg Number</th>
-                          <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Make / Model</th>
-                          <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Status</th>
-                          <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Odometer</th>
-                          <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Fuel Type</th>
-                          <th style={{ padding: '16px 20px', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em', textAlign: 'right' }}>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filtered.map((v, i) => {
-                          const s = statusColors[v.status] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
-
-                          const today = new Date()
-                          const insExpiry = v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate) : null
-                          const licExpiry = v.licenseExpiryDate ? new Date(v.licenseExpiryDate) : null
-                          const insDiff = insExpiry ? Math.ceil((insExpiry - today) / (1000 * 60 * 60 * 24)) : null
-                          const licDiff = licExpiry ? Math.ceil((licExpiry - today) / (1000 * 60 * 60 * 24)) : null
-                          const isInsExpired = insDiff !== null && insDiff < 0
-                          const isLicExpired = licDiff !== null && licDiff < 0
-                          const isInsAlert = insDiff !== null && insDiff <= 30
-                          const isLicAlert = licDiff !== null && licDiff <= 30
-
-                          const rowAlertBorder = (isInsExpired || isLicExpired)
-                            ? `left 3px solid ${D.red}`
-                            : (isInsAlert || isLicAlert)
-                              ? `left 3px solid ${D.orange}`
-                              : 'none'
-
-                          return (
-                            <tr
-                              key={v.id}
-                              style={{
-                                borderBottom: `1px solid ${D.border}`,
-                                transition: 'background 0.2s ease',
-                                cursor: 'default',
-                                background: D.surface
-                              }}
-                              onMouseEnter={e => { e.currentTarget.style.background = D.surfaceHi }}
-                              onMouseLeave={e => { e.currentTarget.style.background = D.surface }}
-                            >
-                              <td style={{ padding: '14px 20px', fontWeight: 700, borderLeft: rowAlertBorder }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                  {v.vehicleImage ? (
-                                    <img src={v.vehicleImage} alt={v.registrationNo} style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover', border: `1px solid ${D.border}` }} />
-                                  ) : (
-                                    <div style={{ width: 32, height: 32, borderRadius: 6, background: D.indigoDim, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${D.border}`, color: D.indigo }}>
-                                      <Car size={14} />
-                                    </div>
-                                  )}
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <span style={{ color: D.blue, textDecoration: 'underline' }}>{v.registrationNo ?? 'N/A'}</span>
-                                    {(isInsExpired || isLicExpired) ? (
-                                      <AlertCircle size={13} style={{ color: D.red }} title={isInsExpired ? "Insurance Expired" : "License Expired"} />
-                                    ) : (isInsAlert || isLicAlert) ? (
-                                      <AlertTriangle size={13} style={{ color: D.orange }} title={isInsAlert ? "Insurance Expiring Soon" : "License Expiring Soon"} />
-                                    ) : null}
-                                  </div>
-                                </div>
-                              </td>
-                              <td style={{ padding: '14px 20px', color: D.text, fontWeight: 600 }}>
-                                {v.manufacturer ?? 'N/A'} {v.model ?? ''}
-                              </td>
-                              <td style={{ padding: '14px 20px' }}>
-                                <span style={{
-                                  padding: '3px 10px', borderRadius: 99, fontSize: '0.7rem', fontWeight: 700,
-                                  background: s.bg, color: s.color, border: `1px solid ${s.border || (s.color + '30')}`,
-                                  textTransform: 'uppercase', letterSpacing: '0.02em', display: 'inline-block'
-                                }}>
-                                  {v.status ?? 'N/A'}
-                                </span>
-                              </td>
-                              <td style={{ padding: '14px 20px' }}>
-                                <div
-                                  onClick={(e) => {
-                                    if (!isController) return;
-                                    e.stopPropagation();
-                                    openOdometerModal(e, v);
-                                  }}
-                                  style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                                    padding: '4px 8px', borderRadius: 8, border: `1px solid transparent`,
-                                    cursor: isController ? 'pointer' : 'default',
-                                    transition: 'all 0.15s ease'
-                                  }}
-                                  onMouseEnter={e => {
-                                    if (!isController) return;
-                                    e.currentTarget.style.borderColor = D.purple;
-                                    e.currentTarget.style.background = D.purpleDim;
-                                  }}
-                                  onMouseLeave={e => {
-                                    if (!isController) return;
-                                    e.currentTarget.style.borderColor = 'transparent';
-                                    e.currentTarget.style.background = 'transparent';
-                                  }}
-                                  title={isController ? "Quick Update Mileage" : ""}
-                                >
-                                  <span style={{ fontWeight: 750, color: D.text }}>
-                                    {v.currentMileageKm ? `${v.currentMileageKm.toLocaleString()} km` : '0 km'}
-                                  </span>
-                                  {isController && <Edit2 size={10} style={{ opacity: 0.6 }} />}
-                                </div>
-                              </td>
-                              <td style={{ padding: '14px 20px', fontWeight: 600, color: D.textSub }}>
-                                {formatFuelType(v.fuelType)}
-                              </td>
-                              <td style={{ padding: '14px 20px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
-                                <div style={{ display: 'inline-flex', gap: 8 }}>
-                                  <button
-                                    onClick={() => openProfile(v)}
-                                    style={{
-                                      background: 'none', border: 'none', padding: '4px 8px', borderRadius: 6,
-                                      color: D.blue, cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
-                                      display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease'
-                                    }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = D.blueDim }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
-                                  >
-                                    <Eye size={13} />
-                                  </button>
-                                  {isController && (
-                                    <button
-                                      onClick={() => openEditModal(v)}
-                                      style={{
-                                        background: 'none', border: 'none', padding: '4px 8px', borderRadius: 6,
-                                        color: D.text, cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
-                                        display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease'
-                                      }}
-                                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
-                                      onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
-                                    >
-                                      <Edit2 size={13} />
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 }}>
-                    {filtered.map((v, i) => {
-                      const s = statusColors[v.status] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
-                      const alertInfo = vehicleAlerts[v.registrationNo]
-                      const ac = alertInfo ? (ALERT_COLORS[alertInfo.level] || ALERT_COLORS.OK) : null
-
-                      // Expiry checks
-                      const today = new Date()
-                      const insExpiry = v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate) : null
-                      const licExpiry = v.licenseExpiryDate ? new Date(v.licenseExpiryDate) : null
-
-                      const insDiff = insExpiry ? Math.ceil((insExpiry - today) / (1000 * 60 * 60 * 24)) : null
-                      const licDiff = licExpiry ? Math.ceil((licExpiry - today) / (1000 * 60 * 60 * 24)) : null
-
-                      const isInsAlert = insDiff !== null && insDiff <= 30
-                      const isLicAlert = licDiff !== null && licDiff <= 30
-
-                      const isInsExpired = insDiff !== null && insDiff < 0
-                      const isLicExpired = licDiff !== null && licDiff < 0
-
-                      const initials = v.manufacturer
-                        ? (v.manufacturer.includes(' ')
-                          ? v.manufacturer.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
-                          : v.manufacturer.substring(0, 2).toUpperCase())
-                        : 'V'
-
-
-                      const cardAlertClass = (isInsExpired || isLicExpired)
-                        ? 'pulse-warning-red'
-                        : (isInsAlert || isLicAlert)
-                          ? 'pulse-warning-orange'
-                          : ''
-
-                      const defaultBorderColor = (isInsExpired || isLicExpired)
-                        ? 'rgba(239, 68, 68, 0.5)'
-                        : (isInsAlert || isLicAlert)
-                          ? 'rgba(245, 158, 11, 0.5)'
-                          : D.border
-
-                      return (
-                        <div key={v.id}
-                          className={cardAlertClass}
-                          style={{
-                            background: D.surface, border: `1px solid ${defaultBorderColor}`, borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column', gap: 20,
-                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                            cursor: 'default'
-                          }}
-                          onMouseEnter={e => { e.currentTarget.style.borderColor = D.purple + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.2)' }}
-                          onMouseLeave={e => { e.currentTarget.style.borderColor = defaultBorderColor; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)' }}>
-
-                          {/* Header row */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                              {/* Avatar */}
-                              <div style={{ flexShrink: 0 }}>
-                                {v.vehicleImage ? (
-                                  <img src={v.vehicleImage} alt={v.registrationNo} style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${D.border}` }} />
-                                ) : (
-                                  <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, #38bdf8, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1rem', fontWeight: 800, border: `2px solid ${D.border}` }}>
-                                    {initials}
-                                  </div>
-                                )}
-                              </div>
-                              {/* Name and Subtitle */}
-                              <div>
-                                <div
-                                  style={{
-                                    fontSize: '1.05rem', fontWeight: 955, color: D.blue, letterSpacing: '0.02em',
-                                    display: 'flex', alignItems: 'center', gap: 6
-                                  }}
-                                >
-                                  {v.registrationNo ?? 'N/A'}
-                                  {(isInsExpired || isLicExpired) ? (
-                                    <AlertCircle size={14} style={{ color: D.red }} title={isInsExpired ? "Insurance Expired" : "License Expired"} />
-                                  ) : (isInsAlert || isLicAlert) ? (
-                                    <AlertTriangle size={14} style={{ color: D.orange }} title={isInsAlert ? "Insurance Expiring Soon" : "License Expiring Soon"} />
-                                  ) : null}
-                                </div>
-                                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: D.textSub, fontWeight: 500 }}>
-                                  {v.manufacturer ?? 'N/A'} {v.model ?? ''}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Status Badge */}
-                            <div style={{
-                              padding: '4px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 700,
-                              background: s.bg, color: s.color, border: `1px solid ${s.border || (s.color + '30')}`,
-                              textTransform: 'uppercase', letterSpacing: '0.02em', flexShrink: 0
-                            }}>
-                              {v.status ?? 'N/A'}
-                            </div>
-                          </div>
-
-                          {/* Stats Cards Row */}
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-                            <div
-                              onClick={(e) => {
-                                if (!isController) return;
-                                e.stopPropagation();
-                                openOdometerModal(e, v);
-                              }}
-                              style={{
-                                background: isDark ? 'rgba(168, 85, 247, 0.04)' : 'rgba(168, 85, 247, 0.02)',
-                                border: isDark ? '1px solid rgba(168, 85, 247, 0.15)' : '1px solid rgba(168, 85, 247, 0.1)',
-                                borderRadius: 16, padding: '14px 6px', textAlign: 'center',
-                                position: 'relative', cursor: isController ? 'pointer' : 'default', transition: 'all 0.25s ease',
-                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
-                              }}
-                              onMouseEnter={e => {
-                                if (!isController) return;
-                                e.currentTarget.style.borderColor = '#a855f7';
-                                e.currentTarget.style.background = 'rgba(168, 85, 247, 0.08)';
-                                e.currentTarget.style.transform = 'scale(1.03)';
-                              }}
-                              onMouseLeave={e => {
-                                if (!isController) return;
-                                e.currentTarget.style.borderColor = isDark ? 'rgba(168, 85, 247, 0.15)' : 'rgba(168, 85, 247, 0.1)';
-                                e.currentTarget.style.background = isDark ? 'rgba(168, 85, 247, 0.03)' : 'rgba(168, 85, 247, 0.02)';
-                                e.currentTarget.style.transform = 'scale(1)';
-                              }}
-                              title={isController ? "Quick Update Odometer" : ""}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
-                                <Gauge size={11} style={{ color: '#a855f7', opacity: 0.8 }} />
-                                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Mileage</span>
-                              </div>
-                              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: D.text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                                {v.currentMileageKm ? v.currentMileageKm.toLocaleString() : '0'}
-                                {isController && <Edit2 size={10} style={{ opacity: 0.6, color: '#a855f7' }} />}
-                              </div>
-                            </div>
-
-                            <div
-                              onClick={(e) => {
-                                if (!isController) return;
-                                e.stopPropagation();
-                                openFuelModal(e, v);
-                              }}
-                              style={{
-                                background: isDark ? 'rgba(245, 158, 11, 0.04)' : 'rgba(245, 158, 11, 0.02)',
-                                border: isDark ? '1px solid rgba(245, 158, 11, 0.15)' : '1px solid rgba(245, 158, 11, 0.1)',
-                                borderRadius: 16, padding: '14px 6px', textAlign: 'center',
-                                position: 'relative', cursor: isController ? 'pointer' : 'default', transition: 'all 0.25s ease',
-                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
-                              }}
-                              onMouseEnter={e => {
-                                if (!isController) return;
-                                e.currentTarget.style.borderColor = '#f59e0b';
-                                e.currentTarget.style.background = 'rgba(245, 158, 11, 0.08)';
-                                e.currentTarget.style.transform = 'scale(1.03)';
-                              }}
-                              onMouseLeave={e => {
-                                if (!isController) return;
-                                e.currentTarget.style.borderColor = isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.1)';
-                                e.currentTarget.style.background = isDark ? 'rgba(245, 158, 11, 0.04)' : 'rgba(245, 158, 11, 0.02)';
-                                e.currentTarget.style.transform = 'scale(1)';
-                              }}
-                              title={isController ? "Quick Update Fuel Type" : ""}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
-                                <Fuel size={11} style={{ color: '#f59e0b', opacity: 0.8 }} />
-                                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Fuel</span>
-                              </div>
-                              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: D.text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                                {formatFuelType(v.fuelType)}
-                                {isController && <Edit2 size={10} style={{ opacity: 0.6, color: '#f59e0b' }} />}
-                              </div>
-                            </div>
-
-                            <div
-                              onClick={(e) => { e.stopPropagation(); openProfile(v, 'services'); }}
-                              style={{
-                                background: ac ? (ac.label === 'Overdue' ? 'rgba(239, 68, 68, 0.04)' : 'rgba(16, 185, 129, 0.04)') : 'rgba(16, 185, 129, 0.04)',
-                                border: `1px solid ${ac ? (ac.label === 'Overdue' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)') : 'rgba(16, 185, 129, 0.15)'}`,
-                                borderRadius: 16, padding: '14px 6px', textAlign: 'center',
-                                position: 'relative', cursor: 'pointer', transition: 'all 0.25s ease',
-                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
-                              }}
-                              onMouseEnter={e => {
-                                e.currentTarget.style.borderColor = ac ? ac.color : '#10b981';
-                                e.currentTarget.style.background = ac ? (ac.label === 'Overdue' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)') : 'rgba(16, 185, 129, 0.08)';
-                                e.currentTarget.style.transform = 'scale(1.03)';
-                              }}
-                              onMouseLeave={e => {
-                                e.currentTarget.style.borderColor = ac ? (ac.label === 'Overdue' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)') : 'rgba(16, 185, 129, 0.15)';
-                                e.currentTarget.style.background = ac ? (ac.label === 'Overdue' ? 'rgba(239, 68, 68, 0.04)' : 'rgba(16, 185, 129, 0.04)') : 'rgba(16, 185, 129, 0.04)';
-                                e.currentTarget.style.transform = 'scale(1)';
-                              }}
-                              title="View Service Target"
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
-                                <Wrench size={11} style={{ color: ac ? ac.color : '#10b981', opacity: 0.8 }} />
-                                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: ac ? ac.color : '#10b981', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Service</span>
-                              </div>
-                              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: ac ? ac.color : D.text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                                {ac ? ac.label : 'OK'}
-                                <ArrowUpRight size={10} style={{ opacity: 0.6, color: ac ? ac.color : '#10b981' }} />
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Details section */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`Chassis: ${v.chassisNumber || 'N/A'}`}>
-                              <FileText size={14} style={{ color: D.textSub, flexShrink: 0 }} />
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Chassis: {v.chassisNumber || 'N/A'}</span>
-                            </div>
-                            {/* Compliance Expiries info */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: isInsExpired ? D.red : isInsAlert ? D.orange : D.textSub, fontWeight: 600 }}>
-                                <Calendar size={14} style={{ flexShrink: 0 }} />
-                                <span>
-                                  Insurance: {v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate).toLocaleDateString() : 'N/A'}
-                                  {isInsExpired ? ' (Expired)' : isInsAlert ? ` (${insDiff}d left)` : ''}
-                                </span>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: isLicExpired ? D.red : isLicAlert ? D.orange : D.textSub, fontWeight: 600 }}>
-                                <Clock size={14} style={{ flexShrink: 0 }} />
-                                <span>
-                                  License: {v.licenseExpiryDate ? new Date(v.licenseExpiryDate).toLocaleDateString() : 'N/A'}
-                                  {isLicExpired ? ' (Expired)' : isLicAlert ? ` (${licDiff}d left)` : ''}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Driver chip — shown for admins & controllers */}
-                          {!isDriver && v.driverUsername && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', color: D.green, fontWeight: 700 }}>
-                              <UserCheck size={13} style={{ flexShrink: 0, color: D.green }} />
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.driverUsername}</span>
-                              <span style={{ fontSize: '0.6rem', padding: '1px 6px', borderRadius: 4, background: D.greenDim, border: `1px solid ${D.green}30`, color: D.green, flexShrink: 0 }}>ASSIGNED</span>
-                            </div>
-                          )}
-
-                          {/* Action Buttons Row */}
-                          <div style={{ borderTop: `1px solid ${D.border}`, margin: '8px 0 0', paddingTop: '16px', display: 'flex', gap: 10, justifyContent: 'flex-end', width: '100%' }}>
-                            <button onClick={(e) => { e.stopPropagation(); openProfile(v); }} title="Profile" style={{ padding: '8px 14px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.blue, cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontFamily: 'inherit' }}
-                              onMouseEnter={e => { e.currentTarget.style.background = D.blue; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = D.blue }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = D.blue; e.currentTarget.style.borderColor = D.border }}>
-                              <Eye size={14} /> {isDriver ? 'View Details' : 'Profile'}
-                            </button>
-                            {isController && (
-                              <button onClick={(e) => { e.stopPropagation(); openEditModal(v); }} title="Edit" style={{ padding: '8px 14px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', fontFamily: 'inherit' }}
-                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37, 99, 235,0.15)'; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.color = '#60a5fa' }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
-                                <Edit2 size={14} /> Edit
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )
-                }
+                  renderGroupedVehicles()
+                )}
               </div>
             </div>
 
