@@ -17,7 +17,7 @@ import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import api, { userAPI } from '../services/api'
 import { getDriverMetrics } from '../utils/driverUtils'
-import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car, BarChart2, Star, Activity, CheckCircle, RotateCcw, Archive, Trash2, User, FileText, Upload, Search, UserCog, Mail, ClipboardList, Eye } from 'lucide-react'
+import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car, BarChart2, Star, Activity, CheckCircle, RotateCcw, Archive, Trash2, User, FileText, Upload, Search, UserCog, Mail, ClipboardList, Eye, Edit2 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
@@ -473,292 +473,286 @@ const UsersPage = () => {
       ? u.userName.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
       : 'U'
 
-    // Status mapping for header
-    const statusGradients = {
-      ACTIVE: {
-        bg: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-        glow: 'rgba(16, 185, 129, 0.35)',
-      },
-      PENDING: {
-        bg: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
-        glow: 'rgba(251, 191, 36, 0.35)',
-      },
-      INACTIVE: {
-        bg: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-        glow: 'rgba(239, 68, 68, 0.35)',
-      },
-      SUSPENDED: {
-        bg: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
-        glow: 'rgba(139, 92, 246, 0.35)',
-      }
-    }
-    
     const userStatus = (u.accountStatus || 'ACTIVE').toUpperCase()
-    const activeGradient = statusGradients[userStatus] || {
-      bg: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-      glow: 'rgba(59, 130, 246, 0.35)'
-    }
 
-    // Deterministic stats
-    let statsToShow = []
-    if (u.role === 'ADMIN') {
-      statsToShow = [
-        { value: 'Full', label: 'Access' },
-        { value: 'Admin', label: 'Role' },
-        { value: metrics.status || 'Active', label: 'Status' }
-      ]
-    } else if (u.role === 'CONTROLLER') {
-      statsToShow = [
-        { value: 'High', label: 'Access' },
-        { value: 'Controller', label: 'Role' },
-        { value: metrics.status || 'Active', label: 'Status' }
-      ]
-    } else {
-      statsToShow = [
-        { value: 'Standard', label: 'Access' },
-        { value: u.role === 'DRIVER' ? 'Driver' : (u.role || 'User'), label: 'Role' },
-        { value: metrics.status || 'Active', label: 'Status' }
-      ]
+    const statusBadge = {
+      ACTIVE:    { label: 'Active',    bg: 'linear-gradient(135deg,#10b981,#059669)', shadow: 'rgba(16,185,129,0.45)' },
+      PENDING:   { label: 'Pending',   bg: 'linear-gradient(135deg,#fbbf24,#d97706)', shadow: 'rgba(251,191,36,0.45)' },
+      INACTIVE:  { label: 'Inactive',  bg: 'linear-gradient(135deg,#ef4444,#b91c1c)', shadow: 'rgba(239,68,68,0.45)' },
+      SUSPENDED: { label: 'Suspended', bg: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', shadow: 'rgba(139,92,246,0.45)' },
     }
+    const badge = statusBadge[userStatus] || statusBadge.ACTIVE
+
+    const hoverGlow = {
+      ACTIVE:    'rgba(16,185,129,0.2)',
+      PENDING:   'rgba(251,191,36,0.2)',
+      INACTIVE:  'rgba(239,68,68,0.18)',
+      SUSPENDED: 'rgba(139,92,246,0.2)',
+    }[userStatus] || 'rgba(99,102,241,0.2)'
+
+    const roleBg = {
+      ADMIN:      { bg: isDark ? 'rgba(59,130,246,0.12)' : 'rgba(59,130,246,0.08)', border: isDark ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.2)', color: '#3b82f6' },
+      CONTROLLER: { bg: isDark ? 'rgba(139,92,246,0.12)' : 'rgba(139,92,246,0.08)', border: isDark ? 'rgba(139,92,246,0.3)' : 'rgba(139,92,246,0.2)', color: '#8b5cf6' },
+      DRIVER:     { bg: isDark ? 'rgba(16,185,129,0.1)' : 'rgba(16,185,129,0.07)', border: isDark ? 'rgba(16,185,129,0.28)' : 'rgba(16,185,129,0.2)', color: '#10b981' },
+    }[u.role] || { bg: isDark ? 'rgba(99,102,241,0.1)' : 'rgba(99,102,241,0.07)', border: isDark ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.2)', color: '#6366f1' }
 
     const friendlyRole = u.role === 'ADMIN' ? 'Fleet Administrator' : u.role === 'CONTROLLER' ? 'Fleet Controller' : 'Fleet Driver'
+    const accessLevel  = u.role === 'ADMIN' ? 'Full Access' : u.role === 'CONTROLLER' ? 'High Access' : 'Standard'
 
     return (
       <div key={u.id} style={{
         background: D.surface,
         border: `1px solid ${D.border}`,
-        borderRadius: 28,
+        borderRadius: 24,
         display: 'flex',
         flexDirection: 'column',
-        gap: 0,
-        position: 'relative',
         overflow: 'hidden',
-        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+        boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.35)' : '0 4px 24px rgba(0,0,0,0.1)',
+        transition: 'all 0.32s cubic-bezier(0.4,0,0.2,1)',
         animation: `fadeUp 0.4s ease ${i * 0.05}s both`,
-        boxShadow: isDark 
-          ? '0 12px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03)' 
-          : '0 8px 24px rgba(0,0,0,0.08)',
-        cursor: 'pointer',
-        height: '100%'
+        cursor: 'default',
+        position: 'relative',
       }}
-        onClick={() => openProfile(u)}
         onMouseEnter={e => {
-          e.currentTarget.style.transform = 'translateY(-4px)';
-          e.currentTarget.style.boxShadow = isDark 
-            ? '0 20px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)' 
-            : '0 16px 36px rgba(0,0,0,0.15)';
-          e.currentTarget.style.borderColor = D.purple + '40';
+          e.currentTarget.style.transform = 'translateY(-8px)'
+          e.currentTarget.style.boxShadow = `0 20px 48px ${hoverGlow}, 0 6px 20px rgba(0,0,0,0.15)`
+          e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'
         }}
         onMouseLeave={e => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = isDark 
-            ? '0 12px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03)' 
-            : '0 8px 24px rgba(0,0,0,0.08)';
-          e.currentTarget.style.borderColor = D.border;
+          e.currentTarget.style.transform = 'translateY(0)'
+          e.currentTarget.style.boxShadow = isDark ? '0 4px 24px rgba(0,0,0,0.35)' : '0 4px 24px rgba(0,0,0,0.1)'
+          e.currentTarget.style.borderColor = D.border
         }}
       >
-        {/* Dynamic Status Header */}
+        {/* ── Avatar / Hero Area (Edge-to-Edge) ── */}
         <div style={{
-          background: activeGradient.bg,
-          padding: '24px 24px 20px 24px',
           position: 'relative',
+          width: '100%',
+          height: 140,
+          background: isDark
+            ? 'linear-gradient(160deg,rgba(30,41,59,0.95) 0%,rgba(15,23,42,0.9) 100%)'
+            : 'linear-gradient(160deg,#f0f4ff 0%,#e8eeff 100%)',
+          borderBottom: `1px solid ${D.border}`,
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
-          gap: 16
+          justifyContent: 'center',
         }}>
-          {/* Header decorative shapes */}
-          <div style={{ position: 'absolute', top: '-10px', right: '-10px', width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', bottom: '-20px', left: '10%', width: 60, height: 60, borderRadius: '50%', background: 'rgba(255,255,255,0.02)', pointerEvents: 'none' }} />
+          {/* Decorative background circles */}
+          <div style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, borderRadius: '50%', background: badge.shadow.replace('0.45', '0.08'), pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', bottom: -30, left: -10, width: 90, height: 90, borderRadius: '50%', background: badge.shadow.replace('0.45', '0.05'), pointerEvents: 'none' }} />
 
-          {/* User Profile Avatar */}
-          <div style={{ flexShrink: 0, position: 'relative', zIndex: 1 }}>
-            {u.profilePicture ? (
-              <img
-                src={u.profilePicture}
-                alt={u.userName}
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 14,
-                  objectFit: 'cover',
-                  border: '2px solid rgba(255,255,255,0.8)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.25)'
-                }}
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=ffffff&color=2563eb&bold=true`;
-                }}
-              />
-            ) : (
-              <div style={{
-                width: 52,
-                height: 52,
-                borderRadius: 14,
-                background: 'rgba(255,255,255,0.15)',
-                backdropFilter: 'blur(8px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                fontSize: '1rem',
-                fontWeight: 800,
-                border: '2px solid rgba(255,255,255,0.8)',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-              }}>
-                {initials}
-              </div>
-            )}
-          </div>
-
-          {/* User Meta Data */}
-          <div style={{ minWidth: 0, flex: 1, position: 'relative', zIndex: 1 }}>
-            <h4 style={{
-              margin: 0,
-              fontSize: '1.2rem',
-              fontWeight: 800,
-              color: '#ffffff',
+          {/* Profile picture or initials avatar */}
+          {u.profilePicture ? (
+            <img
+              src={u.profilePicture}
+              alt={u.userName}
+              style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.9)'}`, boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 1, position: 'relative' }}
+              onError={e => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=6366f1&color=ffffff&bold=true` }}
+            />
+          ) : (
+            <div style={{
+              width: 80, height: 80, borderRadius: '50%',
+              background: badge.bg,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontSize: '1.6rem', fontWeight: 900,
+              border: `3px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.9)'}`,
+              boxShadow: `0 8px 24px ${badge.shadow}`,
               fontFamily: "'Plus Jakarta Sans', sans-serif",
-              letterSpacing: '-0.025em',
-              textShadow: '0 1px 2px rgba(0,0,0,0.2)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }} title={u.userName}>
-              {u.userName}
-            </h4>
-            <p style={{
-              margin: '3px 0 0',
-              fontSize: '0.78rem',
-              color: 'rgba(255,255,255,0.85)',
-              fontWeight: 600,
-              textShadow: '0 1px 1px rgba(0,0,0,0.15)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
+              letterSpacing: '-0.02em',
+              zIndex: 1, position: 'relative',
             }}>
-              {friendlyRole}
-            </p>
-          </div>
-
-          {/* Status Badge */}
-          <span style={{
-            position: 'absolute',
-            top: 20,
-            right: 20,
-            background: 'rgba(255,255,255,0.12)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.25)',
-            color: '#ffffff',
-            padding: '3px 10px',
-            borderRadius: 999,
-            fontSize: '0.68rem',
-            fontWeight: 800,
-            letterSpacing: '0.04em',
-            textTransform: 'uppercase',
-            zIndex: 1
-          }}>
-            {userStatus}
-          </span>
+              {initials}
+            </div>
+          )}
         </div>
 
-        {/* Card Body - Nested Details Container */}
-        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20, flex: 1 }}>
+        {/* ── User Identity Section ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '18px 16px 0' }}>
+          <div style={{ fontSize: '1.18rem', fontWeight: 900, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em', textAlign: 'center', lineHeight: 1.2, marginBottom: 8 }}>
+            {u.userName}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <span style={{
+              background: roleBg.bg, border: `1px solid ${roleBg.border}`,
+              borderRadius: 6, padding: '2px 9px',
+              fontSize: '0.72rem', fontWeight: 800, color: roleBg.color, letterSpacing: '0.03em',
+            }}>
+              {friendlyRole}
+            </span>
+            <span style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '2px 9px', borderRadius: 6,
+              background: badge.shadow.replace('0.45', '0.1'),
+              border: `1px solid ${badge.shadow.replace('0.45', '0.3')}`,
+              fontSize: '0.72rem', fontWeight: 800,
+              color: badge.bg.includes('#10b981') ? '#059669' : badge.bg.includes('#fbbf24') ? '#d97706' : badge.bg.includes('#ef4444') ? '#dc2626' : '#7c3aed',
+            }}>
+              <Activity size={11} style={{ flexShrink: 0 }} />
+              {badge.label}
+            </span>
+          </div>
+        </div>
+
+        {/* ── Info Rows ── */}
+        <div style={{ padding: '14px 20px 0', display: 'flex', flexDirection: 'column', gap: 7 }}>
+
+          {/* Email row */}
           <div style={{
-            background: D.surfaceHi || 'rgba(255,255,255,0.02)',
-            borderRadius: 20,
-            padding: '16px 20px',
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '8px 12px', borderRadius: 12,
+            background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
             border: `1px solid ${D.border}`,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
-              <ShieldCheck size={14} style={{ color: D.blue }} />
-              <span><strong>Access:</strong> {statsToShow[0].value}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
-              <Mail size={14} style={{ color: '#fbbf24' }} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={u.email}>
-                <strong>Email:</strong> {u.email || 'N/A'}
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
-              <Phone size={14} style={{ color: '#10b981' }} />
-              <span><strong>Phone:</strong> {u.phoneNumber || metrics.phone || 'N/A'}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
-              <Users size={14} style={{ color: '#8b5cf6' }} />
-              <span><strong>Gender:</strong> {u.gender || 'N/A'}</span>
-            </div>
-            {u.role === 'DRIVER' ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
-                <ClipboardList size={14} style={{ color: '#ec4899' }} />
-                <span><strong>License:</strong> {u.licenseNumber || metrics.license || 'N/A'}</span>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.text, fontWeight: 600 }}>
-                <IdCard size={14} style={{ color: '#ec4899' }} />
-                <span><strong>NIC:</strong> {u.nic || 'N/A'}</span>
-              </div>
-            )}
+            <Mail size={13} style={{ color: '#f59e0b', flexShrink: 0 }} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Email</span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }} title={u.email}>
+              {u.email || 'N/A'}
+            </span>
           </div>
 
-          {/* Action Buttons Row */}
-          <div style={{ display: 'flex', gap: 10, marginTop: 'auto', width: '100%' }}>
-            {u.accountStatus === 'PENDING' ? (
-              <>
-                <button onClick={(e) => { e.stopPropagation(); handleApprove(u.id, u.userName); }} style={{ flex: 1, padding: '10px 14px', borderRadius: 12, border: 'none', background: D.green, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.green}30` }}
-                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                  <Check size={14} /> Approve
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); handleReject(u.id, u.userName); }} style={{ flex: 1, padding: '10px 14px', borderRadius: 12, border: 'none', background: D.red, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.red}30` }}
-                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                  <X size={14} /> Reject
-                </button>
-              </>
-            ) : (
-              <>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); openProfile(u); }} 
-                  title="Profile" 
-                  className={`user-profile-btn-${userStatus.toLowerCase()}`}
-                  style={{ 
-                    flex: 2,
-                    padding: '10px 14px', 
-                    borderRadius: 12, 
-                    cursor: 'pointer', 
-                    fontWeight: 800, 
-                    fontSize: '0.8rem', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    gap: 6, 
-                    transition: 'all 0.2s', 
-                    fontFamily: 'inherit'
+          {/* Phone row */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '8px 12px', borderRadius: 12,
+            background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
+            border: `1px solid ${D.border}`,
+          }}>
+            <Phone size={13} style={{ color: '#10b981', flexShrink: 0 }} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Phone</span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
+              {u.phoneNumber || metrics.phone || 'N/A'}
+            </span>
+          </div>
+
+          {/* License (Driver) or NIC (Others) row */}
+          {u.role === 'DRIVER' ? (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '8px 12px', borderRadius: 12,
+              background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
+              border: `1px solid ${D.border}`,
+            }}>
+              <ClipboardList size={13} style={{ color: '#ec4899', flexShrink: 0 }} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>License</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
+                {u.licenseNumber || metrics.license || 'N/A'}
+              </span>
+            </div>
+          ) : (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '8px 12px', borderRadius: 12,
+              background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
+              border: `1px solid ${D.border}`,
+            }}>
+              <IdCard size={13} style={{ color: '#ec4899', flexShrink: 0 }} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>NIC</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
+                {u.nic || 'N/A'}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* ── Action Buttons ── */}
+        <div style={{ padding: '16px 20px 20px', display: 'flex', gap: 10, marginTop: 'auto' }}>
+          {u.accountStatus === 'PENDING' ? (
+            <>
+              <button onClick={e => { e.stopPropagation(); handleApprove(u.id, u.userName) }}
+                style={{ flex: 1, padding: '11px 14px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.22s', fontFamily: 'inherit', boxShadow: '0 4px 14px rgba(16,185,129,0.35)' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(16,185,129,0.5)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(16,185,129,0.35)' }}>
+                <Check size={14} /> Approve
+              </button>
+              <button onClick={e => { e.stopPropagation(); handleReject(u.id, u.userName) }}
+                style={{ flex: 1, padding: '11px 14px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#ef4444,#b91c1c)', color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.22s', fontFamily: 'inherit', boxShadow: '0 4px 14px rgba(239,68,68,0.35)' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(239,68,68,0.5)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(239,68,68,0.35)' }}>
+                <X size={14} /> Reject
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Profile — outline style */}
+              <button
+                onClick={e => { e.stopPropagation(); openProfile(u) }}
+                title="View Profile"
+                style={{
+                  flex: 1, padding: '11px 14px', borderRadius: 14,
+                  border: `2px solid ${isDark ? 'rgba(99,102,241,0.45)' : 'rgba(99,102,241,0.35)'}`,
+                  background: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)',
+                  color: isDark ? '#818cf8' : '#4f46e5',
+                  cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  transition: 'all 0.22s', fontFamily: 'inherit', letterSpacing: '0.01em',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = isDark ? 'rgba(99,102,241,0.18)' : 'rgba(99,102,241,0.13)'
+                  e.currentTarget.style.borderColor = '#818cf8'
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.25)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)'
+                  e.currentTarget.style.borderColor = isDark ? 'rgba(99,102,241,0.45)' : 'rgba(99,102,241,0.35)'
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+              >
+                <Eye size={14} /> Profile
+              </button>
+
+              {/* Edit — solid filled (hide for non-editable admins) */}
+              {(!isController || u.role !== 'ADMIN') && (
+                <button
+                  onClick={e => { e.stopPropagation(); handleEdit(u) }}
+                  title="Edit User"
+                  style={{
+                    flex: 1, padding: '11px 14px', borderRadius: 14, border: 'none',
+                    background: isDark ? 'linear-gradient(135deg,#3730a3,#1e1b4b)' : 'linear-gradient(135deg,#312e81,#1e1b4b)',
+                    color: '#e0e7ff',
+                    cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    transition: 'all 0.22s', fontFamily: 'inherit', letterSpacing: '0.01em',
+                    boxShadow: '0 4px 14px rgba(49,46,129,0.35)',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = 'linear-gradient(135deg,#4338ca,#312e81)'
+                    e.currentTarget.style.transform = 'translateY(-1px)'
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(67,56,202,0.45)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = isDark ? 'linear-gradient(135deg,#3730a3,#1e1b4b)' : 'linear-gradient(135deg,#312e81,#1e1b4b)'
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = '0 4px 14px rgba(49,46,129,0.35)'
                   }}
                 >
-                  <Eye size={14} /> Profile
+                  <Edit2 size={14} /> Edit
                 </button>
-                {(!isController || u.role !== 'ADMIN') && (
-                  <>
-                    <button onClick={(e) => { e.stopPropagation(); handleEdit(u); }} style={{ flex: 1, padding: '10px 14px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37, 99, 235, 0.15)'; e.currentTarget.style.borderColor = D.purple; e.currentTarget.style.color = '#60a5fa' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.text }}>
-                      Edit
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); setUserToDelete(u); }} style={{ width: 40, height: 40, borderRadius: 12, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.1)', color: D.red, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 800, transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = D.red }}
-                      title="Delete User"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </>
-                )}
-              </>
-            )}
-          </div>
+              )}
+
+              {/* Delete icon button */}
+              {(!isController || u.role !== 'ADMIN') && (
+                <button
+                  onClick={e => { e.stopPropagation(); setUserToDelete(u) }}
+                  title="Delete User"
+                  style={{
+                    width: 44, height: 44, borderRadius: 14, flexShrink: 0,
+                    border: '1px solid rgba(248,113,113,0.3)',
+                    background: 'rgba(248,113,113,0.08)',
+                    color: D.red, cursor: 'pointer', fontWeight: 800,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.22s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.08)'; e.currentTarget.style.color = D.red; e.currentTarget.style.transform = 'translateY(0)' }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </>
+          )}
         </div>
       </div>
     )

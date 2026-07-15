@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
@@ -376,13 +376,135 @@ const mapNotificationToActivity = (n) => {
     timestamp: new Date(n.createdAt)
   }
 }
-const FleetFuelChart = ({ isDark, chartData }) => {
+const FleetFuelChart = ({ isDark, logs }) => {
   const [hover, setHover] = useState(null) // { i, type: 'diesel' | 'superDiesel' | 'petrol' | 'superPetrol' | 'month' }
   const svgRef = useRef(null)
 
-  const pts0 = Array.isArray(chartData) ? chartData : []
-  const hasData = pts0.length > 0
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth()
 
+  const [selectedYear, setSelectedYear] = useState(currentYear)
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth)
+
+  // Extract unique years from logs, ensuring the current year is always an option
+  const years = useMemo(() => {
+    const yrs = new Set()
+    yrs.add(currentYear)
+    ;(logs || []).forEach(l => {
+      if (l.date) {
+        const y = new Date(l.date).getFullYear()
+        if (y) yrs.add(y)
+      }
+    })
+    return Array.from(yrs).sort((a, b) => b - a)
+  }, [logs, currentYear])
+
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const toList = map => Object.entries(map).map(([reg, liters]) => ({ reg, liters })).sort((a, b) => b.liters - a.liters)
+
+  const pts0 = []
+  
+  if (selectedMonth === 'all') {
+    const isCurrentYear = selectedYear === currentYear
+    const maxMonth = isCurrentYear ? currentMonth : 11
+
+    const agg = Array.from({ length: 12 }, () => ({
+      diesel: 0,
+      superDiesel: 0,
+      petrol: 0,
+      superPetrol: 0,
+      dieselMap: {},
+      superDieselMap: {},
+      petrolMap: {},
+      superPetrolMap: {}
+    }))
+
+    ;(logs || []).forEach(l => {
+      const d = new Date(l.date)
+      if (d.getFullYear() !== selectedYear) return
+      const m = d.getMonth()
+      let ft = (l.fuelType || '').toLowerCase().replace('_', ' ')
+      if (ft === 'petrol' || ft.includes('92')) ft = 'petrol';
+      else if (ft === 'super petrol' || ft.includes('95')) ft = 'super petrol';
+      else if (ft === 'diesel' || ft.includes('auto')) ft = 'diesel';
+      else if (ft.includes('super diesel')) ft = 'super diesel';
+
+      const liters = Number(l.liters) || 0
+      const reg = l.vehicleRegNumber || 'Unknown'
+      if (ft === 'diesel') { agg[m].diesel += liters; agg[m].dieselMap[reg] = (agg[m].dieselMap[reg] || 0) + liters }
+      else if (ft === 'super diesel') { agg[m].superDiesel += liters; agg[m].superDieselMap[reg] = (agg[m].superDieselMap[reg] || 0) + liters }
+      else if (ft === 'petrol') { agg[m].petrol += liters; agg[m].petrolMap[reg] = (agg[m].petrolMap[reg] || 0) + liters }
+      else if (ft === 'super petrol') { agg[m].superPetrol += liters; agg[m].superPetrolMap[reg] = (agg[m].superPetrolMap[reg] || 0) + liters }
+    })
+
+    for (let m = 0; m <= maxMonth; m++) {
+      pts0.push({
+        label: monthNames[m],
+        fullDateLabel: `${monthNames[m]} ${selectedYear}`,
+        diesel: agg[m].diesel,
+        superDiesel: agg[m].superDiesel,
+        petrol: agg[m].petrol,
+        superPetrol: agg[m].superPetrol,
+        dieselVehicles: toList(agg[m].dieselMap),
+        superDieselVehicles: toList(agg[m].superDieselMap),
+        petrolVehicles: toList(agg[m].petrolMap),
+        superPetrolVehicles: toList(agg[m].superPetrolMap)
+      })
+    }
+  } else {
+    // Specific month selected -> daily view
+    const numDays = new Date(selectedYear, selectedMonth + 1, 0).getDate()
+    const aggDays = Array.from({ length: numDays }, () => ({
+      diesel: 0,
+      superDiesel: 0,
+      petrol: 0,
+      superPetrol: 0,
+      dieselMap: {},
+      superDieselMap: {},
+      petrolMap: {},
+      superPetrolMap: {}
+    }))
+
+    ;(logs || []).forEach(l => {
+      const d = new Date(l.date)
+      if (d.getFullYear() !== selectedYear || d.getMonth() !== selectedMonth) return
+      const dateNum = d.getDate()
+      const idx = dateNum - 1
+      if (idx < 0 || idx >= numDays) return
+
+      let ft = (l.fuelType || '').toLowerCase().replace('_', ' ')
+      if (ft === 'petrol' || ft.includes('92')) ft = 'petrol';
+      else if (ft === 'super petrol' || ft.includes('95')) ft = 'super petrol';
+      else if (ft === 'diesel' || ft.includes('auto')) ft = 'diesel';
+      else if (ft.includes('super diesel')) ft = 'super diesel';
+
+      const liters = Number(l.liters) || 0
+      const reg = l.vehicleRegNumber || 'Unknown'
+      if (ft === 'diesel') { aggDays[idx].diesel += liters; aggDays[idx].dieselMap[reg] = (aggDays[idx].dieselMap[reg] || 0) + liters }
+      else if (ft === 'super diesel') { aggDays[idx].superDiesel += liters; aggDays[idx].superDieselMap[reg] = (aggDays[idx].superDieselMap[reg] || 0) + liters }
+      else if (ft === 'petrol') { aggDays[idx].petrol += liters; aggDays[idx].petrolMap[reg] = (aggDays[idx].petrolMap[reg] || 0) + liters }
+      else if (ft === 'super petrol') { aggDays[idx].superPetrol += liters; aggDays[idx].superPetrolMap[reg] = (aggDays[idx].superPetrolMap[reg] || 0) + liters }
+    })
+
+    for (let d = 0; d < numDays; d++) {
+      const dayNum = d + 1
+      pts0.push({
+        label: `${dayNum}`,
+        fullDateLabel: `${monthNames[selectedMonth]} ${dayNum}, ${selectedYear}`,
+        diesel: aggDays[d].diesel,
+        superDiesel: aggDays[d].superDiesel,
+        petrol: aggDays[d].petrol,
+        superPetrol: aggDays[d].superPetrol,
+        dieselVehicles: toList(aggDays[d].dieselMap),
+        superDieselVehicles: toList(aggDays[d].superDieselMap),
+        petrolVehicles: toList(aggDays[d].petrolMap),
+        superPetrolVehicles: toList(aggDays[d].superPetrolMap)
+      })
+    }
+  }
+
+  const hasData = pts0.length > 0
   const dieselC = '#f59e0b', superDieselC = '#7c3aed', petrolC = '#3b82f6', superPetrolC = '#ea580c'
   const W = 720, H = 160, padL = 46, padR = 16, padT = 16, padB = 36
   const chartW = W - padL - padR, chartH = H - padT - padB
@@ -427,9 +549,78 @@ const FleetFuelChart = ({ isDark, chartData }) => {
         e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)'
       }}
     >
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fleet Fuel Consumption</div>
-        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Monthly fuel volume by type (Auto Diesel / Super Diesel / Petrol 92 Octane / Petrol 95 Octane) — hover a point for details</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Fleet Fuel Consumption</div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>
+            {selectedMonth === 'all' ? 'Monthly' : 'Daily'} fuel volume by type (Auto Diesel / Super Diesel / Petrol 92 / Petrol 95) — hover for details
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Month Select */}
+          <div style={{ position: 'relative' }}>
+            <select
+              value={selectedMonth}
+              onChange={(e) => {
+                const val = e.target.value
+                setSelectedMonth(val === 'all' ? 'all' : Number(val))
+              }}
+              style={{
+                padding: '6px 28px 6px 12px',
+                borderRadius: '10px',
+                border: '1px solid var(--surface-border)',
+                background: 'var(--surface-hi)',
+                color: 'var(--text-primary)',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                outline: 'none',
+                cursor: 'pointer',
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='${encodeURIComponent(isDark ? '#94a3b8' : '#64748b')}' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 8px center',
+                backgroundSize: '12px',
+                fontFamily: 'inherit',
+                transition: 'border-color 0.2s',
+              }}
+            >
+              <option value="all">All Months</option>
+              {monthNames.map((name, idx) => (
+                <option key={idx} value={idx}>{name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Year Select */}
+          <div style={{ position: 'relative' }}>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              style={{
+                padding: '6px 28px 6px 12px',
+                borderRadius: '10px',
+                border: '1px solid var(--surface-border)',
+                background: 'var(--surface-hi)',
+                color: 'var(--text-primary)',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                outline: 'none',
+                cursor: 'pointer',
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='${encodeURIComponent(isDark ? '#94a3b8' : '#64748b')}' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 8px center',
+                backgroundSize: '12px',
+                fontFamily: 'inherit',
+                transition: 'border-color 0.2s',
+              }}
+            >
+              {years.map((yr) => (
+                <option key={yr} value={yr}>{yr}</option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
       {hasData ? (
         <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
@@ -444,7 +635,15 @@ const FleetFuelChart = ({ isDark, chartData }) => {
               </g>
             )
           })}
-          {pts0.map((p, i) => (<text key={i} x={X(i)} y={H - 6} fontSize="9" fill={axisText} textAnchor="middle" fontWeight="600">{p.label}</text>))}
+          {pts0.map((p, i) => {
+            const showLabel = pts0.length <= 12 || (i + 1) === 1 || (i + 1) % 5 === 0 || (i + 1) === pts0.length
+            if (!showLabel) return null
+            return (
+              <text key={i} x={X(i)} y={H - 6} fontSize="9" fill={axisText} textAnchor="middle" fontWeight="600">
+                {p.label}
+              </text>
+            )
+          })}
           {pts0.map((p, i) => {
             const colW = pts0.length > 1 ? chartW / (pts0.length - 1) : chartW
             return <rect key={`mh${i}`} x={X(i) - colW / 2} y={padT + chartH} width={colW} height={padB} fill="transparent" style={{ cursor: 'pointer' }} onMouseEnter={() => setHover({ i, type: 'month' })} />
@@ -478,7 +677,7 @@ const FleetFuelChart = ({ isDark, chartData }) => {
                 <g style={{ pointerEvents: 'none' }}>
                   <line x1={hx} y1={padT} x2={hx} y2={padT + chartH} stroke={axisText} strokeDasharray="3 3" opacity="0.5" />
                   <rect x={bx} y={by} width={bw} height={bh} rx="8" fill={isDark ? '#0e1529' : '#ffffff'} stroke="var(--surface-border)" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.45))' }} />
-                  <text x={bx + 12} y={by + 16} fontSize="10" fontWeight="800" fill="var(--text-primary)">{p.label}</text>
+                  <text x={bx + 12} y={by + 16} fontSize="10" fontWeight="800" fill="var(--text-primary)">{p.fullDateLabel || p.label}</text>
                   <text x={bx + 12} y={by + 32} fontSize="9" fill={dieselC} fontWeight="700">Auto Diesel: {Math.round(p.diesel).toLocaleString()} L</text>
                   <text x={bx + 12} y={by + 46} fontSize="9" fill={superDieselC} fontWeight="700">Super Diesel: {Math.round(p.superDiesel).toLocaleString()} L</text>
                   <text x={bx + 12} y={by + 60} fontSize="9" fill={petrolC} fontWeight="700">Petrol 92 Octane: {Math.round(p.petrol).toLocaleString()} L</text>
@@ -515,7 +714,7 @@ const FleetFuelChart = ({ isDark, chartData }) => {
               <g style={{ pointerEvents: 'none' }}>
                 <line x1={hx} y1={padT} x2={hx} y2={padT + chartH} stroke={color} strokeDasharray="3 3" opacity="0.5" />
                 <rect x={bx} y={by} width={bw} height={bh} rx="8" fill={isDark ? '#0e1529' : '#ffffff'} stroke="var(--surface-border)" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.45))' }} />
-                <text x={cx2} y={by + 16} fontSize="9" fontWeight="800" fill={color} textAnchor="middle">{p.label} · {fuelName}</text>
+                <text x={cx2} y={by + 16} fontSize="9" fontWeight="800" fill={color} textAnchor="middle">{p.fullDateLabel || p.label} · {fuelName}</text>
                 {list.length === 0
                   ? <text x={cx2} y={by + headH} fontSize="7.5" fill={axisText} textAnchor="middle">No records found</text>
                   : shown.map((v, k) => (
@@ -1094,7 +1293,7 @@ const DailyMileageModal = ({ open, onClose }) => {
   )
 }
 
-const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, activities, services, pendingFuelCount, pendingServiceCount }) => {
+const ControllerDashboard = ({ navigate, isDark, chartData, fuelLogs = [], statusData, stats, activities, services, pendingFuelCount, pendingServiceCount }) => {
   const [mileageOpen, setMileageOpen] = useState(false)
   return (
     <>
@@ -1104,7 +1303,7 @@ const ControllerDashboard = ({ navigate, isDark, chartData, statusData, stats, a
       <div className="dashboard-columns-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start', marginBottom: 36 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
-            <FleetFuelChart isDark={isDark} chartData={chartData} />
+            <FleetFuelChart isDark={isDark} logs={fuelLogs} />
             <MaintenanceCostDonutChart isDark={isDark} services={services} />
           </div>
           <RecentActivitySection activities={activities} navigate={navigate} />
@@ -1624,6 +1823,7 @@ const DashboardPage = () => {
   const [monthlyCostData, setMonthlyCostData] = useState([])
   const [controllerStats, setControllerStats] = useState({ total: 0, active: 0, maintenance: 0, available: 0 })
   const [fleetChartData, setFleetChartData] = useState([])
+  const [rawFuelLogs, setRawFuelLogs] = useState([])
   const [statusData, setStatusData] = useState([])
   const [alerts, setAlerts] = useState([])
   const [activities, setActivities] = useState([])
@@ -1759,6 +1959,7 @@ const DashboardPage = () => {
             const logsRes = await fuelAPI.getAllFuelLogs()
             const allLogs = logsRes.data.data || []
             const logs = allLogs.filter(l => !l.isDeleted && !l.deleted)
+            setRawFuelLogs(logs)
             const pendingFuel = allLogs.filter(l => l.status === 'PENDING').length
             setPendingFuelCount(pendingFuel)
             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -1919,6 +2120,7 @@ const DashboardPage = () => {
               navigate={navigate}
               isDark={isDark}
               chartData={fleetChartData}
+              fuelLogs={rawFuelLogs}
               statusData={statusData}
               stats={controllerStats}
               activities={activities}

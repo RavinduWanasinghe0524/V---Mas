@@ -130,7 +130,7 @@ const VehiclesPage = () => {
   const [fuelStats, setFuelStats] = useState([])
   const [intervals, setIntervals] = useState([])
 
-  // ── Driver-specific lookup vehicle states ───────────────────────
+  // â”€â”€ Driver-specific lookup vehicle states â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [selectedDriverVehicle, setSelectedDriverVehicle] = useState(null)
   const [driverVehicleSearch, setDriverVehicleSearch] = useState('')
   const [driverVehicleDropdownVisible, setDriverVehicleDropdownVisible] = useState(false)
@@ -1013,7 +1013,7 @@ const VehiclesPage = () => {
     INACTIVE: targetVehicles.filter(v => v.status === 'INACTIVE').length,
   }
 
-  // ── Compute service due alerts per vehicle ──
+  // â”€â”€ Compute service due alerts per vehicle â”€â”€
   const alertVehicles = []
   const vehicleAlerts = {}
   targetVehicles.forEach(v => {
@@ -1235,358 +1235,128 @@ const VehiclesPage = () => {
   }
 
   const renderVehicleCard = (v, i) => {
-    const s = statusColors[v.status] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
     const alertInfo = vehicleAlerts[v.registrationNo]
     const ac = alertInfo ? (ALERT_COLORS[alertInfo.level] || ALERT_COLORS.OK) : null
-
-    // Expiry checks
     const today = new Date()
     const insExpiry = v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate) : null
     const licExpiry = v.licenseExpiryDate ? new Date(v.licenseExpiryDate) : null
-
     const insDiff = insExpiry ? Math.ceil((insExpiry - today) / (1000 * 60 * 60 * 24)) : null
     const licDiff = licExpiry ? Math.ceil((licExpiry - today) / (1000 * 60 * 60 * 24)) : null
-
     const isInsAlert = insDiff !== null && insDiff <= 30
     const isLicAlert = licDiff !== null && licDiff <= 30
-
     const isInsExpired = insDiff !== null && insDiff < 0
     const isLicExpired = licDiff !== null && licDiff < 0
-
-    const initials = v.manufacturer
-      ? (v.manufacturer.includes(' ')
-        ? v.manufacturer.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
-        : v.manufacturer.substring(0, 2).toUpperCase())
-      : 'V'
-
-    const cardAlertClass = (isInsExpired || isLicExpired)
-      ? 'pulse-warning-red'
-      : (isInsAlert || isLicAlert)
-        ? 'pulse-warning-orange'
-        : ''
-
-    const defaultBorderColor = (isInsExpired || isLicExpired)
-      ? 'rgba(239, 68, 68, 0.5)'
-      : (isInsAlert || isLicAlert)
-        ? 'rgba(245, 158, 11, 0.5)'
-        : D.border
-
-    // Define the dynamic gradient based on status for the premium header
-    const statusGradients = {
-      ACTIVE: {
-        bg: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-        glow: 'rgba(16, 185, 129, 0.35)',
-      },
-      AVAILABLE: {
-        bg: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-        glow: 'rgba(59, 130, 246, 0.35)',
-      },
-      SERVICE: {
-        bg: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-        glow: 'rgba(245, 158, 11, 0.35)',
-      },
-      INACTIVE: {
-        bg: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-        glow: 'rgba(239, 68, 68, 0.35)',
-      }
+    const hasServiceAlert = ac && ac.level !== 'OK'
+    const statusBadge = {
+      ACTIVE:    { label: 'Active',     bg: 'linear-gradient(135deg,#10b981,#059669)', shadow: 'rgba(16,185,129,0.45)' },
+      AVAILABLE: { label: 'Available',  bg: 'linear-gradient(135deg,#3b82f6,#2563eb)', shadow: 'rgba(59,130,246,0.45)' },
+      SERVICE:   { label: 'In Service', bg: 'linear-gradient(135deg,#f59e0b,#d97706)', shadow: 'rgba(245,158,11,0.45)' },
+      INACTIVE:  { label: 'Inactive',   bg: 'linear-gradient(135deg,#ef4444,#b91c1c)', shadow: 'rgba(239,68,68,0.45)' },
     }
-    const activeGradient = statusGradients[v.status] || {
-      bg: `linear-gradient(135deg, ${D.purple} 0%, ${D.indigo} 100%)`,
-      glow: 'rgba(124, 58, 237, 0.35)'
-    }
-
+    const badge = statusBadge[v.status] || { label: v.status || 'Unknown', bg: `linear-gradient(135deg,${D.purple},${D.indigo})`, shadow: 'rgba(124,58,237,0.45)' }
+    const cardBorderColor = (isInsExpired || isLicExpired) ? 'rgba(239,68,68,0.45)' : (isInsAlert || isLicAlert) ? 'rgba(245,158,11,0.4)' : D.border
+    const hoverGlow = { ACTIVE: 'rgba(16,185,129,0.22)', AVAILABLE: 'rgba(59,130,246,0.22)', SERVICE: 'rgba(245,158,11,0.22)', INACTIVE: 'rgba(239,68,68,0.18)' }[v.status] || 'rgba(99,102,241,0.2)'
     return (
-      <div key={v.id}
-        className={cardAlertClass}
-        style={{
-          background: D.surface, border: `1px solid ${defaultBorderColor}`, borderRadius: 24, display: 'flex', flexDirection: 'column', gap: 0,
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-          cursor: 'default', overflow: 'hidden'
-        }}
-        onMouseEnter={e => { 
-          e.currentTarget.style.borderColor = D.purple + '80'; 
-          e.currentTarget.style.transform = 'translateY(-6px)'; 
-          e.currentTarget.style.boxShadow = `0 16px 36px ${activeGradient.glow}, 0 4px 15px rgba(0,0,0,0.15)`;
-        }}
-        onMouseLeave={e => { 
-          e.currentTarget.style.borderColor = defaultBorderColor; 
-          e.currentTarget.style.transform = 'translateY(0)'; 
-          e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)';
+      <div key={v.id} style={{ background: D.surface, border: `1px solid ${cardBorderColor}`, borderRadius: 24, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.35)' : '0 4px 24px rgba(0,0,0,0.1)', transition: 'all 0.32s cubic-bezier(0.4,0,0.2,1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, cursor: 'default', position: 'relative' }}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-8px)'; e.currentTarget.style.boxShadow = `0 20px 48px ${hoverGlow}, 0 6px 20px rgba(0,0,0,0.15)`; e.currentTarget.style.borderColor = (isInsExpired || isLicExpired) ? 'rgba(239,68,68,0.6)' : (isInsAlert || isLicAlert) ? 'rgba(245,158,11,0.55)' : 'rgba(99,102,241,0.4)' }}
+        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isDark ? '0 4px 24px rgba(0,0,0,0.35)' : '0 4px 24px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = cardBorderColor }}
+      >
+        {/* ── Image / Hero Area (Full Area, Edge-to-Edge) ── */}
+        <div style={{
+          position: 'relative',
+          width: '100%',
+          height: 180,
+          background: isDark
+            ? 'linear-gradient(160deg,rgba(30,41,59,0.95) 0%,rgba(15,23,42,0.9) 100%)'
+            : 'linear-gradient(160deg,#f8faff 0%,#eef2ff 100%)',
+          borderBottom: `1px solid ${D.border}`,
+          overflow: 'hidden'
         }}>
-
-        {/* Premium Header row with status gradient */}
-        <div style={{ 
-          background: activeGradient.bg, 
-          padding: '18px 20px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between', 
-          gap: 12,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }}>
-            {/* Avatar */}
-            <div style={{ flexShrink: 0 }}>
-              {v.vehicleImage ? (
-                <img src={v.vehicleImage} alt={v.registrationNo} style={{ width: 54, height: 54, borderRadius: 14, objectFit: 'cover', border: '2px solid rgba(255, 255, 255, 0.8)', boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }} />
-              ) : (
-                <div style={{ width: 54, height: 54, borderRadius: 14, background: 'linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.1rem', fontWeight: 800, border: '2px solid rgba(255, 255, 255, 0.8)', boxShadow: '0 4px 10px rgba(0,0,0,0.15)', backdropFilter: 'blur(4px)' }}>
-                  {initials}
-                </div>
-              )}
+          {(isInsExpired || isLicExpired) && (
+            <div style={{ position: 'absolute', top: 14, right: 14, background: 'rgba(239,68,68,0.85)', borderRadius: 8, padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.65rem', fontWeight: 800, color: '#fff', zIndex: 2, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
+              <AlertCircle size={11} /> Expired
             </div>
-            {/* Name and Subtitle */}
-            <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <div
-                style={{
-                  fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', letterSpacing: '0.02em',
-                  display: 'flex', alignItems: 'center', gap: 6, textShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
-                }}
-              >
-                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.registrationNo ?? 'N/A'}</span>
-                {(isInsExpired || isLicExpired) ? (
-                  <AlertCircle size={15} style={{ color: '#fee2e2', flexShrink: 0 }} title={isInsExpired ? "Insurance Expired" : "License Expired"} />
-                ) : (isInsAlert || isLicAlert) ? (
-                  <AlertTriangle size={15} style={{ color: '#fef3c7', flexShrink: 0 }} title={isInsAlert ? "Insurance Expiring Soon" : "License Expiring Soon"} />
-                ) : null}
-              </div>
-              <p style={{ 
-                margin: '2px 0 0', fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.85)', fontWeight: 600, letterSpacing: '0.01em',
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
-              }}>
-                {v.manufacturer ?? 'N/A'} {v.model ?? ''} • {v.vehicleType ? (v.vehicleType.charAt(0) + v.vehicleType.slice(1).toLowerCase()) : 'N/A'}
-              </p>
+          )}
+          {!isInsExpired && !isLicExpired && (isInsAlert || isLicAlert) && (
+            <div style={{ position: 'absolute', top: 14, right: 14, background: 'rgba(245,158,11,0.85)', borderRadius: 8, padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.65rem', fontWeight: 800, color: '#fff', zIndex: 2, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
+              <AlertTriangle size={11} /> Expiring
             </div>
-          </div>
-
-          {/* Status Badge */}
-          <div style={{
-            padding: '5px 12px', borderRadius: 99, fontSize: '0.7rem', fontWeight: 800,
-            background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff', border: '1px solid rgba(255, 255, 255, 0.35)',
-            textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0,
-            backdropFilter: 'blur(4px)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-          }}>
-            {v.status ?? 'N/A'}
-          </div>
+          )}
+          {v.vehicleImage ? (
+            <img src={v.vehicleImage} alt={v.registrationNo} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Car size={52} style={{ color: isDark ? 'rgba(148,163,184,0.5)' : 'rgba(99,102,241,0.35)' }} />
+            </div>
+          )}
         </div>
 
-        {/* Card Body - Nested Details Container */}
-        <div style={{ padding: '20px 20px 10px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{
-            background: D.surfaceHi,
-            border: `1px solid ${D.border}`,
-            borderRadius: 20,
-            padding: 16,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 16,
-            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
-          }}>
-            {/* Details section */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '2px 4px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
-                <Car size={14} style={{ color: solidBlue, flexShrink: 0, opacity: 0.8 }} />
-                <span>
-                  <strong style={{ color: D.text, fontWeight: 600 }}>Type:</strong> {v.vehicleType ? (v.vehicleType.charAt(0) + v.vehicleType.slice(1).toLowerCase()) : 'N/A'}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: D.textSub, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`Chassis: ${v.chassisNumber || 'N/A'}`}>
-                <FileText size={14} style={{ color: D.purple, flexShrink: 0, opacity: 0.8 }} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  <strong style={{ color: D.text, fontWeight: 600 }}>Chassis:</strong> {v.chassisNumber || 'N/A'}
-                </span>
-              </div>
-
-              <div 
-                onClick={(e) => {
-                  if (!isController) return;
-                  e.stopPropagation();
-                  openOdometerModal(e, v);
-                }}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 10, 
-                  fontSize: '0.8rem', 
-                  color: D.textSub, 
-                  fontWeight: 600,
-                  cursor: isController ? 'pointer' : 'default',
-                  transition: 'opacity 0.2s'
-                }}
-                onMouseEnter={e => { if (isController) e.currentTarget.style.opacity = 0.8; }}
-                onMouseLeave={e => { if (isController) e.currentTarget.style.opacity = 1; }}
-              >
-                <Gauge size={14} style={{ color: '#a855f7', flexShrink: 0, opacity: 0.8 }} />
-                <span>
-                  <strong style={{ color: D.text, fontWeight: 600 }}>Mileage:</strong> {v.currentMileageKm ? `${v.currentMileageKm.toLocaleString()} Km` : '0 Km'}
-                  {isController && <Edit2 size={12} style={{ color: '#a855f7', opacity: 0.5, marginLeft: 6, display: 'inline-block', verticalAlign: 'middle' }} />}
-                </span>
-              </div>
-
-              <div 
-                onClick={(e) => {
-                  if (!isController) return;
-                  e.stopPropagation();
-                  openFuelModal(e, v);
-                }}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 10, 
-                  fontSize: '0.8rem', 
-                  color: D.textSub, 
-                  fontWeight: 600,
-                  cursor: isController ? 'pointer' : 'default',
-                  transition: 'opacity 0.2s'
-                }}
-                onMouseEnter={e => { if (isController) e.currentTarget.style.opacity = 0.8; }}
-                onMouseLeave={e => { if (isController) e.currentTarget.style.opacity = 1; }}
-              >
-                <Fuel size={14} style={{ color: '#f59e0b', flexShrink: 0, opacity: 0.8 }} />
-                <span>
-                  <strong style={{ color: D.text, fontWeight: 600 }}>Fuel:</strong> {formatFuelType(v.fuelType)}
-                  {isController && <Edit2 size={12} style={{ color: '#f59e0b', opacity: 0.5, marginLeft: 6, display: 'inline-block', verticalAlign: 'middle' }} />}
-                </span>
-              </div>
-
-              <div 
-                onClick={(e) => { e.stopPropagation(); openProfile(v, 'services'); }}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 10, 
-                  fontSize: '0.8rem', 
-                  color: ac ? ac.color : D.textSub, 
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'opacity 0.2s'
-                }}
-                onMouseEnter={e => { e.currentTarget.style.opacity = 0.8; }}
-                onMouseLeave={e => { e.currentTarget.style.opacity = 1; }}
-              >
-                <Wrench size={14} style={{ color: ac ? ac.color : '#10b981', flexShrink: 0, opacity: 0.8 }} />
-                <span>
-                  <strong style={{ color: ac ? ac.color : D.text, fontWeight: 600 }}>Service:</strong> {ac ? ac.label : 'OK'}
-                  <ArrowUpRight size={12} style={{ color: ac ? ac.color : '#10b981', opacity: 0.5, marginLeft: 6, display: 'inline-block', verticalAlign: 'middle' }} />
-                </span>
-              </div>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: isInsExpired ? D.red : isInsAlert ? D.orange : D.textSub, fontWeight: 600 }}>
-                <Calendar size={14} style={{ flexShrink: 0, color: isInsExpired ? D.red : isInsAlert ? D.orange : D.green }} />
-                <span>
-                  <strong style={{ color: isInsExpired ? D.red : isInsAlert ? D.orange : D.text, fontWeight: 600 }}>Insurance:</strong> {v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate).toLocaleDateString() : 'N/A'}
-                  {isInsExpired ? ' (Expired)' : isInsAlert ? ` (${insDiff}d left)` : ''}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: isLicExpired ? D.red : isLicAlert ? D.orange : D.textSub, fontWeight: 600 }}>
-                <Clock size={14} style={{ flexShrink: 0, color: isLicExpired ? D.red : isLicAlert ? D.orange : solidBlue }} />
-                <span>
-                  <strong style={{ color: isLicExpired ? D.red : isLicAlert ? D.orange : D.text, fontWeight: 600 }}>License:</strong> {v.licenseExpiryDate ? new Date(v.licenseExpiryDate).toLocaleDateString() : 'N/A'}
-                  {isLicExpired ? ' (Expired)' : isLicAlert ? ` (${licDiff}d left)` : ''}
-                </span>
-              </div>
-            </div>
-
-            {/* Driver chip — shown for admins & controllers */}
-            {!isDriver && v.driverUsername && (
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 8, 
-                fontSize: '0.78rem', 
-                color: D.green, 
-                fontWeight: 700,
-                background: D.greenDim,
-                border: `1px solid ${D.green}20`,
-                padding: '6px 12px',
-                borderRadius: 12,
-                marginTop: 4
-              }}>
-                <UserCheck size={14} style={{ flexShrink: 0, color: D.green }} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                  Driver: <strong style={{ color: D.text }}>{v.driverUsername}</strong>
-                </span>
-                <span style={{ fontSize: '0.6rem', padding: '2px 6px', borderRadius: 6, background: D.green, color: '#fff', fontWeight: 800, flexShrink: 0 }}>ASSIGNED</span>
-              </div>
-            )}
+        {/* ── Vehicle Identity Section (below image) ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 16px 0' }}>
+          <div style={{ fontSize: '1.18rem', fontWeight: 900, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em', textAlign: 'center', lineHeight: 1.2, marginBottom: 6 }}>
+            {v.manufacturer ?? ''} {v.model ?? ''}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
+            <span style={{ background: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)', border: `1px solid ${isDark ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.2)'}`, borderRadius: 6, padding: '1px 8px', fontSize: '0.72rem', fontWeight: 800, color: isDark ? '#818cf8' : '#4f46e5', letterSpacing: '0.04em' }}>
+              {v.registrationNo ?? 'N/A'}
+            </span>
+            {v.year && (<><span style={{ color: D.border }}>·</span><span>{v.year}</span></>)}
           </div>
         </div>
-
-        {/* Action Buttons Row */}
-        <div style={{ 
-          padding: '10px 20px 20px 20px', 
-          display: 'flex', 
-          gap: 10, 
-          justifyContent: 'flex-end', 
-          width: '100%', 
-          marginTop: 'auto'
-        }}>
-          <button 
-            onClick={(e) => { e.stopPropagation(); openProfile(v); }} 
-            title="Profile" 
-            className={`profile-btn-${v.status ? v.status.toLowerCase() : 'available'}`}
-            style={{ 
-              flex: 1,
-              padding: '10px 14px', 
-              borderRadius: 12, 
-              cursor: 'pointer', 
-              fontWeight: 800, 
-              fontSize: '0.8rem', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              gap: 6, 
-              transition: 'all 0.2s', 
-              fontFamily: 'inherit'
-            }}
-          >
-            <Eye size={14} /> {isDriver ? 'View Details' : 'Profile'}
-          </button>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, padding: '16px 20px 0', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 999, background: isDark ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.08)', border: `1px solid ${isDark ? 'rgba(245,158,11,0.3)' : 'rgba(245,158,11,0.25)'}`, fontSize: '0.72rem', fontWeight: 700, color: '#d97706' }}>
+            <Fuel size={11} />{formatFuelType(v.fuelType) || 'N/A'}
+          </div>
+          <div onClick={e => { if (!isController) return; e.stopPropagation(); openOdometerModal(e, v) }} title={isController ? 'Quick update mileage' : ''} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 999, background: isDark ? 'rgba(124,58,237,0.1)' : 'rgba(124,58,237,0.07)', border: `1px solid ${isDark ? 'rgba(124,58,237,0.3)' : 'rgba(124,58,237,0.2)'}`, fontSize: '0.72rem', fontWeight: 700, color: '#7c3aed', cursor: isController ? 'pointer' : 'default', transition: 'opacity 0.2s' }} onMouseEnter={e => { if (isController) e.currentTarget.style.opacity = '0.75' }} onMouseLeave={e => { if (isController) e.currentTarget.style.opacity = '1' }}>
+            <Gauge size={11} />{v.currentMileageKm ? `${v.currentMileageKm.toLocaleString()} km` : '0 km'}{isController && <Edit2 size={9} style={{ opacity: 0.6 }} />}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 999, background: isDark ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.07)', border: `1px solid ${isDark ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.2)'}`, fontSize: '0.72rem', fontWeight: 700, color: solidBlue }}>
+            <Car size={11} />{v.vehicleType ? (v.vehicleType.charAt(0) + v.vehicleType.slice(1).toLowerCase()) : 'N/A'}
+          </div>
+        </div>
+        <div style={{ padding: '14px 20px 0', display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <div onClick={e => { e.stopPropagation(); openProfile(v, 'services') }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: hasServiceAlert ? (isDark ? `${ac.color}12` : `${ac.color}0d`) : (isDark ? 'rgba(16,185,129,0.07)' : 'rgba(16,185,129,0.05)'), border: `1px solid ${hasServiceAlert ? `${ac.color}35` : 'rgba(16,185,129,0.2)'}`, cursor: 'pointer', transition: 'opacity 0.2s' }} onMouseEnter={e => { e.currentTarget.style.opacity = '0.78' }} onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}>
+            <Wrench size={13} style={{ color: hasServiceAlert ? ac.color : '#10b981', flexShrink: 0 }} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: hasServiceAlert ? ac.color : '#10b981', flex: 1 }}>Service: {hasServiceAlert ? ac.label : 'OK'}</span>
+            <ArrowUpRight size={11} style={{ color: hasServiceAlert ? ac.color : '#10b981', opacity: 0.6 }} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isInsExpired ? (isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.06)') : isInsAlert ? (isDark ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.06)') : (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)'), border: `1px solid ${isInsExpired ? 'rgba(239,68,68,0.3)' : isInsAlert ? 'rgba(245,158,11,0.28)' : D.border}` }}>
+            <Calendar size={13} style={{ color: isInsExpired ? D.red : isInsAlert ? D.orange : D.green, flexShrink: 0 }} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isInsExpired ? D.red : isInsAlert ? D.orange : D.textSub, flex: 1 }}>Insurance</span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isInsExpired ? D.red : isInsAlert ? D.orange : D.text }}>
+              {v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}{isInsExpired ? ' · Expired' : isInsAlert ? ` · ${insDiff}d left` : ''}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isLicExpired ? (isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.06)') : isLicAlert ? (isDark ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.06)') : (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)'), border: `1px solid ${isLicExpired ? 'rgba(239,68,68,0.3)' : isLicAlert ? 'rgba(245,158,11,0.28)' : D.border}` }}>
+            <Clock size={13} style={{ color: isLicExpired ? D.red : isLicAlert ? D.orange : solidBlue, flexShrink: 0 }} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isLicExpired ? D.red : isLicAlert ? D.orange : D.textSub, flex: 1 }}>License</span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isLicExpired ? D.red : isLicAlert ? D.orange : D.text }}>
+              {v.licenseExpiryDate ? new Date(v.licenseExpiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}{isLicExpired ? ' · Expired' : isLicAlert ? ` · ${licDiff}d left` : ''}
+            </span>
+          </div>
+          {!isDriver && v.driverUsername && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isDark ? 'rgba(16,185,129,0.08)' : 'rgba(16,185,129,0.06)', border: `1px solid ${isDark ? 'rgba(16,185,129,0.25)' : 'rgba(16,185,129,0.2)'}` }}>
+              <UserCheck size={13} style={{ color: D.green, flexShrink: 0 }} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Driver: <strong style={{ color: D.text }}>{v.driverUsername}</strong></span>
+              <span style={{ fontSize: '0.6rem', fontWeight: 800, padding: '2px 7px', borderRadius: 6, background: D.green, color: '#fff', flexShrink: 0 }}>ASSIGNED</span>
+            </div>
+          )}
+        </div>
+        <div style={{ padding: '16px 20px 20px', display: 'flex', gap: 10, marginTop: 'auto' }}>
+          <button onClick={e => { e.stopPropagation(); openProfile(v) }} title="View Profile" style={{ flex: 1, padding: '11px 14px', borderRadius: 14, border: `2px solid ${isDark ? 'rgba(99,102,241,0.45)' : 'rgba(99,102,241,0.35)'}`, background: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)', color: isDark ? '#818cf8' : '#4f46e5', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.22s', fontFamily: 'inherit', letterSpacing: '0.01em' }}
+            onMouseEnter={e => { e.currentTarget.style.background = isDark ? 'rgba(99,102,241,0.18)' : 'rgba(99,102,241,0.13)'; e.currentTarget.style.borderColor = '#818cf8'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.25)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)'; e.currentTarget.style.borderColor = isDark ? 'rgba(99,102,241,0.45)' : 'rgba(99,102,241,0.35)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+          ><Eye size={14} />{isDriver ? 'View Details' : 'Profile'}</button>
           {isController && (
-            <button 
-              onClick={(e) => { e.stopPropagation(); openEditModal(v); }} 
-              title="Edit" 
-              style={{ 
-                flex: 1,
-                padding: '10px 14px', 
-                borderRadius: 12, 
-                border: `1px solid ${D.border}`, 
-                background: 'rgba(255,255,255,0.02)', 
-                color: D.text, 
-                cursor: 'pointer', 
-                fontWeight: 800, 
-                fontSize: '0.8rem', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                gap: 6, 
-                transition: 'all 0.2s', 
-                fontFamily: 'inherit' 
-              }}
-              onMouseEnter={e => { 
-                e.currentTarget.style.background = 'rgba(37, 99, 235, 0.15)'; 
-                e.currentTarget.style.borderColor = D.purple; 
-                e.currentTarget.style.color = '#60a5fa';
-                e.currentTarget.style.boxShadow = `0 4px 12px rgba(37, 99, 235, 0.15)`;
-              }}
-              onMouseLeave={e => { 
-                e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; 
-                e.currentTarget.style.borderColor = D.border; 
-                e.currentTarget.style.color = D.text;
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <Edit2 size={14} /> Edit
-            </button>
+            <button onClick={e => { e.stopPropagation(); openEditModal(v) }} title="Edit Vehicle" style={{ flex: 1, padding: '11px 14px', borderRadius: 14, border: 'none', background: isDark ? 'linear-gradient(135deg,#3730a3,#1e1b4b)' : 'linear-gradient(135deg,#312e81,#1e1b4b)', color: '#e0e7ff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.22s', fontFamily: 'inherit', letterSpacing: '0.01em', boxShadow: '0 4px 14px rgba(49,46,129,0.35)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg,#4338ca,#312e81)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(67,56,202,0.45)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = isDark ? 'linear-gradient(135deg,#3730a3,#1e1b4b)' : 'linear-gradient(135deg,#312e81,#1e1b4b)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(49,46,129,0.35)' }}
+            ><Edit2 size={14} />Edit</button>
           )}
         </div>
       </div>
     )
   }
-
   const renderVehicleGroup = (title, items) => {
     if (items.length === 0) return null
 
@@ -1714,7 +1484,7 @@ const VehiclesPage = () => {
           `}</style>
           <div className="page-body">
 
-            {/* Hero Banner — Dynamic design */}
+            {/* Hero Banner â€” Dynamic design */}
             <div style={{
               background: 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
               borderRadius: 28, padding: '40px', marginBottom: 32, position: 'relative', overflow: 'hidden',
@@ -2036,7 +1806,7 @@ const VehiclesPage = () => {
                       <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, pointerEvents: 'none' }} />
                       <input
                         type="text"
-                        placeholder="Search by reg, make or model…"
+                        placeholder="Search by reg, make or modelâ€¦"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         style={{ ...inputStyle, paddingLeft: 38 }}
@@ -2163,7 +1933,7 @@ const VehiclesPage = () => {
           </div>
         </div>
 
-        {/* ── Add Modal ──────────────────────────────────────────────── */}
+        {/* â”€â”€ Add Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {isModalOpen && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={closeModal}>
             <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
@@ -2337,7 +2107,7 @@ const VehiclesPage = () => {
                 </div>
                 {addError && (
                   <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 8, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', color: D.red, fontSize: '0.83rem', fontWeight: 600 }}>
-                    ⚠ {addError}
+                    âš  {addError}
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: 12 }}>
@@ -2353,7 +2123,7 @@ const VehiclesPage = () => {
           </div>
         )}
 
-        {/* ── Edit Modal ─────────────────────────────────────────────── */}
+        {/* â”€â”€ Edit Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {isEditModalOpen && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={closeEditModal}>
             <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
@@ -2679,7 +2449,7 @@ const VehiclesPage = () => {
           </div>
         )}
 
-        {/* ── Document Upload Expiry Confirmation Modal ─────────────── */}
+        {/* â”€â”€ Document Upload Expiry Confirmation Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {pendingUpload && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1400, animation: 'fadeIn 0.25s ease' }}>
             <div style={{ background: D.surface, borderRadius: 28, padding: 32, width: '90%', maxWidth: 440, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
@@ -2734,8 +2504,8 @@ const VehiclesPage = () => {
           </div>
         )}
 
-        {/* ── Delete Modal ───────────────────────────────────────────── */}
-        {/* ── Assign Driver Modal ── */}
+        {/* â”€â”€ Delete Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* â”€â”€ Assign Driver Modal â”€â”€ */}
         {assignDriverModal && selectedProfileVehicle && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, animation: 'fadeIn 0.2s ease' }}
             onClick={() => { setAssignDriverModal(false); setAssignDriverError('') }}>
@@ -2777,10 +2547,10 @@ const VehiclesPage = () => {
                       fontSize: '0.9rem', fontWeight: 600, outline: 'none', cursor: 'pointer',
                       appearance: 'none', fontFamily: 'inherit'
                     }}>
-                    <option value="">— Select a driver —</option>
+                    <option value="">â€” Select a driver â€”</option>
                     {allDrivers.map(d => (
                       <option key={d.id} value={d.userName}>
-                        👤 {d.userName}{d.firstName ? ` (${d.firstName} ${d.lastName || ''})`.trim() : ''}
+                        ðŸ‘¤ {d.userName}{d.firstName ? ` (${d.firstName} ${d.lastName || ''})`.trim() : ''}
                       </option>
                     ))}
                   </select>
@@ -2803,7 +2573,7 @@ const VehiclesPage = () => {
                 </button>
                 <button onClick={handleAssignDriver} disabled={assignDriverBusy}
                   style={{ flex: 2, padding: '12px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#1e40af,#2563eb)', color: '#fff', fontWeight: 800, cursor: assignDriverBusy ? 'not-allowed' : 'pointer', fontSize: '0.88rem', fontFamily: 'inherit', boxShadow: '0 6px 16px rgba(37,99,235,0.35)', opacity: assignDriverBusy ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  <UserCheck size={16} /> {assignDriverBusy ? 'Saving…' : 'Confirm Assignment'}
+                  <UserCheck size={16} /> {assignDriverBusy ? 'Savingâ€¦' : 'Confirm Assignment'}
                 </button>
               </div>
             </div>
@@ -2830,7 +2600,7 @@ const VehiclesPage = () => {
           </div>
         )}
 
-        {/* ── Deleted Vehicles Drawer ─────────────────────────────────── */}
+        {/* â”€â”€ Deleted Vehicles Drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {deletedDrawer && (
           <div
             onClick={() => { setDeletedDrawer(false); setDeletedDetail(null) }}
@@ -2871,7 +2641,7 @@ const VehiclesPage = () => {
                       Deleted Vehicles
                     </h2>
                     <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)' }}>
-                      Soft-deleted vehicles are preserved — not permanently removed
+                      Soft-deleted vehicles are preserved â€” not permanently removed
                     </p>
                   </div>
                 </div>
@@ -2923,7 +2693,7 @@ const VehiclesPage = () => {
                     <p style={{ fontSize: '0.8rem', marginTop: 4 }}>Deleted vehicles will appear here.</p>
                   </div>
                 ) : deletedDetail ? (
-                  /* ── Inner Detail View ───────────────────────────────── */
+                  /* â”€â”€ Inner Detail View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
                   (() => {
                     const v = deletedDetail
                     return (
@@ -2940,7 +2710,7 @@ const VehiclesPage = () => {
                               fontWeight: 600,
                             }}
                           >
-                            ← Back to list
+                            â† Back to list
                           </button>
 
                           {/* Restore button */}
@@ -2965,7 +2735,7 @@ const VehiclesPage = () => {
                             {restoringId === v.id ? (
                               <>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
-                                Restoring…
+                                Restoringâ€¦
                               </>
                             ) : (
                               <>
@@ -3011,20 +2781,20 @@ const VehiclesPage = () => {
                           borderRadius: 12, padding: '16px 20px', marginBottom: 16,
                         }}>
                           <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#ef4444', marginBottom: 10 }}>
-                            🗑 Deletion Information
+                            ðŸ—‘ Deletion Information
                           </div>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px' }}>
                             <div>
                               <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: D.textSub, marginBottom: 4 }}>Deleted By</div>
                               <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <User size={14} /> {v.deletedBy || '—'}
+                                <User size={14} /> {v.deletedBy || 'â€”'}
                               </div>
                             </div>
                             <div>
                               <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: D.textSub, marginBottom: 4 }}>Deleted At</div>
                               <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 5 }}>
                                 <Clock size={14} />
-                                {v.deletedAt ? new Date(v.deletedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                                {v.deletedAt ? new Date(v.deletedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'â€”'}
                               </div>
                             </div>
                           </div>
@@ -3046,7 +2816,7 @@ const VehiclesPage = () => {
                           ].map(([label, val]) => (
                             <div key={label}>
                               <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: D.textSub, marginBottom: 4 }}>{label}</div>
-                              <div style={{ fontSize: '0.88rem', fontWeight: 600, color: val ? D.text : D.textSub }}>{val || '—'}</div>
+                              <div style={{ fontSize: '0.88rem', fontWeight: 600, color: val ? D.text : D.textSub }}>{val || 'â€”'}</div>
                             </div>
                           ))}
                         </div>
@@ -3054,7 +2824,7 @@ const VehiclesPage = () => {
                     )
                   })()
                 ) : (
-                  /* ── Deleted Vehicles List ────────────────────────────── */
+                  /* â”€â”€ Deleted Vehicles List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
                   deletedVehicles.map((v, i) => (
                     <div
                       key={v.id}
@@ -3135,7 +2905,7 @@ const VehiclesPage = () => {
         )}
       </div>
 
-      {/* ── Vehicle Profile Modal ── */}
+      {/* â”€â”€ Vehicle Profile Modal â”€â”€ */}
       {isProfileOpen && selectedProfileVehicle && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.25s ease' }}>
           {/* Backdrop */}
@@ -3299,7 +3069,7 @@ const VehiclesPage = () => {
                     ))}
                   </div>
 
-                  {/* ── Assigned Driver Section ── */}
+                  {/* â”€â”€ Assigned Driver Section â”€â”€ */}
                   {(isAdmin || isController) && (
                     <div style={{
                       background: D.surface, borderRadius: 16, border: `1px solid ${D.border}`,
@@ -3320,7 +3090,7 @@ const VehiclesPage = () => {
                           <div style={{ fontSize: '0.68rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Assigned Driver</div>
                           {selectedProfileVehicle.driverUsername ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{ fontSize: '0.92rem', fontWeight: 800, color: D.text }}>👤 {selectedProfileVehicle.driverUsername}</span>
+                              <span style={{ fontSize: '0.92rem', fontWeight: 800, color: D.text }}>ðŸ‘¤ {selectedProfileVehicle.driverUsername}</span>
                               <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30` }}>ASSIGNED</span>
                             </div>
                           ) : (
@@ -3417,7 +3187,7 @@ const VehiclesPage = () => {
                               {isExpired ? 'Expired' : `${diff} days left`}
                             </span>
                           )
-                        })() : <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>}
+                        })() : <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>â€”</span>}
                       </div>
                       {/* Insurance Expiry Progress Bar */}
                       {selectedProfileVehicle.insuranceExpiryDate ? (() => {
@@ -3476,14 +3246,14 @@ const VehiclesPage = () => {
                               {isExpired ? 'Expired' : `${diff} days left`}
                             </span>
                           )
-                        })() : <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>—</span>}
+                        })() : <span style={{ color: D.textFaint, fontSize: '0.75rem' }}>â€”</span>}
                       </div>
                       {/* License Expiry Progress Bar */}
                       {selectedProfileVehicle.licenseExpiryDate ? (() => {
                         const TOTAL_DAYS = 365
                         const diff = Math.ceil((new Date(selectedProfileVehicle.licenseExpiryDate) - new Date()) / (1000 * 60 * 60 * 24))
                         const safePct = Math.max(0, Math.min(100, (diff / TOTAL_DAYS) * 100))
-                        // pct=100 → green, pct=0 → red
+                        // pct=100 â†’ green, pct=0 â†’ red
                         const r = Math.round(239 - (239 - 16) * (safePct / 100))
                         const g = Math.round(68 + (185 - 68) * (safePct / 100))
                         const b = Math.round(68 + (129 - 68) * (safePct / 100))
@@ -3534,7 +3304,7 @@ const VehiclesPage = () => {
                   {(() => {
                     const alertInfo = vehicleAlerts[selectedProfileVehicle.registrationNo]
 
-                    // ── Build date-based progress bar colour ─────────────────
+                    // â”€â”€ Build date-based progress bar colour â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     // Always show the date bar if there is a nextServiceDue, regardless of alert level
                     const allRecords = serviceRecords.filter(r => r.vehicleRegNumber === selectedProfileVehicle.registrationNo)
                     const latestWithDue = allRecords
@@ -3552,17 +3322,17 @@ const VehiclesPage = () => {
                       const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24))
                       const elapsed = totalWindow - daysLeft
                       const rawPct = Math.max(0, Math.min(100, (elapsed / totalWindow) * 100))
-                      // 0% → green, 80% → yellow, 100% → red
+                      // 0% â†’ green, 80% â†’ yellow, 100% â†’ red
                       let barColor
                       if (rawPct <= 50) {
-                        // green → yellow
+                        // green â†’ yellow
                         const t = rawPct / 50
                         const r2 = Math.round(16 + (245 - 16) * t)
                         const g2 = Math.round(185 + (158 - 185) * t)
                         const b2 = Math.round(129 + (11 - 129) * t)
                         barColor = `rgb(${r2},${g2},${b2})`
                       } else {
-                        // yellow → red
+                        // yellow â†’ red
                         const t = (rawPct - 50) / 50
                         const r2 = Math.round(245 + (239 - 245) * t)
                         const g2 = Math.round(158 + (68 - 158) * t)
@@ -3766,12 +3536,12 @@ const VehiclesPage = () => {
                                     {rec.serviceType?.replace(/_/g, ' ')}
                                   </p>
                                   <span style={{ fontSize: '0.82rem', fontWeight: 800, color: D.green }}>
-                                    {rec.serviceCost ? `Rs. ${Number(rec.serviceCost).toLocaleString()}` : '—'}
+                                    {rec.serviceCost ? `Rs. ${Number(rec.serviceCost).toLocaleString()}` : 'â€”'}
                                   </span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: '0.7rem', color: D.textSub }}>
                                   <span>Date: {new Date(rec.serviceDate).toLocaleDateString()}</span>
-                                  <span>Mileage: {rec.currentMileageKm ? `${rec.currentMileageKm.toLocaleString()} km` : '—'}</span>
+                                  <span>Mileage: {rec.currentMileageKm ? `${rec.currentMileageKm.toLocaleString()} km` : 'â€”'}</span>
                                 </div>
                                 {rec.partsReplaced && (
                                   <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: D.textSub, background: D.surfaceHi, padding: '4px 8px', borderRadius: 6, fontStyle: 'italic' }}>
@@ -3793,7 +3563,7 @@ const VehiclesPage = () => {
                   {loadingProfileFuel ? (
                     <div style={{ padding: '60px 0', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', color: D.textSub }}>
                       <div style={{ width: 32, height: 32, border: `3px solid ${D.border}`, borderTopColor: D.blue, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Loading fuel data…</span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Loading fuel dataâ€¦</span>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -3893,7 +3663,7 @@ const VehiclesPage = () => {
 
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: D.textSub }}>
                               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: D.green }} /> Excellent (≥10)
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: D.green }} /> Excellent (â‰¥10)
                               </span>
                               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: D.blue }} /> Good (7-10)
@@ -3972,15 +3742,15 @@ const VehiclesPage = () => {
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 750, color: D.text }}>
-                                      {log.liters ? `${log.liters.toFixed(1)} Liters` : '—'}
+                                      {log.liters ? `${log.liters.toFixed(1)} Liters` : 'â€”'}
                                     </p>
                                     <span style={{ fontSize: '0.82rem', fontWeight: 800, color: D.text }}>
-                                      Rs. {log.totalCost ? log.totalCost.toLocaleString() : '—'}
+                                      Rs. {log.totalCost ? log.totalCost.toLocaleString() : 'â€”'}
                                     </span>
                                   </div>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: '0.7rem', color: D.textSub }}>
                                     <span>Date: {new Date(log.date).toLocaleDateString()}</span>
-                                    <span>Odometer: {log.currentMileageKm ? `${log.currentMileageKm.toLocaleString()} km` : '—'}</span>
+                                    <span>Odometer: {log.currentMileageKm ? `${log.currentMileageKm.toLocaleString()} km` : 'â€”'}</span>
                                   </div>
                                 </div>
                               </div>
@@ -4017,7 +3787,7 @@ const VehiclesPage = () => {
 
 
 
-      {/* ── Odometer Quick Update Modal ────────────────────────────── */}
+      {/* â”€â”€ Odometer Quick Update Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {isOdometerModalOpen && odometerVehicle && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1250, animation: 'fadeIn 0.25s ease' }} onClick={() => { setIsOdometerModalOpen(false); setOdometerVehicle(null); }}>
           <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 440, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
@@ -4055,7 +3825,7 @@ const VehiclesPage = () => {
 
               {odometerError && (
                 <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', color: D.red, fontSize: '0.8rem', fontWeight: 600 }}>
-                  ⚠ {odometerError}
+                  âš  {odometerError}
                 </div>
               )}
 
@@ -4072,7 +3842,7 @@ const VehiclesPage = () => {
         </div>
       )}
 
-      {/* ── Fuel Quick Update Modal ────────────────────────────── */}
+      {/* â”€â”€ Fuel Quick Update Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {isFuelModalOpen && fuelModalVehicle && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1250, animation: 'fadeIn 0.25s ease' }} onClick={() => { setIsFuelModalOpen(false); setFuelModalVehicle(null); }}>
           <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 440, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
@@ -4114,7 +3884,7 @@ const VehiclesPage = () => {
 
               {fuelModalError && (
                 <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', color: D.red, fontSize: '0.8rem', fontWeight: 600 }}>
-                  ⚠ {fuelModalError}
+                  âš  {fuelModalError}
                 </div>
               )}
 
@@ -4150,7 +3920,7 @@ const VehiclesPage = () => {
         }
       `}</style>
 
-      {/* ── Attachment Lightbox Modal ─────────────────────────────────── */}
+      {/* â”€â”€ Attachment Lightbox Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {attachmentViewer.isOpen && (
         <div
           onClick={() => setAttachmentViewer(prev => ({ ...prev, isOpen: false }))}
