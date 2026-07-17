@@ -26,7 +26,7 @@ export const useD = () => {
     ADMIN: {
       primary: '#7c3aed',
       primaryDark: '#6d28d9',
-      primaryLight: isDark ? 'rgba(124, 58, 237, 0.25)' : 'rgba(124, 58, 237, 0.1)',
+      primaryLight: isDark ? '#a78bfa' : '#7c3aed',
       dim: isDark ? 'rgba(124, 58, 237, 0.18)' : 'rgba(124, 58, 237, 0.1)',
       border: isDark ? 'rgba(124, 58, 237, 0.35)' : 'rgba(124, 58, 237, 0.25)',
       inputBg: isDark ? 'rgba(124, 58, 237, 0.06)' : '#f8f8fd',
@@ -35,7 +35,7 @@ export const useD = () => {
     CONTROLLER: {
       primary: '#d97706',
       primaryDark: '#b45309',
-      primaryLight: isDark ? 'rgba(245, 158, 11, 0.25)' : 'rgba(245, 158, 11, 0.1)',
+      primaryLight: isDark ? '#fbbf24' : '#d97706',
       dim: isDark ? 'rgba(245, 158, 11, 0.18)' : 'rgba(245, 158, 11, 0.1)',
       border: isDark ? 'rgba(245, 158, 11, 0.35)' : 'rgba(245, 158, 11, 0.25)',
       inputBg: isDark ? 'rgba(245, 158, 11, 0.06)' : '#f8f8fd',
@@ -44,7 +44,7 @@ export const useD = () => {
     DRIVER: {
       primary: '#10b981',
       primaryDark: '#047857',
-      primaryLight: isDark ? 'rgba(16, 185, 129, 0.25)' : 'rgba(16, 185, 129, 0.1)',
+      primaryLight: isDark ? '#34d399' : '#10b981',
       dim: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
       border: isDark ? 'rgba(16, 185, 129, 0.35)' : 'rgba(16, 185, 129, 0.25)',
       inputBg: isDark ? 'rgba(16, 185, 129, 0.06)' : '#f8f8fd',
