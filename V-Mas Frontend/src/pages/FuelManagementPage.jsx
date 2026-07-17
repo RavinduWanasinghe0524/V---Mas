@@ -600,17 +600,33 @@ const FuelManagementPage = () => {
 
           {/* -- Controls & List ---------------------------------- */}
           <div style={{ ...card, padding: 0 }}>
-            <div className="fuel-controls-header" style={{ padding: '22px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, background: D.surfaceHi, flexWrap: 'wrap' }}>
-              <div className="fuel-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, flexWrap: 'wrap' }}>
-
+            {/* Search, Filter, and Action Toolbar */}
+            <div style={{
+              padding: '20px 26px',
+              borderBottom: `1px solid ${D.border}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 16,
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              background: D.surfaceHi,
+            }}>
+              {/* Left Controls: Select Dropdowns */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 300, flexWrap: 'wrap' }}>
+                
                 {/* Vehicle Dropdown */}
-                <div style={{ position: 'relative', flex: '1 1 auto', minWidth: 0 }}>
-                  <Car size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.blue, pointerEvents: 'none', opacity: 0.8 }} />
+                <div style={{ position: 'relative', flex: '1 1 150px', minWidth: 130 }}>
+                  <Car size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: D.blue, pointerEvents: 'none', opacity: 0.8 }} />
                   <select
                     value={filterVehicle}
                     onChange={e => setFilterVehicle(e.target.value)}
-                    style={{ ...inputStyle, paddingLeft: 38, appearance: 'none', paddingRight: 32, cursor: 'pointer', width: '100%' }}
-                    onFocus={onFocus} onBlur={onBlur}
+                    style={{
+                      width: '100%', height: '40px', padding: '0 28px 0 34px',
+                      borderRadius: 12, border: `1px solid ${filterVehicle !== 'all' ? 'rgba(99,102,241,0.4)' : D.border}`,
+                      fontSize: '0.8rem', fontWeight: 700, color: D.textSub,
+                      background: 'rgba(255,255,255,0.05)', outline: 'none',
+                      cursor: 'pointer', appearance: 'none', fontFamily: 'inherit', boxSizing: 'border-box'
+                    }}
                   >
                     <option value="all">All Vehicles</option>
                     {vehicles.map(v => (
@@ -621,13 +637,18 @@ const FuelManagementPage = () => {
                 </div>
 
                 {/* Driver Dropdown */}
-                <div style={{ position: 'relative', flex: '1 1 auto', minWidth: 0 }}>
-                  <User size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.purple, pointerEvents: 'none', opacity: 0.8 }} />
+                <div style={{ position: 'relative', flex: '1 1 150px', minWidth: 130 }}>
+                  <User size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: D.purple, pointerEvents: 'none', opacity: 0.8 }} />
                   <select
                     value={filterDriver}
                     onChange={e => setFilterDriver(e.target.value)}
-                    style={{ ...inputStyle, paddingLeft: 38, appearance: 'none', paddingRight: 32, cursor: 'pointer', width: '100%' }}
-                    onFocus={onFocus} onBlur={onBlur}
+                    style={{
+                      width: '100%', height: '40px', padding: '0 28px 0 34px',
+                      borderRadius: 12, border: `1px solid ${filterDriver !== 'all' ? 'rgba(99,102,241,0.4)' : D.border}`,
+                      fontSize: '0.8rem', fontWeight: 700, color: D.textSub,
+                      background: 'rgba(255,255,255,0.05)', outline: 'none',
+                      cursor: 'pointer', appearance: 'none', fontFamily: 'inherit', boxSizing: 'border-box'
+                    }}
                   >
                     <option value="all">All Drivers</option>
                     {uniqueDriversInLogs.map(d => (
@@ -638,8 +659,19 @@ const FuelManagementPage = () => {
                 </div>
 
                 {/* Fuel Type Dropdown */}
-                <div style={{ position: 'relative', flex: '1 1 auto', minWidth: 0 }}>
-                  <select value={filterFuelType} onChange={e => setFilterFuelType(e.target.value)} style={{ ...inputStyle, appearance: 'none', paddingRight: 32, cursor: 'pointer', width: '100%' }} onFocus={onFocus} onBlur={onBlur}>
+                <div style={{ position: 'relative', flex: '1 1 150px', minWidth: 130 }}>
+                  <Fuel size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: D.gold, pointerEvents: 'none', opacity: 0.8 }} />
+                  <select
+                    value={filterFuelType}
+                    onChange={e => setFilterFuelType(e.target.value)}
+                    style={{
+                      width: '100%', height: '40px', padding: '0 28px 0 34px',
+                      borderRadius: 12, border: `1px solid ${filterFuelType !== 'all' ? 'rgba(99,102,241,0.4)' : D.border}`,
+                      fontSize: '0.8rem', fontWeight: 700, color: D.textSub,
+                      background: 'rgba(255,255,255,0.05)', outline: 'none',
+                      cursor: 'pointer', appearance: 'none', fontFamily: 'inherit', boxSizing: 'border-box'
+                    }}
+                  >
                     <option value="all">All Fuel Types</option>
                     <option value="Petrol 92 Octane">Petrol 92 Octane</option>
                     <option value="Petrol 95 Octane">Petrol 95 Octane</option>
@@ -650,8 +682,19 @@ const FuelManagementPage = () => {
                 </div>
 
                 {/* Efficiency Dropdown */}
-                <div style={{ position: 'relative', flex: '1 1 auto', minWidth: 0 }}>
-                  <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inputStyle, appearance: 'none', paddingRight: 32, cursor: 'pointer', width: '100%' }} onFocus={onFocus} onBlur={onBlur}>
+                <div style={{ position: 'relative', flex: '1 1 150px', minWidth: 130 }}>
+                  <BarChart2 size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: D.green, pointerEvents: 'none', opacity: 0.8 }} />
+                  <select
+                    value={filterStatus}
+                    onChange={e => setFilterStatus(e.target.value)}
+                    style={{
+                      width: '100%', height: '40px', padding: '0 28px 0 34px',
+                      borderRadius: 12, border: `1px solid ${filterStatus !== 'all' ? 'rgba(99,102,241,0.4)' : D.border}`,
+                      fontSize: '0.8rem', fontWeight: 700, color: D.textSub,
+                      background: 'rgba(255,255,255,0.05)', outline: 'none',
+                      cursor: 'pointer', appearance: 'none', fontFamily: 'inherit', boxSizing: 'border-box'
+                    }}
+                  >
                     <option value="all">All Efficiency</option>
                     <option value="excellent">Excellent (&gt;10)</option>
                     <option value="good">Good (7–10)</option>
@@ -665,36 +708,47 @@ const FuelManagementPage = () => {
                 {(filterVehicle !== 'all' || filterDriver !== 'all' || filterFuelType !== 'all' || filterStatus !== 'all') && (
                   <button
                     onClick={() => { setFilterVehicle('all'); setFilterDriver('all'); setFilterFuelType('all'); setFilterStatus('all') }}
-                    style={{ padding: '10px 16px', borderRadius: 12, border: `1px solid ${D.red}40`, background: D.redDim, color: D.red, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', whiteSpace: 'nowrap' }}
+                    style={{
+                      padding: '10px 20px', height: '40px', borderRadius: 12,
+                      border: `1px solid ${D.red}40`, background: D.redDim, color: D.red,
+                      fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s ease',
+                    }}
                     onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
                     onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
                   >
-                    <X size={14} /> Clear
+                    <RotateCcw size={14} /> Clear Filters
                   </button>
                 )}
               </div>
 
-              <div className="fuel-controls-bottom">
+              {/* Right Controls: Action Buttons & Stats */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, flexWrap: 'wrap' }}>
                 {!isDriver && (
                   <button
                     onClick={() => setShowDeletedDrawer(true)}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6,
-                      padding: '10px 16px', borderRadius: 12,
-                      background: D.surfaceHi, border: `1px solid ${D.border}`,
+                      padding: '10px 16px', height: '40px', borderRadius: 12,
+                      background: 'rgba(255,255,255,0.03)', border: `1px solid ${D.border}`,
                       color: D.textSub, fontSize: '0.8rem', fontWeight: 800,
-                      cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                      cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap',
                     }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.28)'; e.currentTarget.style.color = '#f87171' }}
-                    onMouseLeave={e => { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.textSub }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.textSub }}
                   >
-                    <Archive size={14} />
+                    <Archive size={15} />
                     Deleted Records {deletedCount > 0 && <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: 8, marginLeft: 4, fontWeight: 900 }}>{deletedCount}</span>}
                   </button>
                 )}
 
-                <div style={{ fontSize: '0.9rem', color: D.textSub, fontWeight: 700, background: D.surface, padding: '8px 16px', borderRadius: 12, border: `1px solid ${D.border}`, whiteSpace: 'nowrap' }}>
-                  <span style={{ color: D.purple }}>{filteredLogs.length}</span> Active Logs
+                <div style={{
+                  display: 'flex', alignItems: 'center', height: '40px',
+                  fontSize: '0.8rem', color: D.textSub, fontWeight: 800,
+                  background: 'rgba(255,255,255,0.03)', border: `1px solid ${D.border}`,
+                  padding: '0 16px', borderRadius: 12, whiteSpace: 'nowrap'
+                }}>
+                  <span style={{ color: D.purple, marginRight: 4 }}>{filteredLogs.length}</span> Active Logs
                 </div>
               </div>
             </div>
@@ -798,17 +852,33 @@ const FuelManagementPage = () => {
       {(showAddModal || editingLog) && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={() => { if (!submitting) closeAddModal() }}>
           <div style={{ background: D.surface, borderRadius: 24, width: '92%', maxWidth: 520, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-            <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
+              padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 12,
+                  background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0
+                }}>
                   {editingLog ? <Edit2 size={18} /> : <Plus size={18} />}
                 </div>
                 <div>
                   <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>{editingLog ? 'Edit Fuel Record' : 'Record Fuel Entry'}</h2>
-                  <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600, opacity: 0.9 }}>{editingLog ? `Refining details for ${editingLog.vehicleRegNumber}` : 'Enter the latest fill-up data for analysis'}</p>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: 'rgba(255,255,255,0.75)', fontWeight: 500 }}>{editingLog ? `Refining details for ${editingLog.vehicleRegNumber}` : 'Enter the latest fill-up data for analysis'}</p>
                 </div>
               </div>
-              <button onClick={closeAddModal} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
+              <button
+                onClick={closeAddModal}
+                style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 10, padding: 9, color: '#fff', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.22)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+              >
+                <X size={20} />
+              </button>
             </div>
 
             <form onSubmit={editingLog ? handleEditSubmit : handleAddSubmit} style={{ padding: '20px 24px' }}>
@@ -965,12 +1035,20 @@ const FuelManagementPage = () => {
                 )
               })()}
 
-              <div style={{ display: 'flex', gap: 20 }}>
-                <button type="submit" disabled={submitting} style={{ flex: 2, padding: '16px', borderRadius: 18, border: 'none', background: submitting ? 'rgba(37, 99, 235,0.5)' : 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', fontSize: '1.05rem', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: submitting ? 'none' : '0 10px 25px rgba(37, 99, 235,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }} onMouseEnter={e => { if(!submitting) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 15px 35px rgba(37, 99, 235,0.5)' } }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 10px 25px rgba(37, 99, 235,0.4)' }}>
-                  {submitting ? <Loader2 size={22} className="animate-spin" /> : editingLog ? <Check size={22} /> : <FileText size={22} />}
-                  {submitting ? (editingLog ? 'Updating Analysis...' : 'Processing Entry...') : (editingLog ? 'Update Analysis' : 'Complete Fuel Entry')}
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button type="submit" disabled={submitting} style={{ flex: 2, padding: '14px', borderRadius: 14, border: 'none', background: submitting ? 'rgba(0,0,0,0.3)' : 'linear-gradient(135deg, var(--primary), var(--primary-dark))', color: '#fff', fontSize: '0.95rem', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: submitting ? 'none' : '0 8px 20px var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
+                  onMouseEnter={e => { if (!submitting) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 28px var(--primary-glow)' } }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = submitting ? 'none' : '0 8px 20px var(--primary-glow)' }}
+                >
+                  {submitting ? <Loader2 size={20} className="animate-spin" /> : editingLog ? <Check size={20} /> : <FileText size={20} />}
+                  {submitting ? (editingLog ? 'Updating...' : 'Processing...') : (editingLog ? 'Update Analysis' : 'Complete Fuel Entry')}
                 </button>
-                <button type="button" disabled={submitting} onClick={closeAddModal} style={{ flex: 1, padding: '16px', borderRadius: 18, border: `1px solid ${D.border}`, background: D.surfaceHi, color: D.textSub, fontSize: '1.05rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = D.border} onMouseLeave={e => e.currentTarget.style.background = D.surfaceHi}>Discard</button>
+                <button type="button" disabled={submitting} onClick={closeAddModal} style={{ flex: 1, padding: '14px', borderRadius: 14, border: `1px solid ${D.border}`, background: 'transparent', color: D.text, fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  Discard
+                </button>
               </div>
             </form>
           </div>

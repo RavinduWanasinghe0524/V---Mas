@@ -1937,17 +1937,33 @@ const VehiclesPage = () => {
         {isModalOpen && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={closeModal}>
             <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-              <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
-                    <Plus size={24} />
+              <div style={{
+                background: 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
+                padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{
+                    width: 48, height: 48, borderRadius: 14,
+                    background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#fff', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0
+                  }}>
+                    <Plus size={22} />
                   </div>
                   <div>
-                    <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>Add New Vehicle</h2>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600, opacity: 0.9 }}>Register a new vehicle in the system.</p>
+                    <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>Add New Vehicle</h2>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>Register a new vehicle in the system.</p>
                   </div>
                 </div>
-                <button onClick={closeModal} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
+                <button
+                  onClick={closeModal}
+                  style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 10, padding: 9, color: '#fff', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.22)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+                >
+                  <X size={20} />
+                </button>
               </div>
 
               <form onSubmit={handleSubmit} style={{ padding: '36px', overflowY: 'auto', flex: 1, scrollbarWidth: 'thin' }}>
@@ -2107,11 +2123,11 @@ const VehiclesPage = () => {
                 </div>
                 {addError && (
                   <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 8, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', color: D.red, fontSize: '0.83rem', fontWeight: 600 }}>
-                    âš  {addError}
+                    ⚠️ {addError}
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(37, 99, 235,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                     <Check size={16} /> Add Vehicle
                   </button>
                   <button type="button" onClick={closeModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
@@ -2127,17 +2143,33 @@ const VehiclesPage = () => {
         {isEditModalOpen && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={closeEditModal}>
             <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-              <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
-                    <Edit2 size={24} />
+              <div style={{
+                background: 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
+                padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{
+                    width: 48, height: 48, borderRadius: 14,
+                    background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#fff', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0
+                  }}>
+                    <Edit2 size={20} />
                   </div>
                   <div>
-                    <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>Edit Vehicle</h2>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600, opacity: 0.9 }}>Refining details for {editingVehicle?.registrationNo}</p>
+                    <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>Edit Vehicle</h2>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>Refining details for {editingVehicle?.registrationNo}</p>
                   </div>
                 </div>
-                <button onClick={closeEditModal} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
+                <button
+                  onClick={closeEditModal}
+                  style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 10, padding: 9, color: '#fff', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.22)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+                >
+                  <X size={20} />
+                </button>
               </div>
 
               <form onSubmit={handleEditSubmit} style={{ padding: '36px', overflowY: 'auto', flex: 1, scrollbarWidth: 'thin' }}>
@@ -2437,10 +2469,13 @@ const VehiclesPage = () => {
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px rgba(37, 99, 235,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                     <Check size={16} /> Save Changes
                   </button>
-                  <button type="button" onClick={closeEditModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}>
+                  <button type="button" onClick={closeEditModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'transparent', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}
+                    onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
                     Cancel
                   </button>
                 </div>
@@ -2547,10 +2582,10 @@ const VehiclesPage = () => {
                       fontSize: '0.9rem', fontWeight: 600, outline: 'none', cursor: 'pointer',
                       appearance: 'none', fontFamily: 'inherit'
                     }}>
-                    <option value="">â€” Select a driver â€”</option>
+                    <option value="">- Select a driver -</option>
                     {allDrivers.map(d => (
                       <option key={d.id} value={d.userName}>
-                        ðŸ‘¤ {d.userName}{d.firstName ? ` (${d.firstName} ${d.lastName || ''})`.trim() : ''}
+                        {d.userName}{d.firstName ? ` (${d.firstName} ${d.lastName || ''})`.trim() : ''}
                       </option>
                     ))}
                   </select>
@@ -2781,20 +2816,20 @@ const VehiclesPage = () => {
                           borderRadius: 12, padding: '16px 20px', marginBottom: 16,
                         }}>
                           <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#ef4444', marginBottom: 10 }}>
-                            ðŸ—‘ Deletion Information
+                            Deletion Information
                           </div>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px' }}>
                             <div>
                               <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: D.textSub, marginBottom: 4 }}>Deleted By</div>
                               <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <User size={14} /> {v.deletedBy || 'â€”'}
+                                <User size={14} /> {v.deletedBy || '-'}
                               </div>
                             </div>
                             <div>
                               <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: D.textSub, marginBottom: 4 }}>Deleted At</div>
                               <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 5 }}>
                                 <Clock size={14} />
-                                {v.deletedAt ? new Date(v.deletedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'â€”'}
+                                {v.deletedAt ? new Date(v.deletedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
                               </div>
                             </div>
                           </div>
@@ -2816,7 +2851,7 @@ const VehiclesPage = () => {
                           ].map(([label, val]) => (
                             <div key={label}>
                               <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: D.textSub, marginBottom: 4 }}>{label}</div>
-                              <div style={{ fontSize: '0.88rem', fontWeight: 600, color: val ? D.text : D.textSub }}>{val || 'â€”'}</div>
+                              <div style={{ fontSize: '0.88rem', fontWeight: 600, color: val ? D.text : D.textSub }}>{val || '-'}</div>
                             </div>
                           ))}
                         </div>
@@ -2927,53 +2962,84 @@ const VehiclesPage = () => {
             animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
             overflow: 'hidden'
           }}>
-            {/* Header section */}
-            <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#fff' }}>
-              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                {selectedProfileVehicle.vehicleImage ? (
-                  <img src={selectedProfileVehicle.vehicleImage} alt={selectedProfileVehicle.registrationNo} style={{ width: 52, height: 52, borderRadius: 14, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0 }} />
-                ) : (
-                  <div style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: 14,
-                    background: 'rgba(255,255,255,0.12)',
-                    color: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.5rem',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    flexShrink: 0
+            {/* Header section — card-style layout */}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              {/* Full-width vehicle photo */}
+              {selectedProfileVehicle.vehicleImage ? (
+                <img
+                  src={selectedProfileVehicle.vehicleImage}
+                  alt={selectedProfileVehicle.registrationNo}
+                  style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }}
+                />
+              ) : (
+                <div style={{
+                  width: '100%', height: 180,
+                  background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 55%, #1d4ed8 100%)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 10
+                }}>
+                  <Car size={52} color="rgba(255,255,255,0.25)" />
+                  <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.78rem', fontWeight: 600 }}>No photo available</span>
+                </div>
+              )}
+
+              {/* Close button overlaid on photo */}
+              <button
+                onClick={closeProfile}
+                style={{
+                  position: 'absolute', top: 14, right: 14,
+                  background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)',
+                  border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10,
+                  padding: 8, color: '#fff', cursor: 'pointer', transition: 'all 0.2s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  lineHeight: 0
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.65)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.45)'}
+              >
+                <X size={18} />
+              </button>
+
+              {/* Name + all badges — single compact row */}
+              <div style={{ background: D.surface, padding: '16px 28px 16px', textAlign: 'center' }}>
+                <h3 style={{
+                  margin: 0, fontWeight: 900, fontSize: '1.35rem', color: D.text,
+                  fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em'
+                }}>
+                  {selectedProfileVehicle.manufacturer} {selectedProfileVehicle.model}
+                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                  {/* Reg badge */}
+                  <span style={{
+                    background: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)',
+                    color: isDark ? '#818cf8' : '#4f46e5',
+                    border: `1px solid ${isDark ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.2)'}`,
+                    padding: '3px 12px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.04em'
                   }}>
-                    <Car size={26} />
-                  </div>
-                )}
-                <div>
-                  <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.35rem', color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>
                     {selectedProfileVehicle.registrationNo}
-                  </h3>
-                  <p style={{ margin: '4px 0 0', color: '#60a5fa', fontSize: '0.85rem', fontWeight: 600 }}>
-                    {selectedProfileVehicle.manufacturer} {selectedProfileVehicle.model}
-                  </p>
+                  </span>
+                  {/* Year */}
+                  {selectedProfileVehicle.year && (
+                    <span style={{ color: D.textSub, fontSize: '0.82rem', fontWeight: 600 }}>
+                      {selectedProfileVehicle.year}
+                    </span>
+                  )}
+                  {/* Separator */}
+                  <span style={{ color: D.border, fontSize: '0.8rem' }}>·</span>
+                  {/* Status pill */}
+                  {(() => {
+                    const s = statusColors[selectedProfileVehicle.status] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
+                    return (
+                      <span style={{ background: s.bg, color: s.color, padding: '3px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', border: `1px solid ${s.border}` }}>
+                        {selectedProfileVehicle.status}
+                      </span>
+                    )
+                  })()}
+                  {/* Fuel type pill */}
+                  <span style={{ background: D.blueDim, color: D.blue, padding: '3px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', border: `1px solid ${D.blue}30` }}>
+                    {selectedProfileVehicle.fuelType || 'UNKNOWN'}
+                  </span>
                 </div>
               </div>
-              <button onClick={closeProfile} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={22} /></button>
-            </div>
-
-            {/* Status & Badges row */}
-            <div style={{ padding: '12px 32px', background: D.surface, display: 'flex', gap: 10, borderBottom: `1px solid ${D.border}` }}>
-              {(() => {
-                const s = statusColors[selectedProfileVehicle.status] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
-                return (
-                  <span style={{ background: s.bg, color: s.color, padding: '4px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', border: `1px solid ${s.border}` }}>
-                    {selectedProfileVehicle.status}
-                  </span>
-                )
-              })()}
-              <span style={{ background: D.blueDim, color: D.blue, padding: '4px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', border: `1px solid ${D.blue}30` }}>
-                {selectedProfileVehicle.fuelType || 'UNKNOWN'}
-              </span>
             </div>
 
             {/* Tab Navigation */}
@@ -3090,7 +3156,7 @@ const VehiclesPage = () => {
                           <div style={{ fontSize: '0.68rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Assigned Driver</div>
                           {selectedProfileVehicle.driverUsername ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{ fontSize: '0.92rem', fontWeight: 800, color: D.text }}>ðŸ‘¤ {selectedProfileVehicle.driverUsername}</span>
+                              <span style={{ fontSize: '0.92rem', fontWeight: 800, color: D.text }}>{selectedProfileVehicle.driverUsername}</span>
                               <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: D.greenDim, color: D.green, border: `1px solid ${D.green}30` }}>ASSIGNED</span>
                             </div>
                           ) : (
