@@ -574,7 +574,7 @@ const UsersPage = () => {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             <span style={{
-              background: roleBg.bg, border: `1px solid ${roleBg.border}`,
+              background: roleBg.bg,
               borderRadius: 6, padding: '2px 9px',
               fontSize: '0.72rem', fontWeight: 800, color: roleBg.color, letterSpacing: '0.03em',
             }}>
@@ -584,7 +584,6 @@ const UsersPage = () => {
               display: 'flex', alignItems: 'center', gap: 4,
               padding: '2px 9px', borderRadius: 6,
               background: badge.shadow.replace('0.45', '0.1'),
-              border: `1px solid ${badge.shadow.replace('0.45', '0.3')}`,
               fontSize: '0.72rem', fontWeight: 800,
               color: badge.bg.includes('#10b981') ? '#059669' : badge.bg.includes('#fbbf24') ? '#d97706' : badge.bg.includes('#ef4444') ? '#dc2626' : '#7c3aed',
             }}>
@@ -602,7 +601,6 @@ const UsersPage = () => {
             display: 'flex', alignItems: 'center', gap: 8,
             padding: '8px 12px', borderRadius: 12,
             background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
-            border: `1px solid ${D.border}`,
           }}>
             <Mail size={13} style={{ color: '#f59e0b', flexShrink: 0 }} />
             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Email</span>
@@ -616,7 +614,6 @@ const UsersPage = () => {
             display: 'flex', alignItems: 'center', gap: 8,
             padding: '8px 12px', borderRadius: 12,
             background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
-            border: `1px solid ${D.border}`,
           }}>
             <Phone size={13} style={{ color: '#10b981', flexShrink: 0 }} />
             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Phone</span>
@@ -631,7 +628,6 @@ const UsersPage = () => {
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '8px 12px', borderRadius: 12,
               background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
-              border: `1px solid ${D.border}`,
             }}>
               <ClipboardList size={13} style={{ color: '#ec4899', flexShrink: 0 }} />
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>License</span>
@@ -644,7 +640,6 @@ const UsersPage = () => {
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '8px 12px', borderRadius: 12,
               background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
-              border: `1px solid ${D.border}`,
             }}>
               <IdCard size={13} style={{ color: '#ec4899', flexShrink: 0 }} />
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>NIC</span>
@@ -1442,22 +1437,36 @@ const UsersPage = () => {
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.25s ease' }} onClick={() => setShowModal(false)}>
           <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 680, maxHeight: '90vh', boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
-            <div style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)', padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-                <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
-                  <Users size={24} />
+            <div style={{
+              background: 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
+              padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 14,
+                  background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0
+                }}>
+                  <Users size={22} />
                 </div>
                 <div>
-                  <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>
+                  <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>
                     {editingUser ? 'Edit User' : 'Create New User'}
                   </h2>
-                  <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600, opacity: 0.9 }}>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>
                     {editingUser ? `Refining details for ${editingUser.userName}` : 'Register a new account in the system'}
                   </p>
                 </div>
               </div>
-              <button onClick={() => setShowModal(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 10, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}>
-                <X size={22} />
+              <button
+                onClick={() => setShowModal(false)}
+                style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 10, padding: 9, color: '#fff', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.22)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+              >
+                <X size={20} />
               </button>
             </div>
 
@@ -1692,12 +1701,16 @@ const UsersPage = () => {
               )}
 
               <div style={{ display: 'flex', gap: 16 }}>
-                <button type="submit" style={{ flex: 1, padding: '14px 24px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 800, transition: 'all 0.25s', boxShadow: '0 8px 24px rgba(37, 99, 235,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(37, 99, 235,0.4)' }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(37, 99, 235,0.3)' }}>
+                <button type="submit" style={{ flex: 1, padding: '14px 24px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', color: '#fff', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 800, transition: 'all 0.25s', boxShadow: '0 8px 24px var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 32px var(--primary-glow)' }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px var(--primary-glow)' }}
+                >
                   <Check size={18} /> {editingUser ? 'Save Changes' : 'Create User'}
                 </button>
-                <button type="button" onClick={() => setShowModal(false)} style={{ flex: 0.4, padding: '14px 24px', borderRadius: 16, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, cursor: 'pointer', fontSize: '0.95rem', fontWeight: 800, transition: 'all 0.2s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>
+                <button type="button" onClick={() => setShowModal(false)} style={{ flex: 0.4, padding: '14px 24px', borderRadius: 16, border: `1px solid ${D.border}`, background: 'transparent', color: D.text, cursor: 'pointer', fontSize: '0.95rem', fontWeight: 800, transition: 'all 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
                   Cancel
                 </button>
               </div>
