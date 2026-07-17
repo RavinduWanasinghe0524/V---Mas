@@ -574,7 +574,7 @@ const UsersPage = () => {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             <span style={{
-              background: roleBg.bg, border: `1px solid ${roleBg.border}`,
+              background: roleBg.bg,
               borderRadius: 6, padding: '2px 9px',
               fontSize: '0.72rem', fontWeight: 800, color: roleBg.color, letterSpacing: '0.03em',
             }}>
@@ -584,7 +584,6 @@ const UsersPage = () => {
               display: 'flex', alignItems: 'center', gap: 4,
               padding: '2px 9px', borderRadius: 6,
               background: badge.shadow.replace('0.45', '0.1'),
-              border: `1px solid ${badge.shadow.replace('0.45', '0.3')}`,
               fontSize: '0.72rem', fontWeight: 800,
               color: badge.bg.includes('#10b981') ? '#059669' : badge.bg.includes('#fbbf24') ? '#d97706' : badge.bg.includes('#ef4444') ? '#dc2626' : '#7c3aed',
             }}>
@@ -602,7 +601,6 @@ const UsersPage = () => {
             display: 'flex', alignItems: 'center', gap: 8,
             padding: '8px 12px', borderRadius: 12,
             background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
-            border: `1px solid ${D.border}`,
           }}>
             <Mail size={13} style={{ color: '#f59e0b', flexShrink: 0 }} />
             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Email</span>
@@ -616,7 +614,6 @@ const UsersPage = () => {
             display: 'flex', alignItems: 'center', gap: 8,
             padding: '8px 12px', borderRadius: 12,
             background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
-            border: `1px solid ${D.border}`,
           }}>
             <Phone size={13} style={{ color: '#10b981', flexShrink: 0 }} />
             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Phone</span>
@@ -631,7 +628,6 @@ const UsersPage = () => {
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '8px 12px', borderRadius: 12,
               background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
-              border: `1px solid ${D.border}`,
             }}>
               <ClipboardList size={13} style={{ color: '#ec4899', flexShrink: 0 }} />
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>License</span>
@@ -644,7 +640,6 @@ const UsersPage = () => {
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '8px 12px', borderRadius: 12,
               background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
-              border: `1px solid ${D.border}`,
             }}>
               <IdCard size={13} style={{ color: '#ec4899', flexShrink: 0 }} />
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>NIC</span>
