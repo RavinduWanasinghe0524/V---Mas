@@ -284,13 +284,6 @@ const AdminDashboard = ({ stats, loading, navigate, isDark, monthlyCostData, act
   )
   return (
     <>
-      <SectionHeader title="User Statistics" />
-      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 36 }}>
-        <StatCard icon={<Users size={20} color={A.purple}/>} label="Total Users" value={stats.totalUsers} colorDim={A.purpleDim} colorHex={A.purple} change="Registered in system" onClick={() => navigate('/users')} />
-        <StatCard icon={<UserCog size={20} color={A.controllerColor}/>} label="Controllers" value={stats.controllers} colorDim={A.controllerDim} colorHex={A.controllerColor} change="Fleet control team" onClick={() => navigate('/users', { state: { roleFilter: 'CONTROLLER' } })} />
-        <StatCard icon={<Car size={20} color={A.driverColor}/>} label="Drivers" value={stats.drivers} colorDim={A.driverDim} colorHex={A.driverColor} change="Active vehicle drivers" onClick={() => navigate('/users', { state: { roleFilter: 'DRIVER' } })} />
-        <StatCard icon={<Clock size={20} color={stats.pendingUsers > 0 ? '#fbbf24' : A.gold}/>} label="Pending Approvals" value={stats.pendingUsers} colorDim={stats.pendingUsers > 0 ? 'rgba(251, 191, 36, 0.25)' : A.goldDim} colorHex={stats.pendingUsers > 0 ? '#fbbf24' : A.gold} change={stats.pendingUsers > 0 ? "Awaiting access review!" : "No pending accounts"} onClick={() => navigate('/users', { state: { statusFilter: 'PENDING' } })} />
-      </div>
 
       <div className="dashboard-charts-row" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1fr', gap: 24, alignItems: 'stretch', marginBottom: 36 }}>
         <MonthlyCostTrendChart data={monthlyCostData} isDark={isDark} />
@@ -1172,7 +1165,6 @@ const RecentActivitySection = ({ activities = [], navigate }) => {
       padding: '28px',
       display: 'flex', flexDirection: 'column',
       boxSizing: 'border-box',
-      height: '100%',
     }}>
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Recent Fleet Activity</div>
