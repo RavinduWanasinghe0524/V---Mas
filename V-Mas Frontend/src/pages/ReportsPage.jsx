@@ -15,6 +15,7 @@ import autoTable from 'jspdf-autotable'
 import { vehicleAPI, fuelAPI, serviceAPI, userAPI } from '../services/api'
 import { generateStyledExcel } from '../utils/excelExport'
 import { formatFuelType } from '../utils/fuelUtils'
+import ExcelJS from 'exceljs'
 
 // ── Helper: relative time ─────────────────────────────────────────────────────
 const getTimeAgo = (dateStr) => {
@@ -68,17 +69,17 @@ const SkeletonCard = ({ D }) => (
 
 // ── Recent reports initial state ─────────────────────────────────────────────
 const recentReports = [
-  { name: 'Vehicle-Summary-May-2026.pdf',   generated: '2026-05-20', format: 'PDF',   size: '245 KB' },
-  { name: 'Fuel-Consumption-Apr-2026.xlsx',  generated: '2026-05-01', format: 'Excel', size: '118 KB' },
-  { name: 'User-Activity-Q2-2026.pdf',       generated: '2026-05-15', format: 'PDF',   size: '312 KB' },
-  { name: 'Service-Summary-Apr-2026.pdf',    generated: '2026-05-02', format: 'PDF',   size: '198 KB' },
+  { name: 'Vehicle-Summary-May-2026.pdf', generated: '2026-05-20', format: 'PDF', size: '245 KB' },
+  { name: 'Fuel-Consumption-Apr-2026.xlsx', generated: '2026-05-01', format: 'Excel', size: '118 KB' },
+  { name: 'User-Activity-Q2-2026.pdf', generated: '2026-05-15', format: 'PDF', size: '312 KB' },
+  { name: 'Service-Summary-Apr-2026.pdf', generated: '2026-05-02', format: 'PDF', size: '198 KB' },
 ]
 
 // ── Role-based report access ─────────────────────────────────────────────────
 const ROLE_ACCESS = {
-  ADMIN:      ['master-report', 'vehicle-summary', 'fuel-report', 'fuel-efficiency', 'service-report', 'user-report', 'cost-report', 'driver-performance', 'vehicle-documents', 'maintenance-schedule', 'vehicle-mileage'],
+  ADMIN: ['master-report', 'vehicle-summary', 'fuel-report', 'fuel-efficiency', 'service-report', 'user-report', 'cost-report', 'driver-performance', 'vehicle-documents', 'maintenance-schedule', 'vehicle-mileage'],
   CONTROLLER: ['vehicle-summary', 'fuel-report', 'fuel-efficiency', 'service-report', 'cost-report', 'driver-performance', 'vehicle-documents', 'maintenance-schedule', 'vehicle-mileage'],
-  DRIVER:     ['fuel-report', 'fuel-efficiency'],
+  DRIVER: ['fuel-report', 'fuel-efficiency'],
 }
 
 const ReportsPage = () => {
@@ -91,33 +92,47 @@ const ReportsPage = () => {
 
   // ── Report type definitions ──────────────────────────────────────────────
   const reportTypes = [
-    { id: 'master-report',        icon: <Database size={22} strokeWidth={1.5} />,    title: 'Comprehensive Master Report',     desc: 'Complete export of all system data including vehicles, fuel, services, and users.',         category: 'System',       color: D.purple, bg: D.purpleDim },
-    { id: 'vehicle-summary',      icon: <Car size={22} strokeWidth={1.5} />,          title: 'Vehicle Summary Report',          desc: 'Overview of all fleet vehicles including status, mileage, and assignments.',                  category: 'Fleet',        color: D.indigo, bg: D.indigoDim },
-    { id: 'fuel-report',          icon: <Fuel size={22} strokeWidth={1.5} />,         title: 'Fuel Consumption Report',         desc: 'Detailed fuel usage breakdown per vehicle, driver, and time period.',                          category: 'Fuel',         color: D.purple, bg: D.purpleDim },
-    { id: 'fuel-efficiency',      icon: <TrendingUp size={22} strokeWidth={1.5} />,   title: 'Fuel Efficiency Report',          desc: 'Computed km/L efficiency per vehicle by comparing fill-up records with distance covered.',     category: 'Fuel',         color: D.indigo, bg: D.indigoDim },
-    { id: 'service-report',       icon: <Wrench size={22} strokeWidth={1.5} />,       title: 'Service & Maintenance Report',    desc: 'Summary of all service records, costs, and upcoming maintenance schedules.',                   category: 'Maintenance',  color: D.teal,   bg: D.tealDim   },
-    { id: 'user-report',          icon: <Users size={22} strokeWidth={1.5} />,        title: 'User Activity Report',            desc: 'User registration, role distribution, login history, and account statuses.',                    category: 'Users',        color: D.purple, bg: D.purpleDim },
-    { id: 'cost-report',          icon: <DollarSign size={22} strokeWidth={1.5} />,   title: 'Cost Analysis Report',            desc: 'Full cost breakdown including fuel, maintenance, and operational expenses.',                    category: 'Finance',      color: D.indigo, bg: D.indigoDim },
-    { id: 'driver-performance',   icon: <Users size={22} strokeWidth={1.5} />,        title: 'Driver Performance Report',       desc: 'Rank system drivers by their average fuel efficiency (km/L), liters spent, and logs.',          category: 'Users',        color: D.teal,   bg: D.tealDim   },
-    { id: 'vehicle-documents',    icon: <FileText size={22} strokeWidth={1.5} />,     title: 'Vehicle Documents & Renewals',   desc: 'Track vehicle compliance and renewal dates, including insurance and license validity.',          category: 'Fleet',        color: D.purple, bg: D.purpleDim },
-    { id: 'maintenance-schedule', icon: <Calendar size={22} strokeWidth={1.5} />,     title: 'Scheduled Maintenance Alerts',   desc: 'Lists upcoming and overdue scheduled maintenance records, tracking mileage/date.',              category: 'Maintenance',  color: D.indigo, bg: D.indigoDim },
-    { id: 'vehicle-mileage',      icon: <Gauge size={22} strokeWidth={1.5} />,        title: 'Vehicle Mileage Report',         desc: 'Track initial vs current mileage, total distance driven, and mileage utilisation per vehicle.', category: 'Fleet',        color: D.teal,   bg: D.tealDim   },
+    { id: 'master-report', icon: <Database size={22} strokeWidth={1.5} />, title: 'Comprehensive Master Report', desc: 'Complete export of all system data including vehicles, fuel, services, and users.', category: 'Vehicle', color: D.purple, bg: D.purpleDim },
+    { id: 'vehicle-summary', icon: <Car size={22} strokeWidth={1.5} />, title: 'Vehicle Summary Report', desc: 'Overview of all fleet vehicles including status, mileage, and assignments.', category: 'Vehicle', color: D.indigo, bg: D.indigoDim },
+    { id: 'fuel-report', icon: <Fuel size={22} strokeWidth={1.5} />, title: 'Fuel Consumption Report', desc: 'Detailed fuel usage breakdown per vehicle, driver, and time period.', category: 'Fuel', color: D.purple, bg: D.purpleDim },
+    { id: 'fuel-efficiency', icon: <TrendingUp size={22} strokeWidth={1.5} />, title: 'Fuel Efficiency Report', desc: 'Computed km/L efficiency per vehicle by comparing fill-up records with distance covered.', category: 'Fuel', color: D.indigo, bg: D.indigoDim },
+    { id: 'service-report', icon: <Wrench size={22} strokeWidth={1.5} />, title: 'Service & Maintenance Report', desc: 'Summary of all service records, costs, and upcoming maintenance schedules.', category: 'Maintenance', color: D.teal, bg: D.tealDim },
+    { id: 'user-report', icon: <Users size={22} strokeWidth={1.5} />, title: 'User Activity Report', desc: 'User registration, role distribution, login history, and account statuses.', category: 'Users', color: D.purple, bg: D.purpleDim },
+    { id: 'cost-report', icon: <DollarSign size={22} strokeWidth={1.5} />, title: 'Cost Analysis Report', desc: 'Full cost breakdown including fuel, maintenance, and operational expenses.', category: 'Finance', color: D.indigo, bg: D.indigoDim },
+    { id: 'driver-performance', icon: <Users size={22} strokeWidth={1.5} />, title: 'Driver Performance Report', desc: 'Rank system drivers by their average fuel efficiency (km/L), liters spent, and logs.', category: 'Users', color: D.teal, bg: D.tealDim },
+    { id: 'vehicle-documents', icon: <FileText size={22} strokeWidth={1.5} />, title: 'Vehicle Documents & Renewals', desc: 'Track vehicle compliance and renewal dates, including insurance and license validity.', category: 'Vehicle', color: D.purple, bg: D.purpleDim },
+    { id: 'maintenance-schedule', icon: <Calendar size={22} strokeWidth={1.5} />, title: 'Scheduled Maintenance Alerts', desc: 'Lists upcoming and overdue scheduled maintenance records, tracking mileage/date.', category: 'Maintenance', color: D.indigo, bg: D.indigoDim },
+    { id: 'vehicle-mileage', icon: <Gauge size={22} strokeWidth={1.5} />, title: 'Vehicle Mileage Report', desc: 'Track initial vs current mileage, total distance driven, and mileage utilisation per vehicle.', category: 'Vehicle', color: D.teal, bg: D.tealDim },
   ].filter(r => allowedIds.includes(r.id))
 
   // ── State ────────────────────────────────────────────────────────────────
-  const [generating, setGenerating]         = useState(null)
-  const [error, setError]                   = useState('')
-  const [successMsg, setSuccessMsg]         = useState('')
-  const [recentSearch, setRecentSearch]     = useState('')
-  const [pdfTheme, setPdfTheme]             = useState('indigo')
-  const [reportsList, setReportsList]       = useState(recentReports)
-  const [activeCategory, setActiveCategory] = useState('All')
-  const [sidebarOpen, setSidebarOpen]       = useState(false)
-  const [startDate, setStartDate]           = useState('')
-  const [endDate, setEndDate]               = useState('')
-  const [formatPref, setFormatPref]         = useState('pdf')      // 'pdf' | 'excel' | 'both'
+  const [generating, setGenerating] = useState(null)
+  const [error, setError] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
+  const [recentSearch, setRecentSearch] = useState('')
+  const [pdfTheme, setPdfTheme] = useState('indigo')
+  const [reportsList, setReportsList] = useState(recentReports)
+  const [activeCategory, setActiveCategory] = useState('Vehicle')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [formatPref, setFormatPref] = useState('pdf')      // 'pdf' | 'excel' | 'both'
   const [recentFmtFilter, setRecentFmtFilter] = useState('all')   // 'all' | 'PDF' | 'Excel'
-  const [viewMode, setViewMode]             = useState('grid')     // 'grid' | 'list'
+  const [viewMode, setViewMode] = useState('grid')     // 'grid' | 'list'
+  const [selectedVehicle, setSelectedVehicle] = useState('all')
+  const [vehiclesList, setVehiclesList] = useState([])
+
+  // Custom Vehicle Log Analyzer States
+  const [analyzerVehicle, setAnalyzerVehicle] = useState('')
+  const [analyzerType, setAnalyzerType] = useState('service') // 'service' | 'fuel'
+  const [analyzerStartDate, setAnalyzerStartDate] = useState('')
+  const [analyzerEndDate, setAnalyzerEndDate] = useState('')
+  const [analyzerResults, setAnalyzerResults] = useState({
+    loading: false,
+    loaded: false,
+    stats: null,
+    data: []
+  })
 
   // Live stats
   const [liveStats, setLiveStats] = useState({
@@ -143,15 +158,270 @@ const ReportsPage = () => {
         vehicles: results[0].status === 'fulfilled' ? (results[0].value.data?.data?.length ?? 0) : '—',
         fuelLogs: results[1].status === 'fulfilled' ? (results[1].value.data?.data?.length ?? 0) : '—',
         services: results[2].status === 'fulfilled' ? (results[2].value.data?.data?.length ?? 0) : '—',
-        users:    results[3].status === 'fulfilled' ? (results[3].value.data?.data?.length ?? 0) : '—',
-        loading:  false,
+        users: results[3].status === 'fulfilled' ? (results[3].value.data?.data?.length ?? 0) : '—',
+        loading: false,
       })
+      if (results[0].status === 'fulfilled') {
+        setVehiclesList(results[0].value.data?.data || [])
+      }
     } catch {
       setLiveStats({ vehicles: '—', fuelLogs: '—', services: '—', users: '—', loading: false })
     }
   }, [])
 
   useEffect(() => { fetchLiveStats() }, [fetchLiveStats])
+
+  // ── Custom Vehicle Log Analyzer Logic ────────────────────────────────────
+  const runAnalysis = useCallback(async (vehicleReg, type, start, end) => {
+    if (!vehicleReg) {
+      setAnalyzerResults({ loading: false, loaded: false, stats: null, data: [] })
+      return
+    }
+    setAnalyzerResults(r => ({ ...r, loading: true }))
+    try {
+      if (type === 'service') {
+        const { data: res } = await serviceAPI.getAllServices()
+        let list = res?.data || []
+        list = list.filter(s => s.vehicleRegNumber === vehicleReg)
+        if (start) list = list.filter(s => s.serviceDate && new Date(s.serviceDate) >= new Date(start))
+        if (end) list = list.filter(s => s.serviceDate && new Date(s.serviceDate) <= new Date(end))
+        list.sort((a, b) => new Date(b.serviceDate) - new Date(a.serviceDate))
+        const totalCost = list.reduce((sum, s) => sum + (Number(s.serviceCost) || 0), 0)
+        setAnalyzerResults({
+          loading: false,
+          loaded: true,
+          stats: {
+            totalCount: list.length,
+            totalCost,
+            title: 'Service Summary'
+          },
+          data: list
+        })
+      } else {
+        const { data: res } = await fuelAPI.getAllFuelLogs()
+        let list = res?.data || []
+        list = list.filter(f => f.vehicleRegNumber === vehicleReg)
+        if (start) list = list.filter(f => f.date && new Date(f.date) >= new Date(start))
+        if (end) list = list.filter(f => f.date && new Date(f.date) <= new Date(end))
+        list.sort((a, b) => new Date(b.date) - new Date(a.date))
+        const totalCost = list.reduce((sum, f) => sum + (Number(f.totalCost) || 0), 0)
+        const totalLiters = list.reduce((sum, f) => sum + (Number(f.liters) || 0), 0)
+        setAnalyzerResults({
+          loading: false,
+          loaded: true,
+          stats: {
+            totalCount: list.length,
+            totalCost,
+            totalLiters,
+            title: 'Fuel Summary'
+          },
+          data: list
+        })
+      }
+    } catch (err) {
+      setAnalyzerResults({ loading: false, loaded: false, stats: null, data: [], error: 'Failed to retrieve logs' })
+    }
+  }, [])
+
+  useEffect(() => {
+    runAnalysis(analyzerVehicle, analyzerType, analyzerStartDate, analyzerEndDate)
+  }, [analyzerVehicle, analyzerType, analyzerStartDate, analyzerEndDate, runAnalysis])
+
+  const handleDownloadAnalyzerPDF = () => {
+    if (!analyzerVehicle || !analyzerResults.loaded) return
+    try {
+      const doc = new jsPDF()
+      const headerColor = (pdfThemeColors[pdfTheme] || pdfThemeColors.indigo).primary
+      doc.setFontSize(20); doc.setTextColor(40, 40, 40)
+      doc.text(analyzerType === 'service' ? 'Vehicle Service Records' : 'Vehicle Fuel Records', 14, 22)
+      doc.setFontSize(10); doc.setTextColor(100)
+      doc.text(`Vehicle Registration No: ${analyzerVehicle}`, 14, 28)
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 34)
+      if (analyzerStartDate || analyzerEndDate) {
+        doc.text(`Period: ${analyzerStartDate || 'Beginning'} to ${analyzerEndDate || 'Present'}`, 14, 40)
+      }
+
+      if (analyzerType === 'service') {
+        autoTable(doc, {
+          startY: analyzerStartDate || analyzerEndDate ? 45 : 40,
+          head: [['Date', 'Service Type', 'Classification', 'Cost', 'Odometer', 'Comments']],
+          body: analyzerResults.data.map(s => [
+            s.serviceDate ? new Date(s.serviceDate).toLocaleDateString() : 'N/A',
+            s.serviceType ? String(s.serviceType).replace(/_/g, ' ') : 'N/A',
+            s.serviceClassification || 'N/A',
+            s.serviceCost != null ? `Rs. ${Number(s.serviceCost).toLocaleString()}` : 'Rs. 0',
+            s.odometerReading ? `${s.odometerReading.toLocaleString()} km` : '—',
+            s.description || '—'
+          ]),
+          theme: 'grid', headStyles: { fillColor: headerColor }
+        })
+      } else {
+        autoTable(doc, {
+          startY: analyzerStartDate || analyzerEndDate ? 45 : 40,
+          head: [['Date', 'Driver', 'Fuel Type', 'Liters', 'Price/L', 'Total Cost']],
+          body: analyzerResults.data.map(f => [
+            f.date ? new Date(f.date).toLocaleDateString() : 'N/A',
+            f.driverUsername || 'N/A',
+            f.fuelType ? formatFuelType(f.fuelType) : 'N/A',
+            f.liters != null ? `${f.liters} L` : '0 L',
+            f.pricePerLiter != null ? `Rs. ${f.pricePerLiter}` : '—',
+            f.totalCost != null ? `Rs. ${Number(f.totalCost).toLocaleString()}` : 'Rs. 0'
+          ]),
+          theme: 'grid', headStyles: { fillColor: headerColor }
+        })
+      }
+
+      const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 60
+      doc.setFontSize(12); doc.setTextColor(40, 40, 40)
+      doc.text('Summary Analysis', 14, finalY)
+      doc.setFontSize(10); doc.setTextColor(80)
+      doc.text(`Total Records Found: ${analyzerResults.stats.totalCount}`, 14, finalY + 8)
+      doc.text(`Total Expenditures: Rs. ${analyzerResults.stats.totalCost.toLocaleString()}`, 14, finalY + 14)
+      if (analyzerType === 'fuel' && analyzerResults.stats.totalLiters) {
+        doc.text(`Total Volume Spent: ${analyzerResults.stats.totalLiters.toFixed(1)} Liters`, 14, finalY + 20)
+      }
+
+      doc.save(`V-MAS_${analyzerVehicle}_${analyzerType}_Report.pdf`)
+      setSuccessMsg('PDF Report downloaded successfully!')
+    } catch (err) {
+      setError('Failed to generate PDF download.')
+    }
+  }
+
+  const handleDownloadAnalyzerExcel = async () => {
+    if (!analyzerVehicle || !analyzerResults.loaded) return
+    try {
+      const wb = new ExcelJS.Workbook()
+      const ws = wb.addWorksheet('Vehicle Report')
+
+      const fill = (hex) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + hex } })
+      const border = () => ({
+        top:    { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        left:   { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        right:  { style: 'thin', color: { argb: 'FFE2E8F0' } },
+      })
+
+      ws.mergeCells(1, 1, 1, 6)
+      const titleCell = ws.getCell('A1')
+      titleCell.value = `🚗 V-MAS Fleet - Vehicle Report`
+      titleCell.font = { name: 'Calibri', bold: true, size: 14, color: { argb: 'FFFFFFFF' } }
+      titleCell.fill = fill('1E3A8A')
+      titleCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 }
+      ws.getRow(1).height = 30
+
+      ws.mergeCells(2, 1, 2, 6)
+      const subCell = ws.getCell('A2')
+      subCell.value = `Vehicle: ${analyzerVehicle}  ·  Report: ${analyzerType === 'service' ? 'Service Log' : 'Fuel Log'}  ·  Date: ${new Date().toLocaleString()}`
+      subCell.font = { name: 'Calibri', bold: true, size: 11, color: { argb: 'FFFFFFFF' } }
+      subCell.fill = fill('4338CA')
+      subCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 }
+      ws.getRow(2).height = 24
+
+      ws.addRow([])
+
+      let headers = []
+      let bodyRows = []
+      if (analyzerType === 'service') {
+        headers = ['Date', 'Service Type', 'Classification', 'Cost', 'Odometer Reading', 'Description']
+        bodyRows = analyzerResults.data.map(s => [
+          s.serviceDate ? new Date(s.serviceDate).toLocaleDateString() : 'N/A',
+          s.serviceType ? String(s.serviceType).replace(/_/g, ' ') : 'N/A',
+          s.serviceClassification || 'N/A',
+          s.serviceCost != null ? Number(s.serviceCost) : 0,
+          s.odometerReading || 0,
+          s.description || '—'
+        ])
+      } else {
+        headers = ['Date', 'Driver', 'Fuel Type', 'Liters', 'Price Per Liter', 'Total Cost']
+        bodyRows = analyzerResults.data.map(f => [
+          f.date ? new Date(f.date).toLocaleDateString() : 'N/A',
+          f.driverUsername || 'N/A',
+          f.fuelType ? formatFuelType(f.fuelType) : 'N/A',
+          f.liters != null ? Number(f.liters) : 0,
+          f.pricePerLiter != null ? Number(f.pricePerLiter) : 0,
+          f.totalCost != null ? Number(f.totalCost) : 0
+        ])
+      }
+
+      const headerRow = ws.addRow(headers)
+      headerRow.height = 24
+      headerRow.eachCell((cell) => {
+        cell.font = { name: 'Calibri', bold: true, size: 10, color: { argb: 'FFFFFFFF' } }
+        cell.fill = fill('1E3A8A')
+        cell.alignment = { horizontal: 'center', vertical: 'middle' }
+        cell.border = border()
+      })
+
+      bodyRows.forEach((rowVal, rIdx) => {
+        const r = ws.addRow(rowVal)
+        r.height = 20
+        r.eachCell((cell, cIdx) => {
+          cell.font = { name: 'Calibri', size: 10 }
+          cell.border = border()
+          
+          if (analyzerType === 'service' && cIdx === 4) {
+            cell.numFmt = '"Rs. "#,##0'
+            cell.alignment = { horizontal: 'right', vertical: 'middle' }
+          } else if (analyzerType === 'fuel' && (cIdx === 5 || cIdx === 6)) {
+            cell.numFmt = '"Rs. "#,##0'
+            cell.alignment = { horizontal: 'right', vertical: 'middle' }
+          } else if (analyzerType === 'fuel' && cIdx === 4) {
+            cell.numFmt = '0.0" L"'
+            cell.alignment = { horizontal: 'right', vertical: 'middle' }
+          } else {
+            cell.alignment = { horizontal: 'center', vertical: 'middle' }
+          }
+
+          if (rIdx % 2 === 1) {
+            cell.fill = fill('F8FAFC')
+          }
+        })
+      })
+
+      ws.addRow([])
+      const summaryStartRow = ws.rowCount + 1
+      ws.mergeCells(summaryStartRow, 1, summaryStartRow, 2)
+      ws.getCell(`A${summaryStartRow}`).value = 'Summary Metrics'
+      ws.getCell(`A${summaryStartRow}`).font = { name: 'Calibri', bold: true, size: 11 }
+      ws.getRow(summaryStartRow).height = 20
+
+      const rTotalCount = ws.addRow(['Total Records', analyzerResults.stats.totalCount])
+      rTotalCount.getCell(1).font = { name: 'Calibri', bold: true }
+      rTotalCount.getCell(2).font = { name: 'Calibri' }
+
+      const rTotalCost = ws.addRow(['Total Cost', analyzerResults.stats.totalCost])
+      rTotalCost.getCell(1).font = { name: 'Calibri', bold: true }
+      rTotalCost.getCell(2).font = { name: 'Calibri', bold: true }
+      rTotalCost.getCell(2).numFmt = '"Rs. "#,##0'
+
+      if (analyzerType === 'fuel' && analyzerResults.stats.totalLiters) {
+        const rTotalLiters = ws.addRow(['Total Liters', analyzerResults.stats.totalLiters])
+        rTotalLiters.getCell(1).font = { name: 'Calibri', bold: true }
+        rTotalLiters.getCell(2).font = { name: 'Calibri' }
+        rTotalLiters.getCell(2).numFmt = '0.0" L"'
+      }
+
+      ws.columns.forEach((col) => {
+        let maxLen = 12
+        col.eachCell({ includeEmpty: true }, (cell) => {
+          const len = cell.value ? String(cell.value).length : 0
+          if (len > maxLen) maxLen = len
+        })
+        col.width = Math.min(maxLen + 4, 30)
+      })
+
+      const buf = await wb.xlsx.writeBuffer()
+      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = `V-MAS_${analyzerVehicle}_${analyzerType}_Report.xlsx`
+      link.click()
+      setSuccessMsg('Excel Report downloaded successfully!')
+    } catch (err) {
+      setError('Failed to generate Excel download.')
+    }
+  }
 
   // ── Lock body scroll when preview modal is open ──────────────────────────
   useEffect(() => {
@@ -167,17 +437,17 @@ const ReportsPage = () => {
   const getDataBadge = (id) => {
     if (liveStats.loading) return null
     const map = {
-      'master-report':        `${liveStats.vehicles}v · ${liveStats.fuelLogs}f · ${liveStats.services}s`,
-      'vehicle-summary':      `${liveStats.vehicles} vehicles`,
-      'fuel-report':          `${liveStats.fuelLogs} logs`,
-      'fuel-efficiency':      `${liveStats.vehicles} vehicles`,
-      'service-report':       `${liveStats.services} records`,
-      'user-report':          `${liveStats.users} users`,
-      'cost-report':          `${liveStats.fuelLogs}f + ${liveStats.services}s`,
-      'driver-performance':   `${liveStats.fuelLogs} logs`,
-      'vehicle-documents':    `${liveStats.vehicles} vehicles`,
+      'master-report': `${liveStats.vehicles}v · ${liveStats.fuelLogs}f · ${liveStats.services}s`,
+      'vehicle-summary': `${liveStats.vehicles} vehicles`,
+      'fuel-report': `${liveStats.fuelLogs} logs`,
+      'fuel-efficiency': `${liveStats.vehicles} vehicles`,
+      'service-report': `${liveStats.services} records`,
+      'user-report': `${liveStats.users} users`,
+      'cost-report': `${liveStats.fuelLogs}f + ${liveStats.services}s`,
+      'driver-performance': `${liveStats.fuelLogs} logs`,
+      'vehicle-documents': `${liveStats.vehicles} vehicles`,
       'maintenance-schedule': `${liveStats.services} records`,
-      'fleet-tracking':       `${liveStats.vehicles} vehicles`,
+      'fleet-tracking': `${liveStats.vehicles} vehicles`,
     }
     return map[id] || null
   }
@@ -192,17 +462,27 @@ const ReportsPage = () => {
 
       if (id === 'vehicle-summary' || id === 'master-report' || id === 'vehicle-documents' || id === 'fleet-tracking') {
         const { data } = await vehicleAPI.getAllVehicles()
-        const vehicles = (data?.data || []).slice(0, 8)
+        let vehicles = data?.data || []
+        if (selectedVehicle !== 'all') {
+          vehicles = vehicles.filter(v => v.registrationNo === selectedVehicle)
+        }
+        const previewVehicles = vehicles.slice(0, 8)
         columns = ['Reg No', 'Manufacturer', 'Model', 'Status', 'Mileage', 'Fuel Type']
-        rows = vehicles.map(v => [
+        rows = previewVehicles.map(v => [
           v.registrationNo || '—', v.manufacturer || '—', v.model || '—',
           v.status || '—', v.currentMileageKm ? `${v.currentMileageKm} km` : '0 km', v.fuelType ? formatFuelType(v.fuelType) : '—'
         ])
       } else if (id === 'fuel-report' || id === 'driver-performance' || id === 'fuel-efficiency') {
         const { data } = await fuelAPI.getAllFuelLogs()
-        const logs = (data?.data || []).slice(0, 8)
+        let logs = data?.data || []
+        if (selectedVehicle !== 'all') {
+          logs = logs.filter(f => f.vehicleRegNumber === selectedVehicle)
+        }
+        if (startDate) logs = logs.filter(f => f.date && new Date(f.date) >= new Date(startDate))
+        if (endDate) logs = logs.filter(f => f.date && new Date(f.date) <= new Date(endDate))
+        const previewLogs = logs.slice(0, 8)
         columns = ['Date', 'Vehicle', 'Driver', 'Type', 'Liters', 'Total Cost']
-        rows = logs.map(f => [
+        rows = previewLogs.map(f => [
           f.date ? new Date(f.date).toLocaleDateString() : '—',
           f.vehicleRegNumber || '—', f.driverUsername || '—', f.fuelType ? formatFuelType(f.fuelType) : '—',
           f.liters ? `${Number(f.liters).toFixed(1)} L` : '0 L',
@@ -210,9 +490,15 @@ const ReportsPage = () => {
         ])
       } else if (id === 'service-report' || id === 'maintenance-schedule') {
         const { data } = await serviceAPI.getAllServices()
-        const svcs = (data?.data || []).slice(0, 8)
+        let svcs = data?.data || []
+        if (selectedVehicle !== 'all') {
+          svcs = svcs.filter(s => s.vehicleRegNumber === selectedVehicle)
+        }
+        if (startDate) svcs = svcs.filter(s => s.serviceDate && new Date(s.serviceDate) >= new Date(startDate))
+        if (endDate) svcs = svcs.filter(s => s.serviceDate && new Date(s.serviceDate) <= new Date(endDate))
+        const previewSvcs = svcs.slice(0, 8)
         columns = ['Date', 'Vehicle Reg', 'Service Type', 'Classification', 'Cost']
-        rows = svcs.map(s => [
+        rows = previewSvcs.map(s => [
           s.serviceDate ? new Date(s.serviceDate).toLocaleDateString() : '—',
           s.vehicleRegNumber || '—',
           s.serviceType ? String(s.serviceType).replace(/_/g, ' ') : '—',
@@ -226,15 +512,19 @@ const ReportsPage = () => {
         rows = users.map(u => [u.userName || '—', u.email || '—', u.role || '—', u.accountStatus || 'ACTIVE'])
       } else if (id === 'vehicle-mileage') {
         const { data } = await vehicleAPI.getAllVehicles()
-        const vehicles = (data?.data || []).slice(0, 8)
+        let vehicles = data?.data || []
+        if (selectedVehicle !== 'all') {
+          vehicles = vehicles.filter(v => v.registrationNo === selectedVehicle)
+        }
         columns = ['Reg No', 'Vehicle', 'Type', 'Status', 'Initial km', 'Current km', 'Distance Driven', 'Mileage Level']
         rows = [...vehicles]
           .sort((a, b) => (b.currentMileageKm || 0) - (a.currentMileageKm || 0))
+          .slice(0, 8)
           .map(v => {
             const initial = v.initialMileageKm != null ? v.initialMileageKm : 0
             const current = v.currentMileageKm != null ? v.currentMileageKm : 0
-            const driven  = Math.max(0, current - initial)
-            const level   = current > 100000 ? 'High' : current > 50000 ? 'Moderate' : 'Low'
+            const driven = Math.max(0, current - initial)
+            const level = current > 100000 ? 'High' : current > 50000 ? 'Moderate' : 'Low'
             return [
               v.registrationNo || '—',
               `${v.manufacturer || ''} ${v.model || ''}`.trim() || '—',
@@ -248,8 +538,20 @@ const ReportsPage = () => {
           })
       } else if (id === 'cost-report') {
         const [fRes, sRes] = await Promise.all([fuelAPI.getAllFuelLogs(), serviceAPI.getAllServices()])
-        const fuelLogs = fRes.data?.data || []
-        const services = sRes.data?.data || []
+        let fuelLogs = fRes.data?.data || []
+        let services = sRes.data?.data || []
+        if (selectedVehicle !== 'all') {
+          fuelLogs = fuelLogs.filter(f => f.vehicleRegNumber === selectedVehicle)
+          services = services.filter(s => s.vehicleRegNumber === selectedVehicle)
+        }
+        if (startDate) {
+          fuelLogs = fuelLogs.filter(f => f.date && new Date(f.date) >= new Date(startDate))
+          services = services.filter(s => s.serviceDate && new Date(s.serviceDate) >= new Date(startDate))
+        }
+        if (endDate) {
+          fuelLogs = fuelLogs.filter(f => f.date && new Date(f.date) <= new Date(endDate))
+          services = services.filter(s => s.serviceDate && new Date(s.serviceDate) <= new Date(endDate))
+        }
         const totalFuelCost = fuelLogs.reduce((s, f) => s + (Number(f.totalCost) || 0), 0)
         const totalServiceCost = services.reduce((s, svc) => s + (Number(svc.serviceCost) || 0), 0)
         columns = ['Cost Category', 'Amount']
@@ -273,17 +575,17 @@ const ReportsPage = () => {
 
   // ── PDF theme config ─────────────────────────────────────────────────────
   const pdfThemeColors = {
-    indigo:   { primary: [37, 99, 235] },
-    emerald:  { primary: [5, 150, 105] },
-    crimson:  { primary: [220, 38, 38] },
+    indigo: { primary: [37, 99, 235] },
+    emerald: { primary: [5, 150, 105] },
+    crimson: { primary: [220, 38, 38] },
     charcoal: { primary: [55, 65, 81] }
   }
 
   // ── Filters ──────────────────────────────────────────────────────────────
   const filteredRecentReports = reportsList.filter(r => {
     const matchSearch = r.name.toLowerCase().includes(recentSearch.toLowerCase()) ||
-                        r.format.toLowerCase().includes(recentSearch.toLowerCase())
-    const matchFmt    = recentFmtFilter === 'all' || r.format === recentFmtFilter
+      r.format.toLowerCase().includes(recentSearch.toLowerCase())
+    const matchFmt = recentFmtFilter === 'all' || r.format === recentFmtFilter
     return matchSearch && matchFmt
   })
 
@@ -318,13 +620,16 @@ const ReportsPage = () => {
       }
 
       if (id === 'vehicle-summary' || id === 'master-report') {
-        if (id === 'vehicle-summary') addHeader('Vehicle Summary Report')
+        if (id === 'vehicle-summary') {
+          addHeader(selectedVehicle !== 'all' ? `Vehicle Summary Report (${selectedVehicle})` : 'Vehicle Summary Report')
+        }
         if (id === 'master-report') {
           doc.setFontSize(14)
           doc.text('Vehicle Details', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
         }
         const { data: vRes } = await vehicleAPI.getAllVehicles()
-        const vehData = vRes.data || []
+        let vehData = vRes.data || []
+        if (selectedVehicle !== 'all') vehData = vehData.filter(v => v.registrationNo === selectedVehicle)
         autoTable(doc, {
           startY: id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 45) : 40,
           head: [['Reg No', 'Manufacturer', 'Model', 'Status', 'Mileage', 'Fuel Type', 'Capacity']],
@@ -338,15 +643,18 @@ const ReportsPage = () => {
       }
 
       if (id === 'fuel-report' || id === 'master-report') {
-        if (id === 'fuel-report') addHeader('Fuel Consumption Report')
+        if (id === 'fuel-report') {
+          addHeader(selectedVehicle !== 'all' ? `Fuel Consumption Report (${selectedVehicle})` : 'Fuel Consumption Report')
+        }
         if (id === 'master-report') {
           doc.setFontSize(14)
           doc.text('Fuel Records', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
         }
         const { data: fuelRes } = await fuelAPI.getAllFuelLogs()
         let filteredFuel = fuelRes.data || []
+        if (selectedVehicle !== 'all') filteredFuel = filteredFuel.filter(f => f.vehicleRegNumber === selectedVehicle)
         if (startDate) filteredFuel = filteredFuel.filter(f => f.date && new Date(f.date) >= new Date(startDate))
-        if (endDate)   filteredFuel = filteredFuel.filter(f => f.date && new Date(f.date) <= new Date(endDate))
+        if (endDate) filteredFuel = filteredFuel.filter(f => f.date && new Date(f.date) <= new Date(endDate))
         autoTable(doc, {
           startY: id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 45) : 40,
           head: [['Date', 'Vehicle', 'Driver', 'Type', 'Liters', 'Total Cost']],
@@ -361,15 +669,18 @@ const ReportsPage = () => {
       }
 
       if (id === 'service-report' || id === 'master-report') {
-        if (id === 'service-report') addHeader('Service & Maintenance Report')
+        if (id === 'service-report') {
+          addHeader(selectedVehicle !== 'all' ? `Service & Maintenance Report (${selectedVehicle})` : 'Service & Maintenance Report')
+        }
         if (id === 'master-report') {
           doc.setFontSize(14)
           doc.text('Service & Maintenance Records', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
         }
         const { data: svcRes } = await serviceAPI.getAllServices()
         let filteredServices = svcRes.data || []
+        if (selectedVehicle !== 'all') filteredServices = filteredServices.filter(s => s.vehicleRegNumber === selectedVehicle)
         if (startDate) filteredServices = filteredServices.filter(s => s.serviceDate && new Date(s.serviceDate) >= new Date(startDate))
-        if (endDate)   filteredServices = filteredServices.filter(s => s.serviceDate && new Date(s.serviceDate) <= new Date(endDate))
+        if (endDate) filteredServices = filteredServices.filter(s => s.serviceDate && new Date(s.serviceDate) <= new Date(endDate))
         autoTable(doc, {
           startY: id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 45) : 40,
           head: [['Date', 'Vehicle Reg', 'Service Type', 'Classification', 'Cost']],
@@ -400,7 +711,9 @@ const ReportsPage = () => {
       }
 
       if (id === 'fuel-efficiency' || id === 'master-report') {
-        if (id === 'fuel-efficiency') addHeader('Fuel Efficiency Report')
+        if (id === 'fuel-efficiency') {
+          addHeader(selectedVehicle !== 'all' ? `Fuel Efficiency Report (${selectedVehicle})` : 'Fuel Efficiency Report')
+        }
         if (id === 'master-report') {
           doc.setFontSize(14); doc.setTextColor(40, 40, 40)
           doc.text('Fuel Efficiency', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
@@ -410,15 +723,19 @@ const ReportsPage = () => {
         let y = id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 25 : 50) : 38
         doc.setFontSize(11); doc.setTextColor(60, 60, 60)
         doc.text('Fleet Summary', 14, y); y += 7
+        
+        let vehicles = report.vehicles || []
+        if (selectedVehicle !== 'all') vehicles = vehicles.filter(v => v.vehicleRegNumber === selectedVehicle)
+
         autoTable(doc, {
           startY: y,
           head: [['Metric', 'Value']],
           body: [
             ['Fleet Average Efficiency', report.fleetAverageEfficiency != null ? `${Number(report.fleetAverageEfficiency).toFixed(2)} km/L` : 'Insufficient Data'],
-            ['Total Vehicles', String(report.totalVehicles ?? 0)],
-            ['Good Efficiency (≥10 km/L)', String(report.goodEfficiencyCount ?? 0)],
-            ['Moderate (5–9.99 km/L)', String(report.moderateEfficiencyCount ?? 0)],
-            ['Low Efficiency (<5 km/L)', String(report.lowEfficiencyCount ?? 0)],
+            ['Total Vehicles', String(selectedVehicle !== 'all' ? vehicles.length : (report.totalVehicles ?? 0))],
+            ['Good Efficiency (≥10 km/L)', String(selectedVehicle !== 'all' ? vehicles.filter(v => v.averageEfficiency >= 10).length : (report.goodEfficiencyCount ?? 0))],
+            ['Moderate (5–9.99 km/L)', String(selectedVehicle !== 'all' ? vehicles.filter(v => v.averageEfficiency >= 5 && v.averageEfficiency < 10).length : (report.moderateEfficiencyCount ?? 0))],
+            ['Low Efficiency (<5 km/L)', String(selectedVehicle !== 'all' ? vehicles.filter(v => v.averageEfficiency < 5).length : (report.lowEfficiencyCount ?? 0))],
           ],
           theme: 'grid', headStyles: { fillColor: headerColor },
           columnStyles: { 0: { fontStyle: 'bold', cellWidth: 90 }, 1: { cellWidth: 60 } },
@@ -427,19 +744,18 @@ const ReportsPage = () => {
         const afterSummary = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : y + 40
         doc.setFontSize(11); doc.setTextColor(60, 60, 60)
         doc.text('Per-Vehicle Efficiency Breakdown', 14, afterSummary)
-        const vehicles = report.vehicles || []
         autoTable(doc, {
           startY: afterSummary + 5,
           head: [['Reg No', 'Latest km/L', 'Avg km/L', 'Status', 'Total Liters', 'Total Cost', 'Cost/km', 'Fill-ups']],
           body: vehicles.map(v => [
             v.vehicleRegNumber || 'N/A',
-            v.latestEfficiency  != null ? `${Number(v.latestEfficiency).toFixed(2)} km/L`  : 'N/A',
+            v.latestEfficiency != null ? `${Number(v.latestEfficiency).toFixed(2)} km/L` : 'N/A',
             v.averageEfficiency != null ? `${Number(v.averageEfficiency).toFixed(2)} km/L` : 'N/A',
             v.efficiencyStatus || 'N/A',
-            v.totalLiters       != null ? `${Number(v.totalLiters).toFixed(1)} L`          : 'N/A',
-            v.totalCost         != null ? `Rs. ${Number(v.totalCost).toLocaleString()}`     : 'N/A',
-            v.costPerKm         != null ? `Rs. ${Number(v.costPerKm).toFixed(2)}/km`        : 'N/A',
-            v.fillUps           != null ? String(v.fillUps.length)                          : '0',
+            v.totalLiters != null ? `${Number(v.totalLiters).toFixed(1)} L` : 'N/A',
+            v.totalCost != null ? `Rs. ${Number(v.totalCost).toLocaleString()}` : 'N/A',
+            v.costPerKm != null ? `Rs. ${Number(v.costPerKm).toFixed(2)}/km` : 'N/A',
+            v.fillUps != null ? String(v.fillUps.length) : '0',
           ]),
           theme: 'striped', headStyles: { fillColor: headerColor, fontSize: 8 },
           bodyStyles: { fontSize: 8 }, margin: { left: 14, right: 14 },
@@ -447,15 +763,17 @@ const ReportsPage = () => {
             if (data.section === 'body' && data.column.index === 3) {
               const s = data.cell.raw
               if (s === 'Low Efficiency') data.cell.styles.textColor = [220, 38, 38]
-              else if (s === 'Moderate')  data.cell.styles.textColor = [180, 120, 0]
-              else if (s === 'Good')      data.cell.styles.textColor = [5, 150, 105]
+              else if (s === 'Moderate') data.cell.styles.textColor = [180, 120, 0]
+              else if (s === 'Good') data.cell.styles.textColor = [5, 150, 105]
             }
           }
         })
       }
 
       if (id === 'cost-report' || id === 'master-report') {
-        if (id === 'cost-report') addHeader('Cost Analysis Report')
+        if (id === 'cost-report') {
+          addHeader(selectedVehicle !== 'all' ? `Cost Analysis Report (${selectedVehicle})` : 'Cost Analysis Report')
+        }
         if (id === 'master-report') {
           doc.setFontSize(14); doc.setTextColor(40, 40, 40)
           doc.text('Cost Analysis', 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40)
@@ -464,9 +782,13 @@ const ReportsPage = () => {
         const { data: servicesApiRes } = await serviceAPI.getAllServices()
         let fuelLogs = fuelLogsApiRes.data || []
         let services = servicesApiRes.data || []
+        if (selectedVehicle !== 'all') {
+          fuelLogs = fuelLogs.filter(f => f.vehicleRegNumber === selectedVehicle)
+          services = services.filter(s => s.vehicleRegNumber === selectedVehicle)
+        }
         if (startDate) { fuelLogs = fuelLogs.filter(f => f.date && new Date(f.date) >= new Date(startDate)); services = services.filter(s => s.serviceDate && new Date(s.serviceDate) >= new Date(startDate)) }
-        if (endDate)   { fuelLogs = fuelLogs.filter(f => f.date && new Date(f.date) <= new Date(endDate));   services = services.filter(s => s.serviceDate && new Date(s.serviceDate) <= new Date(endDate)) }
-        const totalFuelCost    = fuelLogs.reduce((sum, f) => sum + (Number(f.totalCost) || 0), 0)
+        if (endDate) { fuelLogs = fuelLogs.filter(f => f.date && new Date(f.date) <= new Date(endDate)); services = services.filter(s => s.serviceDate && new Date(s.serviceDate) <= new Date(endDate)) }
+        const totalFuelCost = fuelLogs.reduce((sum, f) => sum + (Number(f.totalCost) || 0), 0)
         const totalServiceCost = services.reduce((sum, s) => sum + (Number(s.serviceCost) || 0), 0)
         const grandTotal = totalFuelCost + totalServiceCost
         let y = id === 'master-report' ? (doc.lastAutoTable ? doc.lastAutoTable.finalY + 25 : 50) : 38
@@ -556,7 +878,7 @@ const ReportsPage = () => {
         }
         const { data: vRes } = await vehicleAPI.getAllVehicles()
         const vehicles = vRes.data || []
-        const today = new Date(); today.setHours(0,0,0,0)
+        const today = new Date(); today.setHours(0, 0, 0, 0)
         const tableData = vehicles.map(v => {
           const insExp = v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate) : null
           const licExp = v.licenseExpiryDate ? new Date(v.licenseExpiryDate) : null
@@ -568,8 +890,8 @@ const ReportsPage = () => {
           else if (minDays <= 30) { warningText = `Expiring soon (${minDays} days left)`; statusLevel = 'WARNING' }
           else { warningText = `Valid (${minDays} days left)`; statusLevel = 'OK' }
           return [v.registrationNo || 'N/A', `${v.manufacturer || ''} ${v.model || ''}`.trim() || 'N/A', v.status || 'N/A',
-            v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate).toLocaleDateString() : 'N/A',
-            v.licenseExpiryDate ? new Date(v.licenseExpiryDate).toLocaleDateString() : 'N/A',
+          v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate).toLocaleDateString() : 'N/A',
+          v.licenseExpiryDate ? new Date(v.licenseExpiryDate).toLocaleDateString() : 'N/A',
             warningText, statusLevel]
         })
         autoTable(doc, {
@@ -599,10 +921,10 @@ const ReportsPage = () => {
         const getTableStatusLocal = (s) => {
           if (!s) return 'Open'
           const today = new Date(); today.setHours(0, 0, 0, 0)
-          const isCompleted = s.serviceDate && (() => { const d = new Date(s.serviceDate); d.setHours(0,0,0,0); return d <= today })()
+          const isCompleted = s.serviceDate && (() => { const d = new Date(s.serviceDate); d.setHours(0, 0, 0, 0); return d <= today })()
           if (isCompleted) return 'Completed'
           if (!s.serviceDate) return 'Open'
-          const targetDate = new Date(s.serviceDate); targetDate.setHours(0,0,0,0)
+          const targetDate = new Date(s.serviceDate); targetDate.setHours(0, 0, 0, 0)
           if (targetDate < today) return 'Overdue'
           const diffDays = Math.ceil((targetDate - today) / 86400000)
           return diffDays <= 5 ? 'In Progress' : 'Open'
@@ -637,10 +959,10 @@ const ReportsPage = () => {
         const { data: vRes } = await vehicleAPI.getAllVehicles()
         const vehicles = vRes.data || []
         const liveTrackingData = [
-          { reg: 'WP-CAB-1234', driver: 'Kamal Perera',   status: 'MOVING', speed: 58,  location: 'Colombo 07, Rosmead Pl',  lastUpdate: '2 min ago' },
-          { reg: 'WP-CAB-5678', driver: 'Nimal Silva',    status: 'IDLE',   speed: 0,   location: 'Nugegoda, High Level Rd', lastUpdate: '5 min ago' },
-          { reg: 'SP-7890',     driver: '—',              status: 'PARKED', speed: 0,   location: 'Kandy City Centre',        lastUpdate: '1 hr ago'  },
-          { reg: 'WP-CAB-9012', driver: 'Sunil Fernando', status: 'MOVING', speed: 72,  location: 'Galle Road, Dehiwala',    lastUpdate: '1 min ago' },
+          { reg: 'WP-CAB-1234', driver: 'Kamal Perera', status: 'MOVING', speed: 58, location: 'Colombo 07, Rosmead Pl', lastUpdate: '2 min ago' },
+          { reg: 'WP-CAB-5678', driver: 'Nimal Silva', status: 'IDLE', speed: 0, location: 'Nugegoda, High Level Rd', lastUpdate: '5 min ago' },
+          { reg: 'SP-7890', driver: '—', status: 'PARKED', speed: 0, location: 'Kandy City Centre', lastUpdate: '1 hr ago' },
+          { reg: 'WP-CAB-9012', driver: 'Sunil Fernando', status: 'MOVING', speed: 72, location: 'Galle Road, Dehiwala', lastUpdate: '1 min ago' },
         ]
         const trackedRegs = new Set(liveTrackingData.map(d => d.reg.toLowerCase()))
         const trackingRows = [...liveTrackingData.map(d => [d.reg, d.driver, d.status, d.location, d.speed > 0 ? `${d.speed} km/h` : 'Stationary', d.lastUpdate])]
@@ -669,10 +991,10 @@ const ReportsPage = () => {
         const vehicles = vRes.data || []
 
         // ── Fleet mileage summary block ─────────────────────────────────────
-        const totalKm     = vehicles.reduce((s, v) => s + (v.currentMileageKm || 0), 0)
-        const avgKm       = vehicles.length > 0 ? Math.round(totalKm / vehicles.length) : 0
+        const totalKm = vehicles.reduce((s, v) => s + (v.currentMileageKm || 0), 0)
+        const avgKm = vehicles.length > 0 ? Math.round(totalKm / vehicles.length) : 0
         const highMileage = vehicles.filter(v => (v.currentMileageKm || 0) > 100000).length
-        const lowMileage  = vehicles.filter(v => (v.currentMileageKm || 0) <= 30000).length
+        const lowMileage = vehicles.filter(v => (v.currentMileageKm || 0) <= 30000).length
 
         let y = 38
         doc.setFontSize(11); doc.setTextColor(60, 60, 60)
@@ -682,11 +1004,11 @@ const ReportsPage = () => {
           startY: y,
           head: [['Metric', 'Value']],
           body: [
-            ['Total Vehicles',             String(vehicles.length)],
-            ['Total Fleet Distance (km)',   `${totalKm.toLocaleString()} km`],
+            ['Total Vehicles', String(vehicles.length)],
+            ['Total Fleet Distance (km)', `${totalKm.toLocaleString()} km`],
             ['Average Mileage per Vehicle', `${avgKm.toLocaleString()} km`],
             ['High Mileage Vehicles (>100,000 km)', String(highMileage)],
-            ['Low Mileage Vehicles (≤30,000 km)',   String(lowMileage)],
+            ['Low Mileage Vehicles (≤30,000 km)', String(lowMileage)],
           ],
           theme: 'grid',
           headStyles: { fillColor: headerColor },
@@ -702,10 +1024,10 @@ const ReportsPage = () => {
         const mileageRows = [...vehicles]
           .sort((a, b) => (b.currentMileageKm || 0) - (a.currentMileageKm || 0))
           .map((v, rank) => {
-            const initial  = v.initialMileageKm != null ? v.initialMileageKm : 0
-            const current  = v.currentMileageKm != null ? v.currentMileageKm : 0
-            const driven   = Math.max(0, current - initial)
-            const status   = current > 100000 ? 'High' : current > 50000 ? 'Moderate' : 'Low'
+            const initial = v.initialMileageKm != null ? v.initialMileageKm : 0
+            const current = v.currentMileageKm != null ? v.currentMileageKm : 0
+            const driven = Math.max(0, current - initial)
+            const status = current > 100000 ? 'High' : current > 50000 ? 'Moderate' : 'Low'
             return [
               String(rank + 1),
               v.registrationNo || 'N/A',
@@ -731,7 +1053,7 @@ const ReportsPage = () => {
           didParseCell: (data) => {
             if (data.section === 'body' && data.column.index === 8) {
               const level = data.cell.raw
-              if (level === 'High')     data.cell.styles.textColor = [220, 38, 38]
+              if (level === 'High') data.cell.styles.textColor = [220, 38, 38]
               else if (level === 'Moderate') data.cell.styles.textColor = [180, 120, 0]
               else if (level === 'Low') data.cell.styles.textColor = [5, 150, 105]
             }
@@ -760,16 +1082,16 @@ const ReportsPage = () => {
     setError(''); setSuccessMsg(''); setGenerating(id)
     try {
       let vehicles = [], fuelLogs = [], services = [], users = [], effReport = null
-      const needsVehicles   = ['vehicle-summary', 'vehicle-documents', 'fleet-tracking', 'vehicle-mileage', 'master-report'].includes(id)
-      const needsFuel       = ['fuel-report', 'fuel-efficiency', 'cost-report', 'driver-performance', 'master-report'].includes(id)
-      const needsServices   = ['service-report', 'cost-report', 'maintenance-schedule', 'master-report'].includes(id)
-      const needsUsers      = ['user-report', 'master-report'].includes(id)
+      const needsVehicles = ['vehicle-summary', 'vehicle-documents', 'fleet-tracking', 'vehicle-mileage', 'master-report'].includes(id)
+      const needsFuel = ['fuel-report', 'fuel-efficiency', 'cost-report', 'driver-performance', 'master-report'].includes(id)
+      const needsServices = ['service-report', 'cost-report', 'maintenance-schedule', 'master-report'].includes(id)
+      const needsUsers = ['user-report', 'master-report'].includes(id)
       const needsEfficiency = ['fuel-efficiency', 'master-report'].includes(id)
       const fetches = []
-      if (needsVehicles)   fetches.push(vehicleAPI.getAllVehicles().then(r => { vehicles  = r.data?.data || [] }))
-      if (needsFuel)       fetches.push(fuelAPI.getAllFuelLogs().then(r    => { fuelLogs  = r.data?.data || [] }))
-      if (needsServices)   fetches.push(serviceAPI.getAllServices().then(r => { services  = r.data?.data || [] }))
-      if (needsUsers)      fetches.push(userAPI.getAllUsers().then(r       => { users     = r.data?.data || [] }))
+      if (needsVehicles) fetches.push(vehicleAPI.getAllVehicles().then(r => { vehicles = r.data?.data || [] }))
+      if (needsFuel) fetches.push(fuelAPI.getAllFuelLogs().then(r => { fuelLogs = r.data?.data || [] }))
+      if (needsServices) fetches.push(serviceAPI.getAllServices().then(r => { services = r.data?.data || [] }))
+      if (needsUsers) fetches.push(userAPI.getAllUsers().then(r => { users = r.data?.data || [] }))
       if (needsEfficiency) fetches.push(fuelAPI.getFuelEfficiencyReport().then(r => { effReport = r.data?.data || r.data || null }))
       await Promise.all(fetches)
       const filename = await generateStyledExcel(id, { vehicles, fuelLogs, services, users, effReport, startDate, endDate })
@@ -828,13 +1150,13 @@ const ReportsPage = () => {
 
 
   // ── Categories ───────────────────────────────────────────────────────────
-  const categoryList = ['All', ...Array.from(new Set(reportTypes.map(r => r.category)))]
+  const categoryList = ['All', 'Vehicle', 'Users', 'Maintenance', 'Fuel', 'Finance']
 
   // ── Count by category ────────────────────────────────────────────────────
   const countByCategory = {}
   reportTypes.forEach(r => { countByCategory[r.category] = (countByCategory[r.category] || 0) + 1 })
 
-  const pdfCount   = reportsList.filter(r => r.format === 'PDF').length
+  const pdfCount = reportsList.filter(r => r.format === 'PDF').length
   const excelCount = reportsList.filter(r => r.format === 'Excel').length
 
   // ════════════════════════════════════════════════════════════════════
@@ -852,8 +1174,8 @@ const ReportsPage = () => {
         @keyframes pulse-ring { 0%,100% { box-shadow:0 0 0 0 rgba(37,99,235,0.2); } 50% { box-shadow:0 0 0 8px rgba(37,99,235,0); } }
         @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
         .animate-spin { animation: spin 1s linear infinite; }
-        .rpt-card { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
-        .rpt-card:hover { transform: translateY(-5px); border-color: ${D.borderHi} !important; box-shadow: 0 20px 50px rgba(0,0,0,0.3) !important; }
+        .rpt-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .rpt-card:hover { transform: translateY(-8px); border-color: rgba(99, 102, 241, 0.35) !important; box-shadow: 0 12px 40px rgba(0,0,0,0.35), 0 0 20px rgba(99, 102, 241, 0.1) !important; }
         .rpt-tab { transition: all 0.22s cubic-bezier(0.4,0,0.2,1); }
         .rpt-tab:hover { transform: translateY(-1px); }
         .rpt-btn { transition: all 0.18s ease; }
@@ -979,8 +1301,8 @@ const ReportsPage = () => {
           }}>
             {/* Decorative orbs */}
             {[['top', '-40px', '240px', '240px', 'rgba(99,179,237,0.06)'],
-              ['bottom', 'auto', '-30px', '180px', 'rgba(255,255,255,0.03)'],
-              ['top',    '40%',  '70%',  '120px', 'rgba(255,255,255,0.025)']
+            ['bottom', 'auto', '-30px', '180px', 'rgba(255,255,255,0.03)'],
+            ['top', '40%', '70%', '120px', 'rgba(255,255,255,0.025)']
             ].map(([yKey, yVal, xVal, size, bg], i) => (
               <div key={i} style={{
                 position: 'absolute', [yKey]: yVal, left: xVal, width: size, height: size,
@@ -1056,110 +1378,8 @@ const ReportsPage = () => {
           )}
 
 
-          {/* ═══ Config Panel ══════════════════════════════════════════════ */}
-          <div style={{
-            background: D.surface, borderRadius: 22, border: `1.5px solid ${D.border}`,
-            padding: '24px 32px', marginBottom: 36,
-            boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.2)' : '0 10px 25px rgba(29,78,216,0.04)',
-            animation: 'fadeInUp 0.4s ease 0.15s both'
-          }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 32 }}>
 
-              {/* Export format */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <Download size={16} style={{ color: D.indigo }} />
-                  <span style={{ fontWeight: 800, color: D.text, fontSize: '0.88rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Export Format</span>
-                </div>
-                <p style={{ margin: '0 0 12px', fontSize: '0.73rem', color: D.textSub }}>Choose which format(s) to download when clicking a report card</p>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {[
-                    { id: 'pdf',   icon: <FileText size={14} />,        label: 'PDF Only',   color: D.red    },
-                    { id: 'excel', icon: <FileSpreadsheet size={14} />, label: 'Excel Only', color: D.green  },
-                    { id: 'both',  icon: <Download size={14} />,        label: 'Both',       color: D.indigo },
-                  ].map(f => {
-                    const sel = formatPref === f.id
-                    return (
-                      <button key={f.id} onClick={() => setFormatPref(f.id)} className="palette-chip"
-                        style={{
-                          padding: '8px 14px', borderRadius: 10,
-                          border: sel ? `2px solid ${f.color}` : `1.5px solid ${D.border}`,
-                          background: sel ? `${f.color}18` : D.bg,
-                          color: sel ? f.color : D.textSub,
-                          fontWeight: 700, fontSize: '0.76rem', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: 6, outline: 'none',
-                          boxShadow: sel ? `0 4px 14px ${f.color}20` : 'none',
-                        }}>{f.icon} {f.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
 
-              {/* PDF palette */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <Palette size={16} style={{ color: D.indigo }} />
-                  <span style={{ fontWeight: 800, color: D.text, fontSize: '0.88rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>PDF Color Scheme</span>
-                </div>
-                <p style={{ margin: '0 0 12px', fontSize: '0.73rem', color: D.textSub }}>Branding color applied to generated PDF table headers</p>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {[
-                    { id: 'indigo',   name: 'Royal Blue', color: '#2563eb' },
-                    { id: 'emerald',  name: 'Emerald',    color: '#059669' },
-                    { id: 'crimson',  name: 'Crimson',    color: '#dc2626' },
-                    { id: 'charcoal', name: 'Charcoal',   color: '#4b5563' },
-                  ].map(t => {
-                    const sel = pdfTheme === t.id
-                    return (
-                      <button key={t.id} onClick={() => setPdfTheme(t.id)} className="palette-chip"
-                        style={{
-                          padding: '8px 14px', borderRadius: 10,
-                          border: sel ? `2.5px solid ${t.color}` : `1.5px solid ${D.border}`,
-                          background: sel ? `${t.color}18` : D.bg,
-                          color: sel ? t.color : D.textSub,
-                          fontWeight: 700, fontSize: '0.76rem', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: 7, outline: 'none',
-                          boxShadow: sel ? `0 4px 14px ${t.color}20` : 'none',
-                        }}
-                      >
-                        <span style={{ width: 9, height: 9, borderRadius: '50%', background: t.color, display: 'inline-block', flexShrink: 0 }} />
-                        {t.name}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Date filter */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <Sliders size={16} style={{ color: D.indigo }} />
-                  <span style={{ fontWeight: 800, color: D.text, fontSize: '0.88rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Date Range Filter</span>
-                </div>
-                <p style={{ margin: '0 0 12px', fontSize: '0.73rem', color: D.textSub }}>Applied to fuel and maintenance reports</p>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-                    style={inputStyle}
-                    onFocus={e => { e.target.style.borderColor = D.indigo; e.target.style.boxShadow = `0 0 0 3px ${D.indigoDim}` }}
-                    onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }}
-                  />
-                  <span style={{ color: D.textSub, fontSize: '0.8rem', fontWeight: 600 }}>—</span>
-                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-                    style={inputStyle}
-                    onFocus={e => { e.target.style.borderColor = D.indigo; e.target.style.boxShadow = `0 0 0 3px ${D.indigoDim}` }}
-                    onBlur={e => { e.target.style.borderColor = D.inputBorder; e.target.style.boxShadow = 'none' }}
-                  />
-                  {(startDate || endDate) && (
-                    <button onClick={() => { setStartDate(''); setEndDate('') }} className="rpt-btn"
-                      style={{ padding: '10px 14px', borderRadius: 10, border: `1px solid ${D.red}40`, background: D.redDim, color: D.red, fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}>
-                      Clear
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* ═══ Report Cards Section ══════════════════════════════════════ */}
           <SectionHeader
@@ -1167,13 +1387,40 @@ const ReportsPage = () => {
             D={D}
             icon={<ClipboardList size={20} />}
             action={
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => setViewMode('grid')} style={{ width: 34, height: 34, borderRadius: 8, border: `1.5px solid ${viewMode === 'grid' ? D.indigo : D.border}`, background: viewMode === 'grid' ? D.indigoDim : 'transparent', color: viewMode === 'grid' ? D.indigo : D.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <LayoutGrid size={15} />
-                </button>
-                <button onClick={() => setViewMode('list')} style={{ width: 34, height: 34, borderRadius: 8, border: `1.5px solid ${viewMode === 'list' ? D.indigo : D.border}`, background: viewMode === 'list' ? D.indigoDim : 'transparent', color: viewMode === 'list' ? D.indigo : D.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <List size={15} />
-                </button>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <select
+                  value={selectedVehicle}
+                  onChange={e => setSelectedVehicle(e.target.value)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 10,
+                    border: `1.5px solid ${D.border}`,
+                    background: D.surfaceHi,
+                    color: D.textSub,
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    outline: 'none',
+                  }}
+                  onFocus={e => { e.target.style.borderColor = D.indigo }}
+                  onBlur={e => { e.target.style.borderColor = D.border }}
+                >
+                  <option value="all">All Vehicles</option>
+                  {vehiclesList.map(v => (
+                    <option key={v.registrationNo} value={v.registrationNo}>
+                      {v.registrationNo}
+                    </option>
+                  ))}
+                </select>
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => setViewMode('grid')} style={{ width: 34, height: 34, borderRadius: 8, border: `1.5px solid ${viewMode === 'grid' ? D.indigo : D.border}`, background: viewMode === 'grid' ? D.indigoDim : 'transparent', color: viewMode === 'grid' ? D.indigo : D.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <LayoutGrid size={15} />
+                  </button>
+                  <button onClick={() => setViewMode('list')} style={{ width: 34, height: 34, borderRadius: 8, border: `1.5px solid ${viewMode === 'list' ? D.indigo : D.border}`, background: viewMode === 'list' ? D.indigoDim : 'transparent', color: viewMode === 'list' ? D.indigo : D.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <List size={15} />
+                  </button>
+                </div>
               </div>
             }
           />
@@ -1214,17 +1461,13 @@ const ReportsPage = () => {
                 return (
                   <div key={r.id} className="rpt-card"
                     style={{
-                      background: D.surface, borderRadius: 22, border: `1.5px solid ${D.border}`,
+                      background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`,
                       padding: '26px', display: 'flex', flexDirection: 'column',
                       position: 'relative', overflow: 'hidden',
-                      boxShadow: isDark ? '0 8px 30px rgba(0,0,0,0.25)' : '0 8px 24px rgba(29,78,216,0.05)',
+                      boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.35)' : '0 4px 24px rgba(0,0,0,0.08)',
                       animation: `fadeInUp 0.4s ease ${idx * 0.04}s both`,
                     }}
                   >
-                    {/* Subtle top accent stripe */}
-                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, ${r.color}, ${r.bg})`, borderRadius: '22px 22px 0 0' }} />
-                    {/* Glow blob */}
-                    <div style={{ position: 'absolute', top: -30, right: -30, width: 100, height: 100, borderRadius: '50%', background: r.bg, filter: 'blur(28px)', opacity: 0.7, pointerEvents: 'none' }} />
                     {/* Generating overlay shimmer */}
                     {isGen && (
                       <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(90deg,transparent,${D.surfaceHi}80,transparent)`, animation: 'shimmer 1.2s infinite', zIndex: 0 }} />
@@ -1348,6 +1591,227 @@ const ReportsPage = () => {
             </div>
           )}
 
+          {/* ═════ Custom Vehicle Report Analyzer ════════════════════════ */}
+          <SectionHeader
+            title="Specific Vehicle Log Analyzer"
+            D={D}
+            icon={<Sliders size={20} />}
+          />
+
+          <div style={{
+            background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`,
+            padding: '28px', marginBottom: 36,
+            boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.35)' : '0 4px 24px rgba(0,0,0,0.08)',
+            animation: 'fadeInUp 0.4s ease 0.1s both'
+          }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 32 }}>
+              
+              {/* Left Column: Selector Controls */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div>
+                  <h3 style={{ margin: '0 0 6px', fontSize: '1rem', color: D.text, fontWeight: 800, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Vehicle & Type</h3>
+                  <p style={{ margin: '0 0 16px', fontSize: '0.76rem', color: D.textSub }}>Select a specific vehicle and record type to retrieve logs.</p>
+                </div>
+
+                {/* Vehicle Selection dropdown */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 8, textTransform: 'uppercase' }}>Target Vehicle</label>
+                  <select
+                    value={analyzerVehicle}
+                    onChange={e => setAnalyzerVehicle(e.target.value)}
+                    style={{
+                      width: '100%', padding: '11px 16px', borderRadius: 12,
+                      border: `1.5px solid ${D.border}`, background: D.surfaceHi,
+                      color: D.text, fontSize: '0.85rem', fontWeight: 600,
+                      cursor: 'pointer', outline: 'none'
+                    }}
+                  >
+                    <option value="">Select a Vehicle...</option>
+                    {vehiclesList.map(v => (
+                      <option key={v.registrationNo} value={v.registrationNo}>
+                        {v.registrationNo} — {v.manufacturer} {v.model}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Analysis category type selection pills */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 8, textTransform: 'uppercase' }}>Log Category</label>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {[
+                      { id: 'service', label: 'Service Records', icon: <Wrench size={14} />, color: D.teal },
+                      { id: 'fuel', label: 'Fuel Fill-ups', icon: <Fuel size={14} />, color: D.purple }
+                    ].map(type => {
+                      const active = analyzerType === type.id
+                      return (
+                        <button
+                          key={type.id}
+                          onClick={() => setAnalyzerType(type.id)}
+                          className="palette-chip"
+                          style={{
+                            flex: 1, padding: '10px 14px', borderRadius: 12,
+                            border: active ? `2px solid ${type.color}` : `1.5px solid ${D.border}`,
+                            background: active ? `${type.color}18` : D.bg,
+                            color: active ? type.color : D.textSub,
+                            fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, outline: 'none'
+                          }}
+                        >
+                          {type.icon}
+                          {type.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Date range filter fields */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 8, textTransform: 'uppercase' }}>Date Range (Optional)</label>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <input type="date" value={analyzerStartDate} onChange={e => setAnalyzerStartDate(e.target.value)}
+                      style={{ flex: 1, padding: '9px 12px', borderRadius: 10, border: `1.5px solid ${D.border}`, background: D.surfaceHi, color: D.text, fontSize: '0.78rem', outline: 'none' }}
+                    />
+                    <span style={{ color: D.textSub }}>—</span>
+                    <input type="date" value={analyzerEndDate} onChange={e => setAnalyzerEndDate(e.target.value)}
+                      style={{ flex: 1, padding: '9px 12px', borderRadius: 10, border: `1.5px solid ${D.border}`, background: D.surfaceHi, color: D.text, fontSize: '0.78rem', outline: 'none' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Analyzer Actions */}
+                {analyzerResults.loaded && (
+                  <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+                    <button
+                      onClick={handleDownloadAnalyzerPDF}
+                      className="rpt-btn"
+                      style={{
+                        flex: 1, padding: '11px 16px', borderRadius: 12, border: 'none',
+                        background: `linear-gradient(135deg, ${D.indigo}, var(--primary))`,
+                        color: '#fff', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        boxShadow: `0 4px 14px ${D.indigoDim}`
+                      }}
+                    >
+                      <Download size={14} /> PDF
+                    </button>
+                    <button
+                      onClick={handleDownloadAnalyzerExcel}
+                      className="rpt-btn"
+                      style={{
+                        flex: 1, padding: '11px 16px', borderRadius: 12, border: `1.5px solid ${D.border}`,
+                        background: D.surfaceHi, color: D.textSub, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                      }}
+                    >
+                      <FileSpreadsheet size={14} /> Excel
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column: Live Analysis Preview Output */}
+              <div style={{
+                background: D.surfaceHi, borderRadius: 18, border: `1.5px solid ${D.border}`,
+                padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 280
+              }}>
+                {analyzerResults.loading ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                    <Loader2 size={32} className="animate-spin" style={{ color: D.indigo }} />
+                    <span style={{ fontSize: '0.85rem', color: D.textSub, fontWeight: 600 }}>Analyzing logs from database...</span>
+                  </div>
+                ) : !analyzerResults.loaded ? (
+                  <div style={{ textAlign: 'center', padding: '30px 20px' }}>
+                    <Activity size={48} strokeWidth={1.2} style={{ color: D.textFaint, marginBottom: 16 }} />
+                    <h4 style={{ margin: '0 0 6px', fontSize: '0.9rem', color: D.text, fontWeight: 700 }}>No Vehicle Selected</h4>
+                    <p style={{ margin: 0, fontSize: '0.76rem', color: D.textSub, lineHeight: 1.5 }}>
+                      Select a vehicle and category to view live record insights and download reports.
+                    </p>
+                  </div>
+                ) : analyzerResults.data.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '30px 20px' }}>
+                    <AlertCircle size={44} strokeWidth={1.2} style={{ color: D.red, marginBottom: 16 }} />
+                    <h4 style={{ margin: '0 0 6px', fontSize: '0.9rem', color: D.text, fontWeight: 700 }}>No Records Found</h4>
+                    <p style={{ margin: 0, fontSize: '0.76rem', color: D.textSub, lineHeight: 1.5 }}>
+                      We couldn't find any {analyzerType === 'service' ? 'service logs' : 'fuel logs'} for vehicle <strong>{analyzerVehicle}</strong> within the selected criteria.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    {/* Summary metrics header */}
+                    <div style={{ display: 'flex', gap: 16, marginBottom: 18, flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1, background: D.surface, padding: '12px 16px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                        <span style={{ display: 'block', fontSize: '0.66rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', marginBottom: 4 }}>Total Logs</span>
+                        <span style={{ fontSize: '1.2rem', fontWeight: 800, color: D.text }}>{analyzerResults.stats.totalCount}</span>
+                      </div>
+                      <div style={{ flex: 1, background: D.surface, padding: '12px 16px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                        <span style={{ display: 'block', fontSize: '0.66rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', marginBottom: 4 }}>Total Expenses</span>
+                        <span style={{ fontSize: '1.2rem', fontWeight: 800, color: D.indigo }}>Rs. {analyzerResults.stats.totalCost.toLocaleString()}</span>
+                      </div>
+                      {analyzerType === 'fuel' && analyzerResults.stats.totalLiters != null && (
+                        <div style={{ flex: 1, background: D.surface, padding: '12px 16px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                          <span style={{ display: 'block', fontSize: '0.66rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', marginBottom: 4 }}>Total Volume</span>
+                          <span style={{ fontSize: '1.2rem', fontWeight: 800, color: D.text }}>{analyzerResults.stats.totalLiters.toFixed(1)} L</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Table view */}
+                    <div style={{ flex: 1, overflowY: 'auto', maxHeight: 200, border: `1px solid ${D.border}`, borderRadius: 12, background: D.surface }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                        <thead>
+                          <tr style={{ background: D.surfaceHi, borderBottom: `1px solid ${D.border}`, color: D.textSub, fontWeight: 700, textAlign: 'left' }}>
+                            <th style={{ padding: '8px 12px' }}>Date</th>
+                            {analyzerType === 'service' ? (
+                              <>
+                                <th style={{ padding: '8px 12px' }}>Service Type</th>
+                                <th style={{ padding: '8px 12px' }}>Class</th>
+                                <th style={{ padding: '8px 12px', textAlign: 'right' }}>Cost</th>
+                              </>
+                            ) : (
+                              <>
+                                <th style={{ padding: '8px 12px' }}>Driver</th>
+                                <th style={{ padding: '8px 12px' }}>Liters</th>
+                                <th style={{ padding: '8px 12px', textAlign: 'right' }}>Cost</th>
+                              </>
+                            )}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {analyzerResults.data.slice(0, 10).map((row, index) => (
+                            <tr key={index} style={{ borderBottom: `1px solid ${D.border}`, color: D.text }}>
+                              <td style={{ padding: '8px 12px' }}>{row.serviceDate || row.date ? new Date(row.serviceDate || row.date).toLocaleDateString() : '—'}</td>
+                              {analyzerType === 'service' ? (
+                                <>
+                                  <td style={{ padding: '8px 12px', textTransform: 'capitalize' }}>{String(row.serviceType || '').replace(/_/g, ' ').toLowerCase()}</td>
+                                  <td style={{ padding: '8px 12px' }}>{row.serviceClassification || '—'}</td>
+                                  <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700 }}>Rs. {Number(row.serviceCost || 0).toLocaleString()}</td>
+                                </>
+                              ) : (
+                                <>
+                                  <td style={{ padding: '8px 12px' }}>{row.driverUsername || '—'}</td>
+                                  <td style={{ padding: '8px 12px' }}>{row.liters ? `${row.liters} L` : '—'}</td>
+                                  <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700 }}>Rs. {Number(row.totalCost || 0).toLocaleString()}</td>
+                                </>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {analyzerResults.data.length > 10 && (
+                      <span style={{ display: 'block', fontSize: '0.68rem', color: D.textSub, textAlign: 'center', marginTop: 8, fontStyle: 'italic' }}>
+                        Showing latest 10 of {analyzerResults.data.length} records. Download report to view full log sheet.
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </div>
+
           {/* ═══ Recent Downloads Section ══════════════════════════════════ */}
           <SectionHeader title="Recent Download History" D={D} icon={<Clock size={20} />} />
 
@@ -1356,8 +1820,8 @@ const ReportsPage = () => {
             <div style={{ display: 'flex', gap: 12, marginBottom: 18, marginTop: -10, flexWrap: 'wrap', alignItems: 'center' }}>
               {[
                 { label: 'All Downloads', val: 'all', count: reportsList.length, color: D.indigo, dim: D.indigoDim },
-                { label: 'PDF',           val: 'PDF',  count: pdfCount,           color: D.red,    dim: D.redDim    },
-                { label: 'Excel',         val: 'Excel', count: excelCount,         color: D.green,  dim: D.greenDim  },
+                { label: 'PDF', val: 'PDF', count: pdfCount, color: D.red, dim: D.redDim },
+                { label: 'Excel', val: 'Excel', count: excelCount, color: D.green, dim: D.greenDim },
               ].map(f => {
                 const sel = recentFmtFilter === f.val
                 return (
