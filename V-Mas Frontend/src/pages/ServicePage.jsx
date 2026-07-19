@@ -1123,14 +1123,6 @@ const ServicePage = () => {
     loading: false
   })
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [liveTime, setLiveTime] = useState(new Date().toLocaleTimeString())
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setLiveTime(new Date().toLocaleTimeString())
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
 
   useEffect(() => {
     if (location.state?.activeTab) {
@@ -2567,17 +2559,7 @@ const ServicePage = () => {
                 </p>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                  <span style={{
-                    width: 9, height: 9, borderRadius: '50%',
-                    background: '#34d399', display: 'inline-block',
-                    animation: 'dotPulse 1.8s ease-in-out infinite',
-                    flexShrink: 0,
-                  }} />
-                  <span style={{ fontSize: '0.77rem', color: 'rgba(255,255,255,0.75)', fontWeight: 600, letterSpacing: '0.02em' }}>
-                    Live — {liveTime}
-                  </span>
-                  <span style={{ color: 'rgba(165,180,252,0.4)', fontSize: '0.77rem' }}>·</span>
-                  <span style={{ fontSize: '0.77rem', color: 'rgba(255,255,255,0.55)', fontWeight: 500 }}>
+                  <span style={{ fontSize: '0.77rem', color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>
                     {services.length} records
                   </span>
                 </div>
@@ -4430,8 +4412,8 @@ const ServicePage = () => {
               onClick={e => e.stopPropagation()}
               style={{ background: D.surface, borderRadius: 20, width: '100%', maxWidth: 660, boxShadow: '0 28px 70px rgba(0,0,0,0.5)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.2s ease', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
             >
-              {/* Header — indigo gradient */}
-              <div style={{ background: 'linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#1e40af 100%)', padding: '22px 28px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexShrink: 0 }}>
+              {/* Header — system primary gradient */}
+              <div style={{ background: 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)', padding: '22px 28px', display: 'flex', alignItems: 'flex-start', zIndex: 1, justifyContent: 'space-between', gap: 16, flexShrink: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                   {vc?.vehicleImage ? (
                     <img
@@ -4461,8 +4443,8 @@ const ServicePage = () => {
                         {sc.label}
                       </span>
                     </div>
-                    <div style={{ color: '#60a5fa', fontSize: '0.85rem', marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#60a5fa', fontWeight: 600 }}>
+                    <div style={{ color: '#a5b4fc', fontSize: '0.85rem', marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#a5b4fc', fontWeight: 600 }}>
                         <Car size={13} /> {r.vehicleRegNumber || '—'}
                         {r.serviceTypeDetail && <span style={{ opacity: 0.8 }}>· {r.serviceTypeDetail}</span>}
                       </span>
@@ -4661,14 +4643,14 @@ const ServicePage = () => {
                         return (
                           <div key={entry.id} style={{ position: 'relative', marginBottom: idx < visibleHistory.length - 1 ? 14 : 4 }}>
                             {/* Timeline dot */}
-                            <div style={{ position: 'absolute', left: -28, top: 6, width: 18, height: 18, borderRadius: '50%', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 3px ' + D.bg }}>
+                            <div style={{ position: 'absolute', left: -28, top: 6, width: 18, height: 18, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 3px ' + D.bg }}>
                               <Edit2 size={8} color="#fff" />
                             </div>
 
-                            <div style={{ background: D.surfaceHi, border: `1px solid ${D.border}`, borderRadius: 10, padding: '12px 16px', borderLeft: '3px solid #2563eb' }}>
+                            <div style={{ background: D.surfaceHi, border: `1px solid ${D.border}`, borderRadius: 10, padding: '12px 16px', borderLeft: '3px solid var(--primary)' }}>
                               {/* Edit header */}
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-                                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Edited</span>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Edited</span>
                                 <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.text }}>by {entry.changedBy || '—'}</span>
                                 <span style={{ fontSize: '0.75rem', color: D.textSub, marginLeft: 'auto' }}>
                                   {entry.changedAt ? parseBackendDate(entry.changedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
@@ -4733,13 +4715,41 @@ const ServicePage = () => {
                   <>
                     <button
                       onClick={() => { closeDetail(); openEditModal(r.id) }}
-                      style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
+                      style={{
+                        flex: 1, padding: '10px 0', borderRadius: 10, border: 'none',
+                        background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
+                        color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                        boxShadow: '0 4px 14px var(--primary-glow)', transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.transform = 'translateY(-1px)'
+                        e.currentTarget.style.boxShadow = '0 6px 20px var(--primary-glow)'
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.transform = 'translateY(0)'
+                        e.currentTarget.style.boxShadow = '0 4px 14px var(--primary-glow)'
+                      }}
                     >
                       <Edit2 size={15} /> Edit Record
                     </button>
                     <button
                       onClick={() => { closeDetail(); confirmDelete(r.id) }}
-                      style={{ flex: 0.6, padding: '10px 0', borderRadius: 10, border: `1px solid rgba(239,68,68,0.3)`, background: D.redDim, color: D.red, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
+                      style={{
+                        flex: 0.6, padding: '10px 0', borderRadius: 10,
+                        border: `1px solid rgba(239,68,68,0.3)`, background: D.redDim, color: D.red,
+                        cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.transform = 'translateY(-1px)'
+                        e.currentTarget.style.background = 'rgba(239,68,68,0.12)'
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.transform = 'translateY(0)'
+                        e.currentTarget.style.background = D.redDim
+                      }}
                     >
                       <Trash2 size={15} /> Delete
                     </button>
@@ -4749,7 +4759,21 @@ const ServicePage = () => {
                 {isDriver && !r._isPseudo && r.createdBy === user?.userName && (
                   <button
                     onClick={() => { closeDetail(); openEditModal(r.id) }}
-                    style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
+                    style={{
+                      flex: 1, padding: '10px 0', borderRadius: 10, border: 'none',
+                      background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
+                      color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                      boxShadow: '0 4px 14px var(--primary-glow)', transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = 'translateY(-1px)'
+                      e.currentTarget.style.boxShadow = '0 6px 20px var(--primary-glow)'
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.boxShadow = '0 4px 14px var(--primary-glow)'
+                    }}
                   >
                     <Edit2 size={15} /> Edit Record
                   </button>
@@ -4757,7 +4781,21 @@ const ServicePage = () => {
                 {r._isPseudo && !isAdmin && (
                   <button
                     onClick={() => { closeDetail(); openAddModal({ vehicleRegNumber: r.vehicleRegNumber, serviceType: r.serviceType }) }}
-                    style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
+                    style={{
+                      flex: 1, padding: '10px 0', borderRadius: 10, border: 'none',
+                      background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
+                      color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                      boxShadow: '0 4px 14px var(--primary-glow)', transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = 'translateY(-1px)'
+                      e.currentTarget.style.boxShadow = '0 6px 20px var(--primary-glow)'
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.boxShadow = '0 4px 14px var(--primary-glow)'
+                    }}
                   >
                     <Wrench size={15} /> Log Completed Service
                   </button>
