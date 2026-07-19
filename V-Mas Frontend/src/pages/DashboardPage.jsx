@@ -386,6 +386,12 @@ const FleetFuelChart = ({ isDark, logs }) => {
 
   const [selectedYear, setSelectedYear] = useState(currentYear)
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
+  const [selectedWeek, setSelectedWeek] = useState(1)
+
+  const numDays = useMemo(() => {
+    if (selectedMonth === 'all') return 30
+    return new Date(selectedYear, selectedMonth + 1, 0).getDate()
+  }, [selectedYear, selectedMonth])
 
   // Extract unique years from logs, ensuring the current year is always an option
   const years = useMemo(() => {
@@ -489,6 +495,11 @@ const FleetFuelChart = ({ isDark, logs }) => {
 
     for (let d = 0; d < numDays; d++) {
       const dayNum = d + 1
+      if (selectedWeek !== 'all') {
+        const startDay = (selectedWeek - 1) * 7 + 1
+        const endDay = selectedWeek === 5 ? numDays : selectedWeek * 7
+        if (dayNum < startDay || dayNum > endDay) continue
+      }
       pts0.push({
         label: `${dayNum}`,
         fullDateLabel: `${monthNames[selectedMonth]} ${dayNum}, ${selectedYear}`,
@@ -539,6 +550,10 @@ const FleetFuelChart = ({ isDark, logs }) => {
       boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px',
       position: 'relative', overflow: 'hidden',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      boxSizing: 'border-box'
     }}
       onMouseEnter={e => {
         e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.35)'
@@ -564,6 +579,7 @@ const FleetFuelChart = ({ isDark, logs }) => {
               onChange={(e) => {
                 const val = e.target.value
                 setSelectedMonth(val === 'all' ? 'all' : Number(val))
+                setSelectedWeek(1)
               }}
               style={{
                 padding: '6px 28px 6px 12px',
@@ -590,6 +606,46 @@ const FleetFuelChart = ({ isDark, logs }) => {
               ))}
             </select>
           </div>
+
+          {/* Week Select (only when specific month is selected) */}
+          {selectedMonth !== 'all' && (
+            <div style={{ position: 'relative' }}>
+              <select
+                value={selectedWeek}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setSelectedWeek(val === 'all' ? 'all' : Number(val))
+                }}
+                style={{
+                  padding: '6px 28px 6px 12px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--surface-border)',
+                  background: 'var(--surface-hi)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  outline: 'none',
+                  cursor: 'pointer',
+                  appearance: 'none',
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='${encodeURIComponent(isDark ? '#94a3b8' : '#64748b')}' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 8px center',
+                  backgroundSize: '12px',
+                  fontFamily: 'inherit',
+                  transition: 'border-color 0.2s',
+                }}
+              >
+                <option value={1}>Week 1 (1 - 7)</option>
+                <option value={2}>Week 2 (8 - 14)</option>
+                <option value={3}>Week 3 (15 - 21)</option>
+                <option value={4}>Week 4 (22 - 28)</option>
+                {numDays > 28 && (
+                  <option value={5}>Week 5 (29 - {numDays})</option>
+                )}
+                <option value="all">Full Month</option>
+              </select>
+            </div>
+          )}
 
           {/* Year Select */}
           <div style={{ position: 'relative' }}>
@@ -623,9 +679,10 @@ const FleetFuelChart = ({ isDark, logs }) => {
         </div>
       </div>
       {hasData ? (
-        <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
-          style={{ width: '100%', height: 'auto', maxHeight: '160px', display: 'block' }}
-          onMouseLeave={() => setHover(null)}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
+          <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
+            style={{ width: '100%', height: 'auto', maxHeight: '160px', display: 'block' }}
+            onMouseLeave={() => setHover(null)}>
           {Array.from({ length: grid + 1 }).map((_, i) => {
             const v = (maxVal / grid) * i, y = Y(v)
             return (
@@ -729,9 +786,10 @@ const FleetFuelChart = ({ isDark, logs }) => {
               </g>
             )
           })()}
-        </svg>
+          </svg>
+        </div>
       ) : (
-        <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No fuel data yet</div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No fuel data yet</div>
       )}
       <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 10, flexWrap: 'wrap' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
@@ -804,7 +862,7 @@ const MaintenanceCostDonutChart = ({ isDark, services = [] }) => {
     color: donutColors[type] || donutColors.OTHER
   })).sort((a, b) => b.value - a.value)
 
-  const cx = 90, cy = 90, R = 82, r = 54
+  const cx = 90, cy = 90, R = 85, r = 60
   let angle = -Math.PI / 2
   const slices = data.map(d => {
     const sweep = (d.value / (totalCost || 1)) * 2 * Math.PI
@@ -846,6 +904,10 @@ const MaintenanceCostDonutChart = ({ isDark, services = [] }) => {
       boxShadow: '0 4px 24px rgba(0,0,0,0.25)',
       padding: '28px',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      boxSizing: 'border-box'
     }}
       onMouseEnter={e => {
         e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.35)'
@@ -880,9 +942,9 @@ const MaintenanceCostDonutChart = ({ isDark, services = [] }) => {
       </div>
 
       {totalCost > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'center' }}>
-          <div style={{ position: 'relative', width: 170, height: 170, margin: '0 auto', flexShrink: 0 }}>
-            <svg width="170" height="170" viewBox="0 0 180 180">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'center', flex: 1 }}>
+          <div style={{ position: 'relative', width: 190, height: 190, margin: '0 auto', flexShrink: 0 }}>
+            <svg width="190" height="190" viewBox="0 0 180 180">
               {slices.map((slice, i) => (
                 <path
                   key={i}
@@ -944,7 +1006,7 @@ const MaintenanceCostDonutChart = ({ isDark, services = [] }) => {
           </div>
         </div>
       ) : (
-        <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.textSub, fontSize: '0.85rem' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.textSub, fontSize: '0.85rem' }}>
           No service expenses found for this selection
         </div>
       )}
@@ -975,7 +1037,7 @@ const StatusBreakdown = ({ isDark, statusData, stats }) => {
   ]
   const total = donutData.reduce((s, d) => s + d.value, 0)
   
-  const cx = 110, cy = 110, R = 86, r = 56
+  const cx = 110, cy = 110, R = 104, r = 74
   let angle = -Math.PI / 2
   const slices = donutData.map(d => {
     const sweep = (d.value / (total || 1)) * 2 * Math.PI * animProgress
@@ -995,13 +1057,15 @@ const StatusBreakdown = ({ isDark, statusData, stats }) => {
       border: '1px solid var(--surface-border)',
       boxShadow: '0 4px 24px rgba(0,0,0,0.25)', padding: '28px',
       display: 'flex', flexDirection: 'column',
+      height: '100%',
+      boxSizing: 'border-box'
     }}>
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Status Breakdown</div>
         <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Current fleet split</div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, flex: 1 }}>
-        <svg viewBox="0 0 220 220" style={{ width: 140, height: 140, flexShrink: 0 }}>
+        <svg viewBox="0 0 220 220" style={{ width: 170, height: 170, flexShrink: 0 }}>
           {slices.map((s, i) => (
             s.sweep > 0 && (
               <path key={i} d={s.path} fill={s.color}
@@ -1094,53 +1158,107 @@ const formatTimeAgo = (date) => {
   return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
 }
 
-const RecentActivitySection = ({ activities = [], navigate }) => (
-  <div style={{ marginTop: 10 }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
-      <h2 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text-primary)', fontWeight: 700 }}>Recent Fleet Activity</h2>
-      <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-    </div>
+const RecentActivitySection = ({ activities = [], navigate }) => {
+  const [expanded, setExpanded] = useState(false)
+  const LIMIT = 4
+  const visible = expanded ? activities : activities.slice(0, LIMIT)
+  const hasMore = activities.length > LIMIT
+
+  return (
     <div style={{
       background: 'var(--surface)', borderRadius: 24,
       border: '1px solid var(--surface-border)',
       boxShadow: '0 4px 24px rgba(0,0,0,0.25)',
-      overflow: 'hidden',
+      padding: '28px',
+      display: 'flex', flexDirection: 'column',
+      boxSizing: 'border-box',
+      height: '100%',
     }}>
-      {activities.length === 0 ? (
-        <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-          No recent activity found.
-        </div>
-      ) : (
-        activities.map((a, i) => (
-          <div key={a.id || i} style={{
-            display: 'flex', alignItems: 'center', gap: 18,
-            padding: '16px 28px',
-            borderBottom: i < activities.length - 1 ? '1px solid var(--border)' : 'none',
-            transition: 'background 0.18s',
-            cursor: 'default',
-          }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hi)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-          >
-            <div style={{
-              width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-              background: `${a.color}15`, border: `1px solid ${a.color}30`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>{a.icon}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '0.87rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{a.action}</div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.detail}</div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-              <Clock size={12} color="var(--text-muted)" />
-              <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)', fontWeight: 600 }}>{formatTimeAgo(a.timestamp)}</span>
-            </div>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Recent Fleet Activity</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 500 }}>Live notifications and updates</div>
+      </div>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 0,
+        margin: '0 -28px -28px -28px',
+        borderTop: '1px solid var(--border)',
+        overflow: 'hidden',
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
+      }}>
+        {activities.length === 0 ? (
+          <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+            No recent activity found.
           </div>
-        ))
-      )}
+        ) : (
+          <>
+            {visible.map((a, i) => (
+              <div key={a.id || i} style={{
+                display: 'flex', alignItems: 'center', gap: 18,
+                padding: '16px 28px',
+                borderBottom: (i < visible.length - 1 || hasMore) ? '1px solid var(--border)' : 'none',
+                transition: 'background 0.18s',
+                cursor: 'default',
+              }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hi)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <div style={{
+                  width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                  background: `${a.color}15`, border: `1px solid ${a.color}30`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>{a.icon}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.87rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{a.action}</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.detail}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                  <Clock size={12} color="var(--text-muted)" />
+                  <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)', fontWeight: 600 }}>{formatTimeAgo(a.timestamp)}</span>
+                </div>
+              </div>
+            ))}
+            {hasMore && (
+              <button
+                onClick={() => setExpanded(!expanded)}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  background: 'var(--surface-hi)',
+                  border: 'none',
+                  borderTop: '1px solid var(--border)',
+                  color: 'var(--primary)',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  outline: 'none',
+                  transition: 'background 0.2s, color 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  fontFamily: 'inherit',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'var(--primary)'
+                  e.currentTarget.style.color = '#fff'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'var(--surface-hi)'
+                  e.currentTarget.style.color = 'var(--primary)'
+                }}
+              >
+                {expanded ? 'Show Less' : `See More (${activities.length - LIMIT} details)`}
+              </button>
+            )}
+          </>
+        )}
+      </div>
     </div>
-  </div>
-)
+  )
+}
 
 /* ── Daily Mileage Update Modal ──────────────────────────────── */
 const DailyMileageModal = ({ open, onClose }) => {
@@ -1299,24 +1417,22 @@ const ControllerDashboard = ({ navigate, isDark, chartData, fuelLogs = [], statu
     <>
       <SectionHeader title="Fleet Overview" />
 
+      {/* Row containing all three charts, stretched to equal height */}
+      <div className="dashboard-charts-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1fr', gap: 24, alignItems: 'stretch', marginBottom: 24 }}>
+        <FleetFuelChart isDark={isDark} logs={fuelLogs} />
+        <MaintenanceCostDonutChart isDark={isDark} services={services} />
+        <StatusBreakdown isDark={isDark} statusData={statusData} stats={stats} />
+      </div>
 
-      <div className="dashboard-columns-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start', marginBottom: 36 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
-            <FleetFuelChart isDark={isDark} logs={fuelLogs} />
-            <MaintenanceCostDonutChart isDark={isDark} services={services} />
-          </div>
-          <RecentActivitySection activities={activities} navigate={navigate} />
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <StatusBreakdown isDark={isDark} statusData={statusData} stats={stats} />
-          <QuickActionsPanel navigate={navigate} />
-        </div>
+      {/* Row containing activities and quick commands, aligned with the charts above */}
+      <div className="dashboard-columns-grid" style={{ display: 'grid', gridTemplateColumns: '2.4fr 1fr', gap: 24, alignItems: 'start', marginBottom: 36 }}>
+        <RecentActivitySection activities={activities} navigate={navigate} />
+        <QuickActionsPanel navigate={navigate} />
       </div>
 
       <style>{`
-        @media (max-width: 1024px) {
+        @media (max-width: 1200px) {
+          .dashboard-charts-grid,
           .dashboard-columns-grid {
             grid-template-columns: 1fr !important;
           }
