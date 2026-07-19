@@ -91,17 +91,17 @@ const ReportsPage = () => {
 
   // ── Report type definitions ──────────────────────────────────────────────
   const reportTypes = [
-    { id: 'master-report',        icon: <Database size={22} strokeWidth={1.5} />,    title: 'Comprehensive Master Report',     desc: 'Complete export of all system data including vehicles, fuel, services, and users.',         category: 'System',       color: D.red,    bg: D.redDim    },
+    { id: 'master-report',        icon: <Database size={22} strokeWidth={1.5} />,    title: 'Comprehensive Master Report',     desc: 'Complete export of all system data including vehicles, fuel, services, and users.',         category: 'System',       color: D.purple, bg: D.purpleDim },
     { id: 'vehicle-summary',      icon: <Car size={22} strokeWidth={1.5} />,          title: 'Vehicle Summary Report',          desc: 'Overview of all fleet vehicles including status, mileage, and assignments.',                  category: 'Fleet',        color: D.indigo, bg: D.indigoDim },
-    { id: 'fuel-report',          icon: <Fuel size={22} strokeWidth={1.5} />,         title: 'Fuel Consumption Report',         desc: 'Detailed fuel usage breakdown per vehicle, driver, and time period.',                          category: 'Fuel',         color: D.gold,   bg: D.goldDim   },
-    { id: 'fuel-efficiency',      icon: <TrendingUp size={22} strokeWidth={1.5} />,   title: 'Fuel Efficiency Report',          desc: 'Computed km/L efficiency per vehicle by comparing fill-up records with distance covered.',     category: 'Fuel',         color: D.teal,   bg: D.tealDim   },
-    { id: 'service-report',       icon: <Wrench size={22} strokeWidth={1.5} />,       title: 'Service & Maintenance Report',    desc: 'Summary of all service records, costs, and upcoming maintenance schedules.',                   category: 'Maintenance',  color: D.green,  bg: D.greenDim  },
-    { id: 'user-report',          icon: <Users size={22} strokeWidth={1.5} />,        title: 'User Activity Report',            desc: 'User registration, role distribution, login history, and account statuses.',                    category: 'Users',        color: D.orange, bg: D.orangeDim },
-    { id: 'cost-report',          icon: <DollarSign size={22} strokeWidth={1.5} />,   title: 'Cost Analysis Report',            desc: 'Full cost breakdown including fuel, maintenance, and operational expenses.',                    category: 'Finance',      color: D.blue,   bg: D.blueDim   },
-    { id: 'driver-performance',   icon: <Users size={22} strokeWidth={1.5} />,        title: 'Driver Performance Report',       desc: 'Rank system drivers by their average fuel efficiency (km/L), liters spent, and logs.',          category: 'Users',        color: D.purple, bg: D.purpleDim },
-    { id: 'vehicle-documents',    icon: <FileText size={22} strokeWidth={1.5} />,     title: 'Vehicle Documents & Renewals',   desc: 'Track vehicle compliance and renewal dates, including insurance and license validity.',          category: 'Fleet',        color: D.indigo, bg: D.indigoDim },
-    { id: 'maintenance-schedule', icon: <Calendar size={22} strokeWidth={1.5} />,     title: 'Scheduled Maintenance Alerts',   desc: 'Lists upcoming and overdue scheduled maintenance records, tracking mileage/date.',              category: 'Maintenance',  color: D.green,  bg: D.greenDim  },
-    { id: 'vehicle-mileage',      icon: <Gauge size={22} strokeWidth={1.5} />,        title: 'Vehicle Mileage Report',         desc: 'Track initial vs current mileage, total distance driven, and mileage utilisation per vehicle.', category: 'Fleet',        color: D.orange, bg: D.orangeDim },
+    { id: 'fuel-report',          icon: <Fuel size={22} strokeWidth={1.5} />,         title: 'Fuel Consumption Report',         desc: 'Detailed fuel usage breakdown per vehicle, driver, and time period.',                          category: 'Fuel',         color: D.purple, bg: D.purpleDim },
+    { id: 'fuel-efficiency',      icon: <TrendingUp size={22} strokeWidth={1.5} />,   title: 'Fuel Efficiency Report',          desc: 'Computed km/L efficiency per vehicle by comparing fill-up records with distance covered.',     category: 'Fuel',         color: D.indigo, bg: D.indigoDim },
+    { id: 'service-report',       icon: <Wrench size={22} strokeWidth={1.5} />,       title: 'Service & Maintenance Report',    desc: 'Summary of all service records, costs, and upcoming maintenance schedules.',                   category: 'Maintenance',  color: D.teal,   bg: D.tealDim   },
+    { id: 'user-report',          icon: <Users size={22} strokeWidth={1.5} />,        title: 'User Activity Report',            desc: 'User registration, role distribution, login history, and account statuses.',                    category: 'Users',        color: D.purple, bg: D.purpleDim },
+    { id: 'cost-report',          icon: <DollarSign size={22} strokeWidth={1.5} />,   title: 'Cost Analysis Report',            desc: 'Full cost breakdown including fuel, maintenance, and operational expenses.',                    category: 'Finance',      color: D.indigo, bg: D.indigoDim },
+    { id: 'driver-performance',   icon: <Users size={22} strokeWidth={1.5} />,        title: 'Driver Performance Report',       desc: 'Rank system drivers by their average fuel efficiency (km/L), liters spent, and logs.',          category: 'Users',        color: D.teal,   bg: D.tealDim   },
+    { id: 'vehicle-documents',    icon: <FileText size={22} strokeWidth={1.5} />,     title: 'Vehicle Documents & Renewals',   desc: 'Track vehicle compliance and renewal dates, including insurance and license validity.',          category: 'Fleet',        color: D.purple, bg: D.purpleDim },
+    { id: 'maintenance-schedule', icon: <Calendar size={22} strokeWidth={1.5} />,     title: 'Scheduled Maintenance Alerts',   desc: 'Lists upcoming and overdue scheduled maintenance records, tracking mileage/date.',              category: 'Maintenance',  color: D.indigo, bg: D.indigoDim },
+    { id: 'vehicle-mileage',      icon: <Gauge size={22} strokeWidth={1.5} />,        title: 'Vehicle Mileage Report',         desc: 'Track initial vs current mileage, total distance driven, and mileage utilisation per vehicle.', category: 'Fleet',        color: D.teal,   bg: D.tealDim   },
   ].filter(r => allowedIds.includes(r.id))
 
   // ── State ────────────────────────────────────────────────────────────────
@@ -826,15 +826,6 @@ const ReportsPage = () => {
     transition: 'all 0.2s ease', fontFamily: 'inherit',
   }
 
-  // ── Stats ────────────────────────────────────────────────────────────────
-  const statsConfig = [
-    { label: 'Total Vehicles',     value: liveStats.loading ? '…' : String(liveStats.vehicles), icon: <Car size={20} strokeWidth={1.5} />,       colorDim: D.indigoDim, colorHex: D.indigo },
-    { label: 'Fuel Log Entries',   value: liveStats.loading ? '…' : String(liveStats.fuelLogs), icon: <Fuel size={20} strokeWidth={1.5} />,       colorDim: D.goldDim,   colorHex: D.gold   },
-    { label: 'Service Records',    value: liveStats.loading ? '…' : String(liveStats.services), icon: <Wrench size={20} strokeWidth={1.5} />,     colorDim: D.greenDim,  colorHex: D.green  },
-    { label: 'System Users',       value: liveStats.loading ? '…' : String(liveStats.users),    icon: <Users size={20} strokeWidth={1.5} />,      colorDim: D.orangeDim, colorHex: D.orange },
-    { label: 'Reports Available',  value: String(reportTypes.length),                             icon: <ClipboardList size={20} strokeWidth={1.5} />, colorDim: D.tealDim, colorHex: D.teal },
-    { label: 'PDF Color Palette',  value: pdfTheme.charAt(0).toUpperCase() + pdfTheme.slice(1),  icon: <Palette size={20} strokeWidth={1.5} />,   colorDim: D.blueDim,   colorHex: D.blue   },
-  ]
 
   // ── Categories ───────────────────────────────────────────────────────────
   const categoryList = ['All', ...Array.from(new Set(reportTypes.map(r => r.category)))]
@@ -1064,38 +1055,6 @@ const ReportsPage = () => {
             </div>
           )}
 
-          {/* ═══ Live Stats Grid ═══════════════════════════════════════════ */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 18, marginBottom: 32 }}>
-            {statsConfig.map((s, idx) => (
-              <div key={s.label} style={{
-                background: D.surface, borderRadius: 18,
-                border: `1.5px solid ${D.border}`, padding: '20px 22px',
-                animation: `fadeInUp 0.4s ease ${idx * 0.05}s both`,
-                boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 4px 14px rgba(29,78,216,0.04)',
-                transition: 'all 0.25s ease', cursor: 'default'
-              }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = s.colorHex + '50' }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = D.border }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <p style={{ margin: '0 0 6px', fontSize: '0.68rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.09em' }}>{s.label}</p>
-                    <p style={{ margin: 0, fontSize: '1.55rem', fontWeight: 900, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif", lineHeight: 1.1 }}>
-                      {liveStats.loading && (s.label === 'Total Vehicles' || s.label === 'Fuel Log Entries' || s.label === 'Service Records' || s.label === 'System Users') ? (
-                        <span style={{ fontSize: '1rem', color: D.textFaint }}>Loading…</span>
-                      ) : s.value}
-                    </p>
-                  </div>
-                  <div style={{ width: 42, height: 42, borderRadius: 12, background: s.colorDim, color: s.colorHex, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${s.colorHex}20`, boxShadow: `0 4px 10px ${s.colorDim}`, flexShrink: 0 }}>
-                    {s.icon}
-                  </div>
-                </div>
-                <div style={{ marginTop: 10, height: 3, borderRadius: 2, background: D.surfaceHi, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: '65%', background: `linear-gradient(90deg, ${s.colorHex}, ${s.colorDim})`, borderRadius: 2 }} />
-                </div>
-              </div>
-            ))}
-          </div>
 
           {/* ═══ Config Panel ══════════════════════════════════════════════ */}
           <div style={{
@@ -1255,27 +1214,33 @@ const ReportsPage = () => {
                 return (
                   <div key={r.id} className="rpt-card"
                     style={{
-                      background: D.surface, borderRadius: 20, border: `1.5px solid ${D.border}`,
+                      background: D.surface, borderRadius: 22, border: `1.5px solid ${D.border}`,
                       padding: '26px', display: 'flex', flexDirection: 'column',
                       position: 'relative', overflow: 'hidden',
                       boxShadow: isDark ? '0 8px 30px rgba(0,0,0,0.25)' : '0 8px 24px rgba(29,78,216,0.05)',
                       animation: `fadeInUp 0.4s ease ${idx * 0.04}s both`,
                     }}
                   >
+                    {/* Subtle top accent stripe */}
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, ${r.color}, ${r.bg})`, borderRadius: '22px 22px 0 0' }} />
                     {/* Glow blob */}
-                    <div style={{ position: 'absolute', top: -30, right: -30, width: 100, height: 100, borderRadius: '50%', background: r.bg, filter: 'blur(22px)', opacity: 0.9, pointerEvents: 'none' }} />
+                    <div style={{ position: 'absolute', top: -30, right: -30, width: 100, height: 100, borderRadius: '50%', background: r.bg, filter: 'blur(28px)', opacity: 0.7, pointerEvents: 'none' }} />
                     {/* Generating overlay shimmer */}
                     {isGen && (
                       <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(90deg,transparent,${D.surfaceHi}80,transparent)`, animation: 'shimmer 1.2s infinite', zIndex: 0 }} />
                     )}
 
                     {/* Header */}
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, position: 'relative' }}>
-                      <div style={{ width: 50, height: 50, borderRadius: 14, background: r.bg, color: r.color, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${r.color}25`, boxShadow: `0 4px 14px ${r.bg}` }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 18, position: 'relative', marginTop: 8 }}>
+                      <div style={{ width: 48, height: 48, borderRadius: 14, background: r.bg, color: r.color, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1.5px solid ${r.color}25`, boxShadow: `0 4px 14px ${r.bg}` }}>
                         {r.icon}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
-                        <span style={{ background: r.bg, color: r.color, fontSize: '0.64rem', fontWeight: 800, padding: '3px 10px', borderRadius: 8, textTransform: 'uppercase', letterSpacing: '0.07em', border: `1px solid ${r.color}20` }}>
+                        <span style={{
+                          background: r.bg, color: r.color,
+                          fontSize: '0.64rem', fontWeight: 800, padding: '3px 10px', borderRadius: 8,
+                          textTransform: 'uppercase', letterSpacing: '0.07em', border: `1px solid ${r.color}25`
+                        }}>
                           {r.category}
                         </span>
                         {badge && (
@@ -1286,8 +1251,8 @@ const ReportsPage = () => {
                       </div>
                     </div>
 
-                    <h3 style={{ margin: '0 0 8px', fontSize: '1.05rem', color: D.text, fontWeight: 800, fontFamily: "'Plus Jakarta Sans',sans-serif", position: 'relative' }}>{r.title}</h3>
-                    <p style={{ margin: '0 0 22px', fontSize: '0.82rem', color: D.textSub, lineHeight: 1.55, flex: 1, position: 'relative' }}>{r.desc}</p>
+                    <h3 style={{ margin: '0 0 8px', fontSize: '1rem', color: D.text, fontWeight: 800, fontFamily: "'Plus Jakarta Sans',sans-serif", position: 'relative', lineHeight: 1.3 }}>{r.title}</h3>
+                    <p style={{ margin: '0 0 22px', fontSize: '0.81rem', color: D.textSub, lineHeight: 1.6, flex: 1, position: 'relative' }}>{r.desc}</p>
 
                     {/* Action buttons */}
                     <div style={{ display: 'flex', gap: 8, marginTop: 'auto', position: 'relative' }}>
@@ -1298,13 +1263,14 @@ const ReportsPage = () => {
                         className="rpt-btn"
                         style={{
                           flex: 2, padding: '10px 12px', borderRadius: 11, border: 'none',
-                          background: isGen ? D.surfaceHi : r.color,
+                          background: isGen ? D.surfaceHi : `linear-gradient(135deg, var(--primary-dark), var(--primary))`,
                           color: isGen ? r.color : '#fff',
                           fontSize: '0.78rem', fontWeight: 800,
                           cursor: generating !== null ? 'not-allowed' : 'pointer',
-                          boxShadow: isGen ? 'none' : `0 4px 14px ${r.bg}`,
+                          boxShadow: isGen ? 'none' : `0 4px 14px var(--primary-glow)`,
                           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, outline: 'none',
                           opacity: generating !== null && !isGen ? 0.5 : 1,
+                          transition: 'all 0.2s',
                         }}
                       >
                         {isGen ? <><Loader2 size={13} className="animate-spin" /> Generating…</> : <><Download size={13} /> {formatPref === 'pdf' ? 'PDF' : formatPref === 'excel' ? 'Excel' : 'Download'}</>}
@@ -1317,14 +1283,15 @@ const ReportsPage = () => {
                         className="rpt-btn"
                         style={{
                           flex: 1, padding: '10px 12px', borderRadius: 11,
-                          border: `1.5px solid ${r.color}35`, background: r.bg, color: r.color,
-                          fontSize: '0.78rem', fontWeight: 800,
+                          border: `1.5px solid ${D.border}`, background: D.surfaceHi, color: D.textSub,
+                          fontSize: '0.78rem', fontWeight: 700,
                           cursor: generating !== null ? 'not-allowed' : 'pointer',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, outline: 'none',
                           opacity: generating !== null ? 0.5 : 1,
+                          transition: 'all 0.2s',
                         }}
-                        onMouseEnter={e => { if (generating === null) { e.currentTarget.style.background = r.color; e.currentTarget.style.color = '#fff' } }}
-                        onMouseLeave={e => { if (generating === null) { e.currentTarget.style.background = r.bg; e.currentTarget.style.color = r.color } }}
+                        onMouseEnter={e => { if (generating === null) { e.currentTarget.style.background = r.bg; e.currentTarget.style.color = r.color; e.currentTarget.style.borderColor = `${r.color}40` } }}
+                        onMouseLeave={e => { if (generating === null) { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.color = D.textSub; e.currentTarget.style.borderColor = D.border } }}
                       >
                         <Eye size={13} /> Preview
                       </button>
@@ -1337,7 +1304,7 @@ const ReportsPage = () => {
 
           {/* ── List view ── */}
           {viewMode === 'list' && (
-            <div style={{ background: D.surface, borderRadius: 20, border: `1.5px solid ${D.border}`, overflow: 'hidden', marginBottom: 44, boxShadow: isDark ? '0 8px 30px rgba(0,0,0,0.25)' : '0 8px 24px rgba(29,78,216,0.05)', animation: 'fadeInUp 0.35s ease' }}>
+            <div style={{ background: D.surface, borderRadius: 22, border: `1.5px solid ${D.border}`, overflow: 'hidden', marginBottom: 44, boxShadow: isDark ? '0 8px 30px rgba(0,0,0,0.25)' : '0 8px 24px rgba(29,78,216,0.05)', animation: 'fadeInUp 0.35s ease' }}>
               {visibleReportTypes.map((r, idx) => {
                 const badge = getDataBadge(r.id)
                 const isGen = generating === r.id
@@ -1348,13 +1315,13 @@ const ReportsPage = () => {
                       display: 'flex', alignItems: 'center', gap: 18, background: 'transparent'
                     }}
                   >
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: r.bg, color: r.color, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${r.color}25`, flexShrink: 0, boxShadow: `0 4px 10px ${r.bg}` }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: r.bg, color: r.color, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1.5px solid ${r.color}25`, flexShrink: 0, boxShadow: `0 4px 10px ${r.bg}` }}>
                       {r.icon}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
                         <span style={{ fontWeight: 800, color: D.text, fontSize: '0.9rem', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>{r.title}</span>
-                        <span style={{ background: r.bg, color: r.color, fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{r.category}</span>
+                        <span style={{ background: r.bg, color: r.color, fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, textTransform: 'uppercase', letterSpacing: '0.06em', border: `1px solid ${r.color}20` }}>{r.category}</span>
                         {badge && <span style={{ background: D.surfaceHi, color: D.textSub, fontSize: '0.63rem', fontWeight: 700, padding: '2px 8px', borderRadius: 6, border: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', gap: 3 }}><Activity size={8} /> {badge}</span>}
                       </div>
                       <p style={{ margin: 0, fontSize: '0.79rem', color: D.textSub, lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.desc}</p>
@@ -1362,15 +1329,15 @@ const ReportsPage = () => {
                     <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                       <button
                         onClick={() => handlePreview(r.id)} disabled={generating !== null} className="rpt-btn"
-                        style={{ padding: '8px 14px', borderRadius: 9, border: `1.5px solid ${D.border}`, background: D.bg, color: D.textSub, fontSize: '0.76rem', fontWeight: 700, cursor: generating !== null ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 5, outline: 'none', opacity: generating !== null ? 0.5 : 1 }}
-                        onMouseEnter={e => { if (generating === null) { e.currentTarget.style.borderColor = D.indigo; e.currentTarget.style.color = D.indigo; e.currentTarget.style.background = D.indigoDim } }}
-                        onMouseLeave={e => { if (generating === null) { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.textSub; e.currentTarget.style.background = D.bg } }}
+                        style={{ padding: '8px 14px', borderRadius: 9, border: `1.5px solid ${D.border}`, background: D.surfaceHi, color: D.textSub, fontSize: '0.76rem', fontWeight: 700, cursor: generating !== null ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 5, outline: 'none', opacity: generating !== null ? 0.5 : 1, transition: 'all 0.2s' }}
+                        onMouseEnter={e => { if (generating === null) { e.currentTarget.style.borderColor = `${r.color}40`; e.currentTarget.style.color = r.color; e.currentTarget.style.background = r.bg } }}
+                        onMouseLeave={e => { if (generating === null) { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.textSub; e.currentTarget.style.background = D.surfaceHi } }}
                       >
                         <Eye size={13} /> Preview
                       </button>
                       <button
                         onClick={() => handleDownload(r.id)} disabled={generating !== null} className="rpt-btn"
-                        style={{ padding: '8px 16px', borderRadius: 9, border: 'none', background: isGen ? D.surfaceHi : r.color, color: isGen ? r.color : '#fff', fontSize: '0.76rem', fontWeight: 800, cursor: generating !== null ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 5, outline: 'none', opacity: generating !== null && !isGen ? 0.5 : 1, boxShadow: isGen ? 'none' : `0 4px 12px ${r.bg}` }}
+                        style={{ padding: '8px 16px', borderRadius: 9, border: 'none', background: isGen ? D.surfaceHi : `linear-gradient(135deg, var(--primary-dark), var(--primary))`, color: isGen ? r.color : '#fff', fontSize: '0.76rem', fontWeight: 800, cursor: generating !== null ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 5, outline: 'none', opacity: generating !== null && !isGen ? 0.5 : 1, boxShadow: isGen ? 'none' : `0 4px 12px var(--primary-glow)`, transition: 'all 0.2s' }}
                       >
                         {isGen ? <><Loader2 size={12} className="animate-spin" /> Generating…</> : <><Download size={12} /> Download</>}
                       </button>
