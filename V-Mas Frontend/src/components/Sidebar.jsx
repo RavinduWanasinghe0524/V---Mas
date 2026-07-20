@@ -244,7 +244,12 @@ const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
 
         {/* ── Brand / Logo ── */}
         <div className="sidebar-header">
-          <div className="sidebar-brand">
+          <div
+            className="sidebar-brand"
+            onClick={() => navigate('/dashboard')}
+            style={{ cursor: 'pointer' }}
+            title="Go to Dashboard"
+          >
             <div className="sidebar-logo" style={{ padding: 0, overflow: 'hidden', background: 'transparent', boxShadow: 'none', flexShrink: 0 }}>
               <img
                 src={logo} alt="V-MAS"
