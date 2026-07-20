@@ -633,31 +633,36 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
                     {user.role === 'ADMIN' ? 'System Notifications' : (user.role === 'CONTROLLER' ? 'Activity & Alerts' : 'My Notifications')}
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {hasUnreadNotifs && (
-                      <button
-                        onClick={handleMarkAllAsRead}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--primary)',
-                          fontSize: '0.75rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          padding: '4px 8px',
-                          borderRadius: 6,
-                          transition: 'background 0.2s',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          whiteSpace: 'nowrap'
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.05)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                      >
-                        <Check size={12} />
-                        Mark all as read
-                      </button>
-                    )}
+                    <button
+                      onClick={hasUnreadNotifs ? handleMarkAllAsRead : undefined}
+                      disabled={!hasUnreadNotifs}
+                      title={hasUnreadNotifs ? 'Mark all notifications as read' : 'All notifications are already read'}
+                      style={{
+                        background: 'none',
+                        border: `1px solid ${hasUnreadNotifs
+                          ? (isDark ? 'rgba(59,130,246,0.4)' : 'rgba(59,130,246,0.3)')
+                          : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)')}`,
+                        color: hasUnreadNotifs
+                          ? 'var(--primary)'
+                          : (isDark ? 'rgba(148,163,184,0.4)' : 'rgba(100,116,139,0.4)'),
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        cursor: hasUnreadNotifs ? 'pointer' : 'not-allowed',
+                        padding: '4px 9px',
+                        borderRadius: 20,
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        whiteSpace: 'nowrap',
+                        opacity: hasUnreadNotifs ? 1 : 0.45,
+                      }}
+                      onMouseEnter={e => { if (hasUnreadNotifs) e.currentTarget.style.background = isDark ? 'rgba(59,130,246,0.12)' : 'rgba(59,130,246,0.07)' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                    >
+                      <Check size={11} />
+                      Mark all read
+                    </button>
                     <button 
                       onClick={() => setShowNotifications(false)}
                       className="topbar-notif-mobile-close"
