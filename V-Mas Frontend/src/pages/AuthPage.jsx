@@ -6,9 +6,7 @@ import {
   Eye, EyeOff, User, Lock, LogIn, AlertCircle, UserPlus, Car, Settings,
   Users, CheckCircle, ChevronDown, Clock, ArrowLeft, Mail, Sun, Moon
 } from 'lucide-react';
-import logo from '../assets/V-MAS Logo.svg';
-import loginBg from '../assets/login-bg-opt.jpg';
-import loginBgWhite from '../assets/Login bg image (White)-opt.jpg';
+import { getRoleLogo } from '../utils/roleAssets';
 import './AuthPage.css';
 
 /* ─────────────────────────────────────────────────────
@@ -573,7 +571,7 @@ const ForgotSlide = ({ onSwitch, isActive }) => {
 const AuthPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { theme, setTheme } = useTheme();
 
   // Local theme initialized based on global context (Day is light, Night is blue/dark)
@@ -951,7 +949,7 @@ const AuthPage = () => {
         <div className="ag-left-overlay">
           <div className="ag-brand">
             <div className="ag-brand-mark">
-              <img src={logo} alt="V-MAS Logo" className="ag-logo-img" />
+              <img src={getRoleLogo(user?.role)} alt="V-MAS Logo" className="ag-logo-img" />
             </div>
             
           </div>

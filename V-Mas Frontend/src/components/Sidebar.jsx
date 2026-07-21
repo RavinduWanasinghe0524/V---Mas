@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
-import logo from '../assets/V-MAS Logo.svg'
+import { getRoleLogo } from '../utils/roleAssets'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import {
@@ -252,9 +252,9 @@ const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
           >
             <div className="sidebar-logo" style={{ padding: 0, overflow: 'hidden', background: 'transparent', boxShadow: 'none', flexShrink: 0 }}>
               <img
-                src={logo} alt="V-MAS"
+                src={getRoleLogo(user?.role)} alt="V-MAS Logo"
                 style={{
-                  width: 44, height: 44, borderRadius: 12, objectFit: 'cover',
+                  width: 44, height: 44, borderRadius: 12, objectFit: 'contain',
                   filter: 'drop-shadow(0 0 8px rgba(37,99,235,0.6))', display: 'block',
                 }}
               />
