@@ -1,92 +1,202 @@
-# 🚗 V-MAS: Smart Vehicle Service Management System
+# 🚗 V-MAS — Smart Vehicle Management & Administration System
 
-> A premium, modern, and feature-rich fleet management platform designed to streamline vehicle tracking, maintenance services, fuel analytics, and user administration.
+> A premium, full-featured fleet management platform designed to streamline vehicle tracking, service lifecycle management, fuel analytics, trip/job management, and user administration — all in one sleek dark-mode interface.
 
-***
+---
 
 ## 🌐 Live Application
 
-### 🔗 **[👉 CLICK HERE TO LAUNCH V-MAS LIVE SITE 👈](https://v-mas.vercel.app)**
-*(Use credentials: **admin** / **admin123** to test)*
+### 🔗 **[👉 CLICK HERE TO LAUNCH V-MAS 👈](https://v-mas.vercel.app)**
 
-***
+> *(Test credentials: **admin** / **admin123**)*
 
-## 🌟 Key Modules & Features
+---
 
-| Module | Icon | Description | Key Capabilities |
+## 🌟 Modules & Features
+
+| Module | Icon | Description | Capabilities |
 | :--- | :---: | :--- | :--- |
-| **Interactive Dashboard** | 📊 | Real-time system monitoring | Overview of fleet metrics, service statuses, fuel logs, and system health widgets. |
-| **Fleet Management** | 🚗 | Comprehensive vehicle logging | Register, update, and manage vehicle details including model, status, and assignments. |
-| **Service & Maintenance** | 🛠️ | Service lifecycle tracking | Track servicing records, schedule maintenance, and monitor status updates (Pending/In Progress/Completed). |
-| **Fuel Management** | ⛽ | Consumption and analytics | Log fuel usage, analyze fuel efficiency (km/L metrics), and track monthly expenditures. |
-| **Location Tracking** | 📍 | Route visualization | Real-time visual tracking of vehicles across registered service routes. |
-| **User Administration** | 👥 | Role and permission management | Admin controls to view, register, edit, and control system access for users and drivers. |
-| **Reports & Logs** | 📈 | Data export and summary | Generate historical data summaries, export logs, and compile fleet-wide analytics. |
+| **Dashboard** | 📊 | Real-time system overview | Fleet KPIs, service statuses, fuel summaries, and live health widgets |
+| **Fleet Management** | 🚗 | Full vehicle registry | Register, update, search, filter, and deactivate vehicles with detailed profiles |
+| **Service & Maintenance** | 🛠️ | End-to-end service tracking | Create, edit, and track service records; status flow: Pending → In Progress → Completed |
+| **Fuel Management** | ⛽ | Usage logging & cost tracking | Log fill-ups, track fuel cost per vehicle, monitor consumption trends |
+| **Fuel Analysis** | 📈 | Advanced efficiency analytics | km/L metrics, monthly expenditure charts, vehicle-level comparisons |
+| **Fuel Log** | 📋 | Detailed fill-up history | Searchable, filterable chronological fuel log with vehicle drill-down |
+| **Trips & Jobs** | 🗺️ | Job dispatch & tracking | Assign trips, log driver activity, track job progress and completion |
+| **Location Tracking** | 📍 | Route visualization | Visual map of vehicle routes and registered service zones |
+| **Reports** | 📄 | Data export & summaries | Generate PDF & Excel reports for fleet, service, and fuel data |
+| **User Administration** | 👥 | Role & access management | Admin controls: register, edit, activate/deactivate users and drivers |
+| **Profile** | 🙍 | User self-management | Update personal details, change password, manage notification preferences |
 
-***
+---
 
-## ⚙️ Technology Stack & Architecture
+## ⚙️ Technology Stack
 
 ### 💻 Frontend
-* **Core:** React (Vite-powered build tool)
-* **Performance:** Eagerly & lazily code-split components for fast initial load times
-* **Styling:** Custom Modern Vanilla CSS (tailored HSL colors, sleek dark mode, glassmorphism, responsive grid layouts)
-* **Hosting:** [Vercel](https://v-mas.vercel.app)
 
-### ⚙️ Backend & Database
-* **Backend Framework:** Spring Boot (Java) running on Corretto 17
-* **Database:** AWS RDS (MySQL)
-* **Deployment:** AWS Elastic Beanstalk (Single-Instance Environment)
+| Technology | Purpose |
+| :--- | :--- |
+| **React 19** | UI framework (component-driven SPA) |
+| **Vite 8** | Lightning-fast build tool & dev server |
+| **React Router DOM v7** | Client-side routing & protected routes |
+| **Axios** | HTTP client for REST API communication |
+| **Lucide React** | Consistent icon system |
+| **jsPDF + jspdf-autotable** | In-browser PDF report generation |
+| **ExcelJS** | In-browser Excel (.xlsx) export |
+| **Vanilla CSS** | Custom design system (HSL palettes, glassmorphism, dark mode, animations) |
 
-### 🔒 Secure Proxy Chain & Architecture
-To ensure secure HTTPS communication, prevent CORS issues, and route traffic efficiently, requests follow this flow:
+### 🏗️ Architecture Patterns
+
+- **Code Splitting**: All pages are lazily loaded via `React.lazy()` + `Suspense` for fast initial load times
+- **Context API**: `AuthProvider` (JWT session management) & `ThemeProvider` (light/dark/system theme) for global state
+- **Protected Routes**: `PrivateRoute` component guards all authenticated pages; unauthenticated users are redirected to `/login`
+- **Vite Proxy**: In development, `/api/*` requests are proxied to `localhost:8080` (no CORS issues)
+
+### ⚙️ Backend & Infrastructure
+
+| Component | Technology |
+| :--- | :--- |
+| **Backend Framework** | Spring Boot (Java 17 / Corretto 17) |
+| **Database** | AWS RDS (MySQL) |
+| **Backend Hosting** | AWS Elastic Beanstalk (Single-Instance) |
+| **Frontend Hosting** | Vercel |
+| **CDN / API Gateway** | AWS CloudFront |
+
+### 🔒 Request Flow (Production)
 
 ```
-[ Browser / Client ]  ---(HTTPS)--->  [ Vercel (v-mas.vercel.app) ]
-                                                   |
-                                            (Server-side Proxy)
-                                                   v
-[ Spring Boot Backend ] <---(HTTP)--- [ AWS CloudFront (d3dqxbt72t73lz) ]
-          |
-     (JDBC Connection)
-          v
-[ AWS RDS MySQL Database ]
+[ Browser ]  ──(HTTPS)──▶  [ Vercel (v-mas.vercel.app) ]
+                                        │
+                               (Server-side Proxy /api/*)
+                                        ▼
+                          [ AWS CloudFront Distribution ]
+                                        │
+                                  (HTTP forward)
+                                        ▼
+                   [ Spring Boot on AWS Elastic Beanstalk ]
+                                        │
+                               (JDBC / MySQL)
+                                        ▼
+                              [ AWS RDS MySQL DB ]
 ```
 
-***
+---
 
-## 🛠️ Local Development & Setup
+## 🛠️ Local Development Setup
 
 ### Prerequisites
-* **Node.js** v18 or later
-* **npm** v9 or later
 
-### Getting Started
+- **Node.js** v18+
+- **npm** v9+
+- A running **Spring Boot** backend at `http://localhost:8080` (or configured via `.env`)
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/RavinduWanasinghe0524/V---Mas.git
-   cd V---Mas/V-Mas Frontend
-   ```
+### 1. Clone the Repository
 
-2. **Install all dependencies:**
-   ```bash
-   npm install
-   ```
+```bash
+git clone https://github.com/RavinduWanasinghe0524/V---Mas.git
+cd "V---Mas/V-Mas Frontend"
+```
 
-3. **Launch the development server:**
-   ```bash
-   npm run dev
-   ```
-   *The local app will run at `http://localhost:3000`.*
+### 2. Install Dependencies
 
-4. **API Configuration:**
-   * In local development, the Vite dev server proxies API requests to the backend.
-   * In production, Vercel routes `/api/*` requests to the CloudFront distribution endpoint.
+```bash
+npm install
+```
 
-***
+### 3. Configure Environment Variables
 
-## 🌐 Production URL Summary
-* **Live Web App:** [https://v-mas.vercel.app](https://v-mas.vercel.app)
-* **Production API Gateway (CloudFront):** `https://d3dqxbt72t73lz.cloudfront.net`
-* **Elastic Beanstalk Backend Instance:** `http://vmas-backend-env.eba-arpg3c5y.ap-southeast-1.elasticbeanstalk.com`
+```bash
+# Copy the example file
+cp .env.example .env
+```
+
+Edit `.env` to set your API base URL:
+
+```env
+# Local development
+VITE_API_BASE_URL=http://localhost:8080/api
+```
+
+> **Note:** The Vite dev server automatically proxies `/api/*` requests to `http://localhost:8080`, so you can also leave the `.env` blank for local development.
+
+### 4. Start the Dev Server
+
+```bash
+npm run dev
+```
+
+The app will be available at **`http://localhost:3000`**.
+
+### 5. Build for Production
+
+```bash
+npm run build
+```
+
+Output is placed in the `dist/` folder, ready for Vercel or any static host.
+
+---
+
+## 📁 Project Structure
+
+```
+V-Mas Frontend/
+├── public/                  # Static assets
+├── src/
+│   ├── assets/              # Images, SVGs (e.g. V-MAS Logo.svg)
+│   ├── components/          # Shared UI components
+│   │   ├── Navbar.jsx
+│   │   ├── Sidebar.jsx
+│   │   ├── Topbar.jsx
+│   │   ├── PrivateRoute.jsx
+│   │   └── TripActionModal.jsx
+│   ├── context/             # Global state providers
+│   │   ├── AuthContext.jsx
+│   │   ├── AuthProvider.jsx  # JWT auth, login/logout, session persistence
+│   │   ├── ThemeContext.jsx
+│   │   └── ThemeProvider.jsx # Light / Dark / System theme toggle
+│   ├── pages/               # Route-level page components (all lazy-loaded)
+│   │   ├── AuthPage.jsx      # Unified login / sign-up page
+│   │   ├── DashboardPage.jsx
+│   │   ├── VehiclesPage.jsx
+│   │   ├── ServicePage.jsx
+│   │   ├── AddServicePage.jsx
+│   │   ├── FuelManagementPage.jsx
+│   │   ├── FuelAnalysisPage.jsx
+│   │   ├── FuelLogPage.jsx
+│   │   ├── TripsPage.jsx     # Jobs & dispatch
+│   │   ├── LocationPage.jsx
+│   │   ├── ReportsPage.jsx
+│   │   ├── UsersPage.jsx
+│   │   └── ProfilePage.jsx
+│   ├── services/            # Axios API service layer
+│   ├── utils/               # Utility helpers
+│   ├── App.jsx              # Root router & Suspense wrapper
+│   ├── main.jsx             # React DOM entry point
+│   └── index.css            # Global design system (tokens, dark mode, animations)
+├── .env.example             # Environment variable template
+├── vercel.json              # Vercel routing & proxy config
+├── vite.config.js           # Vite dev server & proxy settings
+└── package.json
+```
+
+---
+
+## 🌐 Production URLs
+
+| Service | URL |
+| :--- | :--- |
+| **Live Web App** | [https://v-mas.vercel.app](https://v-mas.vercel.app) |
+| **API Gateway (CloudFront)** | `https://d3dqxbt72t73lz.cloudfront.net` |
+| **Backend (Elastic Beanstalk)** | `http://vmas-backend-env.eba-arpg3c5y.ap-southeast-1.elasticbeanstalk.com` |
+
+---
+
+## 📜 Available Scripts
+
+| Command | Description |
+| :--- | :--- |
+| `npm run dev` | Start development server at `localhost:3000` |
+| `npm run build` | Build production bundle to `dist/` |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Run ESLint across the project |
