@@ -5,7 +5,7 @@ import {
   Eye, EyeOff, AlertCircle, CheckCircle, ChevronDown,
   Clock, ArrowLeft, UserPlus, Car, Settings, Users
 } from 'lucide-react';
-import logo from '../assets/V-MAS Logo.svg';
+import { getRoleLogo } from '../utils/roleAssets';
 import fleetHero from '../assets/fleet-hero.png';
 import './SignUpPage.css';
 
@@ -117,7 +117,7 @@ const SignUpPage = () => {
         {/* Logo row */}
         <div className="su-logo-row">
           <div className="su-logo-box">
-            <img src={logo} alt="V-MAS" className="su-logo-img" />
+            <img src={getRoleLogo(formData.role)} alt="V-MAS Logo" className="su-logo-img" />
           </div>
           <span className="su-logo-name">V-MAS</span>
           <Link to="/login" className="su-signin-link">
