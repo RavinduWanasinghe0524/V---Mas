@@ -19,7 +19,7 @@ export const useD = () => {
       const parsed = JSON.parse(storedUser);
       role = parsed.role || 'NONE';
     }
-  } catch (e) {}
+  } catch (e) { }
 
   // Base role-specific configuration mapping
   const roleColors = {
@@ -98,16 +98,16 @@ export const useD = () => {
 
     // ── Role colours ──────────────────────────────────────────────────
     // Admin  = Royal Violet
-    adminColor:  isDark ? '#a78bfa' : '#6d28d9',
-    adminDim:    isDark ? 'rgba(124,58,237,0.18)' : 'rgba(124,58,237,0.1)',
+    adminColor: isDark ? '#a78bfa' : '#6d28d9',
+    adminDim: isDark ? 'rgba(124,58,237,0.18)' : 'rgba(124,58,237,0.1)',
     adminBorder: isDark ? 'rgba(124,58,237,0.35)' : 'rgba(124,58,237,0.25)',
     // Controller = Amber / Gold
-    controllerColor:  isDark ? '#fbbf24' : '#b45309',
-    controllerDim:    isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.1)',
+    controllerColor: isDark ? '#fbbf24' : '#b45309',
+    controllerDim: isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.1)',
     controllerBorder: isDark ? 'rgba(245,158,11,0.35)' : 'rgba(245,158,11,0.25)',
     // Driver = Emerald
-    driverColor:  isDark ? '#34d399' : '#047857',
-    driverDim:    isDark ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.1)',
+    driverColor: isDark ? '#34d399' : '#047857',
+    driverDim: isDark ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.1)',
     driverBorder: isDark ? 'rgba(16,185,129,0.35)' : 'rgba(16,185,129,0.25)',
 
     // Derived helpers

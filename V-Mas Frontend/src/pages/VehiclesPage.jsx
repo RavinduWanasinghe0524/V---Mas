@@ -1056,7 +1056,7 @@ const VehiclesPage = () => {
   const sorted = [...filtered].sort((a, b) => {
     const alertA = vehicleAlerts[a.registrationNo]
     const alertB = vehicleAlerts[b.registrationNo]
-    
+
     const today = new Date()
     const insExpiryA = a.insuranceExpiryDate ? new Date(a.insuranceExpiryDate) : null
     const licExpiryA = a.licenseExpiryDate ? new Date(a.licenseExpiryDate) : null
@@ -1078,17 +1078,17 @@ const VehiclesPage = () => {
       if (scoreA !== scoreB) return scoreB - scoreA
       return (a.registrationNo || '').localeCompare(b.registrationNo || '')
     }
-    
+
     if (sortBy === 'REG_ASC') {
       return (a.registrationNo || '').localeCompare(b.registrationNo || '')
     }
-    
+
     if (sortBy === 'MAKE_ASC') {
       const nameA = `${a.manufacturer || ''} ${a.model || ''}`
       const nameB = `${b.manufacturer || ''} ${b.model || ''}`
       return nameA.localeCompare(nameB)
     }
-    
+
     if (sortBy === 'MILEAGE_ASC') {
       return (a.currentMileageKm || 0) - (b.currentMileageKm || 0)
     }
@@ -1248,10 +1248,10 @@ const VehiclesPage = () => {
     const isLicExpired = licDiff !== null && licDiff < 0
     const hasServiceAlert = ac && ac.level !== 'OK'
     const statusBadge = {
-      ACTIVE:    { label: 'Active',     bg: 'linear-gradient(135deg,#10b981,#059669)', shadow: 'rgba(16,185,129,0.45)' },
-      AVAILABLE: { label: 'Available',  bg: 'linear-gradient(135deg,#3b82f6,#2563eb)', shadow: 'rgba(59,130,246,0.45)' },
-      SERVICE:   { label: 'In Service', bg: 'linear-gradient(135deg,#f59e0b,#d97706)', shadow: 'rgba(245,158,11,0.45)' },
-      INACTIVE:  { label: 'Inactive',   bg: 'linear-gradient(135deg,#ef4444,#b91c1c)', shadow: 'rgba(239,68,68,0.45)' },
+      ACTIVE: { label: 'Active', bg: 'linear-gradient(135deg,#10b981,#059669)', shadow: 'rgba(16,185,129,0.45)' },
+      AVAILABLE: { label: 'Available', bg: 'linear-gradient(135deg,#3b82f6,#2563eb)', shadow: 'rgba(59,130,246,0.45)' },
+      SERVICE: { label: 'In Service', bg: 'linear-gradient(135deg,#f59e0b,#d97706)', shadow: 'rgba(245,158,11,0.45)' },
+      INACTIVE: { label: 'Inactive', bg: 'linear-gradient(135deg,#ef4444,#b91c1c)', shadow: 'rgba(239,68,68,0.45)' },
     }
     const badge = statusBadge[v.status] || { label: v.status || 'Unknown', bg: `linear-gradient(135deg,${D.purple},${D.indigo})`, shadow: 'rgba(124,58,237,0.45)' }
     const isOrangeTheme = isController
