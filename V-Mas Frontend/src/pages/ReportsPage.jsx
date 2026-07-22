@@ -8,7 +8,7 @@ import {
   FileText, Calendar, Download, ClipboardList, BarChart2, Loader2, Database, TrendingUp, Gauge,
   AlertCircle, CheckCircle, X, Search, Sliders, Palette,
   Eye, RefreshCw, Activity, FileSpreadsheet,
-  Clock, LayoutGrid, List
+  Clock, LayoutGrid, List, CheckSquare, Square
 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -122,18 +122,6 @@ const ReportsPage = () => {
   const [selectedVehicle, setSelectedVehicle] = useState('all')
   const [vehiclesList, setVehiclesList] = useState([])
 
-  // Custom Vehicle Log Analyzer States
-  const [analyzerVehicle, setAnalyzerVehicle] = useState('')
-  const [analyzerType, setAnalyzerType] = useState('service') // 'service' | 'fuel'
-  const [analyzerStartDate, setAnalyzerStartDate] = useState('')
-  const [analyzerEndDate, setAnalyzerEndDate] = useState('')
-  const [analyzerResults, setAnalyzerResults] = useState({
-    loading: false,
-    loaded: false,
-    stats: null,
-    data: []
-  })
-
   // Live stats
   const [liveStats, setLiveStats] = useState({
     vehicles: null, fuelLogs: null, services: null, users: null, loading: true
@@ -143,6 +131,400 @@ const ReportsPage = () => {
   const [previewModal, setPreviewModal] = useState({
     open: false, reportId: null, title: '', rows: [], columns: [], loading: false, error: ''
   })
+
+  // Custom Generate Document Modal State
+  const [docModal, setDocModal] = useState({
+    open: false,
+    vehicle: '',
+    selectedCategoryPreset: '',
+    recordTypes: {
+      service: false,
+      upcoming: false,
+      fuel: false,
+      mileage: false,
+    },
+    startDate: '',
+    endDate: '',
+    format: 'pdf', // 'pdf' | 'excel'
+    generating: false,
+    error: '',
+  })
+
+  const openDocModal = (presetVehicle = '') => {
+    const v = presetVehicle && presetVehicle !== 'all' ? presetVehicle : (selectedVehicle !== 'all' ? selectedVehicle : '')
+    setDocModal({
+      open: true,
+      vehicle: v,
+      selectedCategoryPreset: '',
+      recordTypes: { service: false, upcoming: false, fuel: false, mileage: false },
+      startDate: startDate || '',
+      endDate: endDate || '',
+      format: 'pdf',
+      generating: false,
+      error: ''
+    })
+  }
+
+  const handleCategorySelect = (val) => {
+    if (!val) {
+      setDocModal(m => ({
+        ...m,
+        selectedCategoryPreset: '',
+        recordTypes: { service: false, upcoming: false, fuel: false, mileage: false }
+      }))
+      return
+    }
+    if (val === 'all') {
+      setDocModal(m => ({
+        ...m,
+        selectedCategoryPreset: 'all',
+        recordTypes: { service: true, upcoming: true, fuel: true, mileage: true }
+      }))
+      return
+    }
+    setDocModal(m => ({
+      ...m,
+      selectedCategoryPreset: val,
+      recordTypes: {
+        service: val === 'service',
+        upcoming: val === 'upcoming',
+        fuel: val === 'fuel',
+        mileage: val === 'mileage',
+      }
+    }))
+  }
+
+  const handleGenerateCustomDocument = async () => {
+    if (!docModal.vehicle) {
+      setDocModal(m => ({ ...m, error: 'Please select a target vehicle.' }))
+      return
+    }
+    const { service, upcoming, fuel, mileage } = docModal.recordTypes
+    if (!service && !upcoming && !fuel && !mileage) {
+      setDocModal(m => ({ ...m, error: 'Please select at least one record category to include.' }))
+      return
+    }
+
+    setDocModal(m => ({ ...m, generating: true, error: '' }))
+    try {
+      const reg = docModal.vehicle
+      const selVehicle = vehiclesList.find(v => v.registrationNo === reg) || { registrationNo: reg }
+
+      const [vRes, sRes, fRes] = await Promise.all([
+        vehicleAPI.getAllVehicles(),
+        serviceAPI.getAllServices(),
+        fuelAPI.getAllFuelLogs()
+      ])
+
+      const allVehicles = vRes.data?.data || []
+      const vehicleInfo = allVehicles.find(v => v.registrationNo === reg) || selVehicle
+
+      const getTableStatusLocal = (s) => {
+        if (!s) return 'Open'
+        const today = new Date(); today.setHours(0, 0, 0, 0)
+        const isCompleted = s.serviceDate && (() => { const d = new Date(s.serviceDate); d.setHours(0, 0, 0, 0); return d <= today })()
+        if (isCompleted) return 'Completed'
+        if (!s.serviceDate) return 'Open'
+        const targetDate = new Date(s.serviceDate); targetDate.setHours(0, 0, 0, 0)
+        if (targetDate < today) return 'Overdue'
+        const diffDays = Math.ceil((targetDate - today) / 86400000)
+        return diffDays <= 5 ? 'In Progress' : 'Open'
+      }
+
+      // Compute standard maintenance categories (Oil Change, Tire Rotation, Brake Service, General Inspection, Engine Tune Up)
+      const STANDARD_MAINTENANCE_CATEGORIES = [
+        { serviceType: 'OIL_CHANGE', label: 'Oil Change', defaultInterval: 15000 },
+        { serviceType: 'TIRE_ROTATION', label: 'Tire Rotation', defaultInterval: 20000 },
+        { serviceType: 'BRAKE_SERVICE', label: 'Brake Service', defaultInterval: 30000 },
+        { serviceType: 'GENERAL_INSPECTION', label: 'General Inspection', defaultInterval: 15000 },
+        { serviceType: 'ENGINE_TUNE_UP', label: 'Engine Tune Up', defaultInterval: 20000 },
+      ]
+
+      const vehicleServices = (sRes.data?.data || []).filter(s => s.vehicleRegNumber === reg && !s.deleted)
+      const currentKm = vehicleInfo.currentMileageKm ? Number(vehicleInfo.currentMileageKm) : 0
+
+      const upcomingMaintenanceList = STANDARD_MAINTENANCE_CATEGORIES.map(cat => {
+        const catServices = vehicleServices.filter(s =>
+          String(s.serviceType || '').toUpperCase().replace(/_/g, ' ') === cat.label.toUpperCase() ||
+          String(s.serviceType || '').toUpperCase() === cat.serviceType
+        )
+
+        let lastServiceKm = vehicleInfo.initialMileageKm != null ? Number(vehicleInfo.initialMileageKm) : currentKm
+        let targetDueKm = null
+
+        if (catServices.length > 0) {
+          catServices.sort((a, b) => Number(b.currentMileageKm || b.odometerReading || 0) - Number(a.currentMileageKm || a.odometerReading || 0))
+          const latest = catServices[0]
+          lastServiceKm = Number(latest.currentMileageKm || latest.odometerReading || lastServiceKm)
+          if (latest.nextServiceMileageKm) targetDueKm = Number(latest.nextServiceMileageKm)
+        }
+
+        if (!targetDueKm) {
+          targetDueKm = lastServiceKm + cat.defaultInterval
+        }
+
+        const remainingKm = targetDueKm - currentKm
+
+        let statusText = 'Healthy'
+        if (remainingKm <= 0) statusText = 'Overdue'
+        else if (remainingKm <= 2000) statusText = 'Due Soon'
+
+        return {
+          categoryLabel: cat.label,
+          currentKm,
+          lastServiceKm,
+          targetDueKm,
+          remainingKm,
+          statusText
+        }
+      })
+
+      let services = vehicleServices
+      let fuelLogs = (fRes.data?.data || []).filter(f => f.vehicleRegNumber === reg)
+
+      if (docModal.startDate) {
+        const start = new Date(docModal.startDate)
+        services = services.filter(s => s.serviceDate && new Date(s.serviceDate) >= start)
+        fuelLogs = fuelLogs.filter(f => f.date && new Date(f.date) >= start)
+      }
+      if (docModal.endDate) {
+        const end = new Date(docModal.endDate)
+        services = services.filter(s => s.serviceDate && new Date(s.serviceDate) <= end)
+        fuelLogs = fuelLogs.filter(f => f.date && new Date(f.date) <= end)
+      }
+
+      const totalServiceCost = services.reduce((sum, s) => sum + (Number(s.serviceCost) || 0), 0)
+      const totalFuelCost = fuelLogs.reduce((sum, f) => sum + (Number(f.totalCost) || 0), 0)
+      const totalFuelLiters = fuelLogs.reduce((sum, f) => sum + (Number(f.liters) || 0), 0)
+      const grandTotal = totalServiceCost + totalFuelCost
+
+      if (docModal.format === 'pdf') {
+        const doc = new jsPDF()
+        const headerColor = [30, 58, 138] // Navy Deep Blue
+
+        doc.setFillColor(...headerColor)
+        doc.rect(0, 0, 210, 28, 'F')
+        doc.setFontSize(15); doc.setTextColor(255, 255, 255); doc.setFont(undefined, 'bold')
+        doc.text('V-MAS FLEET MANAGEMENT SYSTEM', 14, 12)
+        doc.setFontSize(10); doc.setFont(undefined, 'normal')
+        doc.text(`Comprehensive Vehicle Dossier: ${reg}`, 14, 20)
+        doc.text(`Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 130, 20)
+
+        let currY = 36
+
+        doc.setFillColor(248, 250, 252)
+        doc.setDrawColor(226, 232, 240)
+        doc.roundedRect(14, currY, 182, 28, 3, 3, 'FD')
+
+        doc.setFontSize(10); doc.setTextColor(15, 23, 42); doc.setFont(undefined, 'bold')
+        doc.text(`Vehicle: ${reg} (${vehicleInfo.manufacturer || ''} ${vehicleInfo.model || ''})`, 18, currY + 8)
+        doc.setFont(undefined, 'normal'); doc.setFontSize(9); doc.setTextColor(71, 85, 105)
+        doc.text(`Status: ${vehicleInfo.status || 'Active'}  |  Current Mileage: ${vehicleInfo.currentMileageKm ? vehicleInfo.currentMileageKm.toLocaleString() + ' km' : 'N/A'}  |  Fuel Type: ${vehicleInfo.fuelType ? formatFuelType(vehicleInfo.fuelType) : 'N/A'}`, 18, currY + 15)
+        doc.text(`Period Filter: ${docModal.startDate || 'Beginning'} to ${docModal.endDate || 'Present'}  |  Total Expenses: Rs. ${grandTotal.toLocaleString()}`, 18, currY + 22)
+
+        currY += 34
+
+        if (upcoming) {
+          doc.setFontSize(11); doc.setTextColor(30, 58, 138); doc.setFont(undefined, 'bold')
+          doc.text('Upcoming Services & Maintenance Schedule Alerts', 14, currY)
+          currY += 4
+          autoTable(doc, {
+            startY: currY,
+            head: [['Service Category', 'Current Mileage', 'Last Service Km', 'Remaining Distance', 'Due at Mileage', 'Status']],
+            body: upcomingMaintenanceList.map(m => [
+              m.categoryLabel,
+              `${m.currentKm.toLocaleString()} km`,
+              `${m.lastServiceKm.toLocaleString()} km`,
+              m.remainingKm >= 0 ? `${m.remainingKm.toLocaleString()} km remaining` : `${Math.abs(m.remainingKm).toLocaleString()} km OVERDUE`,
+              `${m.targetDueKm.toLocaleString()} km`,
+              m.statusText
+            ]),
+            theme: 'grid',
+            headStyles: { fillColor: [67, 56, 202] },
+            didParseCell: (data) => {
+              if (data.section === 'body' && data.column.index === 5) {
+                const st = data.cell.raw
+                if (st === 'Overdue') data.cell.styles.textColor = [220, 38, 38]
+                else if (st === 'Due Soon') data.cell.styles.textColor = [180, 120, 0]
+                else if (st === 'Healthy') data.cell.styles.textColor = [16, 185, 129]
+              }
+            }
+          })
+          currY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 12 : currY + 30
+        }
+
+        if (service) {
+          doc.setFontSize(11); doc.setTextColor(30, 58, 138); doc.setFont(undefined, 'bold')
+          doc.text('Past Service & Repair Log History', 14, currY)
+          currY += 4
+          autoTable(doc, {
+            startY: currY,
+            head: [['Date', 'Service Type', 'Classification', 'Odometer', 'Cost', 'Description']],
+            body: services.length === 0 ? [['No past service records found', '—', '—', '—', '—', '—']] : services.map(s => [
+              s.serviceDate ? new Date(s.serviceDate).toLocaleDateString() : 'N/A',
+              String(s.serviceType || 'N/A').replace(/_/g, ' '),
+              s.serviceClassification || 'N/A',
+              s.odometerReading ? `${s.odometerReading.toLocaleString()} km` : '—',
+              s.serviceCost != null ? `Rs. ${Number(s.serviceCost).toLocaleString()}` : 'Rs. 0',
+              s.description || '—'
+            ]),
+            theme: 'grid',
+            headStyles: { fillColor: [13, 148, 136] }
+          })
+          currY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 12 : currY + 30
+        }
+
+        if (fuel) {
+          doc.setFontSize(11); doc.setTextColor(30, 58, 138); doc.setFont(undefined, 'bold')
+          doc.text('Fuel Consumption & Fill-up Log', 14, currY)
+          currY += 4
+          autoTable(doc, {
+            startY: currY,
+            head: [['Date', 'Driver', 'Fuel Type', 'Volume', 'Price/L', 'Total Cost']],
+            body: fuelLogs.length === 0 ? [['No fuel logs found', '—', '—', '—', '—', '—']] : fuelLogs.map(f => [
+              f.date ? new Date(f.date).toLocaleDateString() : 'N/A',
+              f.driverUsername || 'N/A',
+              f.fuelType ? formatFuelType(f.fuelType) : 'N/A',
+              f.liters != null ? `${Number(f.liters).toFixed(1)} L` : '0 L',
+              f.pricePerLiter != null ? `Rs. ${f.pricePerLiter}` : '—',
+              f.totalCost != null ? `Rs. ${Number(f.totalCost).toLocaleString()}` : 'Rs. 0'
+            ]),
+            theme: 'grid',
+            headStyles: { fillColor: [126, 34, 206] }
+          })
+          currY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 12 : currY + 30
+        }
+
+        if (mileage) {
+          doc.setFontSize(11); doc.setTextColor(30, 58, 138); doc.setFont(undefined, 'bold')
+          doc.text('Vehicle Mileage & Distance Tracking Summary', 14, currY)
+          currY += 4
+          autoTable(doc, {
+            startY: currY,
+            head: [['Registration No', 'Manufacturer & Model', 'Initial Odometer', 'Current Odometer', 'Total Distance Driven']],
+            body: [[
+              reg,
+              `${vehicleInfo.manufacturer || ''} ${vehicleInfo.model || ''}`.trim() || 'N/A',
+              vehicleInfo.initialMileageKm ? `${vehicleInfo.initialMileageKm.toLocaleString()} km` : '0 km',
+              vehicleInfo.currentMileageKm ? `${vehicleInfo.currentMileageKm.toLocaleString()} km` : '0 km',
+              vehicleInfo.currentMileageKm && vehicleInfo.initialMileageKm ? `${(vehicleInfo.currentMileageKm - vehicleInfo.initialMileageKm).toLocaleString()} km` : 'N/A'
+            ]],
+            theme: 'grid',
+            headStyles: { fillColor: [30, 58, 138] }
+          })
+        }
+
+        const fileName = `V-MAS_${reg}_Detailed_Document.pdf`
+        doc.save(fileName)
+
+        setReportsList(prev => [
+          { name: fileName, generated: new Date().toISOString().split('T')[0], format: 'PDF', size: '280 KB' },
+          ...prev.filter(p => p.name !== fileName)
+        ])
+        setSuccessMsg(`Generated custom PDF document for ${reg}!`)
+      } else {
+        const wb = new ExcelJS.Workbook()
+        const fill = (hex) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + hex } })
+
+        const ws = wb.addWorksheet('Vehicle Dossier')
+        ws.mergeCells(1, 1, 1, 6)
+        const titleCell = ws.getCell('A1')
+        titleCell.value = `🚗 V-MAS Fleet - Vehicle Report: ${reg}`
+        titleCell.font = { name: 'Calibri', bold: true, size: 14, color: { argb: 'FFFFFFFF' } }
+        titleCell.fill = fill('1E3A8A')
+        titleCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 }
+        ws.getRow(1).height = 30
+
+        ws.mergeCells(2, 1, 2, 6)
+        const subCell = ws.getCell('A2')
+        subCell.value = `Make: ${vehicleInfo.manufacturer || ''} ${vehicleInfo.model || ''}  ·  Mileage: ${vehicleInfo.currentMileageKm || 0} km  ·  Generated: ${new Date().toLocaleString()}`
+        subCell.font = { name: 'Calibri', bold: true, size: 11, color: { argb: 'FFFFFFFF' } }
+        subCell.fill = fill('4338CA')
+        subCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 }
+        ws.getRow(2).height = 24
+
+        ws.addRow([])
+        ws.addRow(['Executive Summary Metric', 'Value'])
+        ws.addRow(['Target Vehicle', reg])
+        ws.addRow(['Current Vehicle Mileage', vehicleInfo.currentMileageKm ? `${vehicleInfo.currentMileageKm.toLocaleString()} km` : '0 km'])
+        ws.addRow(['Total Maintenance Cost', totalServiceCost])
+        ws.addRow(['Total Fuel Cost', totalFuelCost])
+        ws.addRow(['Grand Total Expenses', grandTotal])
+        ws.addRow(['Total Fuel Volume', totalFuelLiters])
+
+        if (upcoming) {
+          ws.addRow([])
+          ws.addRow(['UPCOMING SERVICES & MAINTENANCE SCHEDULE ALERTS'])
+          const uHeader = ws.addRow(['Service Category', 'Current Mileage', 'Last Service Km', 'Remaining Distance', 'Due at Mileage', 'Status'])
+          uHeader.eachCell(cell => { cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }; cell.fill = fill('4338CA') })
+          upcomingMaintenanceList.forEach(m => {
+            ws.addRow([
+              m.categoryLabel,
+              `${m.currentKm.toLocaleString()} km`,
+              `${m.lastServiceKm.toLocaleString()} km`,
+              m.remainingKm >= 0 ? `${m.remainingKm.toLocaleString()} km remaining` : `${Math.abs(m.remainingKm).toLocaleString()} km OVERDUE`,
+              `${m.targetDueKm.toLocaleString()} km`,
+              m.statusText
+            ])
+          })
+        }
+
+        if (service) {
+          ws.addRow([])
+          ws.addRow(['PAST SERVICE & MAINTENANCE HISTORY'])
+          const sHeader = ws.addRow(['Date', 'Service Type', 'Classification', 'Odometer Reading', 'Cost', 'Description'])
+          sHeader.eachCell(cell => { cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }; cell.fill = fill('0D9488') })
+          services.forEach(s => {
+            ws.addRow([
+              s.serviceDate ? new Date(s.serviceDate).toLocaleDateString() : 'N/A',
+              String(s.serviceType || 'N/A').replace(/_/g, ' '),
+              s.serviceClassification || 'N/A',
+              s.odometerReading || 0,
+              s.serviceCost || 0,
+              s.description || '—'
+            ])
+          })
+        }
+
+        if (fuel) {
+          ws.addRow([])
+          ws.addRow(['FUEL CONSUMPTION LOG'])
+          const fHeader = ws.addRow(['Date', 'Driver', 'Fuel Type', 'Liters', 'Price Per Liter', 'Total Cost'])
+          fHeader.eachCell(cell => { cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }; cell.fill = fill('7E22CE') })
+          fuelLogs.forEach(f => {
+            ws.addRow([
+              f.date ? new Date(f.date).toLocaleDateString() : 'N/A',
+              f.driverUsername || 'N/A',
+              f.fuelType ? formatFuelType(f.fuelType) : 'N/A',
+              f.liters || 0,
+              f.pricePerLiter || 0,
+              f.totalCost || 0
+            ])
+          })
+        }
+
+        ws.columns.forEach((col) => { col.width = 24 })
+        const buf = await wb.xlsx.writeBuffer()
+        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        const fileName = `V-MAS_${reg}_Detailed_Document.xlsx`
+        link.download = fileName
+        link.click()
+
+        setReportsList(prev => [
+          { name: fileName, generated: new Date().toISOString().split('T')[0], format: 'Excel', size: '145 KB' },
+          ...prev.filter(p => p.name !== fileName)
+        ])
+        setSuccessMsg(`Generated custom Excel document for ${reg}!`)
+      }
+
+      setDocModal(m => ({ ...m, open: false, generating: false }))
+    } catch (err) {
+      console.error(err)
+      setDocModal(m => ({ ...m, generating: false, error: 'Failed to generate custom vehicle document.' }))
+    }
+  }
 
   // ── Fetch live stats on mount ────────────────────────────────────────────
   const fetchLiveStats = useCallback(async () => {
@@ -171,257 +553,7 @@ const ReportsPage = () => {
 
   useEffect(() => { fetchLiveStats() }, [fetchLiveStats])
 
-  // ── Custom Vehicle Log Analyzer Logic ────────────────────────────────────
-  const runAnalysis = useCallback(async (vehicleReg, type, start, end) => {
-    if (!vehicleReg) {
-      setAnalyzerResults({ loading: false, loaded: false, stats: null, data: [] })
-      return
-    }
-    setAnalyzerResults(r => ({ ...r, loading: true }))
-    try {
-      if (type === 'service') {
-        const { data: res } = await serviceAPI.getAllServices()
-        let list = res?.data || []
-        list = list.filter(s => s.vehicleRegNumber === vehicleReg)
-        if (start) list = list.filter(s => s.serviceDate && new Date(s.serviceDate) >= new Date(start))
-        if (end) list = list.filter(s => s.serviceDate && new Date(s.serviceDate) <= new Date(end))
-        list.sort((a, b) => new Date(b.serviceDate) - new Date(a.serviceDate))
-        const totalCost = list.reduce((sum, s) => sum + (Number(s.serviceCost) || 0), 0)
-        setAnalyzerResults({
-          loading: false,
-          loaded: true,
-          stats: {
-            totalCount: list.length,
-            totalCost,
-            title: 'Service Summary'
-          },
-          data: list
-        })
-      } else {
-        const { data: res } = await fuelAPI.getAllFuelLogs()
-        let list = res?.data || []
-        list = list.filter(f => f.vehicleRegNumber === vehicleReg)
-        if (start) list = list.filter(f => f.date && new Date(f.date) >= new Date(start))
-        if (end) list = list.filter(f => f.date && new Date(f.date) <= new Date(end))
-        list.sort((a, b) => new Date(b.date) - new Date(a.date))
-        const totalCost = list.reduce((sum, f) => sum + (Number(f.totalCost) || 0), 0)
-        const totalLiters = list.reduce((sum, f) => sum + (Number(f.liters) || 0), 0)
-        setAnalyzerResults({
-          loading: false,
-          loaded: true,
-          stats: {
-            totalCount: list.length,
-            totalCost,
-            totalLiters,
-            title: 'Fuel Summary'
-          },
-          data: list
-        })
-      }
-    } catch (err) {
-      setAnalyzerResults({ loading: false, loaded: false, stats: null, data: [], error: 'Failed to retrieve logs' })
-    }
-  }, [])
 
-  useEffect(() => {
-    runAnalysis(analyzerVehicle, analyzerType, analyzerStartDate, analyzerEndDate)
-  }, [analyzerVehicle, analyzerType, analyzerStartDate, analyzerEndDate, runAnalysis])
-
-  const handleDownloadAnalyzerPDF = () => {
-    if (!analyzerVehicle || !analyzerResults.loaded) return
-    try {
-      const doc = new jsPDF()
-      const headerColor = (pdfThemeColors[pdfTheme] || pdfThemeColors.indigo).primary
-      doc.setFontSize(20); doc.setTextColor(40, 40, 40)
-      doc.text(analyzerType === 'service' ? 'Vehicle Service Records' : 'Vehicle Fuel Records', 14, 22)
-      doc.setFontSize(10); doc.setTextColor(100)
-      doc.text(`Vehicle Registration No: ${analyzerVehicle}`, 14, 28)
-      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 34)
-      if (analyzerStartDate || analyzerEndDate) {
-        doc.text(`Period: ${analyzerStartDate || 'Beginning'} to ${analyzerEndDate || 'Present'}`, 14, 40)
-      }
-
-      if (analyzerType === 'service') {
-        autoTable(doc, {
-          startY: analyzerStartDate || analyzerEndDate ? 45 : 40,
-          head: [['Date', 'Service Type', 'Classification', 'Cost', 'Odometer', 'Comments']],
-          body: analyzerResults.data.map(s => [
-            s.serviceDate ? new Date(s.serviceDate).toLocaleDateString() : 'N/A',
-            s.serviceType ? String(s.serviceType).replace(/_/g, ' ') : 'N/A',
-            s.serviceClassification || 'N/A',
-            s.serviceCost != null ? `Rs. ${Number(s.serviceCost).toLocaleString()}` : 'Rs. 0',
-            s.odometerReading ? `${s.odometerReading.toLocaleString()} km` : '—',
-            s.description || '—'
-          ]),
-          theme: 'grid', headStyles: { fillColor: headerColor }
-        })
-      } else {
-        autoTable(doc, {
-          startY: analyzerStartDate || analyzerEndDate ? 45 : 40,
-          head: [['Date', 'Driver', 'Fuel Type', 'Liters', 'Price/L', 'Total Cost']],
-          body: analyzerResults.data.map(f => [
-            f.date ? new Date(f.date).toLocaleDateString() : 'N/A',
-            f.driverUsername || 'N/A',
-            f.fuelType ? formatFuelType(f.fuelType) : 'N/A',
-            f.liters != null ? `${f.liters} L` : '0 L',
-            f.pricePerLiter != null ? `Rs. ${f.pricePerLiter}` : '—',
-            f.totalCost != null ? `Rs. ${Number(f.totalCost).toLocaleString()}` : 'Rs. 0'
-          ]),
-          theme: 'grid', headStyles: { fillColor: headerColor }
-        })
-      }
-
-      const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 60
-      doc.setFontSize(12); doc.setTextColor(40, 40, 40)
-      doc.text('Summary Analysis', 14, finalY)
-      doc.setFontSize(10); doc.setTextColor(80)
-      doc.text(`Total Records Found: ${analyzerResults.stats.totalCount}`, 14, finalY + 8)
-      doc.text(`Total Expenditures: Rs. ${analyzerResults.stats.totalCost.toLocaleString()}`, 14, finalY + 14)
-      if (analyzerType === 'fuel' && analyzerResults.stats.totalLiters) {
-        doc.text(`Total Volume Spent: ${analyzerResults.stats.totalLiters.toFixed(1)} Liters`, 14, finalY + 20)
-      }
-
-      doc.save(`V-MAS_${analyzerVehicle}_${analyzerType}_Report.pdf`)
-      setSuccessMsg('PDF Report downloaded successfully!')
-    } catch (err) {
-      setError('Failed to generate PDF download.')
-    }
-  }
-
-  const handleDownloadAnalyzerExcel = async () => {
-    if (!analyzerVehicle || !analyzerResults.loaded) return
-    try {
-      const wb = new ExcelJS.Workbook()
-      const ws = wb.addWorksheet('Vehicle Report')
-
-      const fill = (hex) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + hex } })
-      const border = () => ({
-        top:    { style: 'thin', color: { argb: 'FFE2E8F0' } },
-        left:   { style: 'thin', color: { argb: 'FFE2E8F0' } },
-        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-        right:  { style: 'thin', color: { argb: 'FFE2E8F0' } },
-      })
-
-      ws.mergeCells(1, 1, 1, 6)
-      const titleCell = ws.getCell('A1')
-      titleCell.value = `🚗 V-MAS Fleet - Vehicle Report`
-      titleCell.font = { name: 'Calibri', bold: true, size: 14, color: { argb: 'FFFFFFFF' } }
-      titleCell.fill = fill('1E3A8A')
-      titleCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 }
-      ws.getRow(1).height = 30
-
-      ws.mergeCells(2, 1, 2, 6)
-      const subCell = ws.getCell('A2')
-      subCell.value = `Vehicle: ${analyzerVehicle}  ·  Report: ${analyzerType === 'service' ? 'Service Log' : 'Fuel Log'}  ·  Date: ${new Date().toLocaleString()}`
-      subCell.font = { name: 'Calibri', bold: true, size: 11, color: { argb: 'FFFFFFFF' } }
-      subCell.fill = fill('4338CA')
-      subCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 }
-      ws.getRow(2).height = 24
-
-      ws.addRow([])
-
-      let headers = []
-      let bodyRows = []
-      if (analyzerType === 'service') {
-        headers = ['Date', 'Service Type', 'Classification', 'Cost', 'Odometer Reading', 'Description']
-        bodyRows = analyzerResults.data.map(s => [
-          s.serviceDate ? new Date(s.serviceDate).toLocaleDateString() : 'N/A',
-          s.serviceType ? String(s.serviceType).replace(/_/g, ' ') : 'N/A',
-          s.serviceClassification || 'N/A',
-          s.serviceCost != null ? Number(s.serviceCost) : 0,
-          s.odometerReading || 0,
-          s.description || '—'
-        ])
-      } else {
-        headers = ['Date', 'Driver', 'Fuel Type', 'Liters', 'Price Per Liter', 'Total Cost']
-        bodyRows = analyzerResults.data.map(f => [
-          f.date ? new Date(f.date).toLocaleDateString() : 'N/A',
-          f.driverUsername || 'N/A',
-          f.fuelType ? formatFuelType(f.fuelType) : 'N/A',
-          f.liters != null ? Number(f.liters) : 0,
-          f.pricePerLiter != null ? Number(f.pricePerLiter) : 0,
-          f.totalCost != null ? Number(f.totalCost) : 0
-        ])
-      }
-
-      const headerRow = ws.addRow(headers)
-      headerRow.height = 24
-      headerRow.eachCell((cell) => {
-        cell.font = { name: 'Calibri', bold: true, size: 10, color: { argb: 'FFFFFFFF' } }
-        cell.fill = fill('1E3A8A')
-        cell.alignment = { horizontal: 'center', vertical: 'middle' }
-        cell.border = border()
-      })
-
-      bodyRows.forEach((rowVal, rIdx) => {
-        const r = ws.addRow(rowVal)
-        r.height = 20
-        r.eachCell((cell, cIdx) => {
-          cell.font = { name: 'Calibri', size: 10 }
-          cell.border = border()
-          
-          if (analyzerType === 'service' && cIdx === 4) {
-            cell.numFmt = '"Rs. "#,##0'
-            cell.alignment = { horizontal: 'right', vertical: 'middle' }
-          } else if (analyzerType === 'fuel' && (cIdx === 5 || cIdx === 6)) {
-            cell.numFmt = '"Rs. "#,##0'
-            cell.alignment = { horizontal: 'right', vertical: 'middle' }
-          } else if (analyzerType === 'fuel' && cIdx === 4) {
-            cell.numFmt = '0.0" L"'
-            cell.alignment = { horizontal: 'right', vertical: 'middle' }
-          } else {
-            cell.alignment = { horizontal: 'center', vertical: 'middle' }
-          }
-
-          if (rIdx % 2 === 1) {
-            cell.fill = fill('F8FAFC')
-          }
-        })
-      })
-
-      ws.addRow([])
-      const summaryStartRow = ws.rowCount + 1
-      ws.mergeCells(summaryStartRow, 1, summaryStartRow, 2)
-      ws.getCell(`A${summaryStartRow}`).value = 'Summary Metrics'
-      ws.getCell(`A${summaryStartRow}`).font = { name: 'Calibri', bold: true, size: 11 }
-      ws.getRow(summaryStartRow).height = 20
-
-      const rTotalCount = ws.addRow(['Total Records', analyzerResults.stats.totalCount])
-      rTotalCount.getCell(1).font = { name: 'Calibri', bold: true }
-      rTotalCount.getCell(2).font = { name: 'Calibri' }
-
-      const rTotalCost = ws.addRow(['Total Cost', analyzerResults.stats.totalCost])
-      rTotalCost.getCell(1).font = { name: 'Calibri', bold: true }
-      rTotalCost.getCell(2).font = { name: 'Calibri', bold: true }
-      rTotalCost.getCell(2).numFmt = '"Rs. "#,##0'
-
-      if (analyzerType === 'fuel' && analyzerResults.stats.totalLiters) {
-        const rTotalLiters = ws.addRow(['Total Liters', analyzerResults.stats.totalLiters])
-        rTotalLiters.getCell(1).font = { name: 'Calibri', bold: true }
-        rTotalLiters.getCell(2).font = { name: 'Calibri' }
-        rTotalLiters.getCell(2).numFmt = '0.0" L"'
-      }
-
-      ws.columns.forEach((col) => {
-        let maxLen = 12
-        col.eachCell({ includeEmpty: true }, (cell) => {
-          const len = cell.value ? String(cell.value).length : 0
-          if (len > maxLen) maxLen = len
-        })
-        col.width = Math.min(maxLen + 4, 30)
-      })
-
-      const buf = await wb.xlsx.writeBuffer()
-      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-      const link = document.createElement('a')
-      link.href = URL.createObjectURL(blob)
-      link.download = `V-MAS_${analyzerVehicle}_${analyzerType}_Report.xlsx`
-      link.click()
-      setSuccessMsg('Excel Report downloaded successfully!')
-    } catch (err) {
-      setError('Failed to generate Excel download.')
-    }
-  }
 
   // ── Lock body scroll when preview modal is open ──────────────────────────
   useEffect(() => {
@@ -1186,7 +1318,7 @@ const ReportsPage = () => {
         .palette-chip:hover { transform: scale(1.06); box-shadow: 0 6px 16px rgba(0,0,0,0.18); }
         .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px; animation:fadeIn 0.2s ease; backdrop-filter:blur(4px); }
         .modal-box { background:${D.surface}; border-radius:24px; border:1.5px solid ${D.border}; width:100%; max-width:860px; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; animation:fadeInUp 0.25s ease; box-shadow:0 40px 100px rgba(0,0,0,0.5); }
-        .reports-hero { background: ${isDark ? 'linear-gradient(135deg,#030712 0%,#0a1628 30%,#0f2345 60%,var(--primary-dark) 85%,var(--primary) 100%)' : 'linear-gradient(135deg,var(--primary-dark) 0%,var(--primary) 45%,var(--primary-light) 100%)'}; border: 1px solid var(--border-strong); box-shadow:${isDark ? '0 20px 60px rgba(0,0,0,0.7),0 0 80px var(--primary-glow),inset 0 1px 0 rgba(255,255,255,0.04)' : '0 16px 48px rgba(0,0,0,0.15), 0 8px 32px var(--primary-glow)'}; }
+        .reports-hero { background: ${isDark ? 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 40%, #4c1d95 75%, #2e1065 100%)' : 'linear-gradient(135deg,var(--primary-dark) 0%,var(--primary) 45%,var(--primary-light) 100%)'}; border: 1px solid ${isDark ? 'rgba(255,255,255,0.18)' : 'var(--border-strong)'}; box-shadow:${isDark ? '0 16px 44px rgba(124,58,237,0.32), inset 0 1px 0 rgba(255,255,255,0.15)' : '0 16px 48px rgba(0,0,0,0.15), 0 8px 32px var(--primary-glow)'}; }
         input[type='date']::-webkit-calendar-picker-indicator { filter: ${isDark ? 'invert(1) opacity(0.5)' : 'opacity(0.6)'}; cursor:pointer; }
       `}</style>
 
@@ -1299,67 +1431,37 @@ const ReportsPage = () => {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             flexWrap: 'wrap', gap: 24, animation: 'fadeInUp 0.4s ease'
           }}>
-            {/* Decorative orbs */}
-            {[['top', '-40px', '240px', '240px', 'rgba(99,179,237,0.06)'],
-            ['bottom', 'auto', '-30px', '180px', 'rgba(255,255,255,0.03)'],
-            ['top', '40%', '70%', '120px', 'rgba(255,255,255,0.025)']
-            ].map(([yKey, yVal, xVal, size, bg], i) => (
+            {/* Decorative circles matching Service Page hero */}
+            {[
+              ['70%', '-30px', '240px', 'rgba(255,255,255,0.06)'],
+              ['15%', '55%', '180px', 'rgba(255,255,255,0.04)'],
+              ['45%', '78%', '140px', 'rgba(255,255,255,0.03)']
+            ].map(([t, l, s, bg], i) => (
               <div key={i} style={{
-                position: 'absolute', [yKey]: yVal, left: xVal, width: size, height: size,
-                borderRadius: '50%', background: bg, filter: 'blur(30px)', pointerEvents: 'none'
+                position: 'absolute', top: t, left: l, width: s, height: s,
+                borderRadius: '50%', background: bg, filter: 'blur(20px)', pointerEvents: 'none'
               }} />
             ))}
-            {/* Grid pattern */}
-            <div style={{
-              position: 'absolute', inset: 0, opacity: 0.03, pointerEvents: 'none',
-              backgroundImage: 'linear-gradient(rgba(255,255,255,0.8) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.8) 1px,transparent 1px)',
-              backgroundSize: '40px 40px'
-            }} />
 
             {/* Left: title block */}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 22, flex: 1, minWidth: 260 }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 22, flex: 1, minWidth: 260, zIndex: 2 }}>
               <div>
                 <h1 style={{ margin: 0, fontSize: '1.85rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.025em', fontFamily: "'Plus Jakarta Sans',sans-serif", lineHeight: 1.15 }}>
                   Reports & Analytics
                 </h1>
-                <p style={{ margin: '7px 0 0', color: '#93c5fd', fontSize: '0.9rem', fontWeight: 500, lineHeight: 1.5 }}>
+                <p style={{ margin: '7px 0 0', color: 'rgba(255,255,255,0.9)', fontSize: '0.88rem', fontWeight: 500, lineHeight: 1.5 }}>
                   Generate comprehensive exports, track efficiency, and analyze operational costs.
                 </p>
-                <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-                  {[
-                    { label: `${reportTypes.length} reports`, color: '#60a5fa' },
-                    { label: userRole, color: '#34d399' },
-                    { label: liveStats.loading ? 'Loading…' : `${liveStats.vehicles} vehicles`, color: '#fbbf24' },
-                  ].map(b => (
-                    <span key={b.label} style={{
-                      padding: '4px 12px', borderRadius: 20,
-                      background: 'rgba(255,255,255,0.1)', color: b.color,
-                      fontSize: '0.73rem', fontWeight: 700, border: '1px solid rgba(255,255,255,0.12)'
-                    }}>{b.label}</span>
-                  ))}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+                  <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>
+                    {reportTypes.length} reports available
+                  </span>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem' }}>•</span>
+                  <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>
+                    {liveStats.loading ? 'Loading fleet…' : `${liveStats.vehicles} active vehicles`}
+                  </span>
                 </div>
               </div>
-            </div>
-
-            {/* Right: Quick refresh */}
-            <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-end' }}>
-              <button
-                onClick={fetchLiveStats}
-                disabled={liveStats.loading}
-                className="rpt-btn"
-                style={{
-                  padding: '11px 20px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.2)',
-                  background: 'rgba(255,255,255,0.1)', color: '#fff', fontWeight: 700,
-                  fontSize: '0.82rem', cursor: liveStats.loading ? 'not-allowed' : 'pointer',
-                  display: 'flex', alignItems: 'center', gap: 8, backdropFilter: 'blur(8px)',
-                }}
-              >
-                <RefreshCw size={15} style={liveStats.loading ? { animation: 'spin 1s linear infinite' } : {}} />
-                {liveStats.loading ? 'Refreshing…' : 'Refresh Data'}
-              </button>
-              <span style={{ fontSize: '0.71rem', color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>
-                Live data from backend APIs
-              </span>
             </div>
           </div>
 
@@ -1452,19 +1554,53 @@ const ReportsPage = () => {
             })}
           </div>
 
+          {/* Featured Custom Specific Vehicle Document Generator Card */}
+          <div style={{
+            background: `linear-gradient(135deg, ${isDark ? '#1e1b4b' : '#eff6ff'}, ${isDark ? '#0f172a' : '#f0f9ff'})`,
+            borderRadius: 24, border: `1.5px solid ${D.indigo}40`,
+            padding: '24px 28px', marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20,
+            boxShadow: `0 8px 30px ${D.indigoDim}`
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+              <div style={{ width: 52, height: 52, borderRadius: 16, background: `linear-gradient(135deg, ${D.indigo}, ${D.purple})`, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 6px 16px ${D.indigoDim}` }}>
+                <Car size={26} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Specific Vehicle Custom Document Generator</h3>
+                  <span style={{ background: D.indigoDim, color: D.indigo, fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, textTransform: 'uppercase', letterSpacing: '0.06em', border: `1px solid ${D.indigo}30` }}>NEW</span>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: D.textSub }}>Compile upcoming service alerts, past repairs, fuel fill-ups, and mileage into a single custom PDF/Excel document.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => openDocModal()}
+              className="rpt-btn"
+              style={{
+                padding: '12px 22px', borderRadius: 14, border: 'none',
+                background: `linear-gradient(135deg, ${D.indigo}, ${D.purple})`,
+                color: '#fff', fontSize: '0.84rem', fontWeight: 800, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 8, boxShadow: `0 6px 20px ${D.indigoDim}`, outline: 'none'
+              }}
+            >
+              <FileText size={16} /> Generate Document
+            </button>
+          </div>
+
           {/* ── Grid view ── */}
           {viewMode === 'grid' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(310px,1fr))', gap: 22, marginBottom: 44 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: 22, marginBottom: 44 }}>
               {visibleReportTypes.map((r, idx) => {
                 const badge = getDataBadge(r.id)
                 const isGen = generating === r.id
                 return (
                   <div key={r.id} className="rpt-card"
                     style={{
-                      background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`,
-                      padding: '26px', display: 'flex', flexDirection: 'column',
+                      background: D.surface, borderRadius: 24, border: `1.5px solid ${D.border}`,
+                      padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 14,
+                      maxWidth: 440, width: '100%',
                       position: 'relative', overflow: 'hidden',
-                      boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.35)' : '0 4px 24px rgba(0,0,0,0.08)',
+                      boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.35)' : '0 4px 24px rgba(0,0,0,0.06)',
                       animation: `fadeInUp 0.4s ease ${idx * 0.04}s both`,
                     }}
                   >
@@ -1473,39 +1609,64 @@ const ReportsPage = () => {
                       <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(90deg,transparent,${D.surfaceHi}80,transparent)`, animation: 'shimmer 1.2s infinite', zIndex: 0 }} />
                     )}
 
-                    {/* Header */}
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 18, position: 'relative', marginTop: 8 }}>
-                      <div style={{ width: 48, height: 48, borderRadius: 14, background: r.bg, color: r.color, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1.5px solid ${r.color}25`, boxShadow: `0 4px 14px ${r.bg}` }}>
+                    {/* Top Header: Icon + Title */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div style={{ width: 46, height: 46, borderRadius: 14, background: r.bg, color: r.color, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1.5px solid ${r.color}25`, flexShrink: 0, boxShadow: `0 4px 12px ${r.bg}` }}>
                         {r.icon}
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
-                        <span style={{
-                          background: r.bg, color: r.color,
-                          fontSize: '0.64rem', fontWeight: 800, padding: '3px 10px', borderRadius: 8,
-                          textTransform: 'uppercase', letterSpacing: '0.07em', border: `1px solid ${r.color}25`
-                        }}>
-                          {r.category}
-                        </span>
-                        {badge && (
-                          <span style={{ background: D.surfaceHi, color: D.textSub, fontSize: '0.64rem', fontWeight: 700, padding: '3px 9px', borderRadius: 7, border: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <Activity size={9} /> {badge}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h3 style={{ margin: 0, fontSize: '0.98rem', color: D.text, fontWeight: 800, fontFamily: "'Plus Jakarta Sans',sans-serif", lineHeight: 1.25 }}>{r.title}</h3>
+                        <div style={{ display: 'flex', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
+                          <span style={{
+                            background: r.bg, color: r.color,
+                            fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6,
+                            textTransform: 'uppercase', letterSpacing: '0.06em', border: `1px solid ${r.color}25`
+                          }}>
+                            {r.category}
                           </span>
-                        )}
+                          {badge && (
+                            <span style={{ background: `${D.indigo}12`, color: D.indigo, fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, border: `1px solid ${D.indigo}25`, display: 'flex', alignItems: 'center', gap: 3 }}>
+                              <Activity size={9} /> {badge}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    <h3 style={{ margin: '0 0 8px', fontSize: '1rem', color: D.text, fontWeight: 800, fontFamily: "'Plus Jakarta Sans',sans-serif", position: 'relative', lineHeight: 1.3 }}>{r.title}</h3>
-                    <p style={{ margin: '0 0 22px', fontSize: '0.81rem', color: D.textSub, lineHeight: 1.6, flex: 1, position: 'relative' }}>{r.desc}</p>
+                    <div style={{ height: 1, background: D.border, margin: '2px 0' }} />
 
-                    {/* Action buttons */}
-                    <div style={{ display: 'flex', gap: 8, marginTop: 'auto', position: 'relative' }}>
-                      {/* Main download */}
+                    {/* Structured Info Rows (Matching Vehicle, User & Service Cards) */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+                      {/* Description pill row */}
+                      <div style={{ padding: '9px 12px', borderRadius: 12, background: D.surfaceHi, border: `1px solid ${D.border}`, fontSize: '0.76rem', color: D.textSub, lineHeight: 1.45 }}>
+                        {r.desc}
+                      </div>
+
+                      {/* Export Formats row */}
+                      <div style={{ padding: '8px 12px', borderRadius: 12, background: D.surfaceHi, border: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem' }}>
+                        <span style={{ color: D.textSub, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <FileSpreadsheet size={13} style={{ color: D.indigo }} /> Export Formats
+                        </span>
+                        <span style={{ fontWeight: 800, color: D.text, fontSize: '0.74rem' }}>PDF & Excel</span>
+                      </div>
+
+                      {/* Record Coverage row */}
+                      <div style={{ padding: '8px 12px', borderRadius: 12, background: D.surfaceHi, border: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem' }}>
+                        <span style={{ color: D.textSub, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Database size={13} style={{ color: D.teal }} /> Data Coverage
+                        </span>
+                        <span style={{ fontWeight: 800, color: D.text, fontSize: '0.74rem' }}>{badge || 'Live System Data'}</span>
+                      </div>
+                    </div>
+
+                    {/* Action buttons (Matching Cards 1, 2, 3) */}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 'auto', position: 'relative', paddingTop: 4 }}>
                       <button
                         onClick={() => handleDownload(r.id)}
                         disabled={generating !== null}
                         className="rpt-btn"
                         style={{
-                          flex: 2, padding: '10px 12px', borderRadius: 11, border: 'none',
+                          flex: 2, padding: '10px 14px', borderRadius: 12, border: 'none',
                           background: isGen ? D.surfaceHi : `linear-gradient(135deg, var(--primary-dark), var(--primary))`,
                           color: isGen ? r.color : '#fff',
                           fontSize: '0.78rem', fontWeight: 800,
@@ -1516,25 +1677,22 @@ const ReportsPage = () => {
                           transition: 'all 0.2s',
                         }}
                       >
-                        {isGen ? <><Loader2 size={13} className="animate-spin" /> Generating…</> : <><Download size={13} /> {formatPref === 'pdf' ? 'PDF' : formatPref === 'excel' ? 'Excel' : 'Download'}</>}
+                        {isGen ? <><Loader2 size={13} className="animate-spin" /> Compiling…</> : <><Download size={13} /> {formatPref === 'pdf' ? 'PDF' : formatPref === 'excel' ? 'Excel' : 'Download'}</>}
                       </button>
 
-                      {/* Preview button */}
                       <button
                         onClick={() => handlePreview(r.id)}
                         disabled={generating !== null}
                         className="rpt-btn"
                         style={{
-                          flex: 1, padding: '10px 12px', borderRadius: 11,
-                          border: `1.5px solid ${D.border}`, background: D.surfaceHi, color: D.textSub,
-                          fontSize: '0.78rem', fontWeight: 700,
+                          flex: 1, padding: '10px 14px', borderRadius: 12,
+                          border: `1.5px solid ${D.indigo}40`, background: D.indigoDim, color: D.indigo,
+                          fontSize: '0.78rem', fontWeight: 800,
                           cursor: generating !== null ? 'not-allowed' : 'pointer',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, outline: 'none',
                           opacity: generating !== null ? 0.5 : 1,
                           transition: 'all 0.2s',
                         }}
-                        onMouseEnter={e => { if (generating === null) { e.currentTarget.style.background = r.bg; e.currentTarget.style.color = r.color; e.currentTarget.style.borderColor = `${r.color}40` } }}
-                        onMouseLeave={e => { if (generating === null) { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.color = D.textSub; e.currentTarget.style.borderColor = D.border } }}
                       >
                         <Eye size={13} /> Preview
                       </button>
@@ -1591,226 +1749,7 @@ const ReportsPage = () => {
             </div>
           )}
 
-          {/* ═════ Custom Vehicle Report Analyzer ════════════════════════ */}
-          <SectionHeader
-            title="Specific Vehicle Log Analyzer"
-            D={D}
-            icon={<Sliders size={20} />}
-          />
 
-          <div style={{
-            background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`,
-            padding: '28px', marginBottom: 36,
-            boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.35)' : '0 4px 24px rgba(0,0,0,0.08)',
-            animation: 'fadeInUp 0.4s ease 0.1s both'
-          }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 32 }}>
-              
-              {/* Left Column: Selector Controls */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                <div>
-                  <h3 style={{ margin: '0 0 6px', fontSize: '1rem', color: D.text, fontWeight: 800, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Vehicle & Type</h3>
-                  <p style={{ margin: '0 0 16px', fontSize: '0.76rem', color: D.textSub }}>Select a specific vehicle and record type to retrieve logs.</p>
-                </div>
-
-                {/* Vehicle Selection dropdown */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 8, textTransform: 'uppercase' }}>Target Vehicle</label>
-                  <select
-                    value={analyzerVehicle}
-                    onChange={e => setAnalyzerVehicle(e.target.value)}
-                    style={{
-                      width: '100%', padding: '11px 16px', borderRadius: 12,
-                      border: `1.5px solid ${D.border}`, background: D.surfaceHi,
-                      color: D.text, fontSize: '0.85rem', fontWeight: 600,
-                      cursor: 'pointer', outline: 'none'
-                    }}
-                  >
-                    <option value="">Select a Vehicle...</option>
-                    {vehiclesList.map(v => (
-                      <option key={v.registrationNo} value={v.registrationNo}>
-                        {v.registrationNo} — {v.manufacturer} {v.model}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Analysis category type selection pills */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 8, textTransform: 'uppercase' }}>Log Category</label>
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    {[
-                      { id: 'service', label: 'Service Records', icon: <Wrench size={14} />, color: D.teal },
-                      { id: 'fuel', label: 'Fuel Fill-ups', icon: <Fuel size={14} />, color: D.purple }
-                    ].map(type => {
-                      const active = analyzerType === type.id
-                      return (
-                        <button
-                          key={type.id}
-                          onClick={() => setAnalyzerType(type.id)}
-                          className="palette-chip"
-                          style={{
-                            flex: 1, padding: '10px 14px', borderRadius: 12,
-                            border: active ? `2px solid ${type.color}` : `1.5px solid ${D.border}`,
-                            background: active ? `${type.color}18` : D.bg,
-                            color: active ? type.color : D.textSub,
-                            fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, outline: 'none'
-                          }}
-                        >
-                          {type.icon}
-                          {type.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Date range filter fields */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: D.textSub, marginBottom: 8, textTransform: 'uppercase' }}>Date Range (Optional)</label>
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <input type="date" value={analyzerStartDate} onChange={e => setAnalyzerStartDate(e.target.value)}
-                      style={{ flex: 1, padding: '9px 12px', borderRadius: 10, border: `1.5px solid ${D.border}`, background: D.surfaceHi, color: D.text, fontSize: '0.78rem', outline: 'none' }}
-                    />
-                    <span style={{ color: D.textSub }}>—</span>
-                    <input type="date" value={analyzerEndDate} onChange={e => setAnalyzerEndDate(e.target.value)}
-                      style={{ flex: 1, padding: '9px 12px', borderRadius: 10, border: `1.5px solid ${D.border}`, background: D.surfaceHi, color: D.text, fontSize: '0.78rem', outline: 'none' }}
-                    />
-                  </div>
-                </div>
-
-                {/* Analyzer Actions */}
-                {analyzerResults.loaded && (
-                  <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-                    <button
-                      onClick={handleDownloadAnalyzerPDF}
-                      className="rpt-btn"
-                      style={{
-                        flex: 1, padding: '11px 16px', borderRadius: 12, border: 'none',
-                        background: `linear-gradient(135deg, ${D.indigo}, var(--primary))`,
-                        color: '#fff', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                        boxShadow: `0 4px 14px ${D.indigoDim}`
-                      }}
-                    >
-                      <Download size={14} /> PDF
-                    </button>
-                    <button
-                      onClick={handleDownloadAnalyzerExcel}
-                      className="rpt-btn"
-                      style={{
-                        flex: 1, padding: '11px 16px', borderRadius: 12, border: `1.5px solid ${D.border}`,
-                        background: D.surfaceHi, color: D.textSub, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
-                      }}
-                    >
-                      <FileSpreadsheet size={14} /> Excel
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Right Column: Live Analysis Preview Output */}
-              <div style={{
-                background: D.surfaceHi, borderRadius: 18, border: `1.5px solid ${D.border}`,
-                padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 280
-              }}>
-                {analyzerResults.loading ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                    <Loader2 size={32} className="animate-spin" style={{ color: D.indigo }} />
-                    <span style={{ fontSize: '0.85rem', color: D.textSub, fontWeight: 600 }}>Analyzing logs from database...</span>
-                  </div>
-                ) : !analyzerResults.loaded ? (
-                  <div style={{ textAlign: 'center', padding: '30px 20px' }}>
-                    <Activity size={48} strokeWidth={1.2} style={{ color: D.textFaint, marginBottom: 16 }} />
-                    <h4 style={{ margin: '0 0 6px', fontSize: '0.9rem', color: D.text, fontWeight: 700 }}>No Vehicle Selected</h4>
-                    <p style={{ margin: 0, fontSize: '0.76rem', color: D.textSub, lineHeight: 1.5 }}>
-                      Select a vehicle and category to view live record insights and download reports.
-                    </p>
-                  </div>
-                ) : analyzerResults.data.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '30px 20px' }}>
-                    <AlertCircle size={44} strokeWidth={1.2} style={{ color: D.red, marginBottom: 16 }} />
-                    <h4 style={{ margin: '0 0 6px', fontSize: '0.9rem', color: D.text, fontWeight: 700 }}>No Records Found</h4>
-                    <p style={{ margin: 0, fontSize: '0.76rem', color: D.textSub, lineHeight: 1.5 }}>
-                      We couldn't find any {analyzerType === 'service' ? 'service logs' : 'fuel logs'} for vehicle <strong>{analyzerVehicle}</strong> within the selected criteria.
-                    </p>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    {/* Summary metrics header */}
-                    <div style={{ display: 'flex', gap: 16, marginBottom: 18, flexWrap: 'wrap' }}>
-                      <div style={{ flex: 1, background: D.surface, padding: '12px 16px', borderRadius: 12, border: `1px solid ${D.border}` }}>
-                        <span style={{ display: 'block', fontSize: '0.66rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', marginBottom: 4 }}>Total Logs</span>
-                        <span style={{ fontSize: '1.2rem', fontWeight: 800, color: D.text }}>{analyzerResults.stats.totalCount}</span>
-                      </div>
-                      <div style={{ flex: 1, background: D.surface, padding: '12px 16px', borderRadius: 12, border: `1px solid ${D.border}` }}>
-                        <span style={{ display: 'block', fontSize: '0.66rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', marginBottom: 4 }}>Total Expenses</span>
-                        <span style={{ fontSize: '1.2rem', fontWeight: 800, color: D.indigo }}>Rs. {analyzerResults.stats.totalCost.toLocaleString()}</span>
-                      </div>
-                      {analyzerType === 'fuel' && analyzerResults.stats.totalLiters != null && (
-                        <div style={{ flex: 1, background: D.surface, padding: '12px 16px', borderRadius: 12, border: `1px solid ${D.border}` }}>
-                          <span style={{ display: 'block', fontSize: '0.66rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', marginBottom: 4 }}>Total Volume</span>
-                          <span style={{ fontSize: '1.2rem', fontWeight: 800, color: D.text }}>{analyzerResults.stats.totalLiters.toFixed(1)} L</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Table view */}
-                    <div style={{ flex: 1, overflowY: 'auto', maxHeight: 200, border: `1px solid ${D.border}`, borderRadius: 12, background: D.surface }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
-                        <thead>
-                          <tr style={{ background: D.surfaceHi, borderBottom: `1px solid ${D.border}`, color: D.textSub, fontWeight: 700, textAlign: 'left' }}>
-                            <th style={{ padding: '8px 12px' }}>Date</th>
-                            {analyzerType === 'service' ? (
-                              <>
-                                <th style={{ padding: '8px 12px' }}>Service Type</th>
-                                <th style={{ padding: '8px 12px' }}>Class</th>
-                                <th style={{ padding: '8px 12px', textAlign: 'right' }}>Cost</th>
-                              </>
-                            ) : (
-                              <>
-                                <th style={{ padding: '8px 12px' }}>Driver</th>
-                                <th style={{ padding: '8px 12px' }}>Liters</th>
-                                <th style={{ padding: '8px 12px', textAlign: 'right' }}>Cost</th>
-                              </>
-                            )}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {analyzerResults.data.slice(0, 10).map((row, index) => (
-                            <tr key={index} style={{ borderBottom: `1px solid ${D.border}`, color: D.text }}>
-                              <td style={{ padding: '8px 12px' }}>{row.serviceDate || row.date ? new Date(row.serviceDate || row.date).toLocaleDateString() : '—'}</td>
-                              {analyzerType === 'service' ? (
-                                <>
-                                  <td style={{ padding: '8px 12px', textTransform: 'capitalize' }}>{String(row.serviceType || '').replace(/_/g, ' ').toLowerCase()}</td>
-                                  <td style={{ padding: '8px 12px' }}>{row.serviceClassification || '—'}</td>
-                                  <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700 }}>Rs. {Number(row.serviceCost || 0).toLocaleString()}</td>
-                                </>
-                              ) : (
-                                <>
-                                  <td style={{ padding: '8px 12px' }}>{row.driverUsername || '—'}</td>
-                                  <td style={{ padding: '8px 12px' }}>{row.liters ? `${row.liters} L` : '—'}</td>
-                                  <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700 }}>Rs. {Number(row.totalCost || 0).toLocaleString()}</td>
-                                </>
-                              )}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    {analyzerResults.data.length > 10 && (
-                      <span style={{ display: 'block', fontSize: '0.68rem', color: D.textSub, textAlign: 'center', marginTop: 8, fontStyle: 'italic' }}>
-                        Showing latest 10 of {analyzerResults.data.length} records. Download report to view full log sheet.
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-            </div>
-          </div>
 
           {/* ═══ Recent Downloads Section ══════════════════════════════════ */}
           <SectionHeader title="Recent Download History" D={D} icon={<Clock size={20} />} />
@@ -1955,6 +1894,236 @@ const ReportsPage = () => {
 
         </div>
       </div>
+
+      {/* ═════ Generate Document Popup Modal ════════════════════════════ */}
+      {docModal.open && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1100,
+          background: 'rgba(0,0,0,0.68)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+        }}>
+          <div style={{
+            background: D.surface, width: '100%', maxWidth: 600, borderRadius: 24,
+            border: `1.5px solid ${D.border}`, boxShadow: isDark ? '0 20px 50px rgba(0,0,0,0.6)' : '0 20px 40px rgba(0,0,0,0.15)',
+            overflow: 'hidden', animation: 'fadeInUp 0.25s cubic-bezier(0.16,1,0.3,1)'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '20px 26px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 12, background: D.indigoDim, color: D.indigo, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${D.indigo}30` }}>
+                  <FileText size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Generate Custom Vehicle Document</h3>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: D.textSub }}>Select target vehicle and records to export a consolidated report.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setDocModal(m => ({ ...m, open: false }))}
+                style={{ width: 32, height: 32, borderRadius: 10, border: `1px solid ${D.border}`, background: D.bg, color: D.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', outline: 'none' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div style={{ padding: '24px 26px', display: 'flex', flexDirection: 'column', gap: 20, maxHeight: '78vh', overflowY: 'auto' }}>
+              {docModal.error && (
+                <div style={{ padding: '12px 16px', borderRadius: 12, background: D.redDim, border: `1px solid ${D.red}30`, color: D.red, fontSize: '0.78rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <AlertCircle size={16} /> {docModal.error}
+                </div>
+              )}
+
+              {/* 1. Target Vehicle */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.73rem', fontWeight: 800, color: D.textSub, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  1. Target Vehicle
+                </label>
+                <select
+                  value={docModal.vehicle}
+                  onChange={e => setDocModal(m => ({ ...m, vehicle: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '11px 16px', borderRadius: 12,
+                    border: `1.5px solid ${D.border}`, background: D.surfaceHi,
+                    color: D.text, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', outline: 'none'
+                  }}
+                >
+                  <option value="">Select a Vehicle...</option>
+                  {vehiclesList.map(v => (
+                    <option key={v.registrationNo} value={v.registrationNo}>
+                      {v.registrationNo} — {v.manufacturer} {v.model}
+                    </option>
+                  ))}
+                </select>
+
+                {docModal.vehicle && (() => {
+                  const selV = vehiclesList.find(v => v.registrationNo === docModal.vehicle)
+                  if (!selV) return null
+                  return (
+                    <div style={{
+                      marginTop: 10, padding: '10px 14px', borderRadius: 12,
+                      background: D.indigoDim, border: `1px solid ${D.indigo}30`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      fontSize: '0.78rem'
+                    }}>
+                      <span style={{ color: D.textSub, fontWeight: 600 }}>
+                        <strong style={{ color: D.text }}>{selV.registrationNo}</strong> ({selV.manufacturer} {selV.model})
+                      </span>
+                      <span style={{ color: D.indigo, fontWeight: 800 }}>
+                        CURRENT MILEAGE: {selV.currentMileageKm ? `${selV.currentMileageKm.toLocaleString()} km` : '0 km'}
+                      </span>
+                    </div>
+                  )
+                })()}
+              </div>
+
+              {/* 2. Select Records Needed */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.73rem', fontWeight: 800, color: D.textSub, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  2. Select Record Type / Category
+                </label>
+                <select
+                  value={docModal.selectedCategoryPreset || ''}
+                  onChange={e => handleCategorySelect(e.target.value)}
+                  style={{
+                    width: '100%', padding: '11px 16px', borderRadius: 12,
+                    border: `1.5px solid ${D.border}`, background: D.surfaceHi,
+                    color: D.text, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', outline: 'none',
+                    marginBottom: 12
+                  }}
+                >
+                  <option value="">Select Record Type / Category...</option>
+                  <option value="all">All Records (Full Vehicle Dossier)</option>
+                  <option value="upcoming">Upcoming Services & Maintenance Schedule Alerts</option>
+                  <option value="service">Past Service & Repair Records</option>
+                  <option value="fuel">Fuel Fill-ups & Consumption</option>
+                  <option value="mileage">Vehicle Mileage & Distance Tracking</option>
+                </select>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 10 }}>
+                  {[
+                    { id: 'upcoming', label: 'Upcoming Services & Alerts', desc: 'Next service dates, target mileage, overdue status', icon: <Calendar size={16} />, color: D.purple },
+                    { id: 'service', label: 'Past Service & Repair Records', desc: 'Completed services, costs, classification', icon: <Wrench size={16} />, color: D.teal },
+                    { id: 'fuel', label: 'Fuel Fill-ups & Consumption', desc: 'Liters, fuel costs, price per liter', icon: <Fuel size={16} />, color: D.indigo },
+                    { id: 'mileage', label: 'Vehicle Mileage & Utilization', desc: 'Initial/current mileage, total distance', icon: <Gauge size={16} />, color: D.green },
+                  ].map(rec => {
+                    const checked = docModal.recordTypes[rec.id]
+                    return (
+                      <div
+                        key={rec.id}
+                        onClick={() => setDocModal(m => ({
+                          ...m,
+                          recordTypes: { ...m.recordTypes, [rec.id]: !m.recordTypes[rec.id] }
+                        }))}
+                        style={{
+                          padding: '12px 14px', borderRadius: 14,
+                          border: `1.5px solid ${checked ? rec.color : D.border}`,
+                          background: checked ? `${rec.color}15` : D.surfaceHi,
+                          cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: 12,
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <div style={{ color: checked ? rec.color : D.textFaint, marginTop: 2 }}>
+                          {checked ? <CheckSquare size={18} /> : <Square size={18} />}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 800, color: checked ? D.text : D.textSub, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {rec.label}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: D.textSub, marginTop: 2 }}>{rec.desc}</div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* 3. Date Range */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.73rem', fontWeight: 800, color: D.textSub, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  3. Date Range (Optional)
+                </label>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <input
+                    type="date"
+                    value={docModal.startDate}
+                    onChange={e => setDocModal(m => ({ ...m, startDate: e.target.value }))}
+                    style={{ flex: 1, padding: '9px 12px', borderRadius: 10, border: `1.5px solid ${D.border}`, background: D.surfaceHi, color: D.text, fontSize: '0.8rem', outline: 'none' }}
+                  />
+                  <span style={{ color: D.textSub, fontWeight: 700 }}>—</span>
+                  <input
+                    type="date"
+                    value={docModal.endDate}
+                    onChange={e => setDocModal(m => ({ ...m, endDate: e.target.value }))}
+                    style={{ flex: 1, padding: '9px 12px', borderRadius: 10, border: `1.5px solid ${D.border}`, background: D.surfaceHi, color: D.text, fontSize: '0.8rem', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              {/* 4. Format Selection */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.73rem', fontWeight: 800, color: D.textSub, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  4. Export Format
+                </label>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  {[
+                    { id: 'pdf', label: 'PDF Document (.pdf)', icon: <FileText size={15} />, color: D.red },
+                    { id: 'excel', label: 'Excel Spreadsheet (.xlsx)', icon: <FileSpreadsheet size={15} />, color: D.green }
+                  ].map(fmt => {
+                    const sel = docModal.format === fmt.id
+                    return (
+                      <button
+                        key={fmt.id}
+                        type="button"
+                        onClick={() => setDocModal(m => ({ ...m, format: fmt.id }))}
+                        style={{
+                          flex: 1, padding: '10px 14px', borderRadius: 12,
+                          border: `1.5px solid ${sel ? fmt.color : D.border}`,
+                          background: sel ? `${fmt.color}15` : D.surfaceHi,
+                          color: sel ? fmt.color : D.textSub, fontWeight: 800, fontSize: '0.8rem',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, outline: 'none'
+                        }}
+                      >
+                        {fmt.icon} {fmt.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '16px 26px', borderTop: `1px solid ${D.border}`, background: D.surfaceHi,
+              display: 'flex', justifyContent: 'flex-end', gap: 10
+            }}>
+              <button
+                type="button"
+                onClick={() => setDocModal(m => ({ ...m, open: false }))}
+                style={{ padding: '10px 18px', borderRadius: 12, border: `1.5px solid ${D.border}`, background: D.surface, color: D.textSub, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', outline: 'none' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerateCustomDocument}
+                disabled={docModal.generating}
+                style={{
+                  padding: '10px 22px', borderRadius: 12, border: 'none',
+                  background: `linear-gradient(135deg, ${D.indigo}, var(--primary))`,
+                  color: '#fff', fontSize: '0.8rem', fontWeight: 800, cursor: docModal.generating ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 7, boxShadow: `0 4px 14px ${D.indigoDim}`, outline: 'none'
+                }}
+              >
+                {docModal.generating ? <><Loader2 size={14} className="animate-spin" /> Compiling Document...</> : <><Download size={14} /> Generate Document</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

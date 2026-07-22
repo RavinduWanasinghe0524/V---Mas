@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
-import logo from '../assets/V-MAS Logo.svg';
+import { getRoleLogo } from '../utils/roleAssets';
 import fleetHero from '../assets/fleet-hero.png';
 import './LoginPage.css';
 
@@ -65,7 +65,7 @@ const LoginPage = () => {
         {/* Logo row */}
         <div className="pay-right-logo-row">
           <div className="pay-right-logo-box">
-            <img src={logo} alt="V-MAS" className="pay-right-logo-img" />
+            <img src={getRoleLogo(user?.role)} alt="V-MAS Logo" className="pay-right-logo-img" />
           </div>
           <span className="pay-right-logo-name">V-MAS</span>
           <Link to="/signup" className="pay-right-signup-link">
