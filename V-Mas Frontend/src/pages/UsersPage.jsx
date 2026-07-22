@@ -72,6 +72,30 @@ const UsersPage = () => {
   }
   const { isAdmin, isController } = useAuth()
 
+  const isOrangeProfile = isController && !isAdmin
+
+  const roleTheme = isOrangeProfile ? {
+    primary: isDark ? '#fbbf24' : '#d97706',
+    bgLight: isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.08)',
+    borderLight: isDark ? 'rgba(245,158,11,0.3)' : 'rgba(245,158,11,0.2)',
+    btnBorder: isDark ? 'rgba(245,158,11,0.5)' : '#fde68a',
+    btnBg: isDark ? 'rgba(245,158,11,0.12)' : '#fffbeb',
+    btnBgHover: isDark ? 'rgba(245,158,11,0.22)' : '#fef3c7',
+    editBg: isDark ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'linear-gradient(135deg,#d97706,#b45309)',
+    editHover: isDark ? 'linear-gradient(135deg,#fbbf24,#f59e0b)' : 'linear-gradient(135deg,#f59e0b,#d97706)',
+    shadow: 'rgba(245,158,11,0.35)',
+  } : {
+    primary: isDark ? '#a78bfa' : '#7c3aed',
+    bgLight: isDark ? 'rgba(124,58,237,0.15)' : 'rgba(124,58,237,0.08)',
+    borderLight: isDark ? 'rgba(124,58,237,0.3)' : 'rgba(124,58,237,0.2)',
+    btnBorder: isDark ? 'rgba(124,58,237,0.5)' : '#ddd6fe',
+    btnBg: isDark ? 'rgba(124,58,237,0.12)' : '#f5f3ff',
+    btnBgHover: isDark ? 'rgba(124,58,237,0.22)' : '#ede9fe',
+    editBg: isDark ? 'linear-gradient(135deg,#8b5cf6,#7c3aed)' : 'linear-gradient(135deg,#7c3aed,#6d28d9)',
+    editHover: isDark ? 'linear-gradient(135deg,#a78bfa,#8b5cf6)' : 'linear-gradient(135deg,#8b5cf6,#7c3aed)',
+    shadow: 'rgba(124,58,237,0.35)',
+  }
+
   const [users, setUsers] = useState([])
   const [pendingUsers, setPendingUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -476,68 +500,22 @@ const UsersPage = () => {
     const userStatus = (u.accountStatus || 'ACTIVE').toUpperCase()
 
     const statusBadge = {
-      ACTIVE:    { label: 'Active',    bg: 'linear-gradient(135deg,#10b981,#059669)', shadow: 'rgba(16,185,129,0.45)' },
-      PENDING:   { label: 'Pending',   bg: 'linear-gradient(135deg,#fbbf24,#d97706)', shadow: 'rgba(251,191,36,0.45)' },
-      INACTIVE:  { label: 'Inactive',  bg: 'linear-gradient(135deg,#ef4444,#b91c1c)', shadow: 'rgba(239,68,68,0.45)' },
+      ACTIVE: { label: 'Active', bg: 'linear-gradient(135deg,#10b981,#059669)', shadow: 'rgba(16,185,129,0.45)' },
+      PENDING: { label: 'Pending', bg: 'linear-gradient(135deg,#fbbf24,#d97706)', shadow: 'rgba(251,191,36,0.45)' },
+      INACTIVE: { label: 'Inactive', bg: 'linear-gradient(135deg,#ef4444,#b91c1c)', shadow: 'rgba(239,68,68,0.45)' },
       SUSPENDED: { label: 'Suspended', bg: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', shadow: 'rgba(139,92,246,0.45)' },
     }
     const badge = statusBadge[userStatus] || statusBadge.ACTIVE
 
     const hoverGlow = {
-      ACTIVE:    'rgba(16,185,129,0.2)',
-      PENDING:   'rgba(251,191,36,0.2)',
-      INACTIVE:  'rgba(239,68,68,0.18)',
+      ACTIVE: 'rgba(16,185,129,0.2)',
+      PENDING: 'rgba(251,191,36,0.2)',
+      INACTIVE: 'rgba(239,68,68,0.18)',
       SUSPENDED: 'rgba(139,92,246,0.2)',
     }[userStatus] || 'rgba(99,102,241,0.2)'
 
-    const roleTheme = {
-      ADMIN: {
-        primary: isDark ? '#60a5fa' : '#2563eb',
-        bgLight: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.08)',
-        borderLight: isDark ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.2)',
-        btnBorder: isDark ? 'rgba(59,130,246,0.45)' : 'rgba(59,130,246,0.35)',
-        btnBg: isDark ? 'rgba(59,130,246,0.08)' : 'rgba(59,130,246,0.06)',
-        btnBgHover: isDark ? 'rgba(59,130,246,0.18)' : 'rgba(59,130,246,0.13)',
-        editBg: isDark ? 'linear-gradient(135deg,#3b82f6,#2563eb)' : 'linear-gradient(135deg,#2563eb,#1d4ed8)',
-        editHover: isDark ? 'linear-gradient(135deg,#60a5fa,#3b82f6)' : 'linear-gradient(135deg,#3b82f6,#2563eb)',
-        shadow: 'rgba(59,130,246,0.35)',
-      },
-      CONTROLLER: {
-        primary: isDark ? '#fbbf24' : '#d97706',
-        bgLight: isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.08)',
-        borderLight: isDark ? 'rgba(245,158,11,0.3)' : 'rgba(245,158,11,0.2)',
-        btnBorder: isDark ? 'rgba(245,158,11,0.45)' : 'rgba(245,158,11,0.35)',
-        btnBg: isDark ? 'rgba(245,158,11,0.08)' : 'rgba(245,158,11,0.06)',
-        btnBgHover: isDark ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.13)',
-        editBg: isDark ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'linear-gradient(135deg,#d97706,#b45309)',
-        editHover: isDark ? 'linear-gradient(135deg,#fbbf24,#f59e0b)' : 'linear-gradient(135deg,#f59e0b,#d97706)',
-        shadow: 'rgba(245,158,11,0.35)',
-      },
-      DRIVER: {
-        primary: isDark ? '#34d399' : '#059669',
-        bgLight: isDark ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.08)',
-        borderLight: isDark ? 'rgba(16,185,129,0.3)' : 'rgba(16,185,129,0.2)',
-        btnBorder: isDark ? 'rgba(16,185,129,0.45)' : 'rgba(16,185,129,0.35)',
-        btnBg: isDark ? 'rgba(16,185,129,0.08)' : 'rgba(16,185,129,0.06)',
-        btnBgHover: isDark ? 'rgba(16,185,129,0.18)' : 'rgba(16,185,129,0.13)',
-        editBg: isDark ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#059669,#047857)',
-        editHover: isDark ? 'linear-gradient(135deg,#34d399,#10b981)' : 'linear-gradient(135deg,#10b981,#059669)',
-        shadow: 'rgba(16,185,129,0.35)',
-      },
-    }[u.role] || {
-      primary: isDark ? '#818cf8' : '#4f46e5',
-      bgLight: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)',
-      borderLight: isDark ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.2)',
-      btnBorder: isDark ? 'rgba(99,102,241,0.45)' : 'rgba(99,102,241,0.35)',
-      btnBg: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)',
-      btnBgHover: isDark ? 'rgba(99,102,241,0.18)' : 'rgba(99,102,241,0.13)',
-      editBg: isDark ? 'linear-gradient(135deg,#6366f1,#4f46e5)' : 'linear-gradient(135deg,#4f46e5,#3730a3)',
-      editHover: isDark ? 'linear-gradient(135deg,#818cf8,#6366f1)' : 'linear-gradient(135deg,#6366f1,#4f46e5)',
-      shadow: 'rgba(99,102,241,0.35)',
-    }
-
     const friendlyRole = u.role === 'ADMIN' ? 'Fleet Administrator' : u.role === 'CONTROLLER' ? 'Fleet Controller' : 'Fleet Driver'
-    const accessLevel  = u.role === 'ADMIN' ? 'Full Access' : u.role === 'CONTROLLER' ? 'High Access' : 'Standard'
+    const accessLevel = u.role === 'ADMIN' ? 'Full Access' : u.role === 'CONTROLLER' ? 'High Access' : 'Standard'
 
     return (
       <div key={u.id} style={{
@@ -1206,12 +1184,17 @@ const UsersPage = () => {
               overflow: 'hidden'
             }} onClick={e => e.stopPropagation()}>
               {/* Header */}
-              <div style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)', padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#fff' }}>
+              <div style={{
+                background: isOrangeProfile
+                  ? 'linear-gradient(135deg, #b45309 0%, #d97706 100%)'
+                  : 'linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%)',
+                padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#fff'
+              }}>
                 <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
                   {u.profilePicture ? (
-                    <img src={u.profilePicture} alt={u.userName} style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.2)', flexShrink: 0 }} onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`; }} />
+                    <img src={u.profilePicture} alt={u.userName} style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.2)', flexShrink: 0 }} onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=${isOrangeProfile ? 'd97706' : '7c3aed'}&color=fff&bold=true`; }} />
                   ) : (
-                    <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 800, border: '2px solid rgba(255,255,255,0.2)', flexShrink: 0 }}>
+                    <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 800, border: '2px solid rgba(255,255,255,0.25)', flexShrink: 0 }}>
                       {initials}
                     </div>
                   )}
@@ -1219,12 +1202,12 @@ const UsersPage = () => {
                     <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.25rem', color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                       {u.userName}
                     </h3>
-                    <p style={{ margin: '4px 0 0', color: '#93c5fd', fontSize: '0.85rem', fontWeight: 600 }}>
+                    <p style={{ margin: '4px 0 0', color: isOrangeProfile ? '#fef3c7' : '#e9d5ff', fontSize: '0.85rem', fontWeight: 600 }}>
                       {u.email}
                     </p>
                   </div>
                 </div>
-                <button onClick={closeProfile} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 8, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={20} /></button>
+                <button onClick={closeProfile} style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 10, padding: 8, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.22)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}><X size={20} /></button>
               </div>
 
               {/* Status and Role badges row */}
@@ -1346,7 +1329,7 @@ const UsersPage = () => {
                               }
                             }}
                             style={{
-                              background: 'none', border: 'none', color: D.blue,
+                              background: 'none', border: 'none', color: roleTheme.primary,
                               fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer',
                               display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'underline', padding: 0
                             }}
@@ -1364,25 +1347,25 @@ const UsersPage = () => {
               <div style={{ borderTop: `1px solid ${D.border}`, padding: '18px 32px', background: D.surfaceHi, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
                 {u.accountStatus === 'PENDING' ? (
                   <>
-                    <button onClick={() => { closeProfile(); handleApprove(u.id, u.userName); }} style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: D.green, color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.green}30` }}
+                    <button onClick={() => { closeProfile(); handleApprove(u.id, u.userName); }} style={{ padding: '10px 20px', borderRadius: 9999, border: 'none', background: D.green, color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.green}30` }}
                       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
                       <Check size={16} /> Approve
                     </button>
-                    <button onClick={() => { closeProfile(); handleReject(u.id, u.userName); }} style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: D.red, color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.red}30` }}
+                    <button onClick={() => { closeProfile(); handleReject(u.id, u.userName); }} style={{ padding: '10px 20px', borderRadius: 9999, border: 'none', background: D.red, color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.red}30` }}
                       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
                       <X size={16} /> Reject
                     </button>
                   </>
                 ) : (
                   (!isController || u.role !== 'ADMIN') && (
-                    <button onClick={() => { closeProfile(); handleEdit(u); }} style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(37,99,235,0.2)' }}
-                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                    <button onClick={() => { closeProfile(); handleEdit(u); }} style={{ padding: '10px 20px', borderRadius: 9999, border: 'none', background: roleTheme.editBg, color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', boxShadow: `0 4px 12px ${roleTheme.shadow}` }}
+                      onMouseEnter={e => { e.currentTarget.style.background = roleTheme.editHover; e.currentTarget.style.transform = 'translateY(-1px)' }} onMouseLeave={e => { e.currentTarget.style.background = roleTheme.editBg; e.currentTarget.style.transform = 'translateY(0)' }}>
                       Edit Details
                     </button>
                   )
                 )}
-                <button onClick={closeProfile} style={{ padding: '10px 20px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>
+                <button onClick={closeProfile} style={{ padding: '10px 20px', borderRadius: 9999, border: `1.5px solid ${roleTheme.btnBorder}`, background: roleTheme.btnBg, color: roleTheme.primary, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = roleTheme.primary; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = roleTheme.btnBg; e.currentTarget.style.color = roleTheme.primary }}>
                   Close
                 </button>
               </div>
