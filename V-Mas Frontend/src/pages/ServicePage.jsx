@@ -433,9 +433,15 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
 /* ── Service List Card (Old Style) ──────────────────────────────── */
 const ServiceListCard = ({ record, index, isDriver, isAdmin, isController, currentUsername, vehicleCurrentKm, isLatest, onEdit, onDelete, onView, onViewAttachment, D, handleApproveService, handleRejectService }) => {
   const [hovered, setHovered] = useState(false)
+  const { theme } = useTheme()
+  const isDark = theme === 'blue'
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
   const icon = SERVICE_TYPE_ICONS[record.serviceType] || <Wrench size={22} />
+
+  const serviceAccent = isController ? (isDark ? '#fbbf24' : '#d97706') : (isDark ? '#60a5fa' : '#2563eb')
+  const serviceBgLight = isController ? (isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.08)') : (isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.08)')
+  const serviceBorderLight = isController ? (isDark ? 'rgba(245,158,11,0.3)' : 'rgba(245,158,11,0.2)') : (isDark ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.2)')
 
   // Drivers cannot edit or delete records
   const canEdit = !isDriver
@@ -464,10 +470,10 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, isController, curre
       {/* Icon */}
       <div style={{
         width: 46, height: 46, borderRadius: 12, flexShrink: 0,
-        background: D.indigoDim,
-        border: `1px solid ${D.borderHi}`,
+        background: serviceBgLight,
+        border: `1px solid ${serviceBorderLight}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: D.indigo,
+        color: serviceAccent,
       }}>
         {icon}
       </div>
@@ -526,7 +532,7 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, isController, curre
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.9rem', color: D.blue, fontWeight: 700 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.9rem', color: serviceAccent, fontWeight: 700 }}>
             <Car size={15} /> {record.vehicleRegNumber || '—'}
           </span>
           {record.serviceDate && (
@@ -641,12 +647,12 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, isController, curre
               onClick={e => { e.stopPropagation(); onEdit(record.id) }}
               style={{
                 padding: '6px 16px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
-                background: D.indigoDim, color: D.indigo,
-                border: `1px solid ${D.borderHi}`, cursor: 'pointer',
+                background: serviceBgLight, color: serviceAccent,
+                border: `1px solid ${serviceBorderLight}`, cursor: 'pointer',
                 transition: 'all 0.15s',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = D.indigo; e.currentTarget.style.color = '#fff' }}
-              onMouseLeave={e => { e.currentTarget.style.background = D.indigoDim; e.currentTarget.style.color = D.indigo }}
+              onMouseEnter={e => { e.currentTarget.style.background = serviceAccent; e.currentTarget.style.color = '#fff' }}
+              onMouseLeave={e => { e.currentTarget.style.background = serviceBgLight; e.currentTarget.style.color = serviceAccent }}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Edit2 size={12} /> Edit</span>
             </button>
@@ -679,6 +685,20 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
   const isDark = theme === 'blue'
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
+
+  const serviceAccent = isController ? (isDark ? '#fbbf24' : '#d97706') : (isDark ? '#60a5fa' : '#2563eb')
+  const serviceBgLight = isController ? (isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.08)') : (isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.08)')
+  const serviceBorderLight = isController ? (isDark ? 'rgba(245,158,11,0.3)' : 'rgba(245,158,11,0.2)') : (isDark ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.2)')
+
+  const btnGradient = isController
+    ? (isDark ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'linear-gradient(135deg,#d97706,#b45309)')
+    : (isDark ? 'linear-gradient(135deg,#3b82f6,#2563eb)' : 'linear-gradient(135deg,#2563eb,#1d4ed8)')
+
+  const btnHoverGradient = isController
+    ? (isDark ? 'linear-gradient(135deg,#fbbf24,#f59e0b)' : 'linear-gradient(135deg,#f59e0b,#d97706)')
+    : (isDark ? 'linear-gradient(135deg,#60a5fa,#3b82f6)' : 'linear-gradient(135deg,#3b82f6,#2563eb)')
+
+  const btnShadow = isController ? 'rgba(245,158,11,0.35)' : 'rgba(37,99,235,0.35)'
 
   // Drivers and admins cannot edit or delete records
   const canEdit = !isDriver && !isAdmin
@@ -714,7 +734,7 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
                 height: 44,
                 borderRadius: 8,
                 objectFit: 'cover',
-                border: `1px solid ${D.border}`,
+                border: `1px solid ${serviceBorderLight}`,
                 boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
                 flexShrink: 0
               }}
@@ -725,19 +745,19 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
                 width: 44,
                 height: 44,
                 borderRadius: 8,
-                background: D.indigoDim,
-                border: `1px solid ${D.border}`,
+                background: serviceBgLight,
+                border: `1px solid ${serviceBorderLight}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0
               }}
             >
-              <Car size={18} style={{ color: D.indigo }} />
+              <Car size={18} style={{ color: serviceAccent }} />
             </div>
           )}
           <div>
-            <div style={{ color: D.indigo, fontSize: '1.05rem', fontWeight: 800, marginBottom: 4 }}>
+            <div style={{ color: serviceAccent, fontSize: '1.05rem', fontWeight: 800, marginBottom: 4 }}>
               {record.serviceType?.replace(/_/g, ' ') || 'Service'}
             </div>
             <div style={{ color: D.textSub, fontSize: '0.9rem' }}>
@@ -805,7 +825,7 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
 
         {/* Date Row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)' }}>
-          <Calendar size={13} style={{ color: '#10b981', flexShrink: 0 }} />
+          <Calendar size={13} style={{ color: serviceAccent, flexShrink: 0 }} />
           <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Service Date</span>
           <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
             {record.serviceDate ? new Date(record.serviceDate).toLocaleDateString() : '—'}
@@ -813,8 +833,8 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
         </div>
 
         {/* Mileage Row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isDark ? 'rgba(124,58,237,0.07)' : 'rgba(124,58,237,0.05)' }}>
-          <Gauge size={13} style={{ color: '#7c3aed', flexShrink: 0 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)' }}>
+          <Gauge size={13} style={{ color: serviceAccent, flexShrink: 0 }} />
           <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Mileage</span>
           <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
             {record.currentMileageKm ? `${Number(record.currentMileageKm).toLocaleString()} km` : '—'}
@@ -822,8 +842,8 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
         </div>
 
         {/* Cost Row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isDark ? 'rgba(245,158,11,0.08)' : 'rgba(245,158,11,0.06)' }}>
-          <CircleDollarSign size={13} style={{ color: '#f59e0b', flexShrink: 0 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)' }}>
+          <CircleDollarSign size={13} style={{ color: serviceAccent, flexShrink: 0 }} />
           <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Cost</span>
           <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
             Rs. {Number(record.serviceCost || 0).toLocaleString()}
@@ -846,7 +866,7 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
             <button
               onClick={e => { e.stopPropagation(); handleApproveService(record.id); }}
               style={{
-                flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
+                flex: 1, padding: '10px 14px', borderRadius: 12, fontSize: '0.82rem', fontWeight: 800,
                 background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, cursor: 'pointer', transition: 'all 0.15s'
               }}
               onMouseEnter={e => { e.currentTarget.style.background = D.green; e.currentTarget.style.color = '#fff' }}
@@ -857,7 +877,7 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
             <button
               onClick={e => { e.stopPropagation(); handleRejectService(record.id); }}
               style={{
-                flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
+                flex: 1, padding: '10px 14px', borderRadius: 12, fontSize: '0.82rem', fontWeight: 800,
                 background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, cursor: 'pointer', transition: 'all 0.15s'
               }}
               onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
@@ -870,13 +890,26 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
         <button
           onClick={e => { e.stopPropagation(); onView(record) }}
           style={{
-            flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
-            background: D.indigoDim, color: D.indigo, border: `1px solid ${D.borderHi}`, cursor: 'pointer', transition: 'all 0.15s'
+            flex: 1, padding: '10px 14px', borderRadius: 12, fontSize: '0.82rem', fontWeight: 800,
+            background: btnGradient,
+            color: '#ffffff',
+            border: 'none', cursor: 'pointer', transition: 'all 0.22s ease',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            fontFamily: 'inherit', letterSpacing: '0.01em',
+            boxShadow: `0 4px 14px ${btnShadow}`,
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = D.indigo; e.currentTarget.style.color = '#fff' }}
-          onMouseLeave={e => { e.currentTarget.style.background = D.indigoDim; e.currentTarget.style.color = D.indigo }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = btnHoverGradient
+            e.currentTarget.style.transform = 'translateY(-1px)'
+            e.currentTarget.style.boxShadow = `0 6px 20px ${btnShadow}`
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = btnGradient
+            e.currentTarget.style.transform = 'translateY(0)'
+            e.currentTarget.style.boxShadow = `0 4px 14px ${btnShadow}`
+          }}
         >
-          Details
+          <Eye size={14} /> Details
         </button>
         {canDelete && (
           <button

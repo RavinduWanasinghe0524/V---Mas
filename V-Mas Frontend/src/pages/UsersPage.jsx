@@ -490,11 +490,51 @@ const UsersPage = () => {
       SUSPENDED: 'rgba(139,92,246,0.2)',
     }[userStatus] || 'rgba(99,102,241,0.2)'
 
-    const roleBg = {
-      ADMIN:      { bg: isDark ? 'rgba(59,130,246,0.12)' : 'rgba(59,130,246,0.08)', border: isDark ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.2)', color: '#3b82f6' },
-      CONTROLLER: { bg: isDark ? 'rgba(139,92,246,0.12)' : 'rgba(139,92,246,0.08)', border: isDark ? 'rgba(139,92,246,0.3)' : 'rgba(139,92,246,0.2)', color: '#8b5cf6' },
-      DRIVER:     { bg: isDark ? 'rgba(16,185,129,0.1)' : 'rgba(16,185,129,0.07)', border: isDark ? 'rgba(16,185,129,0.28)' : 'rgba(16,185,129,0.2)', color: '#10b981' },
-    }[u.role] || { bg: isDark ? 'rgba(99,102,241,0.1)' : 'rgba(99,102,241,0.07)', border: isDark ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.2)', color: '#6366f1' }
+    const roleTheme = {
+      ADMIN: {
+        primary: isDark ? '#60a5fa' : '#2563eb',
+        bgLight: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.08)',
+        borderLight: isDark ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.2)',
+        btnBorder: isDark ? 'rgba(59,130,246,0.45)' : 'rgba(59,130,246,0.35)',
+        btnBg: isDark ? 'rgba(59,130,246,0.08)' : 'rgba(59,130,246,0.06)',
+        btnBgHover: isDark ? 'rgba(59,130,246,0.18)' : 'rgba(59,130,246,0.13)',
+        editBg: isDark ? 'linear-gradient(135deg,#3b82f6,#2563eb)' : 'linear-gradient(135deg,#2563eb,#1d4ed8)',
+        editHover: isDark ? 'linear-gradient(135deg,#60a5fa,#3b82f6)' : 'linear-gradient(135deg,#3b82f6,#2563eb)',
+        shadow: 'rgba(59,130,246,0.35)',
+      },
+      CONTROLLER: {
+        primary: isDark ? '#fbbf24' : '#d97706',
+        bgLight: isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.08)',
+        borderLight: isDark ? 'rgba(245,158,11,0.3)' : 'rgba(245,158,11,0.2)',
+        btnBorder: isDark ? 'rgba(245,158,11,0.45)' : 'rgba(245,158,11,0.35)',
+        btnBg: isDark ? 'rgba(245,158,11,0.08)' : 'rgba(245,158,11,0.06)',
+        btnBgHover: isDark ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.13)',
+        editBg: isDark ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'linear-gradient(135deg,#d97706,#b45309)',
+        editHover: isDark ? 'linear-gradient(135deg,#fbbf24,#f59e0b)' : 'linear-gradient(135deg,#f59e0b,#d97706)',
+        shadow: 'rgba(245,158,11,0.35)',
+      },
+      DRIVER: {
+        primary: isDark ? '#34d399' : '#059669',
+        bgLight: isDark ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.08)',
+        borderLight: isDark ? 'rgba(16,185,129,0.3)' : 'rgba(16,185,129,0.2)',
+        btnBorder: isDark ? 'rgba(16,185,129,0.45)' : 'rgba(16,185,129,0.35)',
+        btnBg: isDark ? 'rgba(16,185,129,0.08)' : 'rgba(16,185,129,0.06)',
+        btnBgHover: isDark ? 'rgba(16,185,129,0.18)' : 'rgba(16,185,129,0.13)',
+        editBg: isDark ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#059669,#047857)',
+        editHover: isDark ? 'linear-gradient(135deg,#34d399,#10b981)' : 'linear-gradient(135deg,#10b981,#059669)',
+        shadow: 'rgba(16,185,129,0.35)',
+      },
+    }[u.role] || {
+      primary: isDark ? '#818cf8' : '#4f46e5',
+      bgLight: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)',
+      borderLight: isDark ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.2)',
+      btnBorder: isDark ? 'rgba(99,102,241,0.45)' : 'rgba(99,102,241,0.35)',
+      btnBg: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)',
+      btnBgHover: isDark ? 'rgba(99,102,241,0.18)' : 'rgba(99,102,241,0.13)',
+      editBg: isDark ? 'linear-gradient(135deg,#6366f1,#4f46e5)' : 'linear-gradient(135deg,#4f46e5,#3730a3)',
+      editHover: isDark ? 'linear-gradient(135deg,#818cf8,#6366f1)' : 'linear-gradient(135deg,#6366f1,#4f46e5)',
+      shadow: 'rgba(99,102,241,0.35)',
+    }
 
     const friendlyRole = u.role === 'ADMIN' ? 'Fleet Administrator' : u.role === 'CONTROLLER' ? 'Fleet Controller' : 'Fleet Driver'
     const accessLevel  = u.role === 'ADMIN' ? 'Full Access' : u.role === 'CONTROLLER' ? 'High Access' : 'Standard'
@@ -516,7 +556,7 @@ const UsersPage = () => {
         onMouseEnter={e => {
           e.currentTarget.style.transform = 'translateY(-8px)'
           e.currentTarget.style.boxShadow = `0 20px 48px ${hoverGlow}, 0 6px 20px rgba(0,0,0,0.15)`
-          e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'
+          e.currentTarget.style.borderColor = roleTheme.borderLight
         }}
         onMouseLeave={e => {
           e.currentTarget.style.transform = 'translateY(0)'
@@ -574,9 +614,10 @@ const UsersPage = () => {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             <span style={{
-              background: roleBg.bg,
+              background: roleTheme.bgLight,
+              border: `1px solid ${roleTheme.borderLight}`,
               borderRadius: 6, padding: '2px 9px',
-              fontSize: '0.72rem', fontWeight: 800, color: roleBg.color, letterSpacing: '0.03em',
+              fontSize: '0.72rem', fontWeight: 800, color: roleTheme.primary, letterSpacing: '0.03em',
             }}>
               {friendlyRole}
             </span>
@@ -602,7 +643,7 @@ const UsersPage = () => {
             padding: '8px 12px', borderRadius: 12,
             background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
           }}>
-            <Mail size={13} style={{ color: '#f59e0b', flexShrink: 0 }} />
+            <Mail size={13} style={{ color: roleTheme.primary, flexShrink: 0 }} />
             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Email</span>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }} title={u.email}>
               {u.email || 'N/A'}
@@ -615,7 +656,7 @@ const UsersPage = () => {
             padding: '8px 12px', borderRadius: 12,
             background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
           }}>
-            <Phone size={13} style={{ color: '#10b981', flexShrink: 0 }} />
+            <Phone size={13} style={{ color: roleTheme.primary, flexShrink: 0 }} />
             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Phone</span>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
               {u.phoneNumber || metrics.phone || 'N/A'}
@@ -629,7 +670,7 @@ const UsersPage = () => {
               padding: '8px 12px', borderRadius: 12,
               background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
             }}>
-              <ClipboardList size={13} style={{ color: '#ec4899', flexShrink: 0 }} />
+              <ClipboardList size={13} style={{ color: roleTheme.primary, flexShrink: 0 }} />
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>License</span>
               <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
                 {u.licenseNumber || metrics.license || 'N/A'}
@@ -641,7 +682,7 @@ const UsersPage = () => {
               padding: '8px 12px', borderRadius: 12,
               background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
             }}>
-              <IdCard size={13} style={{ color: '#ec4899', flexShrink: 0 }} />
+              <IdCard size={13} style={{ color: roleTheme.primary, flexShrink: 0 }} />
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>NIC</span>
               <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
                 {u.nic || 'N/A'}
@@ -675,22 +716,22 @@ const UsersPage = () => {
                 title="View Profile"
                 style={{
                   flex: 1, padding: '11px 14px', borderRadius: 14,
-                  border: `2px solid ${isDark ? 'rgba(99,102,241,0.45)' : 'rgba(99,102,241,0.35)'}`,
-                  background: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)',
-                  color: isDark ? '#818cf8' : '#4f46e5',
+                  border: `2px solid ${roleTheme.btnBorder}`,
+                  background: roleTheme.btnBg,
+                  color: roleTheme.primary,
                   cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   transition: 'all 0.22s', fontFamily: 'inherit', letterSpacing: '0.01em',
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.background = isDark ? 'rgba(99,102,241,0.18)' : 'rgba(99,102,241,0.13)'
-                  e.currentTarget.style.borderColor = '#818cf8'
+                  e.currentTarget.style.background = roleTheme.btnBgHover
+                  e.currentTarget.style.borderColor = roleTheme.primary
                   e.currentTarget.style.transform = 'translateY(-1px)'
-                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.25)'
+                  e.currentTarget.style.boxShadow = `0 4px 14px ${roleTheme.shadow}`
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.background = isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)'
-                  e.currentTarget.style.borderColor = isDark ? 'rgba(99,102,241,0.45)' : 'rgba(99,102,241,0.35)'
+                  e.currentTarget.style.background = roleTheme.btnBg
+                  e.currentTarget.style.borderColor = roleTheme.btnBorder
                   e.currentTarget.style.transform = 'translateY(0)'
                   e.currentTarget.style.boxShadow = 'none'
                 }}
@@ -705,22 +746,22 @@ const UsersPage = () => {
                   title="Edit User"
                   style={{
                     flex: 1, padding: '11px 14px', borderRadius: 14, border: 'none',
-                    background: isDark ? 'linear-gradient(135deg,#3730a3,#1e1b4b)' : 'linear-gradient(135deg,#312e81,#1e1b4b)',
-                    color: '#e0e7ff',
+                    background: roleTheme.editBg,
+                    color: '#fff',
                     cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     transition: 'all 0.22s', fontFamily: 'inherit', letterSpacing: '0.01em',
-                    boxShadow: '0 4px 14px rgba(49,46,129,0.35)',
+                    boxShadow: `0 4px 14px ${roleTheme.shadow}`,
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg,#4338ca,#312e81)'
+                    e.currentTarget.style.background = roleTheme.editHover
                     e.currentTarget.style.transform = 'translateY(-1px)'
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(67,56,202,0.45)'
+                    e.currentTarget.style.boxShadow = `0 6px 20px ${roleTheme.shadow}`
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.background = isDark ? 'linear-gradient(135deg,#3730a3,#1e1b4b)' : 'linear-gradient(135deg,#312e81,#1e1b4b)'
+                    e.currentTarget.style.background = roleTheme.editBg
                     e.currentTarget.style.transform = 'translateY(0)'
-                    e.currentTarget.style.boxShadow = '0 4px 14px rgba(49,46,129,0.35)'
+                    e.currentTarget.style.boxShadow = `0 4px 14px ${roleTheme.shadow}`
                   }}
                 >
                   <Edit2 size={14} /> Edit
