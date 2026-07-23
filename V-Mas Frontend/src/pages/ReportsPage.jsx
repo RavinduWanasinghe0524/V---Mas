@@ -2025,7 +2025,7 @@ const ReportsPage = () => {
                     width: '100%', padding: '11px 16px', borderRadius: 12,
                     border: `1.5px solid ${D.border}`, background: D.surfaceHi,
                     color: D.text, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', outline: 'none',
-                    marginBottom: 12
+                    marginBottom: 0
                   }}
                 >
                   <option value="">Select Record Type / Category...</option>
@@ -2035,43 +2035,6 @@ const ReportsPage = () => {
                   <option value="fuel">Fuel Fill-ups & Consumption</option>
                   <option value="mileage">Vehicle Mileage & Distance Tracking</option>
                 </select>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 10 }}>
-                  {[
-                    { id: 'upcoming', label: 'Upcoming Services & Alerts', desc: 'Next service dates, target mileage, overdue status', icon: <Calendar size={16} />, color: D.purple },
-                    { id: 'service', label: 'Past Service & Repair Records', desc: 'Completed services, costs, classification', icon: <Wrench size={16} />, color: D.teal },
-                    { id: 'fuel', label: 'Fuel Fill-ups & Consumption', desc: 'Liters, fuel costs, price per liter', icon: <Fuel size={16} />, color: D.indigo },
-                    { id: 'mileage', label: 'Vehicle Mileage & Utilization', desc: 'Initial/current mileage, total distance', icon: <Gauge size={16} />, color: D.green },
-                  ].map(rec => {
-                    const checked = docModal.recordTypes[rec.id]
-                    return (
-                      <div
-                        key={rec.id}
-                        onClick={() => setDocModal(m => ({
-                          ...m,
-                          recordTypes: { ...m.recordTypes, [rec.id]: !m.recordTypes[rec.id] }
-                        }))}
-                        style={{
-                          padding: '12px 14px', borderRadius: 14,
-                          border: `1.5px solid ${checked ? rec.color : D.border}`,
-                          background: checked ? `${rec.color}15` : D.surfaceHi,
-                          cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: 12,
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        <div style={{ color: checked ? rec.color : D.textFaint, marginTop: 2 }}>
-                          {checked ? <CheckSquare size={18} /> : <Square size={18} />}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '0.82rem', fontWeight: 800, color: checked ? D.text : D.textSub, display: 'flex', alignItems: 'center', gap: 6 }}>
-                            {rec.label}
-                          </div>
-                          <div style={{ fontSize: '0.7rem', color: D.textSub, marginTop: 2 }}>{rec.desc}</div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
               </div>
 
               {/* 3. Date Range */}

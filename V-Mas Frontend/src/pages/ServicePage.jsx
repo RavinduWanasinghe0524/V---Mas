@@ -2607,9 +2607,9 @@ const ServicePage = () => {
                 <button
                   onClick={openScheduleModal}
                   style={{
-                    position: 'relative', padding: '14px 24px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.25)',
-                    background: 'rgba(255, 255, 255, 0.08)', color: '#fff', fontSize: '0.95rem', fontWeight: 800,
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, backdropFilter: 'blur(8px)',
+                    position: 'relative', padding: '12px 22px', borderRadius: 999, border: '1px solid rgba(255,255,255,0.25)',
+                    background: 'rgba(255, 255, 255, 0.08)', color: '#fff', fontSize: '0.9rem', fontWeight: 800,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, backdropFilter: 'blur(8px)',
                     transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                     boxShadow: '0 8px 30px rgba(0,0,0,0.15)', whiteSpace: 'nowrap'
                   }}
@@ -2623,16 +2623,16 @@ const ServicePage = () => {
                 <button
                   onClick={() => openAddModal()}
                   style={{
-                    position: 'relative', padding: '14px 28px', borderRadius: 16, border: 'none',
-                    background: '#fff', color: '#1e3a8a', fontSize: '0.95rem', fontWeight: 800,
+                    position: 'relative', padding: '12px 26px', borderRadius: 999, border: 'none',
+                    background: '#fff', color: '#1e3a8a', fontSize: '0.92rem', fontWeight: 800,
                     cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
                     transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.25)', whiteSpace: 'nowrap'
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.2)', whiteSpace: 'nowrap'
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(255,255,255,0.3)' }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}
                 >
-                  <Plus size={20} strokeWidth={3} /> New Work Order
+                  <Plus size={19} strokeWidth={2.8} /> New Work Order
                 </button>
               )}
             </div>
@@ -2673,224 +2673,211 @@ const ServicePage = () => {
                 </span>
               </div>
 
-              <div style={{
-                border: `1px solid ${alertRecords.some(r => r._alertLevel === 'OVERDUE') ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
-                borderRadius: 16,
-                overflow: 'hidden',
-                background: D.bg,
-                maxHeight: 250,
-                overflowY: alertRecords.length > 3 ? 'auto' : 'visible',
-                flex: 1,
-              }}>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))',
-                  gap: 16,
-                  padding: '16px 8px',
-                }}>
-                  {alertRecords.map((r) => {
-                    const isOverdue = r._alertLevel === 'OVERDUE'
-                    const accentColor = isOverdue ? '#f87171' : '#fbbf24'
-                    const accentBg = isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'rgba(251, 191, 36, 0.1)'
-                    const accentBorder = isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'
+              <div className="vehicle-alerts-scroll-row" style={{ display: 'flex', gap: 16, padding: '10px 4px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
+                {alertRecords.map((r) => {
+                  const isOverdue = r._alertLevel === 'OVERDUE'
+                  const accentColor = isOverdue ? '#f87171' : '#fbbf24'
+                  const accentBg = isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'rgba(251, 191, 36, 0.1)'
+                  const accentBorder = isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'
 
-                    const mileage = computeMileageProgress(r, r._vehicleCurrentKm)
-                    const date = computeDateAlert(r)
+                  const mileage = computeMileageProgress(r, r._vehicleCurrentKm)
+                  const date = computeDateAlert(r)
 
-                    let progressPct = 0
-                    let remainingText = ''
+                  let progressPct = 0
+                  let remainingText = ''
 
-                    if (mileage) {
-                      progressPct = Math.min(mileage.pct, 100)
-                      remainingText = fmtKmRemaining(mileage.remaining)
-                    } else if (date) {
-                      progressPct = Math.max(0, Math.min(100, (30 - date.daysRemaining) / 30 * 100))
-                      remainingText = fmtDaysRemaining(date.daysRemaining)
-                    }
+                  if (mileage) {
+                    progressPct = Math.min(mileage.pct, 100)
+                    remainingText = fmtKmRemaining(mileage.remaining)
+                  } else if (date) {
+                    progressPct = Math.max(0, Math.min(100, (30 - date.daysRemaining) / 30 * 100))
+                    remainingText = fmtDaysRemaining(date.daysRemaining)
+                  }
 
-                    return (
-                      <div
-                        key={r.id}
-                        className="svc-alert-card"
-                        style={{
-                          background: D.surfaceHi,
-                          border: `1px solid ${accentBorder}`,
-                          borderRadius: 16,
-                          padding: '20px',
-                          cursor: 'default',
-                          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 16,
-                          boxShadow: `0 4px 20px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`,
-                          position: 'relative',
-                          overflow: 'hidden'
-                        }}
-                        onMouseEnter={e => {
-                          e.currentTarget.style.borderColor = accentColor
-                          e.currentTarget.style.transform = 'translateY(-4px)'
-                          e.currentTarget.style.boxShadow = `0 12px 30px ${isOverdue ? 'rgba(239, 68, 68, 0.15)' : 'rgba(251, 191, 36, 0.15)'}`
-                        }}
-                        onMouseLeave={e => {
-                          e.currentTarget.style.borderColor = accentBorder
-                          e.currentTarget.style.transform = 'translateY(0)'
-                          e.currentTarget.style.boxShadow = `0 4px 20px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`
-                        }}
-                      >
-                        {/* Top Row: Vehicle Chip and Status Tag */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                          <div style={{
-                            background: 'rgba(255, 255, 255, 0.04)',
-                            border: `1.5px solid ${D.borderHi}`,
-                            borderRadius: 10,
-                            padding: '4px 12px',
-                            fontSize: '0.82rem',
+                  return (
+                    <div
+                      key={r.id}
+                      className="vehicle-alert-card"
+                      style={{
+                        flexShrink: 0,
+                        minWidth: 290,
+                        maxWidth: 320,
+                        background: D.surfaceHi,
+                        border: `1px solid ${accentBorder}`,
+                        borderRadius: 16,
+                        padding: '20px',
+                        cursor: 'default',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 16,
+                        boxShadow: `0 4px 20px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`,
+                        position: 'relative',
+                        overflow: 'hidden'
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.borderColor = accentColor
+                        e.currentTarget.style.transform = 'translateY(-4px)'
+                        e.currentTarget.style.boxShadow = `0 12px 30px ${isOverdue ? 'rgba(239, 68, 68, 0.15)' : 'rgba(251, 191, 36, 0.15)'}`
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.borderColor = accentBorder
+                        e.currentTarget.style.transform = 'translateY(0)'
+                        e.currentTarget.style.boxShadow = `0 4px 20px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`
+                      }}
+                    >
+                      {/* Top Row: Vehicle Chip and Status Tag */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.04)',
+                          border: `1.5px solid ${D.borderHi}`,
+                          borderRadius: 10,
+                          padding: '4px 12px',
+                          fontSize: '0.82rem',
+                          fontWeight: 800,
+                          color: D.text,
+                          fontFamily: "'Outfit', monospace",
+                          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+                          letterSpacing: '0.03em'
+                        }}>
+                          {r.vehicleRegNumber}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{
+                            width: 8, height: 8, borderRadius: '50%',
+                            background: accentColor,
+                            boxShadow: `0 0 8px ${accentColor}`,
+                            animation: 'pulseBar 1.5s ease-in-out infinite'
+                          }} />
+                          <span style={{
+                            fontSize: '0.68rem',
                             fontWeight: 800,
-                            color: D.text,
-                            fontFamily: "'Outfit', monospace",
-                            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
-                            letterSpacing: '0.03em'
+                            color: accentColor,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.08em'
                           }}>
-                            {r.vehicleRegNumber}
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{
-                              width: 8, height: 8, borderRadius: '50%',
-                              background: accentColor,
-                              boxShadow: `0 0 8px ${accentColor}`,
-                              animation: 'pulseBar 1.5s ease-in-out infinite'
-                            }} />
-                            <span style={{
-                              fontSize: '0.68rem',
-                              fontWeight: 800,
-                              color: accentColor,
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.08em'
-                            }}>
-                              {isOverdue ? 'URGENT' : 'UPCOMING'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Center: Service Task Info */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text }}>
-                            {r.serviceType?.replace(/_/g, ' ')}
-                          </h4>
-                          <p style={{
-                            margin: 0,
-                            fontSize: '0.78rem',
-                            color: (mileage && mileage.remaining < 0) || (date && date.daysRemaining < 0) ? '#f87171' : D.textSub,
-                            fontWeight: (mileage && mileage.remaining < 0) || (date && date.daysRemaining < 0) ? 700 : 500,
-                            display: '-webkit-box',
-                            WebkitLineClamp: 1,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden'
-                          }}>
-                            {r.description && !/initial service milestone/i.test(r.description)
-                              ? r.description
-                              : (remainingText || (r.nextServiceMileageKm ? `Next due at ${Number(r.nextServiceMileageKm).toLocaleString()} km` : 'Service Milestone'))}
-                          </p>
-                        </div>
-
-                        {/* Progress bar / remaining info */}
-                        {(mileage || date) && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '2px 0' }}>
-                            <div style={{ height: 6, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 999, overflow: 'hidden' }}>
-                              <div style={{
-                                width: `${progressPct}%`,
-                                height: '100%',
-                                background: `linear-gradient(90deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
-                                borderRadius: 999,
-                                transition: 'width 0.4s ease'
-                              }} />
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: accentColor }}>
-                                {remainingText}
-                              </span>
-                              {mileage && date && (
-                                <span style={{ fontSize: '0.7rem', color: D.textSub, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  <Calendar size={11} /> {fmtDaysRemaining(date.daysRemaining)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Divider line */}
-                        <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
-
-                        {/* Actions Row */}
-                        <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
-                          {!isDriver && !isAdmin && (
-                            <button
-                              onClick={e => { e.stopPropagation(); openAddModal({ vehicleRegNumber: r.vehicleRegNumber, serviceType: r.serviceType }) }}
-                              style={{
-                                flex: 1,
-                                background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
-                                border: 'none',
-                                color: isOverdue ? '#fff' : '#000',
-                                borderRadius: 10,
-                                padding: '8px 14px',
-                                fontSize: '0.8rem',
-                                fontWeight: 800,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                boxShadow: `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContainer: 'center',
-                                justifyContent: 'center',
-                                gap: 6
-                              }}
-                              onMouseEnter={e => {
-                                e.currentTarget.style.transform = 'translateY(-1px)'
-                                e.currentTarget.style.boxShadow = `0 6px 16px ${isOverdue ? 'rgba(239, 68, 68, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`
-                              }}
-                              onMouseLeave={e => {
-                                e.currentTarget.style.transform = 'translateY(0)'
-                                e.currentTarget.style.boxShadow = `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`
-                              }}
-                            >
-                              <Wrench size={12} />
-                              Log Service
-                            </button>
-                          )}
-                          {!r._isPseudo && (
-                            <button
-                              onClick={e => { e.stopPropagation(); setDetailModal({ isOpen: true, record: r }) }}
-                              style={{
-                                background: 'rgba(255, 255, 255, 0.05)',
-                                border: `1px solid ${D.borderHi}`,
-                                color: D.text,
-                                borderRadius: 10,
-                                padding: '8px 14px',
-                                fontSize: '0.8rem',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: 6
-                              }}
-                              onMouseEnter={e => {
-                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
-                              }}
-                              onMouseLeave={e => {
-                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
-                              }}
-                            >
-                              <Eye size={12} />
-                              View Last
-                            </button>
-                          )}
+                            {isOverdue ? 'URGENT' : 'UPCOMING'}
+                          </span>
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
+
+                      {/* Center: Service Task Info */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text }}>
+                          {r.serviceType?.replace(/_/g, ' ')}
+                        </h4>
+                        <p style={{
+                          margin: 0,
+                          fontSize: '0.78rem',
+                          color: (mileage && mileage.remaining < 0) || (date && date.daysRemaining < 0) ? '#f87171' : D.textSub,
+                          fontWeight: (mileage && mileage.remaining < 0) || (date && date.daysRemaining < 0) ? 700 : 500,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 1,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}>
+                          {r.description && !/initial service milestone/i.test(r.description)
+                            ? r.description
+                            : (remainingText || (r.nextServiceMileageKm ? `Next due at ${Number(r.nextServiceMileageKm).toLocaleString()} km` : 'Service Milestone'))}
+                        </p>
+                      </div>
+
+                      {/* Progress bar / remaining info */}
+                      {(mileage || date) && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '2px 0' }}>
+                          <div style={{ height: 6, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 999, overflow: 'hidden' }}>
+                            <div style={{
+                              width: `${progressPct}%`,
+                              height: '100%',
+                              background: `linear-gradient(90deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
+                              borderRadius: 999,
+                              transition: 'width 0.4s ease'
+                            }} />
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: accentColor }}>
+                              {remainingText}
+                            </span>
+                            {mileage && date && (
+                              <span style={{ fontSize: '0.7rem', color: D.textSub, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <Calendar size={11} /> {fmtDaysRemaining(date.daysRemaining)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Divider line */}
+                      <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+
+                      {/* Actions Row */}
+                      <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
+                        {!isDriver && !isAdmin && (
+                          <button
+                            onClick={e => { e.stopPropagation(); openAddModal({ vehicleRegNumber: r.vehicleRegNumber, serviceType: r.serviceType }) }}
+                            style={{
+                              flex: 1,
+                              background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
+                              border: 'none',
+                              color: isOverdue ? '#fff' : '#000',
+                              borderRadius: 10,
+                              padding: '8px 14px',
+                              fontSize: '0.8rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              transition: 'all 0.25s',
+                              boxShadow: `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 6
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.transform = 'translateY(-1px)'
+                              e.currentTarget.style.boxShadow = `0 6px 16px ${isOverdue ? 'rgba(239, 68, 68, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.transform = 'translateY(0)'
+                              e.currentTarget.style.boxShadow = `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`
+                            }}
+                          >
+                            <Wrench size={12} />
+                            Log Service
+                          </button>
+                        )}
+                        {!r._isPseudo && (
+                          <button
+                            onClick={e => { e.stopPropagation(); setDetailModal({ isOpen: true, record: r }) }}
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: `1px solid ${D.borderHi}`,
+                              color: D.text,
+                              borderRadius: 10,
+                              padding: '8px 14px',
+                              fontSize: '0.8rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 6
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
+                            }}
+                          >
+                            <Eye size={12} />
+                            View Last
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
