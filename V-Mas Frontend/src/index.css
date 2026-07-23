@@ -2675,6 +2675,8 @@ select.form-control option {
     z-index: 200;
     position: fixed;
     width: 270px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
   }
 
   .sidebar.sidebar-open {
@@ -3368,6 +3370,8 @@ select.form-control option {
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s ease;
     z-index: 200;
     width: 280px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
   }
 
   .sidebar.sidebar-open {
@@ -3397,10 +3401,10 @@ select.form-control option {
   }
 
   /* ── Main content: no sidebar margin ── */
+  /* Note: padding-top is handled by the spacer div rendered in Topbar.jsx */
   .main-content {
     margin-left: 0 !important;
-    padding-top: var(--navbar-h);
-    /* compensate for fixed topbar */
+    padding-top: 0;
   }
 
   /* ── Topbar ── */
@@ -3435,12 +3439,12 @@ select.form-control option {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
-    border-radius: 0 !important;
+    border-radius: 16px 16px 0 0 !important;
     border-left: none !important;
     border-right: none !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-bottom: none !important;
-    z-index: 150 !important;
+    z-index: 9999 !important;
     animation: mobileSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
     transform-origin: bottom center !important;
     overflow-y: auto !important;
@@ -4673,4 +4677,227 @@ svg.lucide {
 [data-role] div[style*="color:#3b82f6"],
 [data-role] div[style*="color:#2563eb"] {
   color: var(--text-accent) !important;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   22. MOBILE FILTER TABS — Horizontal scroll, no wrap
+   Fixes filter buttons on Reports, Vehicles, Users, Service pages
+   that were breaking into multiple rows on small screens.
+═══════════════════════════════════════════════════════════════════ */
+
+/* Generic filter tabs row: force horizontal scroll on mobile */
+@media (max-width: 768px) {
+
+  /* ── Filter tab rows: scroll horizontally, never wrap ── */
+  /* Matches the Reports page category row */
+  div[style*="overflowX: auto"],
+  div[style*="overflow-x: auto"],
+  div[style*="overflow-x:auto"] {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    padding-bottom: 6px !important;
+  }
+
+  div[style*="overflowX: auto"]::-webkit-scrollbar,
+  div[style*="overflow-x: auto"]::-webkit-scrollbar,
+  div[style*="overflow-x:auto"]::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  /* ── Reports page: category filter tabs row ── */
+  .rpt-tab {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  /* ── Vehicles, Users & Service: filter row — horizontal scroll on mobile ── */
+  .vehicles-toolbar-filters,
+  .users-filter-row,
+  .service-filter-row {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+    gap: 8px !important;
+  }
+
+  .vehicles-toolbar-filters::-webkit-scrollbar,
+  .users-filter-row::-webkit-scrollbar,
+  .service-filter-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* All filter buttons within the rows must not shrink */
+  .vehicles-toolbar-filters > button,
+  .vehicles-toolbar-filters > div,
+  .users-filter-row > button,
+  .users-filter-row > div,
+  .service-filter-row > button,
+  .service-filter-row > div {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  /* Search box takes full row on mobile (separate row) */
+  .vehicles-toolbar-filters > div:first-child {
+    min-width: 100% !important;
+    flex-basis: 100% !important;
+  }
+
+  .service-filter-row > div:first-child,
+  .users-filter-row > div:first-child {
+    min-width: 100% !important;
+    flex-basis: 100% !important;
+  }
+
+  /* ── Vehicles toolbar outer: stack vertically on mobile ── */
+  .vehicles-toolbar-filters {
+    flex-wrap: wrap !important;  /* first item (search) wraps to full width */
+  }
+
+  /* Then make the filter buttons themselves not wrap */
+  .vehicles-toolbar-filters > button {
+    flex-shrink: 0 !important;
+  }
+
+  /* ── Sidebar: ensure logout button is always fully visible ── */
+  .sidebar {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .sidebar-nav {
+    flex: 1 !important;
+    overflow-y: auto !important;
+  }
+
+  /* ── Notification bottom sheet: overlay for mobile ── */
+  .topbar-notif-dropdown::before {
+    content: '';
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+  }
+
+  /* ── Topbar: hamburger always leftmost ── */
+  .topbar-hamburger {
+    order: -1;
+    flex-shrink: 0;
+  }
+
+  /* ── Service toolbar right-action buttons: scrollable on mobile ── */
+  .service-action-btns {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .service-action-btns::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ── Vehicle Service Alerts Strip: Compact on mobile ── */
+  .vehicle-alerts-strip {
+    padding: 14px 16px !important;
+    margin-bottom: 16px !important;
+    border-radius: 16px !important;
+  }
+
+  .vehicle-alerts-header {
+    padding: 10px 12px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .vehicle-alerts-header h3,
+  .vehicle-alerts-header span[style*="font-family"],
+  .vehicle-alerts-header span[style*="Outfit"] {
+    font-size: 0.9rem !important;
+  }
+
+  .vehicle-alerts-header p {
+    font-size: 0.7rem !important;
+  }
+
+  .vehicle-alerts-header span:not([style*="font-family"]) {
+    font-size: 0.68rem !important;
+    padding: 3px 8px !important;
+  }
+
+  .vehicle-alerts-scroll-row {
+    gap: 12px !important;
+    padding: 6px 2px !important;
+  }
+
+  .vehicle-alert-card {
+    min-width: 230px !important;
+    max-width: 250px !important;
+    padding: 14px !important;
+    gap: 10px !important;
+    border-radius: 14px !important;
+  }
+
+  .vehicle-alert-card h4 {
+    font-size: 0.9rem !important;
+  }
+
+  .vehicle-alert-card button {
+    padding: 6px 10px !important;
+    font-size: 0.75rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* ── Even more compact filter tabs ── */
+  .rpt-tab {
+    padding: 6px 12px !important;
+    font-size: 0.72rem !important;
+  }
+
+  /* ── Notification panel header text ── */
+  .topbar-notif-dropdown h3 {
+    font-size: 0.88rem !important;
+  }
+
+  /* ── Service, users & vehicles filter buttons smaller on very small screens ── */
+  .vehicles-toolbar-filters > button,
+  .users-filter-row > button,
+  .service-filter-row > button {
+    padding: 8px 14px !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* ── Section header: action area wraps below title on mobile ── */
+  .section-header-action {
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  /* ── Service toolbar: hide button text labels, show icon only ── */
+  .btn-label-hide-sm {
+    display: none !important;
+  }
+
+  /* ── Service action buttons: compact icon-only on small screens ── */
+  .service-action-btns button {
+    padding: 10px 10px !important;
+    min-width: 40px;
+    justify-content: center;
+  }
+
+  /* ── Vehicle Service Alerts Card tighter on small phones ── */
+  .vehicle-alert-card {
+    min-width: 200px !important;
+    max-width: 220px !important;
+    padding: 12px !important;
+    gap: 8px !important;
+  }
 }

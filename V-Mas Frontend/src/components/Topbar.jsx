@@ -450,6 +450,22 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
           transform-origin: top right;
         }
 
+        @media (max-width: 768px) {
+          .topbar-notif-dropdown {
+            position: fixed !important;
+            top: var(--navbar-h) !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            border-radius: 16px 16px 0 0 !important;
+            z-index: 9999 !important;
+            animation: mobileSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+          }
+        }
+
         .topbar-notif-dropdown-list {
           max-height: 380px;
           overflow-y: auto;
@@ -674,7 +690,7 @@ const Topbar = ({ title, subtitle, onMenuToggle }) => {
                         cursor: 'pointer',
                         padding: '4px 8px',
                         borderRadius: 6,
-                        display: 'none',
+                        display: isMobile ? 'flex' : 'none',
                         alignItems: 'center',
                         justifyContent: 'center',
                         transition: 'background 0.2s'

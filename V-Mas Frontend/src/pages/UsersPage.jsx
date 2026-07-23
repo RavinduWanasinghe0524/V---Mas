@@ -17,7 +17,7 @@ import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import api, { userAPI } from '../services/api'
 import { getDriverMetrics } from '../utils/driverUtils'
-import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car, BarChart2, Star, Activity, CheckCircle, RotateCcw, Archive, Trash2, User, FileText, Upload, Search, UserCog, Mail, ClipboardList, Eye, Edit2 } from 'lucide-react'
+import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car, BarChart2, Star, Activity, CheckCircle, RotateCcw, Archive, Trash2, User, FileText, Upload, Search, UserCog, Mail, ClipboardList, Eye, Edit2, ChevronDown, ChevronUp } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
@@ -98,6 +98,7 @@ const UsersPage = () => {
 
   const [users, setUsers] = useState([])
   const [pendingUsers, setPendingUsers] = useState([])
+  const [showAllPending, setShowAllPending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [pendingLoad, setPendingLoad] = useState(true)
   const [error, setError] = useState('')
@@ -968,39 +969,82 @@ const UsersPage = () => {
                     </div>
                     <button onClick={loadPending} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 8, borderRadius: 8, transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}><RefreshCw size={18} /></button>
                   </div>
-                  <div style={{ padding: '32px' }}>
+                  <div style={{ padding: '24px 32px 28px' }}>
                     {pendingLoad ? (
                       <div style={{ textAlign: 'center', color: D.textSub, padding: 20 }}>Loading...</div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
-                        {pendingUsers.map((u, i) => (
-                          <div key={u.id} style={{
-                            background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', gap: 20,
-                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                          }}
-                            onMouseEnter={e => { e.currentTarget.style.borderColor = D.gold + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                              <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`} alt={u.userName} style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${D.border}` }} onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`; }} />
-                              <div>
-                                <p style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.05rem' }}>{u.userName}</p>
-                                <p style={{ margin: '2px 0 8px', fontSize: '0.8rem', color: D.textSub }}>{u.email}</p>
-                                <RoleBadge role={u.role} D={D} />
+                      <>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+                          {(showAllPending ? pendingUsers : pendingUsers.slice(0, 1)).map((u, i) => (
+                            <div key={u.id} style={{
+                              background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', gap: 20,
+                              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                            }}
+                              onMouseEnter={e => { e.currentTarget.style.borderColor = D.gold + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}
+                              onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`} alt={u.userName} style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${D.border}` }} onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`; }} />
+                                <div>
+                                  <p style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.05rem' }}>{u.userName}</p>
+                                  <p style={{ margin: '2px 0 8px', fontSize: '0.8rem', color: D.textSub }}>{u.email}</p>
+                                  <RoleBadge role={u.role} D={D} />
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', gap: 12 }}>
+                                <button onClick={() => handleApprove(u.id, u.userName)} style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: D.greenDim, color: D.green, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = D.green; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = D.greenDim; e.currentTarget.style.color = D.green }}>
+                                  <Check size={18} /> Approve
+                                </button>
+                                <button onClick={() => handleReject(u.id, u.userName)} style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: D.redDim, color: D.red, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}>
+                                  <X size={18} /> Reject
+                                </button>
                               </div>
                             </div>
-                            <div style={{ display: 'flex', gap: 12 }}>
-                              <button onClick={() => handleApprove(u.id, u.userName)} style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: D.greenDim, color: D.green, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}
-                                onMouseEnter={e => { e.currentTarget.style.background = D.green; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = D.greenDim; e.currentTarget.style.color = D.green }}>
-                                <Check size={18} /> Approve
-                              </button>
-                              <button onClick={() => handleReject(u.id, u.userName)} style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: D.redDim, color: D.red, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}
-                                onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}>
-                                <X size={18} /> Reject
-                              </button>
-                            </div>
+                          ))}
+                        </div>
+
+                        {pendingUsers.length > 1 && (
+                          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
+                            <button
+                              onClick={() => setShowAllPending(!showAllPending)}
+                              style={{
+                                padding: '10px 24px',
+                                borderRadius: 12,
+                                border: `1.5px solid ${showAllPending ? D.border : D.gold + '60'}`,
+                                background: showAllPending ? 'transparent' : D.goldDim,
+                                color: showAllPending ? D.textSub : D.gold,
+                                fontSize: '0.84rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                transition: 'all 0.2s ease',
+                                boxShadow: showAllPending ? 'none' : `0 4px 14px ${D.goldDim}`
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = showAllPending ? D.surfaceHi : D.gold;
+                                e.currentTarget.style.color = showAllPending ? D.text : '#000';
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.background = showAllPending ? 'transparent' : D.goldDim;
+                                e.currentTarget.style.color = showAllPending ? D.textSub : D.gold;
+                              }}
+                            >
+                              {showAllPending ? (
+                                <>
+                                  <ChevronUp size={16} /> Show Less
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown size={16} /> See More ({pendingUsers.length - 1} More Pending {pendingUsers.length - 1 === 1 ? 'Account' : 'Accounts'})
+                                </>
+                              )}
+                            </button>
                           </div>
-                        ))}
-                      </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -1013,7 +1057,7 @@ const UsersPage = () => {
                 {/* Search, Filter, and Action Toolbar */}
                 <div style={{ padding: '20px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'center', background: D.surface }}>
                   {/* Left Controls: Search & Filters */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 300, flexWrap: 'wrap' }}>
+                  <div className="users-filter-row" style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 300, flexWrap: 'wrap' }}>
                     <div style={{ position: 'relative', flex: '2 1 350px', maxWidth: '500px', minWidth: 220 }}>
                       <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, pointerEvents: 'none' }} />
                       <input
@@ -1029,22 +1073,68 @@ const UsersPage = () => {
                       />
                     </div>
 
-                    {['ALL', 'ACTIVE', 'PENDING', 'INACTIVE', 'SUSPENDED'].map(s => (
-                      <button
-                        key={s}
-                        onClick={() => setStatusFilter(s)}
+                    {/* User Status Filter Dropdown */}
+                    <div style={{ position: 'relative', minWidth: 165, flexShrink: 0 }}>
+                      {/* Colored status dot */}
+                      <div style={{
+                        position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)',
+                        width: 8, height: 8, borderRadius: '50%', pointerEvents: 'none',
+                        background: statusFilter === 'ALL'       ? '#6366f1'
+                                  : statusFilter === 'ACTIVE'    ? '#10b981'
+                                  : statusFilter === 'PENDING'   ? '#f59e0b'
+                                  : statusFilter === 'INACTIVE'  ? '#ef4444'
+                                  :                                '#94a3b8',
+                        boxShadow: `0 0 6px ${
+                          statusFilter === 'ALL'       ? '#6366f180'
+                        : statusFilter === 'ACTIVE'    ? '#10b98180'
+                        : statusFilter === 'PENDING'   ? '#f59e0b80'
+                        : statusFilter === 'INACTIVE'  ? '#ef444480'
+                        :                                '#94a3b880'}`,
+                        transition: 'background 0.2s ease, box-shadow 0.2s ease',
+                      }} />
+                      <select
+                        value={statusFilter}
+                        onChange={e => setStatusFilter(e.target.value)}
                         style={{
-                          padding: '10px 18px', height: '40px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800,
-                          border: statusFilter === s ? 'none' : `1px solid ${D.border}`,
-                          background: statusFilter === s ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'rgba(255,255,255,0.05)',
-                          color: statusFilter === s ? '#fff' : D.textSub,
-                          cursor: 'pointer', transition: 'all 0.15s ease',
-                          boxShadow: statusFilter === s ? '0 4px 12px rgba(37, 99, 235, 0.3)' : 'none',
+                          width: '100%', padding: '10px 32px 10px 28px', height: '40px',
+                          background: statusFilter !== 'ALL'
+                            ? (statusFilter === 'ACTIVE'    ? 'rgba(16,185,129,0.08)'
+                             : statusFilter === 'PENDING'   ? 'rgba(245,158,11,0.08)'
+                             : statusFilter === 'INACTIVE'  ? 'rgba(239,68,68,0.08)'
+                             : 'rgba(148,163,184,0.08)')
+                            : 'rgba(255,255,255,0.05)',
+                          border: `1.5px solid ${
+                            statusFilter === 'ALL'       ? D.border
+                          : statusFilter === 'ACTIVE'    ? 'rgba(16,185,129,0.4)'
+                          : statusFilter === 'PENDING'   ? 'rgba(245,158,11,0.4)'
+                          : statusFilter === 'INACTIVE'  ? 'rgba(239,68,68,0.4)'
+                          : 'rgba(148,163,184,0.4)'}`,
+                          borderRadius: 12,
+                          color: statusFilter === 'ALL'       ? D.textSub
+                               : statusFilter === 'ACTIVE'    ? '#10b981'
+                               : statusFilter === 'PENDING'   ? '#d97706'
+                               : statusFilter === 'INACTIVE'  ? '#ef4444'
+                               : '#94a3b8',
+                          fontSize: '0.8rem', fontWeight: 700, outline: 'none',
+                          cursor: 'pointer', appearance: 'none', fontFamily: 'inherit',
+                          boxSizing: 'border-box', transition: 'all 0.2s ease',
+                          boxShadow: statusFilter !== 'ALL' ? `0 4px 12px ${
+                            statusFilter === 'ACTIVE'    ? 'rgba(16,185,129,0.15)'
+                          : statusFilter === 'PENDING'   ? 'rgba(245,158,11,0.15)'
+                          : statusFilter === 'INACTIVE'  ? 'rgba(239,68,68,0.15)'
+                          : 'rgba(148,163,184,0.1)'}` : 'none',
                         }}
+                        onFocus={e => e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'}
+                        onBlur={e => e.target.style.boxShadow = statusFilter !== 'ALL' ? '0 4px 12px rgba(0,0,0,0.1)' : 'none'}
                       >
-                        {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
-                      </button>
-                    ))}
+                        <option value="ALL">All Status</option>
+                        <option value="ACTIVE">Active</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="INACTIVE">Inactive</option>
+                        <option value="SUSPENDED">Suspended</option>
+                      </select>
+                      <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub, fontSize: '0.75rem' }}>▾</div>
+                    </div>
 
                     <select
                       value={roleFilter}
@@ -1074,28 +1164,31 @@ const UsersPage = () => {
                         onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
                         onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
                       >
-                        <RotateCcw size={14} /> Clear Filters
+                        <RotateCcw size={14} /> Clear
                       </button>
                     )}
                   </div>
 
                   {/* Right Controls: Action Buttons */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, flexWrap: 'wrap' }}>
+                  <div className="service-action-btns" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'nowrap' }}>
                     <button onClick={handleExportCSV} style={{
-                      padding: '10px 16px', height: '40px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.03)', color: D.textSub, fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s'
+                      padding: '10px 14px', height: '40px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.03)', color: D.textSub, fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', whiteSpace: 'nowrap'
                     }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = D.text }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = D.textSub }}>
-                      Export CSV
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      <span className="btn-label-hide-sm">Export CSV</span>
                     </button>
                     <button onClick={handleExportPDF} style={{
-                      padding: '10px 16px', height: '40px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.03)', color: D.textSub, fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s'
+                      padding: '10px 14px', height: '40px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.03)', color: D.textSub, fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', whiteSpace: 'nowrap'
                     }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = D.text }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = D.textSub }}>
-                      Export PDF
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      <span className="btn-label-hide-sm">Export PDF</span>
                     </button>
                     <button
                       onClick={() => setDeletedDrawer(true)}
+                      title="Deleted Users"
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '10px 16px', height: '40px', borderRadius: 12,
+                        padding: '10px 14px', height: '40px', borderRadius: 12,
                         background: 'rgba(255,255,255,0.03)', border: `1px solid ${D.border}`,
                         color: D.textSub, fontSize: '0.8rem', fontWeight: 800,
                         cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
@@ -1104,7 +1197,7 @@ const UsersPage = () => {
                       onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.textSub }}
                     >
                       <Archive size={14} />
-                      Deleted Users
+                      <span className="btn-label-hide-sm">Deleted Users</span>
                     </button>
                     <button onClick={loadUsers} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 8, borderRadius: 8, transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'none'} title="Refresh users list">
                       <RefreshCw size={18} />
