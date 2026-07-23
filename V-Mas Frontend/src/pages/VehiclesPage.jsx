@@ -1578,7 +1578,7 @@ const VehiclesPage = () => {
 
             {/* Service Due Alert Strip */}
             {alertVehicles.length > 0 && (
-              <div style={{
+              <div className="vehicle-alerts-strip" style={{
                 background: D.surface,
                 border: `1px solid ${alertVehicles.some(a => a.level === 'OVERDUE') ? 'rgba(239, 68, 68, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`,
                 borderRadius: 20,
@@ -1589,7 +1589,7 @@ const VehiclesPage = () => {
                 boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
                 animation: 'fadeIn 0.3s ease',
               }}>
-                <div style={{
+                <div className="vehicle-alerts-header" style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20
                 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -1625,7 +1625,7 @@ const VehiclesPage = () => {
                     )}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 16, padding: '10px 4px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
+                <div className="vehicle-alerts-scroll-row" style={{ display: 'flex', gap: 16, padding: '10px 4px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
                   {alertVehicles.map(({ reg, record, level, vehicleKm }, idx) => {
                     const isOverdue = level === 'OVERDUE'
                     const accentColor = isOverdue ? '#f87171' : '#fbbf24'
@@ -1646,7 +1646,7 @@ const VehiclesPage = () => {
                     }
 
                     return (
-                      <div key={`${reg}-${record.serviceType}-${idx}`} style={{
+                      <div key={`${reg}-${record.serviceType}-${idx}`} className="vehicle-alert-card" style={{
                         flexShrink: 0, minWidth: 290, maxWidth: 320,
                         background: D.surfaceHi, border: `1px solid ${accentBorder}`,
                         borderRadius: 16, padding: '20px',
@@ -1706,11 +1706,20 @@ const VehiclesPage = () => {
                           <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text }}>
                             {record.serviceType?.replace(/_/g, ' ')}
                           </h4>
-                          {record.description && record.description !== 'Initial service milestone.' && (
-                            <p style={{ margin: 0, fontSize: '0.78rem', color: D.textSub, fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                              {record.description}
-                            </p>
-                          )}
+                          <p style={{
+                            margin: 0,
+                            fontSize: '0.78rem',
+                            color: (mileage && mileage.remaining < 0) || (date && date.daysRemaining < 0) ? '#f87171' : D.textSub,
+                            fontWeight: (mileage && mileage.remaining < 0) || (date && date.daysRemaining < 0) ? 700 : 500,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 1,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}>
+                            {record.description && !/initial service milestone/i.test(record.description)
+                              ? record.description
+                              : (remainingText || (record.nextServiceMileageKm ? `Next due at ${Number(record.nextServiceMileageKm).toLocaleString()} km` : 'Service Milestone'))}
+                          </p>
                         </div>
 
                         {/* Progress bar / remaining info */}
@@ -1831,34 +1840,81 @@ const VehiclesPage = () => {
             <div style={{ background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 4px 24px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
               <div style={{ padding: '22px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, background: D.surfaceHi, flexWrap: 'wrap' }}>
                 {!isDriver && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, flexWrap: 'wrap' }}>
+                  <div className="vehicles-toolbar-filters" style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, flexWrap: 'wrap' }}>
                     <div style={{ position: 'relative', minWidth: 200 }}>
                       <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, pointerEvents: 'none' }} />
                       <input
                         type="text"
-                        placeholder="Search by reg, make or modelâ€¦"
+                        placeholder="Search by reg, make or model…"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         style={{ ...inputStyle, paddingLeft: 38 }}
                         onFocus={onFocus} onBlur={onBlur}
                       />
                     </div>
-                    {['ALL', 'ACTIVE', 'AVAILABLE', 'SERVICE', 'INACTIVE'].map(s => (
-                      <button
-                        key={s}
-                        onClick={() => setFilter(s)}
+
+                    {/* Vehicle Status Filter Dropdown */}
+                    <div style={{ position: 'relative', minWidth: 160, flexShrink: 0 }}>
+                      {/* Colored status dot */}
+                      <div style={{
+                        position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)',
+                        width: 8, height: 8, borderRadius: '50%', pointerEvents: 'none',
+                        background: filter === 'ALL'       ? '#6366f1'
+                                  : filter === 'ACTIVE'    ? '#10b981'
+                                  : filter === 'AVAILABLE' ? '#3b82f6'
+                                  : filter === 'SERVICE'   ? '#f59e0b'
+                                  :                          '#ef4444',
+                        boxShadow: `0 0 6px ${
+                          filter === 'ALL'       ? '#6366f180'
+                        : filter === 'ACTIVE'    ? '#10b98180'
+                        : filter === 'AVAILABLE' ? '#3b82f680'
+                        : filter === 'SERVICE'   ? '#f59e0b80'
+                        :                          '#ef444480'}`,
+                        transition: 'background 0.2s ease, box-shadow 0.2s ease',
+                      }} />
+                      <select
+                        value={filter}
+                        onChange={e => setFilter(e.target.value)}
                         style={{
-                          padding: '10px 18px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800,
-                          border: filter === s ? 'none' : `1px solid ${D.border}`,
-                          background: filter === s ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'rgba(255,255,255,0.05)',
-                          color: filter === s ? '#fff' : D.textSub,
-                          cursor: 'pointer', transition: 'all 0.15s ease',
-                          boxShadow: filter === s ? '0 4px 12px rgba(37, 99, 235,0.3)' : 'none',
+                          width: '100%', padding: '10px 32px 10px 28px', height: '40px',
+                          background: filter !== 'ALL'
+                            ? (filter === 'ACTIVE'    ? 'rgba(16,185,129,0.08)'
+                             : filter === 'AVAILABLE' ? 'rgba(59,130,246,0.08)'
+                             : filter === 'SERVICE'   ? 'rgba(245,158,11,0.08)'
+                             : 'rgba(239,68,68,0.08)')
+                            : 'rgba(255,255,255,0.05)',
+                          border: `1.5px solid ${
+                            filter === 'ALL'       ? D.border
+                          : filter === 'ACTIVE'    ? 'rgba(16,185,129,0.4)'
+                          : filter === 'AVAILABLE' ? 'rgba(59,130,246,0.4)'
+                          : filter === 'SERVICE'   ? 'rgba(245,158,11,0.4)'
+                          : 'rgba(239,68,68,0.4)'}`,
+                          borderRadius: 12,
+                          color: filter === 'ALL'       ? D.textSub
+                               : filter === 'ACTIVE'    ? '#10b981'
+                               : filter === 'AVAILABLE' ? '#3b82f6'
+                               : filter === 'SERVICE'   ? '#d97706'
+                               : '#ef4444',
+                          fontSize: '0.8rem', fontWeight: 700, outline: 'none',
+                          cursor: 'pointer', appearance: 'none', fontFamily: 'inherit',
+                          boxSizing: 'border-box', transition: 'all 0.2s ease',
+                          boxShadow: filter !== 'ALL' ? `0 4px 12px ${
+                            filter === 'ACTIVE'    ? 'rgba(16,185,129,0.15)'
+                          : filter === 'AVAILABLE' ? 'rgba(59,130,246,0.15)'
+                          : filter === 'SERVICE'   ? 'rgba(245,158,11,0.15)'
+                          : 'rgba(239,68,68,0.15)'}` : 'none',
                         }}
+                        onFocus={e => e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'}
+                        onBlur={e => e.target.style.boxShadow = filter !== 'ALL' ? '0 4px 12px rgba(0,0,0,0.1)' : 'none'}
                       >
-                        {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
-                      </button>
-                    ))}
+                        <option value="ALL">All Status</option>
+                        <option value="ACTIVE">Active</option>
+                        <option value="AVAILABLE">Available</option>
+                        <option value="SERVICE">In Service</option>
+                        <option value="INACTIVE">Inactive</option>
+                      </select>
+                      <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub, fontSize: '0.75rem' }}>▾</div>
+                    </div>
 
                     <select
                       value={fuelFilter}

@@ -36,11 +36,11 @@ const getTimeAgo = (dateStr) => {
 
 // ── Section header ───────────────────────────────────────────────────────────
 const SectionHeader = ({ title, D, icon, action }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, marginTop: 16 }}>
+  <div className="section-header-row" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, marginTop: 16, flexWrap: 'wrap' }}>
     {icon && <div style={{ color: D.indigo, display: 'flex', alignItems: 'center' }}>{icon}</div>}
     <h2 style={{ margin: 0, fontSize: '1.2rem', color: D.text, fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>{title}</h2>
-    <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${D.border}, transparent)` }} />
-    {action}
+    <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${D.border}, transparent)`, minWidth: 20 }} />
+    {action && <div className="section-header-action">{action}</div>}
   </div>
 )
 
@@ -1488,70 +1488,103 @@ const ReportsPage = () => {
             title="Available Reports Directory"
             D={D}
             icon={<ClipboardList size={20} />}
-            action={
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <select
-                  value={selectedVehicle}
-                  onChange={e => setSelectedVehicle(e.target.value)}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: 10,
-                    border: `1.5px solid ${D.border}`,
-                    background: D.surfaceHi,
-                    color: D.textSub,
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    outline: 'none',
-                  }}
-                  onFocus={e => { e.target.style.borderColor = D.indigo }}
-                  onBlur={e => { e.target.style.borderColor = D.border }}
-                >
-                  <option value="all">All Vehicles</option>
-                  {vehiclesList.map(v => (
-                    <option key={v.registrationNo} value={v.registrationNo}>
-                      {v.registrationNo}
-                    </option>
-                  ))}
-                </select>
-
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => setViewMode('grid')} style={{ width: 34, height: 34, borderRadius: 8, border: `1.5px solid ${viewMode === 'grid' ? D.indigo : D.border}`, background: viewMode === 'grid' ? D.indigoDim : 'transparent', color: viewMode === 'grid' ? D.indigo : D.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <LayoutGrid size={15} />
-                  </button>
-                  <button onClick={() => setViewMode('list')} style={{ width: 34, height: 34, borderRadius: 8, border: `1.5px solid ${viewMode === 'list' ? D.indigo : D.border}`, background: viewMode === 'list' ? D.indigoDim : 'transparent', color: viewMode === 'list' ? D.indigo : D.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <List size={15} />
-                  </button>
-                </div>
-              </div>
-            }
           />
 
-          {/* Category tabs */}
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 14, marginBottom: 28, borderBottom: `1.5px solid ${D.border}`, scrollbarWidth: 'none' }}>
-            {categoryList.map(cat => {
-              const isActive = activeCategory === cat
-              const count = cat === 'All' ? reportTypes.length : (countByCategory[cat] || 0)
-              return (
-                <button key={cat} onClick={() => setActiveCategory(cat)} className="rpt-tab"
+          {/* Dedicated Prominent Filter & Layout Control Bar */}
+          <div style={{
+            background: D.surface,
+            border: `1.5px solid ${D.border}`,
+            borderRadius: 18,
+            padding: '14px 22px',
+            marginBottom: 28,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+            flexWrap: 'wrap',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
+          }}>
+            {/* Left: Category Dropdown Filter with Label */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Filter Category:</span>
+              <div style={{ position: 'relative', minWidth: 220, flexShrink: 0 }}>
+                {/* Colored status dot */}
+                <div style={{
+                  position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+                  width: 8, height: 8, borderRadius: '50%', pointerEvents: 'none',
+                  background: activeCategory === 'All'         ? '#6366f1'
+                            : activeCategory === 'Vehicle'     ? '#3b82f6'
+                            : activeCategory === 'Users'       ? '#a855f7'
+                            : activeCategory === 'Maintenance' ? '#14b8a6'
+                            : activeCategory === 'Fuel'        ? '#f59e0b'
+                            :                                    '#10b981',
+                  boxShadow: `0 0 8px ${
+                    activeCategory === 'All'         ? '#6366f190'
+                  : activeCategory === 'Vehicle'     ? '#3b82f690'
+                  : activeCategory === 'Users'       ? '#a855f790'
+                  : activeCategory === 'Maintenance' ? '#14b8a690'
+                  : activeCategory === 'Fuel'        ? '#f59e0b90'
+                  :                                    '#10b98190'}`,
+                  transition: 'background 0.2s ease, box-shadow 0.2s ease',
+                }} />
+                <select
+                  value={activeCategory}
+                  onChange={e => setActiveCategory(e.target.value)}
                   style={{
-                    padding: '7px 16px', borderRadius: 20, whiteSpace: 'nowrap',
-                    background: isActive ? `linear-gradient(135deg,${D.indigo},${D.purple})` : D.surface,
-                    color: isActive ? '#fff' : D.textSub, fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer',
-                    border: `1.5px solid ${isActive ? 'transparent' : D.border}`, outline: 'none',
-                    boxShadow: isActive ? `0 6px 16px ${D.indigoDim}` : 'none',
-                    display: 'flex', alignItems: 'center', gap: 7,
+                    width: '100%', padding: '10px 32px 10px 30px', height: '40px',
+                    background: activeCategory !== 'All'
+                      ? (activeCategory === 'Vehicle'     ? 'rgba(59,130,246,0.08)'
+                       : activeCategory === 'Users'       ? 'rgba(168,85,247,0.08)'
+                       : activeCategory === 'Maintenance' ? 'rgba(20,184,166,0.08)'
+                       : activeCategory === 'Fuel'        ? 'rgba(245,158,11,0.08)'
+                       : 'rgba(16,185,129,0.08)')
+                      : 'rgba(255,255,255,0.05)',
+                    border: `1.5px solid ${
+                      activeCategory === 'All'         ? D.border
+                    : activeCategory === 'Vehicle'     ? 'rgba(59,130,246,0.4)'
+                    : activeCategory === 'Users'       ? 'rgba(168,85,247,0.4)'
+                    : activeCategory === 'Maintenance' ? 'rgba(20,184,166,0.4)'
+                    : activeCategory === 'Fuel'        ? 'rgba(245,158,11,0.4)'
+                    : 'rgba(16,185,129,0.4)'}`,
+                    borderRadius: 12,
+                    color: activeCategory === 'All'         ? D.textSub
+                         : activeCategory === 'Vehicle'     ? '#3b82f6'
+                         : activeCategory === 'Users'       ? '#a855f7'
+                         : activeCategory === 'Maintenance' ? '#14b8a6'
+                         : activeCategory === 'Fuel'        ? '#d97706'
+                         : '#10b981',
+                    fontSize: '0.84rem', fontWeight: 700, outline: 'none',
+                    cursor: 'pointer', appearance: 'none', fontFamily: 'inherit',
+                    boxSizing: 'border-box', transition: 'all 0.2s ease',
                   }}
-                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.color = D.text } }}
-                  onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = D.surface; e.currentTarget.style.color = D.textSub } }}
+                  onFocus={e => e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'}
+                  onBlur={e => e.target.style.boxShadow = 'none'}
                 >
-                  {cat}
-                  <span style={{ background: isActive ? 'rgba(255,255,255,0.25)' : D.bg, borderRadius: 10, padding: '1px 7px', fontSize: '0.66rem', fontWeight: 800, color: isActive ? '#fff' : D.textFaint }}>
-                    {count}
-                  </span>
+                  {categoryList.map(cat => {
+                    const count = cat === 'All' ? reportTypes.length : (countByCategory[cat] || 0)
+                    return (
+                      <option key={cat} value={cat}>
+                        {cat === 'All' ? `All Categories (${count})` : `${cat} (${count})`}
+                      </option>
+                    )
+                  })}
+                </select>
+                <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub, fontSize: '0.75rem' }}>▾</div>
+              </div>
+            </div>
+
+            {/* Right: View Mode Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>View Mode:</span>
+              <div style={{ display: 'flex', background: D.surfaceHi, border: `1px solid ${D.border}`, borderRadius: 10, padding: 3, gap: 3 }}>
+                <button onClick={() => setViewMode('grid')} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: viewMode === 'grid' ? D.indigo : 'transparent', color: viewMode === 'grid' ? '#fff' : D.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, transition: 'all 0.15s' }}>
+                  <LayoutGrid size={15} /> Grid
                 </button>
-              )
-            })}
+                <button onClick={() => setViewMode('list')} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: viewMode === 'list' ? D.indigo : 'transparent', color: viewMode === 'list' ? '#fff' : D.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, transition: 'all 0.15s' }}>
+                  <List size={15} /> List
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Featured Custom Specific Vehicle Document Generator Card */}

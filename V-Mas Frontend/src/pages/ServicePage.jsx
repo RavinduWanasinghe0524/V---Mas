@@ -265,7 +265,7 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
   const dueSoon = alertRecords.filter(r => r._alertLevel === 'DUE_SOON')
 
   return (
-    <div style={{
+    <div className="vehicle-alerts-strip" style={{
       background: D.surface,
       border: `1px solid ${overdue.length > 0 ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`,
       borderRadius: 16,
@@ -275,7 +275,7 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
       boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
     }}>
       {/* Header */}
-      <div style={{
+      <div className="vehicle-alerts-header" style={{
         padding: '16px 20px',
         borderBottom: `1px solid ${D.border}`,
         display: 'flex', alignItems: 'center', gap: 12,
@@ -298,7 +298,7 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
       </div>
 
       {/* Scroll strip of alert cards */}
-      <div style={{ display: 'flex', gap: 16, padding: '20px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
+      <div className="vehicle-alerts-scroll-row" style={{ display: 'flex', gap: 16, padding: '20px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
         {alertRecords.map(r => {
           const ac = ALERT_COLORS[r._alertLevel] || ALERT_COLORS.DUE_SOON
           const mileage = computeMileageProgress(r, r._vehicleCurrentKm)
@@ -318,6 +318,7 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
           return (
             <div
               key={r.id}
+              className="vehicle-alert-card"
               onClick={() => onViewAlert && onViewAlert(r)}
               style={{
                 flexShrink: 0,
@@ -2776,11 +2777,20 @@ const ServicePage = () => {
                           <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text }}>
                             {r.serviceType?.replace(/_/g, ' ')}
                           </h4>
-                          {r.description && r.description !== 'Initial service milestone.' && (
-                            <p style={{ margin: 0, fontSize: '0.78rem', color: D.textSub, fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                              {r.description}
-                            </p>
-                          )}
+                          <p style={{
+                            margin: 0,
+                            fontSize: '0.78rem',
+                            color: (mileage && mileage.remaining < 0) || (date && date.daysRemaining < 0) ? '#f87171' : D.textSub,
+                            fontWeight: (mileage && mileage.remaining < 0) || (date && date.daysRemaining < 0) ? 700 : 500,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 1,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}>
+                            {r.description && !/initial service milestone/i.test(r.description)
+                              ? r.description
+                              : (remainingText || (r.nextServiceMileageKm ? `Next due at ${Number(r.nextServiceMileageKm).toLocaleString()} km` : 'Service Milestone'))}
+                          </p>
                         </div>
 
                         {/* Progress bar / remaining info */}
@@ -3543,17 +3553,17 @@ const ServicePage = () => {
                     }}>
                       {/* Search, Filter, and Action Toolbar */}
                       <div style={{
-                        padding: '20px 26px',
+                        padding: '16px 20px',
                         borderBottom: `1px solid ${D.border}`,
                         display: 'flex',
                         justifyContent: 'space-between',
-                        gap: 16,
+                        gap: 12,
                         flexWrap: 'wrap',
                         alignItems: 'center',
                         background: D.surfaceHi,
                       }}>
                         {/* Left Controls: Search & Filters */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 300, flexWrap: 'wrap' }}>
+                        <div className="service-filter-row" style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 300, flexWrap: 'wrap' }}>
                           <div style={{ position: 'relative', flex: '2 1 300px', maxWidth: '400px', minWidth: 200 }}>
                             <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, opacity: 0.8 }} />
                             <input
@@ -3577,33 +3587,99 @@ const ServicePage = () => {
                             )}
                           </div>
 
-                          {/* Status pill filters */}
-                          {[
-                            { val: 'ALL', label: 'All', color: '#6366f1' },
-                            { val: 'Open', label: 'Open', color: '#3b82f6' },
-                            { val: 'In Progress', label: 'In Progress', color: '#fbbf24' },
-                            { val: 'Overdue', label: 'Overdue', color: '#ef4444' },
-                            { val: 'Completed', label: 'Done', color: '#10b981' },
-                          ].map(t => {
-                            const isSel = filter === t.val
-                            return (
-                              <button
-                                key={t.val}
-                                onClick={() => setFilter(t.val)}
-                                style={{
-                                  padding: '10px 18px', height: '40px', borderRadius: 12,
-                                  fontSize: '0.8rem', fontWeight: 800,
-                                  background: isSel ? `${t.color}1f` : 'rgba(255,255,255,0.05)',
-                                  color: isSel ? t.color : D.textSub,
-                                  border: isSel ? `1.5px solid ${t.color}50` : `1px solid ${D.border}`,
-                                  cursor: 'pointer', transition: 'all 0.15s ease',
-                                  boxShadow: isSel ? `0 4px 12px ${t.color}25` : 'none',
-                                }}
-                              >
-                                {t.label}
-                              </button>
-                            )
-                          })}
+                          {/* Status Filter Dropdown */}
+                          <div style={{ position: 'relative', minWidth: 160, flexShrink: 0 }}>
+                            {/* Colored status dot indicator */}
+                            <div style={{
+                              position: 'absolute',
+                              left: 13,
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              pointerEvents: 'none',
+                              background: filter === 'ALL'         ? '#6366f1'
+                                        : filter === 'Open'        ? '#3b82f6'
+                                        : filter === 'In Progress' ? '#fbbf24'
+                                        : filter === 'Overdue'     ? '#ef4444'
+                                        : '#10b981',
+                              boxShadow: `0 0 6px ${
+                                filter === 'ALL'         ? '#6366f1'
+                              : filter === 'Open'        ? '#3b82f6'
+                              : filter === 'In Progress' ? '#fbbf24'
+                              : filter === 'Overdue'     ? '#ef4444'
+                              : '#10b981'}60`,
+                              transition: 'background 0.2s ease, box-shadow 0.2s ease',
+                            }} />
+                            <select
+                              value={filter}
+                              onChange={e => setFilter(e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '10px 32px 10px 28px',
+                                height: '40px',
+                                background: filter !== 'ALL'
+                                  ? (filter === 'Open'        ? 'rgba(59,130,246,0.08)'
+                                   : filter === 'In Progress' ? 'rgba(251,191,36,0.08)'
+                                   : filter === 'Overdue'     ? 'rgba(239,68,68,0.08)'
+                                   : 'rgba(16,185,129,0.08)')
+                                  : 'rgba(255,255,255,0.05)',
+                                border: `1.5px solid ${
+                                  filter === 'ALL'         ? D.border
+                                : filter === 'Open'        ? 'rgba(59,130,246,0.4)'
+                                : filter === 'In Progress' ? 'rgba(251,191,36,0.4)'
+                                : filter === 'Overdue'     ? 'rgba(239,68,68,0.4)'
+                                : 'rgba(16,185,129,0.4)'}`,
+                                borderRadius: 12,
+                                color: filter === 'ALL'         ? D.textSub
+                                     : filter === 'Open'        ? '#3b82f6'
+                                     : filter === 'In Progress' ? '#d97706'
+                                     : filter === 'Overdue'     ? '#ef4444'
+                                     : '#10b981',
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                outline: 'none',
+                                cursor: 'pointer',
+                                appearance: 'none',
+                                fontFamily: 'inherit',
+                                boxSizing: 'border-box',
+                                transition: 'all 0.2s ease',
+                                boxShadow: filter !== 'ALL' ? `0 4px 12px ${
+                                  filter === 'Open'        ? 'rgba(59,130,246,0.15)'
+                                : filter === 'In Progress' ? 'rgba(251,191,36,0.15)'
+                                : filter === 'Overdue'     ? 'rgba(239,68,68,0.15)'
+                                : 'rgba(16,185,129,0.15)'}` : 'none',
+                              }}
+                              onFocus={e => e.target.style.boxShadow = `0 0 0 3px ${
+                                filter === 'Open'        ? 'rgba(59,130,246,0.12)'
+                              : filter === 'In Progress' ? 'rgba(251,191,36,0.12)'
+                              : filter === 'Overdue'     ? 'rgba(239,68,68,0.12)'
+                              : filter === 'Completed'   ? 'rgba(16,185,129,0.12)'
+                              : 'rgba(99,102,241,0.08)'}`}
+                              onBlur={e => e.target.style.boxShadow = filter !== 'ALL' ? `0 4px 12px ${
+                                filter === 'Open'        ? 'rgba(59,130,246,0.15)'
+                              : filter === 'In Progress' ? 'rgba(251,191,36,0.15)'
+                              : filter === 'Overdue'     ? 'rgba(239,68,68,0.15)'
+                              : 'rgba(16,185,129,0.15)'}` : 'none'}
+                            >
+                              <option value="ALL">All Status</option>
+                              <option value="Open">Open</option>
+                              <option value="In Progress">In Progress</option>
+                              <option value="Overdue">Overdue</option>
+                              <option value="Completed">Done</option>
+                            </select>
+                            {/* Chevron icon */}
+                            <div style={{
+                              position: 'absolute',
+                              right: 12,
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              pointerEvents: 'none',
+                              color: D.textSub,
+                              fontSize: '0.75rem',
+                            }}>▾</div>
+                          </div>
 
                           {/* Vehicle Filter Dropdown */}
                           <div style={{ position: 'relative', minWidth: 140 }}>
@@ -3704,7 +3780,7 @@ const ServicePage = () => {
                         </div>
 
                         {/* Right Controls: Action Buttons */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, flexWrap: 'wrap' }}>
+                        <div className="service-action-btns" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'nowrap' }}>
                           {/* View Switcher */}
                           <div style={{ display: 'flex', background: D.surfaceHi, border: `1px solid ${D.border}`, borderRadius: 10, padding: 2, gap: 2, height: '40px', alignItems: 'center', boxSizing: 'border-box' }}>
                             <button
@@ -3742,7 +3818,7 @@ const ServicePage = () => {
                               onClick={handleExportPDF}
                               style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                                padding: '10px 16px', height: '40px', borderRadius: 12,
+                                padding: '10px 14px', height: '40px', borderRadius: 12,
                                 background: 'rgba(255,255,255,0.03)', border: `1px solid ${D.border}`,
                                 color: D.textSub, fontSize: '0.8rem', fontWeight: 800,
                                 cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap',
@@ -3751,16 +3827,17 @@ const ServicePage = () => {
                               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = D.textSub }}
                             >
                               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-                              Export PDF
+                              <span className="btn-label-hide-sm">Export PDF</span>
                             </button>
                           )}
 
                           {!isDriver && (
                             <button
                               onClick={() => setDeletedDrawer(true)}
+                              title="Deleted Records"
                               style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                                padding: '10px 16px', height: '40px', borderRadius: 12,
+                                padding: '10px 14px', height: '40px', borderRadius: 12,
                                 background: 'rgba(255,255,255,0.03)', border: `1px solid ${D.border}`,
                                 color: D.textSub, fontSize: '0.8rem', fontWeight: 800,
                                 cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap',
@@ -3769,7 +3846,7 @@ const ServicePage = () => {
                               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.textSub }}
                             >
                               <Archive size={15} />
-                              Deleted Records
+                              <span className="btn-label-hide-sm">Deleted Records</span>
                             </button>
                           )}
                         </div>
