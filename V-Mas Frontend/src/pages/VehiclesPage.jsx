@@ -1002,6 +1002,32 @@ const VehiclesPage = () => {
     return matchSearch && matchFilter && matchFuel
   })
 
+  const handleExportVehiclesCSV = () => {
+    try {
+      const headers = ['Registration No', 'Make', 'Model', 'Status', 'Odometer (km)', 'Fuel Type', 'Chassis No', 'Engine No']
+      const rows = filtered.map(v => [
+        `"${v.registrationNo || ''}"`,
+        `"${v.manufacturer || ''}"`,
+        `"${v.model || ''}"`,
+        `"${v.status || ''}"`,
+        v.currentMileageKm || 0,
+        `"${v.fuelType || ''}"`,
+        `"${v.chassisNumber || ''}"`,
+        `"${v.engineNumber || ''}"`
+      ])
+      const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n')
+      const encodedUri = encodeURI(csvContent)
+      const link = document.createElement('a')
+      link.setAttribute('href', encodedUri)
+      link.setAttribute('download', `vehicles_export_${new Date().toISOString().slice(0, 10)}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (err) {
+      console.error('Error exporting vehicles CSV:', err)
+    }
+  }
+
   const targetVehicles = isDriver
     ? vehicles.filter(v => v.driverUsername && loggedInUsername && v.driverUsername.toLowerCase() === loggedInUsername.toLowerCase())
     : vehicles
@@ -1547,28 +1573,28 @@ const VehiclesPage = () => {
               </div>
               {!isDriver && (
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <button onClick={handleExportExcel} style={{
-                    position: 'relative', padding: '14px 24px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.25)',
-                    background: 'rgba(255, 255, 255, 0.08)', color: '#fff', fontSize: '0.95rem', fontWeight: 800,
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, backdropFilter: 'blur(8px)',
+                  <button onClick={handleExportVehiclesCSV} style={{
+                    position: 'relative', padding: '12px 24px', borderRadius: 999, border: 'none',
+                    background: '#ffffff', color: '#6d28d9', fontSize: '0.92rem', fontWeight: 800,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
                     transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.15)', whiteSpace: 'nowrap'
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.2)', whiteSpace: 'nowrap'
                   }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)' }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)' }}>
-                    <Download size={18} /> Export Excel
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(255,255,255,0.3)' }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}>
+                    <Download size={18} strokeWidth={2.8} /> Export Excel
                   </button>
                   {isController && (
                     <button onClick={openModal} style={{
-                      position: 'relative', padding: '14px 28px', borderRadius: 16, border: 'none',
-                      background: '#fff', color: '#1e3a8a', fontSize: '0.95rem', fontWeight: 800,
+                      position: 'relative', padding: '12px 26px', borderRadius: 999, border: 'none',
+                      background: '#ffffff', color: '#6d28d9', fontSize: '0.92rem', fontWeight: 800,
                       cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
                       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                      boxShadow: '0 8px 30px rgba(0,0,0,0.25)', whiteSpace: 'nowrap'
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.2)', whiteSpace: 'nowrap'
                     }}
-                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,255,255,0.3)' }}
-                      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}>
-                      <Plus size={20} strokeWidth={3} /> Add Vehicle
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(255,255,255,0.3)' }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}>
+                      <Plus size={19} strokeWidth={2.8} /> Add Vehicle
                     </button>
                   )}
                 </div>
