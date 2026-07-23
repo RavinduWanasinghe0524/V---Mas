@@ -265,7 +265,7 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
   const dueSoon = alertRecords.filter(r => r._alertLevel === 'DUE_SOON')
 
   return (
-    <div style={{
+    <div className="vehicle-alerts-strip" style={{
       background: D.surface,
       border: `1px solid ${overdue.length > 0 ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`,
       borderRadius: 16,
@@ -275,7 +275,7 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
       boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
     }}>
       {/* Header */}
-      <div style={{
+      <div className="vehicle-alerts-header" style={{
         padding: '16px 20px',
         borderBottom: `1px solid ${D.border}`,
         display: 'flex', alignItems: 'center', gap: 12,
@@ -298,7 +298,7 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
       </div>
 
       {/* Scroll strip of alert cards */}
-      <div style={{ display: 'flex', gap: 16, padding: '20px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
+      <div className="vehicle-alerts-scroll-row" style={{ display: 'flex', gap: 16, padding: '20px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
         {alertRecords.map(r => {
           const ac = ALERT_COLORS[r._alertLevel] || ALERT_COLORS.DUE_SOON
           const mileage = computeMileageProgress(r, r._vehicleCurrentKm)
@@ -318,6 +318,7 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
           return (
             <div
               key={r.id}
+              className="vehicle-alert-card"
               onClick={() => onViewAlert && onViewAlert(r)}
               style={{
                 flexShrink: 0,
@@ -433,9 +434,15 @@ const ServiceDueAlertStrip = ({ alertRecords, onCompleteAlert, onViewAlert, D })
 /* ── Service List Card (Old Style) ──────────────────────────────── */
 const ServiceListCard = ({ record, index, isDriver, isAdmin, isController, currentUsername, vehicleCurrentKm, isLatest, onEdit, onDelete, onView, onViewAttachment, D, handleApproveService, handleRejectService }) => {
   const [hovered, setHovered] = useState(false)
+  const { theme } = useTheme()
+  const isDark = theme === 'blue'
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
   const icon = SERVICE_TYPE_ICONS[record.serviceType] || <Wrench size={22} />
+
+  const serviceAccent = isController ? (isDark ? '#fbbf24' : '#d97706') : (isDark ? '#60a5fa' : '#2563eb')
+  const serviceBgLight = isController ? (isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.08)') : (isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.08)')
+  const serviceBorderLight = isController ? (isDark ? 'rgba(245,158,11,0.3)' : 'rgba(245,158,11,0.2)') : (isDark ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.2)')
 
   // Drivers cannot edit or delete records
   const canEdit = !isDriver
@@ -464,10 +471,10 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, isController, curre
       {/* Icon */}
       <div style={{
         width: 46, height: 46, borderRadius: 12, flexShrink: 0,
-        background: D.indigoDim,
-        border: `1px solid ${D.borderHi}`,
+        background: serviceBgLight,
+        border: `1px solid ${serviceBorderLight}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: D.indigo,
+        color: serviceAccent,
       }}>
         {icon}
       </div>
@@ -526,7 +533,7 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, isController, curre
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.9rem', color: D.blue, fontWeight: 700 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.9rem', color: serviceAccent, fontWeight: 700 }}>
             <Car size={15} /> {record.vehicleRegNumber || '—'}
           </span>
           {record.serviceDate && (
@@ -641,12 +648,12 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, isController, curre
               onClick={e => { e.stopPropagation(); onEdit(record.id) }}
               style={{
                 padding: '6px 16px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
-                background: D.indigoDim, color: D.indigo,
-                border: `1px solid ${D.borderHi}`, cursor: 'pointer',
+                background: serviceBgLight, color: serviceAccent,
+                border: `1px solid ${serviceBorderLight}`, cursor: 'pointer',
                 transition: 'all 0.15s',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = D.indigo; e.currentTarget.style.color = '#fff' }}
-              onMouseLeave={e => { e.currentTarget.style.background = D.indigoDim; e.currentTarget.style.color = D.indigo }}
+              onMouseEnter={e => { e.currentTarget.style.background = serviceAccent; e.currentTarget.style.color = '#fff' }}
+              onMouseLeave={e => { e.currentTarget.style.background = serviceBgLight; e.currentTarget.style.color = serviceAccent }}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Edit2 size={12} /> Edit</span>
             </button>
@@ -679,6 +686,20 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
   const isDark = theme === 'blue'
   const status = getStatus(record)
   const sc = STATUS_CONFIG[status]
+
+  const serviceAccent = isController ? (isDark ? '#fbbf24' : '#d97706') : (isDark ? '#60a5fa' : '#2563eb')
+  const serviceBgLight = isController ? (isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.08)') : (isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.08)')
+  const serviceBorderLight = isController ? (isDark ? 'rgba(245,158,11,0.3)' : 'rgba(245,158,11,0.2)') : (isDark ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.2)')
+
+  const btnGradient = isController
+    ? (isDark ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'linear-gradient(135deg,#d97706,#b45309)')
+    : (isDark ? 'linear-gradient(135deg,#3b82f6,#2563eb)' : 'linear-gradient(135deg,#2563eb,#1d4ed8)')
+
+  const btnHoverGradient = isController
+    ? (isDark ? 'linear-gradient(135deg,#fbbf24,#f59e0b)' : 'linear-gradient(135deg,#f59e0b,#d97706)')
+    : (isDark ? 'linear-gradient(135deg,#60a5fa,#3b82f6)' : 'linear-gradient(135deg,#3b82f6,#2563eb)')
+
+  const btnShadow = isController ? 'rgba(245,158,11,0.35)' : 'rgba(37,99,235,0.35)'
 
   // Drivers and admins cannot edit or delete records
   const canEdit = !isDriver && !isAdmin
@@ -714,7 +735,7 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
                 height: 44,
                 borderRadius: 8,
                 objectFit: 'cover',
-                border: `1px solid ${D.border}`,
+                border: `1px solid ${serviceBorderLight}`,
                 boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
                 flexShrink: 0
               }}
@@ -725,19 +746,19 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
                 width: 44,
                 height: 44,
                 borderRadius: 8,
-                background: D.indigoDim,
-                border: `1px solid ${D.border}`,
+                background: serviceBgLight,
+                border: `1px solid ${serviceBorderLight}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0
               }}
             >
-              <Car size={18} style={{ color: D.indigo }} />
+              <Car size={18} style={{ color: serviceAccent }} />
             </div>
           )}
           <div>
-            <div style={{ color: D.indigo, fontSize: '1.05rem', fontWeight: 800, marginBottom: 4 }}>
+            <div style={{ color: serviceAccent, fontSize: '1.05rem', fontWeight: 800, marginBottom: 4 }}>
               {record.serviceType?.replace(/_/g, ' ') || 'Service'}
             </div>
             <div style={{ color: D.textSub, fontSize: '0.9rem' }}>
@@ -805,7 +826,7 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
 
         {/* Date Row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)' }}>
-          <Calendar size={13} style={{ color: '#10b981', flexShrink: 0 }} />
+          <Calendar size={13} style={{ color: serviceAccent, flexShrink: 0 }} />
           <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Service Date</span>
           <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
             {record.serviceDate ? new Date(record.serviceDate).toLocaleDateString() : '—'}
@@ -813,8 +834,8 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
         </div>
 
         {/* Mileage Row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isDark ? 'rgba(124,58,237,0.07)' : 'rgba(124,58,237,0.05)' }}>
-          <Gauge size={13} style={{ color: '#7c3aed', flexShrink: 0 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)' }}>
+          <Gauge size={13} style={{ color: serviceAccent, flexShrink: 0 }} />
           <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Mileage</span>
           <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
             {record.currentMileageKm ? `${Number(record.currentMileageKm).toLocaleString()} km` : '—'}
@@ -822,8 +843,8 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
         </div>
 
         {/* Cost Row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isDark ? 'rgba(245,158,11,0.08)' : 'rgba(245,158,11,0.06)' }}>
-          <CircleDollarSign size={13} style={{ color: '#f59e0b', flexShrink: 0 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)' }}>
+          <CircleDollarSign size={13} style={{ color: serviceAccent, flexShrink: 0 }} />
           <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Cost</span>
           <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
             Rs. {Number(record.serviceCost || 0).toLocaleString()}
@@ -846,7 +867,7 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
             <button
               onClick={e => { e.stopPropagation(); handleApproveService(record.id); }}
               style={{
-                flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
+                flex: 1, padding: '10px 14px', borderRadius: 12, fontSize: '0.82rem', fontWeight: 800,
                 background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, cursor: 'pointer', transition: 'all 0.15s'
               }}
               onMouseEnter={e => { e.currentTarget.style.background = D.green; e.currentTarget.style.color = '#fff' }}
@@ -857,7 +878,7 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
             <button
               onClick={e => { e.stopPropagation(); handleRejectService(record.id); }}
               style={{
-                flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
+                flex: 1, padding: '10px 14px', borderRadius: 12, fontSize: '0.82rem', fontWeight: 800,
                 background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, cursor: 'pointer', transition: 'all 0.15s'
               }}
               onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
@@ -870,13 +891,26 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
         <button
           onClick={e => { e.stopPropagation(); onView(record) }}
           style={{
-            flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
-            background: D.indigoDim, color: D.indigo, border: `1px solid ${D.borderHi}`, cursor: 'pointer', transition: 'all 0.15s'
+            flex: 1, padding: '10px 14px', borderRadius: 12, fontSize: '0.82rem', fontWeight: 800,
+            background: btnGradient,
+            color: '#ffffff',
+            border: 'none', cursor: 'pointer', transition: 'all 0.22s ease',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            fontFamily: 'inherit', letterSpacing: '0.01em',
+            boxShadow: `0 4px 14px ${btnShadow}`,
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = D.indigo; e.currentTarget.style.color = '#fff' }}
-          onMouseLeave={e => { e.currentTarget.style.background = D.indigoDim; e.currentTarget.style.color = D.indigo }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = btnHoverGradient
+            e.currentTarget.style.transform = 'translateY(-1px)'
+            e.currentTarget.style.boxShadow = `0 6px 20px ${btnShadow}`
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = btnGradient
+            e.currentTarget.style.transform = 'translateY(0)'
+            e.currentTarget.style.boxShadow = `0 4px 14px ${btnShadow}`
+          }}
         >
-          Details
+          <Eye size={14} /> Details
         </button>
         {canDelete && (
           <button
@@ -2743,11 +2777,20 @@ const ServicePage = () => {
                           <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text }}>
                             {r.serviceType?.replace(/_/g, ' ')}
                           </h4>
-                          {r.description && r.description !== 'Initial service milestone.' && (
-                            <p style={{ margin: 0, fontSize: '0.78rem', color: D.textSub, fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                              {r.description}
-                            </p>
-                          )}
+                          <p style={{
+                            margin: 0,
+                            fontSize: '0.78rem',
+                            color: (mileage && mileage.remaining < 0) || (date && date.daysRemaining < 0) ? '#f87171' : D.textSub,
+                            fontWeight: (mileage && mileage.remaining < 0) || (date && date.daysRemaining < 0) ? 700 : 500,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 1,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}>
+                            {r.description && !/initial service milestone/i.test(r.description)
+                              ? r.description
+                              : (remainingText || (r.nextServiceMileageKm ? `Next due at ${Number(r.nextServiceMileageKm).toLocaleString()} km` : 'Service Milestone'))}
+                          </p>
                         </div>
 
                         {/* Progress bar / remaining info */}
@@ -3510,17 +3553,17 @@ const ServicePage = () => {
                     }}>
                       {/* Search, Filter, and Action Toolbar */}
                       <div style={{
-                        padding: '20px 26px',
+                        padding: '16px 20px',
                         borderBottom: `1px solid ${D.border}`,
                         display: 'flex',
                         justifyContent: 'space-between',
-                        gap: 16,
+                        gap: 12,
                         flexWrap: 'wrap',
                         alignItems: 'center',
                         background: D.surfaceHi,
                       }}>
                         {/* Left Controls: Search & Filters */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 300, flexWrap: 'wrap' }}>
+                        <div className="service-filter-row" style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 300, flexWrap: 'wrap' }}>
                           <div style={{ position: 'relative', flex: '2 1 300px', maxWidth: '400px', minWidth: 200 }}>
                             <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, opacity: 0.8 }} />
                             <input
@@ -3544,33 +3587,99 @@ const ServicePage = () => {
                             )}
                           </div>
 
-                          {/* Status pill filters */}
-                          {[
-                            { val: 'ALL', label: 'All', color: '#6366f1' },
-                            { val: 'Open', label: 'Open', color: '#3b82f6' },
-                            { val: 'In Progress', label: 'In Progress', color: '#fbbf24' },
-                            { val: 'Overdue', label: 'Overdue', color: '#ef4444' },
-                            { val: 'Completed', label: 'Done', color: '#10b981' },
-                          ].map(t => {
-                            const isSel = filter === t.val
-                            return (
-                              <button
-                                key={t.val}
-                                onClick={() => setFilter(t.val)}
-                                style={{
-                                  padding: '10px 18px', height: '40px', borderRadius: 12,
-                                  fontSize: '0.8rem', fontWeight: 800,
-                                  background: isSel ? `${t.color}1f` : 'rgba(255,255,255,0.05)',
-                                  color: isSel ? t.color : D.textSub,
-                                  border: isSel ? `1.5px solid ${t.color}50` : `1px solid ${D.border}`,
-                                  cursor: 'pointer', transition: 'all 0.15s ease',
-                                  boxShadow: isSel ? `0 4px 12px ${t.color}25` : 'none',
-                                }}
-                              >
-                                {t.label}
-                              </button>
-                            )
-                          })}
+                          {/* Status Filter Dropdown */}
+                          <div style={{ position: 'relative', minWidth: 160, flexShrink: 0 }}>
+                            {/* Colored status dot indicator */}
+                            <div style={{
+                              position: 'absolute',
+                              left: 13,
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              pointerEvents: 'none',
+                              background: filter === 'ALL'         ? '#6366f1'
+                                        : filter === 'Open'        ? '#3b82f6'
+                                        : filter === 'In Progress' ? '#fbbf24'
+                                        : filter === 'Overdue'     ? '#ef4444'
+                                        : '#10b981',
+                              boxShadow: `0 0 6px ${
+                                filter === 'ALL'         ? '#6366f1'
+                              : filter === 'Open'        ? '#3b82f6'
+                              : filter === 'In Progress' ? '#fbbf24'
+                              : filter === 'Overdue'     ? '#ef4444'
+                              : '#10b981'}60`,
+                              transition: 'background 0.2s ease, box-shadow 0.2s ease',
+                            }} />
+                            <select
+                              value={filter}
+                              onChange={e => setFilter(e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '10px 32px 10px 28px',
+                                height: '40px',
+                                background: filter !== 'ALL'
+                                  ? (filter === 'Open'        ? 'rgba(59,130,246,0.08)'
+                                   : filter === 'In Progress' ? 'rgba(251,191,36,0.08)'
+                                   : filter === 'Overdue'     ? 'rgba(239,68,68,0.08)'
+                                   : 'rgba(16,185,129,0.08)')
+                                  : 'rgba(255,255,255,0.05)',
+                                border: `1.5px solid ${
+                                  filter === 'ALL'         ? D.border
+                                : filter === 'Open'        ? 'rgba(59,130,246,0.4)'
+                                : filter === 'In Progress' ? 'rgba(251,191,36,0.4)'
+                                : filter === 'Overdue'     ? 'rgba(239,68,68,0.4)'
+                                : 'rgba(16,185,129,0.4)'}`,
+                                borderRadius: 12,
+                                color: filter === 'ALL'         ? D.textSub
+                                     : filter === 'Open'        ? '#3b82f6'
+                                     : filter === 'In Progress' ? '#d97706'
+                                     : filter === 'Overdue'     ? '#ef4444'
+                                     : '#10b981',
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                outline: 'none',
+                                cursor: 'pointer',
+                                appearance: 'none',
+                                fontFamily: 'inherit',
+                                boxSizing: 'border-box',
+                                transition: 'all 0.2s ease',
+                                boxShadow: filter !== 'ALL' ? `0 4px 12px ${
+                                  filter === 'Open'        ? 'rgba(59,130,246,0.15)'
+                                : filter === 'In Progress' ? 'rgba(251,191,36,0.15)'
+                                : filter === 'Overdue'     ? 'rgba(239,68,68,0.15)'
+                                : 'rgba(16,185,129,0.15)'}` : 'none',
+                              }}
+                              onFocus={e => e.target.style.boxShadow = `0 0 0 3px ${
+                                filter === 'Open'        ? 'rgba(59,130,246,0.12)'
+                              : filter === 'In Progress' ? 'rgba(251,191,36,0.12)'
+                              : filter === 'Overdue'     ? 'rgba(239,68,68,0.12)'
+                              : filter === 'Completed'   ? 'rgba(16,185,129,0.12)'
+                              : 'rgba(99,102,241,0.08)'}`}
+                              onBlur={e => e.target.style.boxShadow = filter !== 'ALL' ? `0 4px 12px ${
+                                filter === 'Open'        ? 'rgba(59,130,246,0.15)'
+                              : filter === 'In Progress' ? 'rgba(251,191,36,0.15)'
+                              : filter === 'Overdue'     ? 'rgba(239,68,68,0.15)'
+                              : 'rgba(16,185,129,0.15)'}` : 'none'}
+                            >
+                              <option value="ALL">All Status</option>
+                              <option value="Open">Open</option>
+                              <option value="In Progress">In Progress</option>
+                              <option value="Overdue">Overdue</option>
+                              <option value="Completed">Done</option>
+                            </select>
+                            {/* Chevron icon */}
+                            <div style={{
+                              position: 'absolute',
+                              right: 12,
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              pointerEvents: 'none',
+                              color: D.textSub,
+                              fontSize: '0.75rem',
+                            }}>▾</div>
+                          </div>
 
                           {/* Vehicle Filter Dropdown */}
                           <div style={{ position: 'relative', minWidth: 140 }}>
@@ -3671,7 +3780,7 @@ const ServicePage = () => {
                         </div>
 
                         {/* Right Controls: Action Buttons */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, flexWrap: 'wrap' }}>
+                        <div className="service-action-btns" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'nowrap' }}>
                           {/* View Switcher */}
                           <div style={{ display: 'flex', background: D.surfaceHi, border: `1px solid ${D.border}`, borderRadius: 10, padding: 2, gap: 2, height: '40px', alignItems: 'center', boxSizing: 'border-box' }}>
                             <button
@@ -3709,7 +3818,7 @@ const ServicePage = () => {
                               onClick={handleExportPDF}
                               style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                                padding: '10px 16px', height: '40px', borderRadius: 12,
+                                padding: '10px 14px', height: '40px', borderRadius: 12,
                                 background: 'rgba(255,255,255,0.03)', border: `1px solid ${D.border}`,
                                 color: D.textSub, fontSize: '0.8rem', fontWeight: 800,
                                 cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap',
@@ -3718,16 +3827,17 @@ const ServicePage = () => {
                               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = D.textSub }}
                             >
                               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-                              Export PDF
+                              <span className="btn-label-hide-sm">Export PDF</span>
                             </button>
                           )}
 
                           {!isDriver && (
                             <button
                               onClick={() => setDeletedDrawer(true)}
+                              title="Deleted Records"
                               style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                                padding: '10px 16px', height: '40px', borderRadius: 12,
+                                padding: '10px 14px', height: '40px', borderRadius: 12,
                                 background: 'rgba(255,255,255,0.03)', border: `1px solid ${D.border}`,
                                 color: D.textSub, fontSize: '0.8rem', fontWeight: 800,
                                 cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap',
@@ -3736,7 +3846,7 @@ const ServicePage = () => {
                               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.textSub }}
                             >
                               <Archive size={15} />
-                              Deleted Records
+                              <span className="btn-label-hide-sm">Deleted Records</span>
                             </button>
                           )}
                         </div>

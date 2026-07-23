@@ -17,7 +17,7 @@ import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import api, { userAPI } from '../services/api'
 import { getDriverMetrics } from '../utils/driverUtils'
-import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car, BarChart2, Star, Activity, CheckCircle, RotateCcw, Archive, Trash2, User, FileText, Upload, Search, UserCog, Mail, ClipboardList, Eye, Edit2 } from 'lucide-react'
+import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car, BarChart2, Star, Activity, CheckCircle, RotateCcw, Archive, Trash2, User, FileText, Upload, Search, UserCog, Mail, ClipboardList, Eye, Edit2, ChevronDown, ChevronUp } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
@@ -72,8 +72,33 @@ const UsersPage = () => {
   }
   const { isAdmin, isController } = useAuth()
 
+  const isOrangeProfile = isController && !isAdmin
+
+  const roleTheme = isOrangeProfile ? {
+    primary: isDark ? '#fbbf24' : '#d97706',
+    bgLight: isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.08)',
+    borderLight: isDark ? 'rgba(245,158,11,0.3)' : 'rgba(245,158,11,0.2)',
+    btnBorder: isDark ? 'rgba(245,158,11,0.5)' : '#fde68a',
+    btnBg: isDark ? 'rgba(245,158,11,0.12)' : '#fffbeb',
+    btnBgHover: isDark ? 'rgba(245,158,11,0.22)' : '#fef3c7',
+    editBg: isDark ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'linear-gradient(135deg,#d97706,#b45309)',
+    editHover: isDark ? 'linear-gradient(135deg,#fbbf24,#f59e0b)' : 'linear-gradient(135deg,#f59e0b,#d97706)',
+    shadow: 'rgba(245,158,11,0.35)',
+  } : {
+    primary: isDark ? '#a78bfa' : '#7c3aed',
+    bgLight: isDark ? 'rgba(124,58,237,0.15)' : 'rgba(124,58,237,0.08)',
+    borderLight: isDark ? 'rgba(124,58,237,0.3)' : 'rgba(124,58,237,0.2)',
+    btnBorder: isDark ? 'rgba(124,58,237,0.5)' : '#ddd6fe',
+    btnBg: isDark ? 'rgba(124,58,237,0.12)' : '#f5f3ff',
+    btnBgHover: isDark ? 'rgba(124,58,237,0.22)' : '#ede9fe',
+    editBg: isDark ? 'linear-gradient(135deg,#8b5cf6,#7c3aed)' : 'linear-gradient(135deg,#7c3aed,#6d28d9)',
+    editHover: isDark ? 'linear-gradient(135deg,#a78bfa,#8b5cf6)' : 'linear-gradient(135deg,#8b5cf6,#7c3aed)',
+    shadow: 'rgba(124,58,237,0.35)',
+  }
+
   const [users, setUsers] = useState([])
   const [pendingUsers, setPendingUsers] = useState([])
+  const [showAllPending, setShowAllPending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [pendingLoad, setPendingLoad] = useState(true)
   const [error, setError] = useState('')
@@ -476,28 +501,22 @@ const UsersPage = () => {
     const userStatus = (u.accountStatus || 'ACTIVE').toUpperCase()
 
     const statusBadge = {
-      ACTIVE:    { label: 'Active',    bg: 'linear-gradient(135deg,#10b981,#059669)', shadow: 'rgba(16,185,129,0.45)' },
-      PENDING:   { label: 'Pending',   bg: 'linear-gradient(135deg,#fbbf24,#d97706)', shadow: 'rgba(251,191,36,0.45)' },
-      INACTIVE:  { label: 'Inactive',  bg: 'linear-gradient(135deg,#ef4444,#b91c1c)', shadow: 'rgba(239,68,68,0.45)' },
+      ACTIVE: { label: 'Active', bg: 'linear-gradient(135deg,#10b981,#059669)', shadow: 'rgba(16,185,129,0.45)' },
+      PENDING: { label: 'Pending', bg: 'linear-gradient(135deg,#fbbf24,#d97706)', shadow: 'rgba(251,191,36,0.45)' },
+      INACTIVE: { label: 'Inactive', bg: 'linear-gradient(135deg,#ef4444,#b91c1c)', shadow: 'rgba(239,68,68,0.45)' },
       SUSPENDED: { label: 'Suspended', bg: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', shadow: 'rgba(139,92,246,0.45)' },
     }
     const badge = statusBadge[userStatus] || statusBadge.ACTIVE
 
     const hoverGlow = {
-      ACTIVE:    'rgba(16,185,129,0.2)',
-      PENDING:   'rgba(251,191,36,0.2)',
-      INACTIVE:  'rgba(239,68,68,0.18)',
+      ACTIVE: 'rgba(16,185,129,0.2)',
+      PENDING: 'rgba(251,191,36,0.2)',
+      INACTIVE: 'rgba(239,68,68,0.18)',
       SUSPENDED: 'rgba(139,92,246,0.2)',
     }[userStatus] || 'rgba(99,102,241,0.2)'
 
-    const roleBg = {
-      ADMIN:      { bg: isDark ? 'rgba(59,130,246,0.12)' : 'rgba(59,130,246,0.08)', border: isDark ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.2)', color: '#3b82f6' },
-      CONTROLLER: { bg: isDark ? 'rgba(139,92,246,0.12)' : 'rgba(139,92,246,0.08)', border: isDark ? 'rgba(139,92,246,0.3)' : 'rgba(139,92,246,0.2)', color: '#8b5cf6' },
-      DRIVER:     { bg: isDark ? 'rgba(16,185,129,0.1)' : 'rgba(16,185,129,0.07)', border: isDark ? 'rgba(16,185,129,0.28)' : 'rgba(16,185,129,0.2)', color: '#10b981' },
-    }[u.role] || { bg: isDark ? 'rgba(99,102,241,0.1)' : 'rgba(99,102,241,0.07)', border: isDark ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.2)', color: '#6366f1' }
-
     const friendlyRole = u.role === 'ADMIN' ? 'Fleet Administrator' : u.role === 'CONTROLLER' ? 'Fleet Controller' : 'Fleet Driver'
-    const accessLevel  = u.role === 'ADMIN' ? 'Full Access' : u.role === 'CONTROLLER' ? 'High Access' : 'Standard'
+    const accessLevel = u.role === 'ADMIN' ? 'Full Access' : u.role === 'CONTROLLER' ? 'High Access' : 'Standard'
 
     return (
       <div key={u.id} style={{
@@ -516,7 +535,7 @@ const UsersPage = () => {
         onMouseEnter={e => {
           e.currentTarget.style.transform = 'translateY(-8px)'
           e.currentTarget.style.boxShadow = `0 20px 48px ${hoverGlow}, 0 6px 20px rgba(0,0,0,0.15)`
-          e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'
+          e.currentTarget.style.borderColor = roleTheme.borderLight
         }}
         onMouseLeave={e => {
           e.currentTarget.style.transform = 'translateY(0)'
@@ -574,9 +593,10 @@ const UsersPage = () => {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             <span style={{
-              background: roleBg.bg,
+              background: roleTheme.bgLight,
+              border: `1px solid ${roleTheme.borderLight}`,
               borderRadius: 6, padding: '2px 9px',
-              fontSize: '0.72rem', fontWeight: 800, color: roleBg.color, letterSpacing: '0.03em',
+              fontSize: '0.72rem', fontWeight: 800, color: roleTheme.primary, letterSpacing: '0.03em',
             }}>
               {friendlyRole}
             </span>
@@ -602,7 +622,7 @@ const UsersPage = () => {
             padding: '8px 12px', borderRadius: 12,
             background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
           }}>
-            <Mail size={13} style={{ color: '#f59e0b', flexShrink: 0 }} />
+            <Mail size={13} style={{ color: roleTheme.primary, flexShrink: 0 }} />
             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Email</span>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }} title={u.email}>
               {u.email || 'N/A'}
@@ -615,7 +635,7 @@ const UsersPage = () => {
             padding: '8px 12px', borderRadius: 12,
             background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
           }}>
-            <Phone size={13} style={{ color: '#10b981', flexShrink: 0 }} />
+            <Phone size={13} style={{ color: roleTheme.primary, flexShrink: 0 }} />
             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Phone</span>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
               {u.phoneNumber || metrics.phone || 'N/A'}
@@ -629,7 +649,7 @@ const UsersPage = () => {
               padding: '8px 12px', borderRadius: 12,
               background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
             }}>
-              <ClipboardList size={13} style={{ color: '#ec4899', flexShrink: 0 }} />
+              <ClipboardList size={13} style={{ color: roleTheme.primary, flexShrink: 0 }} />
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>License</span>
               <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
                 {u.licenseNumber || metrics.license || 'N/A'}
@@ -641,7 +661,7 @@ const UsersPage = () => {
               padding: '8px 12px', borderRadius: 12,
               background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)',
             }}>
-              <IdCard size={13} style={{ color: '#ec4899', flexShrink: 0 }} />
+              <IdCard size={13} style={{ color: roleTheme.primary, flexShrink: 0 }} />
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>NIC</span>
               <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
                 {u.nic || 'N/A'}
@@ -675,22 +695,22 @@ const UsersPage = () => {
                 title="View Profile"
                 style={{
                   flex: 1, padding: '11px 14px', borderRadius: 14,
-                  border: `2px solid ${isDark ? 'rgba(99,102,241,0.45)' : 'rgba(99,102,241,0.35)'}`,
-                  background: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)',
-                  color: isDark ? '#818cf8' : '#4f46e5',
+                  border: `2px solid ${roleTheme.btnBorder}`,
+                  background: roleTheme.btnBg,
+                  color: roleTheme.primary,
                   cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   transition: 'all 0.22s', fontFamily: 'inherit', letterSpacing: '0.01em',
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.background = isDark ? 'rgba(99,102,241,0.18)' : 'rgba(99,102,241,0.13)'
-                  e.currentTarget.style.borderColor = '#818cf8'
+                  e.currentTarget.style.background = roleTheme.btnBgHover
+                  e.currentTarget.style.borderColor = roleTheme.primary
                   e.currentTarget.style.transform = 'translateY(-1px)'
-                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.25)'
+                  e.currentTarget.style.boxShadow = `0 4px 14px ${roleTheme.shadow}`
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.background = isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)'
-                  e.currentTarget.style.borderColor = isDark ? 'rgba(99,102,241,0.45)' : 'rgba(99,102,241,0.35)'
+                  e.currentTarget.style.background = roleTheme.btnBg
+                  e.currentTarget.style.borderColor = roleTheme.btnBorder
                   e.currentTarget.style.transform = 'translateY(0)'
                   e.currentTarget.style.boxShadow = 'none'
                 }}
@@ -705,22 +725,22 @@ const UsersPage = () => {
                   title="Edit User"
                   style={{
                     flex: 1, padding: '11px 14px', borderRadius: 14, border: 'none',
-                    background: isDark ? 'linear-gradient(135deg,#3730a3,#1e1b4b)' : 'linear-gradient(135deg,#312e81,#1e1b4b)',
-                    color: '#e0e7ff',
+                    background: roleTheme.editBg,
+                    color: '#fff',
                     cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     transition: 'all 0.22s', fontFamily: 'inherit', letterSpacing: '0.01em',
-                    boxShadow: '0 4px 14px rgba(49,46,129,0.35)',
+                    boxShadow: `0 4px 14px ${roleTheme.shadow}`,
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.background = 'linear-gradient(135deg,#4338ca,#312e81)'
+                    e.currentTarget.style.background = roleTheme.editHover
                     e.currentTarget.style.transform = 'translateY(-1px)'
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(67,56,202,0.45)'
+                    e.currentTarget.style.boxShadow = `0 6px 20px ${roleTheme.shadow}`
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.background = isDark ? 'linear-gradient(135deg,#3730a3,#1e1b4b)' : 'linear-gradient(135deg,#312e81,#1e1b4b)'
+                    e.currentTarget.style.background = roleTheme.editBg
                     e.currentTarget.style.transform = 'translateY(0)'
-                    e.currentTarget.style.boxShadow = '0 4px 14px rgba(49,46,129,0.35)'
+                    e.currentTarget.style.boxShadow = `0 4px 14px ${roleTheme.shadow}`
                   }}
                 >
                   <Edit2 size={14} /> Edit
@@ -949,39 +969,82 @@ const UsersPage = () => {
                     </div>
                     <button onClick={loadPending} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 8, borderRadius: 8, transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}><RefreshCw size={18} /></button>
                   </div>
-                  <div style={{ padding: '32px' }}>
+                  <div style={{ padding: '24px 32px 28px' }}>
                     {pendingLoad ? (
                       <div style={{ textAlign: 'center', color: D.textSub, padding: 20 }}>Loading...</div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
-                        {pendingUsers.map((u, i) => (
-                          <div key={u.id} style={{
-                            background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', gap: 20,
-                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                          }}
-                            onMouseEnter={e => { e.currentTarget.style.borderColor = D.gold + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                              <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`} alt={u.userName} style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${D.border}` }} onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`; }} />
-                              <div>
-                                <p style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.05rem' }}>{u.userName}</p>
-                                <p style={{ margin: '2px 0 8px', fontSize: '0.8rem', color: D.textSub }}>{u.email}</p>
-                                <RoleBadge role={u.role} D={D} />
+                      <>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+                          {(showAllPending ? pendingUsers : pendingUsers.slice(0, 1)).map((u, i) => (
+                            <div key={u.id} style={{
+                              background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', gap: 20,
+                              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                            }}
+                              onMouseEnter={e => { e.currentTarget.style.borderColor = D.gold + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}
+                              onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`} alt={u.userName} style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${D.border}` }} onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`; }} />
+                                <div>
+                                  <p style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.05rem' }}>{u.userName}</p>
+                                  <p style={{ margin: '2px 0 8px', fontSize: '0.8rem', color: D.textSub }}>{u.email}</p>
+                                  <RoleBadge role={u.role} D={D} />
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', gap: 12 }}>
+                                <button onClick={() => handleApprove(u.id, u.userName)} style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: D.greenDim, color: D.green, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = D.green; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = D.greenDim; e.currentTarget.style.color = D.green }}>
+                                  <Check size={18} /> Approve
+                                </button>
+                                <button onClick={() => handleReject(u.id, u.userName)} style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: D.redDim, color: D.red, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}>
+                                  <X size={18} /> Reject
+                                </button>
                               </div>
                             </div>
-                            <div style={{ display: 'flex', gap: 12 }}>
-                              <button onClick={() => handleApprove(u.id, u.userName)} style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: D.greenDim, color: D.green, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}
-                                onMouseEnter={e => { e.currentTarget.style.background = D.green; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = D.greenDim; e.currentTarget.style.color = D.green }}>
-                                <Check size={18} /> Approve
-                              </button>
-                              <button onClick={() => handleReject(u.id, u.userName)} style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: D.redDim, color: D.red, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}
-                                onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}>
-                                <X size={18} /> Reject
-                              </button>
-                            </div>
+                          ))}
+                        </div>
+
+                        {pendingUsers.length > 1 && (
+                          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
+                            <button
+                              onClick={() => setShowAllPending(!showAllPending)}
+                              style={{
+                                padding: '10px 24px',
+                                borderRadius: 12,
+                                border: `1.5px solid ${showAllPending ? D.border : D.gold + '60'}`,
+                                background: showAllPending ? 'transparent' : D.goldDim,
+                                color: showAllPending ? D.textSub : D.gold,
+                                fontSize: '0.84rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                transition: 'all 0.2s ease',
+                                boxShadow: showAllPending ? 'none' : `0 4px 14px ${D.goldDim}`
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = showAllPending ? D.surfaceHi : D.gold;
+                                e.currentTarget.style.color = showAllPending ? D.text : '#000';
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.background = showAllPending ? 'transparent' : D.goldDim;
+                                e.currentTarget.style.color = showAllPending ? D.textSub : D.gold;
+                              }}
+                            >
+                              {showAllPending ? (
+                                <>
+                                  <ChevronUp size={16} /> Show Less
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown size={16} /> See More ({pendingUsers.length - 1} More Pending {pendingUsers.length - 1 === 1 ? 'Account' : 'Accounts'})
+                                </>
+                              )}
+                            </button>
                           </div>
-                        ))}
-                      </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -994,7 +1057,7 @@ const UsersPage = () => {
                 {/* Search, Filter, and Action Toolbar */}
                 <div style={{ padding: '20px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'center', background: D.surface }}>
                   {/* Left Controls: Search & Filters */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 300, flexWrap: 'wrap' }}>
+                  <div className="users-filter-row" style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 300, flexWrap: 'wrap' }}>
                     <div style={{ position: 'relative', flex: '2 1 350px', maxWidth: '500px', minWidth: 220 }}>
                       <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, pointerEvents: 'none' }} />
                       <input
@@ -1010,22 +1073,68 @@ const UsersPage = () => {
                       />
                     </div>
 
-                    {['ALL', 'ACTIVE', 'PENDING', 'INACTIVE', 'SUSPENDED'].map(s => (
-                      <button
-                        key={s}
-                        onClick={() => setStatusFilter(s)}
+                    {/* User Status Filter Dropdown */}
+                    <div style={{ position: 'relative', minWidth: 165, flexShrink: 0 }}>
+                      {/* Colored status dot */}
+                      <div style={{
+                        position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)',
+                        width: 8, height: 8, borderRadius: '50%', pointerEvents: 'none',
+                        background: statusFilter === 'ALL'       ? '#6366f1'
+                                  : statusFilter === 'ACTIVE'    ? '#10b981'
+                                  : statusFilter === 'PENDING'   ? '#f59e0b'
+                                  : statusFilter === 'INACTIVE'  ? '#ef4444'
+                                  :                                '#94a3b8',
+                        boxShadow: `0 0 6px ${
+                          statusFilter === 'ALL'       ? '#6366f180'
+                        : statusFilter === 'ACTIVE'    ? '#10b98180'
+                        : statusFilter === 'PENDING'   ? '#f59e0b80'
+                        : statusFilter === 'INACTIVE'  ? '#ef444480'
+                        :                                '#94a3b880'}`,
+                        transition: 'background 0.2s ease, box-shadow 0.2s ease',
+                      }} />
+                      <select
+                        value={statusFilter}
+                        onChange={e => setStatusFilter(e.target.value)}
                         style={{
-                          padding: '10px 18px', height: '40px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800,
-                          border: statusFilter === s ? 'none' : `1px solid ${D.border}`,
-                          background: statusFilter === s ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'rgba(255,255,255,0.05)',
-                          color: statusFilter === s ? '#fff' : D.textSub,
-                          cursor: 'pointer', transition: 'all 0.15s ease',
-                          boxShadow: statusFilter === s ? '0 4px 12px rgba(37, 99, 235, 0.3)' : 'none',
+                          width: '100%', padding: '10px 32px 10px 28px', height: '40px',
+                          background: statusFilter !== 'ALL'
+                            ? (statusFilter === 'ACTIVE'    ? 'rgba(16,185,129,0.08)'
+                             : statusFilter === 'PENDING'   ? 'rgba(245,158,11,0.08)'
+                             : statusFilter === 'INACTIVE'  ? 'rgba(239,68,68,0.08)'
+                             : 'rgba(148,163,184,0.08)')
+                            : 'rgba(255,255,255,0.05)',
+                          border: `1.5px solid ${
+                            statusFilter === 'ALL'       ? D.border
+                          : statusFilter === 'ACTIVE'    ? 'rgba(16,185,129,0.4)'
+                          : statusFilter === 'PENDING'   ? 'rgba(245,158,11,0.4)'
+                          : statusFilter === 'INACTIVE'  ? 'rgba(239,68,68,0.4)'
+                          : 'rgba(148,163,184,0.4)'}`,
+                          borderRadius: 12,
+                          color: statusFilter === 'ALL'       ? D.textSub
+                               : statusFilter === 'ACTIVE'    ? '#10b981'
+                               : statusFilter === 'PENDING'   ? '#d97706'
+                               : statusFilter === 'INACTIVE'  ? '#ef4444'
+                               : '#94a3b8',
+                          fontSize: '0.8rem', fontWeight: 700, outline: 'none',
+                          cursor: 'pointer', appearance: 'none', fontFamily: 'inherit',
+                          boxSizing: 'border-box', transition: 'all 0.2s ease',
+                          boxShadow: statusFilter !== 'ALL' ? `0 4px 12px ${
+                            statusFilter === 'ACTIVE'    ? 'rgba(16,185,129,0.15)'
+                          : statusFilter === 'PENDING'   ? 'rgba(245,158,11,0.15)'
+                          : statusFilter === 'INACTIVE'  ? 'rgba(239,68,68,0.15)'
+                          : 'rgba(148,163,184,0.1)'}` : 'none',
                         }}
+                        onFocus={e => e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'}
+                        onBlur={e => e.target.style.boxShadow = statusFilter !== 'ALL' ? '0 4px 12px rgba(0,0,0,0.1)' : 'none'}
                       >
-                        {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
-                      </button>
-                    ))}
+                        <option value="ALL">All Status</option>
+                        <option value="ACTIVE">Active</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="INACTIVE">Inactive</option>
+                        <option value="SUSPENDED">Suspended</option>
+                      </select>
+                      <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub, fontSize: '0.75rem' }}>▾</div>
+                    </div>
 
                     <select
                       value={roleFilter}
@@ -1055,28 +1164,31 @@ const UsersPage = () => {
                         onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
                         onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
                       >
-                        <RotateCcw size={14} /> Clear Filters
+                        <RotateCcw size={14} /> Clear
                       </button>
                     )}
                   </div>
 
                   {/* Right Controls: Action Buttons */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, flexWrap: 'wrap' }}>
+                  <div className="service-action-btns" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'nowrap' }}>
                     <button onClick={handleExportCSV} style={{
-                      padding: '10px 16px', height: '40px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.03)', color: D.textSub, fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s'
+                      padding: '10px 14px', height: '40px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.03)', color: D.textSub, fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', whiteSpace: 'nowrap'
                     }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = D.text }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = D.textSub }}>
-                      Export CSV
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      <span className="btn-label-hide-sm">Export CSV</span>
                     </button>
                     <button onClick={handleExportPDF} style={{
-                      padding: '10px 16px', height: '40px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.03)', color: D.textSub, fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s'
+                      padding: '10px 14px', height: '40px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.03)', color: D.textSub, fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', whiteSpace: 'nowrap'
                     }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = D.text }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = D.textSub }}>
-                      Export PDF
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      <span className="btn-label-hide-sm">Export PDF</span>
                     </button>
                     <button
                       onClick={() => setDeletedDrawer(true)}
+                      title="Deleted Users"
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '10px 16px', height: '40px', borderRadius: 12,
+                        padding: '10px 14px', height: '40px', borderRadius: 12,
                         background: 'rgba(255,255,255,0.03)', border: `1px solid ${D.border}`,
                         color: D.textSub, fontSize: '0.8rem', fontWeight: 800,
                         cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
@@ -1085,7 +1197,7 @@ const UsersPage = () => {
                       onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = D.border; e.currentTarget.style.color = D.textSub }}
                     >
                       <Archive size={14} />
-                      Deleted Users
+                      <span className="btn-label-hide-sm">Deleted Users</span>
                     </button>
                     <button onClick={loadUsers} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 8, borderRadius: 8, transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'none'} title="Refresh users list">
                       <RefreshCw size={18} />
@@ -1165,12 +1277,17 @@ const UsersPage = () => {
               overflow: 'hidden'
             }} onClick={e => e.stopPropagation()}>
               {/* Header */}
-              <div style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)', padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#fff' }}>
+              <div style={{
+                background: isOrangeProfile
+                  ? 'linear-gradient(135deg, #b45309 0%, #d97706 100%)'
+                  : 'linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%)',
+                padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#fff'
+              }}>
                 <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
                   {u.profilePicture ? (
-                    <img src={u.profilePicture} alt={u.userName} style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.2)', flexShrink: 0 }} onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`; }} />
+                    <img src={u.profilePicture} alt={u.userName} style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.2)', flexShrink: 0 }} onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=${isOrangeProfile ? 'd97706' : '7c3aed'}&color=fff&bold=true`; }} />
                   ) : (
-                    <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 800, border: '2px solid rgba(255,255,255,0.2)', flexShrink: 0 }}>
+                    <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 800, border: '2px solid rgba(255,255,255,0.25)', flexShrink: 0 }}>
                       {initials}
                     </div>
                   )}
@@ -1178,12 +1295,12 @@ const UsersPage = () => {
                     <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.25rem', color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                       {u.userName}
                     </h3>
-                    <p style={{ margin: '4px 0 0', color: '#93c5fd', fontSize: '0.85rem', fontWeight: 600 }}>
+                    <p style={{ margin: '4px 0 0', color: isOrangeProfile ? '#fef3c7' : '#e9d5ff', fontSize: '0.85rem', fontWeight: 600 }}>
                       {u.email}
                     </p>
                   </div>
                 </div>
-                <button onClick={closeProfile} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, padding: 8, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}><X size={20} /></button>
+                <button onClick={closeProfile} style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 10, padding: 8, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.22)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}><X size={20} /></button>
               </div>
 
               {/* Status and Role badges row */}
@@ -1305,7 +1422,7 @@ const UsersPage = () => {
                               }
                             }}
                             style={{
-                              background: 'none', border: 'none', color: D.blue,
+                              background: 'none', border: 'none', color: roleTheme.primary,
                               fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer',
                               display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'underline', padding: 0
                             }}
@@ -1323,25 +1440,25 @@ const UsersPage = () => {
               <div style={{ borderTop: `1px solid ${D.border}`, padding: '18px 32px', background: D.surfaceHi, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
                 {u.accountStatus === 'PENDING' ? (
                   <>
-                    <button onClick={() => { closeProfile(); handleApprove(u.id, u.userName); }} style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: D.green, color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.green}30` }}
+                    <button onClick={() => { closeProfile(); handleApprove(u.id, u.userName); }} style={{ padding: '10px 20px', borderRadius: 9999, border: 'none', background: D.green, color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.green}30` }}
                       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
                       <Check size={16} /> Approve
                     </button>
-                    <button onClick={() => { closeProfile(); handleReject(u.id, u.userName); }} style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: D.red, color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.red}30` }}
+                    <button onClick={() => { closeProfile(); handleReject(u.id, u.userName); }} style={{ padding: '10px 20px', borderRadius: 9999, border: 'none', background: D.red, color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s', boxShadow: `0 4px 12px ${D.red}30` }}
                       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
                       <X size={16} /> Reject
                     </button>
                   </>
                 ) : (
                   (!isController || u.role !== 'ADMIN') && (
-                    <button onClick={() => { closeProfile(); handleEdit(u); }} style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(37,99,235,0.2)' }}
-                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                    <button onClick={() => { closeProfile(); handleEdit(u); }} style={{ padding: '10px 20px', borderRadius: 9999, border: 'none', background: roleTheme.editBg, color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', boxShadow: `0 4px 12px ${roleTheme.shadow}` }}
+                      onMouseEnter={e => { e.currentTarget.style.background = roleTheme.editHover; e.currentTarget.style.transform = 'translateY(-1px)' }} onMouseLeave={e => { e.currentTarget.style.background = roleTheme.editBg; e.currentTarget.style.transform = 'translateY(0)' }}>
                       Edit Details
                     </button>
                   )
                 )}
-                <button onClick={closeProfile} style={{ padding: '10px 20px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'rgba(255,255,255,0.05)', color: D.text, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>
+                <button onClick={closeProfile} style={{ padding: '10px 20px', borderRadius: 9999, border: `1.5px solid ${roleTheme.btnBorder}`, background: roleTheme.btnBg, color: roleTheme.primary, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = roleTheme.primary; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = roleTheme.btnBg; e.currentTarget.style.color = roleTheme.primary }}>
                   Close
                 </button>
               </div>

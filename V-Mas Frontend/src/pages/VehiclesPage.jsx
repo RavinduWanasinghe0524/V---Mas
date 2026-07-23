@@ -1056,7 +1056,7 @@ const VehiclesPage = () => {
   const sorted = [...filtered].sort((a, b) => {
     const alertA = vehicleAlerts[a.registrationNo]
     const alertB = vehicleAlerts[b.registrationNo]
-    
+
     const today = new Date()
     const insExpiryA = a.insuranceExpiryDate ? new Date(a.insuranceExpiryDate) : null
     const licExpiryA = a.licenseExpiryDate ? new Date(a.licenseExpiryDate) : null
@@ -1078,17 +1078,17 @@ const VehiclesPage = () => {
       if (scoreA !== scoreB) return scoreB - scoreA
       return (a.registrationNo || '').localeCompare(b.registrationNo || '')
     }
-    
+
     if (sortBy === 'REG_ASC') {
       return (a.registrationNo || '').localeCompare(b.registrationNo || '')
     }
-    
+
     if (sortBy === 'MAKE_ASC') {
       const nameA = `${a.manufacturer || ''} ${a.model || ''}`
       const nameB = `${b.manufacturer || ''} ${b.model || ''}`
       return nameA.localeCompare(nameB)
     }
-    
+
     if (sortBy === 'MILEAGE_ASC') {
       return (a.currentMileageKm || 0) - (b.currentMileageKm || 0)
     }
@@ -1248,17 +1248,30 @@ const VehiclesPage = () => {
     const isLicExpired = licDiff !== null && licDiff < 0
     const hasServiceAlert = ac && ac.level !== 'OK'
     const statusBadge = {
-      ACTIVE:    { label: 'Active',     bg: 'linear-gradient(135deg,#10b981,#059669)', shadow: 'rgba(16,185,129,0.45)' },
-      AVAILABLE: { label: 'Available',  bg: 'linear-gradient(135deg,#3b82f6,#2563eb)', shadow: 'rgba(59,130,246,0.45)' },
-      SERVICE:   { label: 'In Service', bg: 'linear-gradient(135deg,#f59e0b,#d97706)', shadow: 'rgba(245,158,11,0.45)' },
-      INACTIVE:  { label: 'Inactive',   bg: 'linear-gradient(135deg,#ef4444,#b91c1c)', shadow: 'rgba(239,68,68,0.45)' },
+      ACTIVE: { label: 'Active', bg: 'linear-gradient(135deg,#10b981,#059669)', shadow: 'rgba(16,185,129,0.45)' },
+      AVAILABLE: { label: 'Available', bg: 'linear-gradient(135deg,#3b82f6,#2563eb)', shadow: 'rgba(59,130,246,0.45)' },
+      SERVICE: { label: 'In Service', bg: 'linear-gradient(135deg,#f59e0b,#d97706)', shadow: 'rgba(245,158,11,0.45)' },
+      INACTIVE: { label: 'Inactive', bg: 'linear-gradient(135deg,#ef4444,#b91c1c)', shadow: 'rgba(239,68,68,0.45)' },
     }
     const badge = statusBadge[v.status] || { label: v.status || 'Unknown', bg: `linear-gradient(135deg,${D.purple},${D.indigo})`, shadow: 'rgba(124,58,237,0.45)' }
+    const isOrangeTheme = isController
+    const primaryAccent = isOrangeTheme ? (isDark ? '#fbbf24' : '#d97706') : (isDark ? '#818cf8' : '#4f46e5')
+    const primaryBgLight = isOrangeTheme ? (isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.08)') : (isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)')
+    const primaryBorderLight = isOrangeTheme ? (isDark ? 'rgba(245,158,11,0.3)' : 'rgba(245,158,11,0.2)') : (isDark ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.2)')
+    const primaryRowBg = isOrangeTheme ? (isDark ? 'rgba(245,158,11,0.08)' : 'rgba(245,158,11,0.05)') : (isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.05)')
+    const primaryBtnBorder = isOrangeTheme ? (isDark ? 'rgba(245,158,11,0.45)' : 'rgba(245,158,11,0.35)') : (isDark ? 'rgba(99,102,241,0.45)' : 'rgba(99,102,241,0.35)')
+    const primaryBtnBg = isOrangeTheme ? (isDark ? 'rgba(245,158,11,0.08)' : 'rgba(245,158,11,0.06)') : (isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)')
+    const primaryBtnBgHover = isOrangeTheme ? (isDark ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.13)') : (isDark ? 'rgba(99,102,241,0.18)' : 'rgba(99,102,241,0.13)')
+    const primaryBtnBorderHover = isOrangeTheme ? '#fbbf24' : '#818cf8'
+    const editBtnBg = isOrangeTheme ? (isDark ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'linear-gradient(135deg,#d97706,#b45309)') : (isDark ? 'linear-gradient(135deg,#6366f1,#4f46e5)' : 'linear-gradient(135deg,#4f46e5,#3730a3)')
+    const editBtnHover = isOrangeTheme ? (isDark ? 'linear-gradient(135deg,#fbbf24,#f59e0b)' : 'linear-gradient(135deg,#f59e0b,#d97706)') : (isDark ? 'linear-gradient(135deg,#818cf8,#6366f1)' : 'linear-gradient(135deg,#6366f1,#4f46e5)')
+    const primaryShadow = isOrangeTheme ? 'rgba(245,158,11,0.35)' : 'rgba(99,102,241,0.35)'
+
     const cardBorderColor = (isInsExpired || isLicExpired) ? 'rgba(239,68,68,0.45)' : (isInsAlert || isLicAlert) ? 'rgba(245,158,11,0.4)' : D.border
-    const hoverGlow = { ACTIVE: 'rgba(16,185,129,0.22)', AVAILABLE: 'rgba(59,130,246,0.22)', SERVICE: 'rgba(245,158,11,0.22)', INACTIVE: 'rgba(239,68,68,0.18)' }[v.status] || 'rgba(99,102,241,0.2)'
+    const hoverGlow = { ACTIVE: 'rgba(16,185,129,0.22)', AVAILABLE: 'rgba(59,130,246,0.22)', SERVICE: 'rgba(245,158,11,0.22)', INACTIVE: 'rgba(239,68,68,0.18)' }[v.status] || (isOrangeTheme ? 'rgba(245,158,11,0.25)' : 'rgba(99,102,241,0.2)')
     return (
       <div key={v.id} style={{ background: D.surface, border: `1px solid ${cardBorderColor}`, borderRadius: 24, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.35)' : '0 4px 24px rgba(0,0,0,0.1)', transition: 'all 0.32s cubic-bezier(0.4,0,0.2,1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, cursor: 'default', position: 'relative' }}
-        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-8px)'; e.currentTarget.style.boxShadow = `0 20px 48px ${hoverGlow}, 0 6px 20px rgba(0,0,0,0.15)`; e.currentTarget.style.borderColor = (isInsExpired || isLicExpired) ? 'rgba(239,68,68,0.6)' : (isInsAlert || isLicAlert) ? 'rgba(245,158,11,0.55)' : 'rgba(99,102,241,0.4)' }}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-8px)'; e.currentTarget.style.boxShadow = `0 20px 48px ${hoverGlow}, 0 6px 20px rgba(0,0,0,0.15)`; e.currentTarget.style.borderColor = (isInsExpired || isLicExpired) ? 'rgba(239,68,68,0.6)' : (isInsAlert || isLicAlert) ? 'rgba(245,158,11,0.55)' : (isOrangeTheme ? 'rgba(245,158,11,0.45)' : 'rgba(99,102,241,0.4)') }}
         onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isDark ? '0 4px 24px rgba(0,0,0,0.35)' : '0 4px 24px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = cardBorderColor }}
       >
         {/* ── Image / Hero Area (Full Area, Edge-to-Edge) ── */}
@@ -1286,7 +1299,7 @@ const VehiclesPage = () => {
             <img src={v.vehicleImage} alt={v.registrationNo} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           ) : (
             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Car size={52} style={{ color: isDark ? 'rgba(148,163,184,0.5)' : 'rgba(99,102,241,0.35)' }} />
+              <Car size={52} style={{ color: isOrangeTheme ? (isDark ? 'rgba(251,191,36,0.4)' : 'rgba(217,119,6,0.35)') : (isDark ? 'rgba(148,163,184,0.5)' : 'rgba(99,102,241,0.35)') }} />
             </div>
           )}
         </div>
@@ -1297,60 +1310,77 @@ const VehiclesPage = () => {
             {v.manufacturer ?? ''} {v.model ?? ''}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
-            <span style={{ background: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)', border: `1px solid ${isDark ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.2)'}`, borderRadius: 6, padding: '1px 8px', fontSize: '0.72rem', fontWeight: 800, color: isDark ? '#818cf8' : '#4f46e5', letterSpacing: '0.04em' }}>
+            <span style={{ background: primaryBgLight, border: `1px solid ${primaryBorderLight}`, borderRadius: 6, padding: '1px 8px', fontSize: '0.72rem', fontWeight: 800, color: primaryAccent, letterSpacing: '0.04em' }}>
               {v.registrationNo ?? 'N/A'}
             </span>
             {v.year && (<><span style={{ color: D.border }}>·</span><span>{v.year}</span></>)}
           </div>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, padding: '16px 20px 0', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 999, background: isDark ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.08)', fontSize: '0.72rem', fontWeight: 700, color: '#d97706' }}>
-            <Fuel size={11} />{formatFuelType(v.fuelType) || 'N/A'}
-          </div>
-          <div onClick={e => { if (!isController) return; e.stopPropagation(); openOdometerModal(e, v) }} title={isController ? 'Quick update mileage' : ''} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 999, background: isDark ? 'rgba(124,58,237,0.1)' : 'rgba(124,58,237,0.07)', fontSize: '0.72rem', fontWeight: 700, color: '#7c3aed', cursor: isController ? 'pointer' : 'default', transition: 'opacity 0.2s' }} onMouseEnter={e => { if (isController) e.currentTarget.style.opacity = '0.75' }} onMouseLeave={e => { if (isController) e.currentTarget.style.opacity = '1' }}>
-            <Gauge size={11} />{v.currentMileageKm ? `${v.currentMileageKm.toLocaleString()} km` : '0 km'}{isController && <Edit2 size={9} style={{ opacity: 0.6 }} />}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 999, background: isDark ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.07)', fontSize: '0.72rem', fontWeight: 700, color: solidBlue }}>
-            <Car size={11} />{v.vehicleType ? (v.vehicleType.charAt(0) + v.vehicleType.slice(1).toLowerCase()) : 'N/A'}
-          </div>
-        </div>
         <div style={{ padding: '14px 20px 0', display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <div onClick={e => { e.stopPropagation(); openProfile(v, 'services') }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: hasServiceAlert ? (isDark ? `${ac.color}12` : `${ac.color}0d`) : (isDark ? 'rgba(16,185,129,0.07)' : 'rgba(16,185,129,0.05)'), cursor: 'pointer', transition: 'opacity 0.2s' }} onMouseEnter={e => { e.currentTarget.style.opacity = '0.78' }} onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}>
-            <Wrench size={13} style={{ color: hasServiceAlert ? ac.color : '#10b981', flexShrink: 0 }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: hasServiceAlert ? ac.color : '#10b981', flex: 1 }}>Service: {hasServiceAlert ? ac.label : 'OK'}</span>
-            <ArrowUpRight size={11} style={{ color: hasServiceAlert ? ac.color : '#10b981', opacity: 0.6 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)' }}>
+            <Fuel size={13} style={{ color: primaryAccent, flexShrink: 0 }} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Fuel Type</span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
+              {formatFuelType(v.fuelType) || 'N/A'}
+            </span>
+          </div>
+          <div
+            onClick={e => { if (!isController) return; e.stopPropagation(); openOdometerModal(e, v) }}
+            title={isController ? 'Quick update mileage' : ''}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)', cursor: isController ? 'pointer' : 'default', transition: 'opacity 0.2s' }}
+            onMouseEnter={e => { if (isController) e.currentTarget.style.opacity = '0.78' }}
+            onMouseLeave={e => { if (isController) e.currentTarget.style.opacity = '1' }}
+          >
+            <Gauge size={13} style={{ color: primaryAccent, flexShrink: 0 }} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Mileage</span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              {v.currentMileageKm ? `${v.currentMileageKm.toLocaleString()} km` : '0 km'}
+              {isController && <Edit2 size={9} style={{ opacity: 0.6 }} />}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)' }}>
+            <Car size={13} style={{ color: primaryAccent, flexShrink: 0 }} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Vehicle Type</span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
+              {v.vehicleType ? (v.vehicleType.charAt(0) + v.vehicleType.slice(1).toLowerCase()) : 'N/A'}
+            </span>
+          </div>
+          <div onClick={e => { e.stopPropagation(); openProfile(v, 'services') }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: hasServiceAlert ? (isDark ? `${ac.color}12` : `${ac.color}0d`) : primaryRowBg, cursor: 'pointer', transition: 'opacity 0.2s' }} onMouseEnter={e => { e.currentTarget.style.opacity = '0.78' }} onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}>
+            <Wrench size={13} style={{ color: hasServiceAlert ? ac.color : primaryAccent, flexShrink: 0 }} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: hasServiceAlert ? ac.color : primaryAccent, flex: 1 }}>Service: {hasServiceAlert ? ac.label : 'OK'}</span>
+            <ArrowUpRight size={11} style={{ color: hasServiceAlert ? ac.color : primaryAccent, opacity: 0.6 }} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isInsExpired ? (isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.06)') : isInsAlert ? (isDark ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.06)') : (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)') }}>
-            <Calendar size={13} style={{ color: isInsExpired ? D.red : isInsAlert ? D.orange : D.green, flexShrink: 0 }} />
+            <Calendar size={13} style={{ color: isInsExpired ? D.red : isInsAlert ? D.orange : primaryAccent, flexShrink: 0 }} />
             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isInsExpired ? D.red : isInsAlert ? D.orange : D.textSub, flex: 1 }}>Insurance</span>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isInsExpired ? D.red : isInsAlert ? D.orange : D.text }}>
               {v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}{isInsExpired ? ' · Expired' : isInsAlert ? ` · ${insDiff}d left` : ''}
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isLicExpired ? (isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.06)') : isLicAlert ? (isDark ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.06)') : (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)') }}>
-            <Clock size={13} style={{ color: isLicExpired ? D.red : isLicAlert ? D.orange : solidBlue, flexShrink: 0 }} />
+            <Clock size={13} style={{ color: isLicExpired ? D.red : isLicAlert ? D.orange : primaryAccent, flexShrink: 0 }} />
             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isLicExpired ? D.red : isLicAlert ? D.orange : D.textSub, flex: 1 }}>License</span>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isLicExpired ? D.red : isLicAlert ? D.orange : D.text }}>
               {v.licenseExpiryDate ? new Date(v.licenseExpiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}{isLicExpired ? ' · Expired' : isLicAlert ? ` · ${licDiff}d left` : ''}
             </span>
           </div>
           {!isDriver && v.driverUsername && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isDark ? 'rgba(16,185,129,0.08)' : 'rgba(16,185,129,0.06)' }}>
-              <UserCheck size={13} style={{ color: D.green, flexShrink: 0 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: primaryRowBg }}>
+              <UserCheck size={13} style={{ color: primaryAccent, flexShrink: 0 }} />
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Driver: <strong style={{ color: D.text }}>{v.driverUsername}</strong></span>
-              <span style={{ fontSize: '0.6rem', fontWeight: 800, padding: '2px 7px', borderRadius: 6, background: D.green, color: '#fff', flexShrink: 0 }}>ASSIGNED</span>
+              <span style={{ fontSize: '0.6rem', fontWeight: 800, padding: '2px 7px', borderRadius: 6, background: primaryBgLight, color: primaryAccent, flexShrink: 0, border: `1px solid ${primaryBorderLight}` }}>ASSIGNED</span>
             </div>
           )}
         </div>
         <div style={{ padding: '16px 20px 20px', display: 'flex', gap: 10, marginTop: 'auto' }}>
-          <button onClick={e => { e.stopPropagation(); openProfile(v) }} title="View Profile" style={{ flex: 1, padding: '11px 14px', borderRadius: 14, border: `2px solid ${isDark ? 'rgba(99,102,241,0.45)' : 'rgba(99,102,241,0.35)'}`, background: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)', color: isDark ? '#818cf8' : '#4f46e5', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.22s', fontFamily: 'inherit', letterSpacing: '0.01em' }}
-            onMouseEnter={e => { e.currentTarget.style.background = isDark ? 'rgba(99,102,241,0.18)' : 'rgba(99,102,241,0.13)'; e.currentTarget.style.borderColor = '#818cf8'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.25)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)'; e.currentTarget.style.borderColor = isDark ? 'rgba(99,102,241,0.45)' : 'rgba(99,102,241,0.35)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+          <button onClick={e => { e.stopPropagation(); openProfile(v) }} title="View Profile" style={{ flex: 1, padding: '11px 14px', borderRadius: 14, border: `2px solid ${primaryBtnBorder}`, background: primaryBtnBg, color: primaryAccent, cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.22s', fontFamily: 'inherit', letterSpacing: '0.01em' }}
+            onMouseEnter={e => { e.currentTarget.style.background = primaryBtnBgHover; e.currentTarget.style.borderColor = primaryBtnBorderHover; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `0 4px 14px ${primaryShadow}` }}
+            onMouseLeave={e => { e.currentTarget.style.background = primaryBtnBg; e.currentTarget.style.borderColor = primaryBtnBorder; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
           ><Eye size={14} />{isDriver ? 'View Details' : 'Profile'}</button>
           {isController && (
-            <button onClick={e => { e.stopPropagation(); openEditModal(v) }} title="Edit Vehicle" style={{ flex: 1, padding: '11px 14px', borderRadius: 14, border: 'none', background: isDark ? 'linear-gradient(135deg,#3730a3,#1e1b4b)' : 'linear-gradient(135deg,#312e81,#1e1b4b)', color: '#e0e7ff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.22s', fontFamily: 'inherit', letterSpacing: '0.01em', boxShadow: '0 4px 14px rgba(49,46,129,0.35)' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg,#4338ca,#312e81)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(67,56,202,0.45)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = isDark ? 'linear-gradient(135deg,#3730a3,#1e1b4b)' : 'linear-gradient(135deg,#312e81,#1e1b4b)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(49,46,129,0.35)' }}
+            <button onClick={e => { e.stopPropagation(); openEditModal(v) }} title="Edit Vehicle" style={{ flex: 1, padding: '11px 14px', borderRadius: 14, border: 'none', background: editBtnBg, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.22s', fontFamily: 'inherit', letterSpacing: '0.01em', boxShadow: `0 4px 14px ${primaryShadow}` }}
+              onMouseEnter={e => { e.currentTarget.style.background = editBtnHover; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `0 6px 20px ${primaryShadow}` }}
+              onMouseLeave={e => { e.currentTarget.style.background = editBtnBg; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = `0 4px 14px ${primaryShadow}` }}
             ><Edit2 size={14} />Edit</button>
           )}
         </div>
@@ -1548,7 +1578,7 @@ const VehiclesPage = () => {
 
             {/* Service Due Alert Strip */}
             {alertVehicles.length > 0 && (
-              <div style={{
+              <div className="vehicle-alerts-strip" style={{
                 background: D.surface,
                 border: `1px solid ${alertVehicles.some(a => a.level === 'OVERDUE') ? 'rgba(239, 68, 68, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`,
                 borderRadius: 20,
@@ -1559,7 +1589,7 @@ const VehiclesPage = () => {
                 boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
                 animation: 'fadeIn 0.3s ease',
               }}>
-                <div style={{
+                <div className="vehicle-alerts-header" style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20
                 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -1595,7 +1625,7 @@ const VehiclesPage = () => {
                     )}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 16, padding: '10px 4px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
+                <div className="vehicle-alerts-scroll-row" style={{ display: 'flex', gap: 16, padding: '10px 4px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
                   {alertVehicles.map(({ reg, record, level, vehicleKm }, idx) => {
                     const isOverdue = level === 'OVERDUE'
                     const accentColor = isOverdue ? '#f87171' : '#fbbf24'
@@ -1616,7 +1646,7 @@ const VehiclesPage = () => {
                     }
 
                     return (
-                      <div key={`${reg}-${record.serviceType}-${idx}`} style={{
+                      <div key={`${reg}-${record.serviceType}-${idx}`} className="vehicle-alert-card" style={{
                         flexShrink: 0, minWidth: 290, maxWidth: 320,
                         background: D.surfaceHi, border: `1px solid ${accentBorder}`,
                         borderRadius: 16, padding: '20px',
@@ -1676,11 +1706,20 @@ const VehiclesPage = () => {
                           <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text }}>
                             {record.serviceType?.replace(/_/g, ' ')}
                           </h4>
-                          {record.description && record.description !== 'Initial service milestone.' && (
-                            <p style={{ margin: 0, fontSize: '0.78rem', color: D.textSub, fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                              {record.description}
-                            </p>
-                          )}
+                          <p style={{
+                            margin: 0,
+                            fontSize: '0.78rem',
+                            color: (mileage && mileage.remaining < 0) || (date && date.daysRemaining < 0) ? '#f87171' : D.textSub,
+                            fontWeight: (mileage && mileage.remaining < 0) || (date && date.daysRemaining < 0) ? 700 : 500,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 1,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}>
+                            {record.description && !/initial service milestone/i.test(record.description)
+                              ? record.description
+                              : (remainingText || (record.nextServiceMileageKm ? `Next due at ${Number(record.nextServiceMileageKm).toLocaleString()} km` : 'Service Milestone'))}
+                          </p>
                         </div>
 
                         {/* Progress bar / remaining info */}
@@ -1801,34 +1840,81 @@ const VehiclesPage = () => {
             <div style={{ background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 4px 24px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
               <div style={{ padding: '22px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, background: D.surfaceHi, flexWrap: 'wrap' }}>
                 {!isDriver && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, flexWrap: 'wrap' }}>
+                  <div className="vehicles-toolbar-filters" style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, flexWrap: 'wrap' }}>
                     <div style={{ position: 'relative', minWidth: 200 }}>
                       <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.textSub, pointerEvents: 'none' }} />
                       <input
                         type="text"
-                        placeholder="Search by reg, make or modelâ€¦"
+                        placeholder="Search by reg, make or model…"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         style={{ ...inputStyle, paddingLeft: 38 }}
                         onFocus={onFocus} onBlur={onBlur}
                       />
                     </div>
-                    {['ALL', 'ACTIVE', 'AVAILABLE', 'SERVICE', 'INACTIVE'].map(s => (
-                      <button
-                        key={s}
-                        onClick={() => setFilter(s)}
+
+                    {/* Vehicle Status Filter Dropdown */}
+                    <div style={{ position: 'relative', minWidth: 160, flexShrink: 0 }}>
+                      {/* Colored status dot */}
+                      <div style={{
+                        position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)',
+                        width: 8, height: 8, borderRadius: '50%', pointerEvents: 'none',
+                        background: filter === 'ALL'       ? '#6366f1'
+                                  : filter === 'ACTIVE'    ? '#10b981'
+                                  : filter === 'AVAILABLE' ? '#3b82f6'
+                                  : filter === 'SERVICE'   ? '#f59e0b'
+                                  :                          '#ef4444',
+                        boxShadow: `0 0 6px ${
+                          filter === 'ALL'       ? '#6366f180'
+                        : filter === 'ACTIVE'    ? '#10b98180'
+                        : filter === 'AVAILABLE' ? '#3b82f680'
+                        : filter === 'SERVICE'   ? '#f59e0b80'
+                        :                          '#ef444480'}`,
+                        transition: 'background 0.2s ease, box-shadow 0.2s ease',
+                      }} />
+                      <select
+                        value={filter}
+                        onChange={e => setFilter(e.target.value)}
                         style={{
-                          padding: '10px 18px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800,
-                          border: filter === s ? 'none' : `1px solid ${D.border}`,
-                          background: filter === s ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'rgba(255,255,255,0.05)',
-                          color: filter === s ? '#fff' : D.textSub,
-                          cursor: 'pointer', transition: 'all 0.15s ease',
-                          boxShadow: filter === s ? '0 4px 12px rgba(37, 99, 235,0.3)' : 'none',
+                          width: '100%', padding: '10px 32px 10px 28px', height: '40px',
+                          background: filter !== 'ALL'
+                            ? (filter === 'ACTIVE'    ? 'rgba(16,185,129,0.08)'
+                             : filter === 'AVAILABLE' ? 'rgba(59,130,246,0.08)'
+                             : filter === 'SERVICE'   ? 'rgba(245,158,11,0.08)'
+                             : 'rgba(239,68,68,0.08)')
+                            : 'rgba(255,255,255,0.05)',
+                          border: `1.5px solid ${
+                            filter === 'ALL'       ? D.border
+                          : filter === 'ACTIVE'    ? 'rgba(16,185,129,0.4)'
+                          : filter === 'AVAILABLE' ? 'rgba(59,130,246,0.4)'
+                          : filter === 'SERVICE'   ? 'rgba(245,158,11,0.4)'
+                          : 'rgba(239,68,68,0.4)'}`,
+                          borderRadius: 12,
+                          color: filter === 'ALL'       ? D.textSub
+                               : filter === 'ACTIVE'    ? '#10b981'
+                               : filter === 'AVAILABLE' ? '#3b82f6'
+                               : filter === 'SERVICE'   ? '#d97706'
+                               : '#ef4444',
+                          fontSize: '0.8rem', fontWeight: 700, outline: 'none',
+                          cursor: 'pointer', appearance: 'none', fontFamily: 'inherit',
+                          boxSizing: 'border-box', transition: 'all 0.2s ease',
+                          boxShadow: filter !== 'ALL' ? `0 4px 12px ${
+                            filter === 'ACTIVE'    ? 'rgba(16,185,129,0.15)'
+                          : filter === 'AVAILABLE' ? 'rgba(59,130,246,0.15)'
+                          : filter === 'SERVICE'   ? 'rgba(245,158,11,0.15)'
+                          : 'rgba(239,68,68,0.15)'}` : 'none',
                         }}
+                        onFocus={e => e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'}
+                        onBlur={e => e.target.style.boxShadow = filter !== 'ALL' ? '0 4px 12px rgba(0,0,0,0.1)' : 'none'}
                       >
-                        {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
-                      </button>
-                    ))}
+                        <option value="ALL">All Status</option>
+                        <option value="ACTIVE">Active</option>
+                        <option value="AVAILABLE">Available</option>
+                        <option value="SERVICE">In Service</option>
+                        <option value="INACTIVE">Inactive</option>
+                      </select>
+                      <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub, fontSize: '0.75rem' }}>▾</div>
+                    </div>
 
                     <select
                       value={fuelFilter}
@@ -3586,13 +3672,13 @@ const VehiclesPage = () => {
                                 width: 32,
                                 height: 32,
                                 borderRadius: 8,
-                                background: D.purpleDim,
-                                color: D.purple,
+                                background: isController ? (isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.08)') : (isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.08)'),
+                                color: isController ? (isDark ? '#fbbf24' : '#d97706') : (isDark ? '#60a5fa' : '#2563eb'),
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 flexShrink: 0,
-                                border: `1px solid ${D.purple}20`
+                                border: isController ? '1px solid rgba(245,158,11,0.2)' : '1px solid rgba(59,130,246,0.2)'
                               }}>
                                 <Wrench size={15} />
                               </div>

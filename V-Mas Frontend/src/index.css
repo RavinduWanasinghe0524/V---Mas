@@ -2675,6 +2675,8 @@ select.form-control option {
     z-index: 200;
     position: fixed;
     width: 270px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
   }
 
   .sidebar.sidebar-open {
@@ -3368,6 +3370,8 @@ select.form-control option {
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s ease;
     z-index: 200;
     width: 280px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
   }
 
   .sidebar.sidebar-open {
@@ -3397,10 +3401,10 @@ select.form-control option {
   }
 
   /* ── Main content: no sidebar margin ── */
+  /* Note: padding-top is handled by the spacer div rendered in Topbar.jsx */
   .main-content {
     margin-left: 0 !important;
-    padding-top: var(--navbar-h);
-    /* compensate for fixed topbar */
+    padding-top: 0;
   }
 
   /* ── Topbar ── */
@@ -3435,12 +3439,12 @@ select.form-control option {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
-    border-radius: 0 !important;
+    border-radius: 16px 16px 0 0 !important;
     border-left: none !important;
     border-right: none !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-bottom: none !important;
-    z-index: 150 !important;
+    z-index: 9999 !important;
     animation: mobileSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
     transform-origin: bottom center !important;
     overflow-y: auto !important;
@@ -3964,19 +3968,33 @@ select.form-control option {
 ─────────────────────────────────────────────────────────────────── */
 
 /* Utility classes for the locked scale */
-.text-xs   { font-size: 0.68rem  !important; }
-.text-sm   { font-size: 0.75rem  !important; }
-.text-md   { font-size: 0.82rem  !important; }
-.text-base { font-size: 0.875rem !important; }
-.text-lg   { font-size: 1rem     !important; }
+.text-xs {
+  font-size: 0.68rem !important;
+}
+
+.text-sm {
+  font-size: 0.75rem !important;
+}
+
+.text-md {
+  font-size: 0.82rem !important;
+}
+
+.text-base {
+  font-size: 0.875rem !important;
+}
+
+.text-lg {
+  font-size: 1rem !important;
+}
 
 /* Badge / pill base: lock to xs regardless of content */
 .badge,
 .role-badge,
 .status-badge {
   font-size: 0.68rem !important;
-  padding: 3px 9px   !important;
-  line-height: 1.4   !important;
+  padding: 3px 9px !important;
+  line-height: 1.4 !important;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -4027,7 +4045,7 @@ textarea.form-control {
 }
 
 /* Inline-style stat card grids (most pages use inline gridTemplateColumns) */
-.stats-grid > div {
+.stats-grid>div {
   display: flex !important;
   flex-direction: column !important;
   min-height: 110px;
@@ -4035,8 +4053,8 @@ textarea.form-control {
 
 /* Consistent icon container in stat cards */
 .stat-card-icon {
-  width: 44px    !important;
-  height: 44px   !important;
+  width: 44px !important;
+  height: 44px !important;
   min-width: 44px;
   min-height: 44px;
   flex-shrink: 0 !important;
@@ -4045,8 +4063,8 @@ textarea.form-control {
 /* Consistent label size in stat cards */
 .stat-card-label,
 .stat-card h3 {
-  font-size: 0.72rem  !important;
-  font-weight: 700    !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -4058,8 +4076,8 @@ textarea.form-control {
 .stat-card-value,
 .stat-value {
   font-size: 1.75rem !important;
-  font-weight: 800   !important;
-  line-height: 1.1   !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
   /* Prevent very long numbers from overflowing */
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4069,7 +4087,8 @@ textarea.form-control {
 /* Sub-text below stat value */
 .stat-card-sub {
   font-size: 0.72rem !important;
-  margin-top: auto;   /* push to bottom of card */
+  margin-top: auto;
+  /* push to bottom of card */
 }
 
 
@@ -4079,17 +4098,17 @@ textarea.form-control {
 ─────────────────────────────────────────────────────────────────── */
 
 /* Icon boxes inside inline stat cards */
-.stats-grid > div > div:first-child {
+.stats-grid>div>div:first-child {
   flex-shrink: 0;
 }
 
 /* The numeric/text value (usually largest text in the card) */
-.stats-grid > div > div > div[style*="1.6rem"],
-.stats-grid > div > div > div[style*="1.7rem"],
-.stats-grid > div > div > div[style*="1.8rem"],
-.stats-grid > div > div > div[style*="2rem"],
-.stats-grid > div > div > div[style*="1.85rem"],
-.stats-grid > div > div > div[style*="1.9rem"] {
+.stats-grid>div>div>div[style*="1.6rem"],
+.stats-grid>div>div>div[style*="1.7rem"],
+.stats-grid>div>div>div[style*="1.8rem"],
+.stats-grid>div>div>div[style*="2rem"],
+.stats-grid>div>div>div[style*="1.85rem"],
+.stats-grid>div>div>div[style*="1.9rem"] {
   font-size: 1.75rem !important;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4098,11 +4117,11 @@ textarea.form-control {
 }
 
 /* Label text in inline stat cards — cap at 0.72rem */
-.stats-grid > div > div > div[style*="0.68rem"],
-.stats-grid > div > div > div[style*="0.7rem"],
-.stats-grid > div > div > div[style*="0.72rem"],
-.stats-grid > div > div > div[style*="0.75rem"],
-.stats-grid > div > div > div[style*="0.78rem"] {
+.stats-grid>div>div>div[style*="0.68rem"],
+.stats-grid>div>div>div[style*="0.7rem"],
+.stats-grid>div>div>div[style*="0.72rem"],
+.stats-grid>div>div>div[style*="0.75rem"],
+.stats-grid>div>div>div[style*="0.78rem"] {
   font-size: 0.72rem !important;
 }
 
@@ -4115,7 +4134,7 @@ textarea.form-control {
 .v-table,
 .users-table table {
   table-layout: fixed !important;
-  width: 100%         !important;
+  width: 100% !important;
 }
 
 /* Cells: clip long content with ellipsis */
@@ -4157,19 +4176,19 @@ textarea.form-control {
 ─────────────────────────────────────────────────────────────────── */
 
 /* Any direct flex child should default to min-width: 0 */
-.stats-grid > *,
-.features-grid > *,
-.form-grid > *,
-.page-header > *,
-.section-header > *,
-.table-actions > *,
-.action-buttons > * {
+.stats-grid>*,
+.features-grid>*,
+.form-grid>*,
+.page-header>*,
+.section-header>*,
+.table-actions>*,
+.action-buttons>* {
   min-width: 0;
 }
 
 /* Text nodes inside flex containers */
-.topbar-left > *,
-.topbar-right > * {
+.topbar-left>*,
+.topbar-right>* {
   min-width: 0;
 }
 
@@ -4206,9 +4225,9 @@ span[style*="border-radius: 999"],
 span[style*="borderRadius: 999"],
 span[style*="border-radius:999"] {
   /* Enforce consistent height via line-height + padding */
-  line-height: 1.4       !important;
-  white-space: nowrap    !important;
-  flex-shrink: 0         !important;
+  line-height: 1.4 !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
 }
 
 /* Inline pills with fontSize: '0.6x' → normalize to 0.68rem */
@@ -4230,23 +4249,23 @@ span[style*="font-size: 0.7"] {
 ─────────────────────────────────────────────────────────────────── */
 
 /* h1 inside any gradient hero banner */
-.page-body > div[style*="linear-gradient"] h1,
-.page-body > div[style*="gradient("] h1 {
+.page-body>div[style*="linear-gradient"] h1,
+.page-body>div[style*="gradient("] h1 {
   font-size: clamp(1.25rem, 2vw, 1.8rem) !important;
   line-height: 1.2 !important;
   font-weight: 800 !important;
 }
 
 /* p inside hero */
-.page-body > div[style*="linear-gradient"] > div p,
-.page-body > div[style*="gradient("] > div p {
+.page-body>div[style*="linear-gradient"]>div p,
+.page-body>div[style*="gradient("]>div p {
   font-size: 0.875rem !important;
 }
 
 /* Icon container in hero — locked size */
-.page-body > div[style*="linear-gradient"] > div > div[style*="width: 64"],
-.page-body > div[style*="linear-gradient"] > div > div[style*="width:64"] {
-  width: 64px  !important;
+.page-body>div[style*="linear-gradient"]>div>div[style*="width: 64"],
+.page-body>div[style*="linear-gradient"]>div>div[style*="width:64"] {
+  width: 64px !important;
   height: 64px !important;
   flex-shrink: 0 !important;
 }
@@ -4273,7 +4292,7 @@ span[style*="font-size: 0.7"] {
 /* Title font locked */
 .modal-title {
   font-size: 1.05rem !important;
-  font-weight: 700   !important;
+  font-weight: 700 !important;
 }
 
 /* Inline modal dialogs (not using .modal class but similar structure) */
@@ -4330,15 +4349,15 @@ textarea {
 ─────────────────────────────────────────────────────────────────── */
 
 /* Trust the container — flex items must surrender min-width */
-[class*="card"] > *,
-[class*="card"] > div {
+[class*="card"]>*,
+[class*="card"]>div {
   min-width: 0;
   overflow-wrap: break-word;
 }
 
 /* Inside table cells, only clip via ellipsis (set per td above) */
-.v-table td > *,
-.users-table td > * {
+.v-table td>*,
+.users-table td>* {
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
@@ -4347,8 +4366,8 @@ textarea {
 }
 
 /* Exception: action-buttons inside table cells */
-.v-table td:last-child > *,
-.users-table td:last-child > * {
+.v-table td:last-child>*,
+.users-table td:last-child>* {
   overflow: visible;
   white-space: normal;
 }
@@ -4365,8 +4384,8 @@ textarea {
 }
 
 .section-title {
-  font-size: 1rem    !important;
-  font-weight: 700   !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -4438,8 +4457,8 @@ div[style*="auto-fill, minmax"] {
 }
 
 /* Their direct div children should be full height */
-div[style*="auto-fill"] > div,
-div[style*="auto-fill, minmax"] > div {
+div[style*="auto-fill"]>div,
+div[style*="auto-fill, minmax"]>div {
   height: 100%;
   box-sizing: border-box;
 }
@@ -4451,7 +4470,7 @@ div[style*="auto-fill, minmax"] > div {
 
 .topbar-name {
   font-size: 0.82rem !important;
-  font-weight: 600   !important;
+  font-weight: 600 !important;
   max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4477,8 +4496,8 @@ div[style*="auto-fill, minmax"] > div {
   font-size: 0.62rem !important;
   min-width: 16px;
   height: 16px;
-  line-height: 16px  !important;
-  padding: 0 4px     !important;
+  line-height: 16px !important;
+  padding: 0 4px !important;
   text-align: center;
   white-space: nowrap;
 }
@@ -4517,9 +4536,9 @@ svg.lucide {
 ─────────────────────────────────────────────────────────────────── */
 
 /* Push card action buttons to the bottom */
-.stat-card > *:last-child,
-.feature-card > *:last-child,
-.card > *:last-child {
+.stat-card>*:last-child,
+.feature-card>*:last-child,
+.card>*:last-child {
   margin-top: auto;
 }
 
@@ -4529,6 +4548,7 @@ svg.lucide {
 ─────────────────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
+
   /* Reduce locked font scale slightly on mobile */
   .stat-card-value,
   .stat-value {
@@ -4544,7 +4564,7 @@ svg.lucide {
   .role-badge,
   .status-badge {
     font-size: 0.68rem !important;
-    padding: 3px 8px   !important;
+    padding: 3px 8px !important;
   }
 
   /* Table cells: relax the ellipsis on mobile so data is readable */
@@ -4563,18 +4583,19 @@ svg.lucide {
 
   /* Stats grid cards min-height reduced on mobile */
   .stat-card,
-  .stats-grid > div {
+  .stats-grid>div {
     min-height: 90px !important;
   }
 
   /* Hero banner h1 clamped tighter on mobile */
-  .page-body > div[style*="linear-gradient"] h1,
-  .page-body > div[style*="gradient("] h1 {
+  .page-body>div[style*="linear-gradient"] h1,
+  .page-body>div[style*="gradient("] h1 {
     font-size: 1.2rem !important;
   }
 }
 
 @media (max-width: 480px) {
+
   /* Smallest screens: further reduce value font */
   .stat-card-value,
   .stat-value {
@@ -4630,12 +4651,12 @@ svg.lucide {
 }
 
 /* Active Navigation Tabs & Filters (excluding charts) */
-[data-role] div:not(.fuel-chart):not(.cost-chart) > div[style*="linear-gradient(135deg, #2563eb, #1d4ed8)"],
-[data-role] div:not(.fuel-chart):not(.cost-chart) > div[style*="linear-gradient(135deg, #2563eb, #3b82f6)"] {
+[data-role] div:not(.fuel-chart):not(.cost-chart)>div[style*="linear-gradient(135deg, #2563eb, #1d4ed8)"],
+[data-role] div:not(.fuel-chart):not(.cost-chart)>div[style*="linear-gradient(135deg, #2563eb, #3b82f6)"] {
   background: linear-gradient(135deg, var(--primary), var(--primary-dark)) !important;
 }
 
-[data-role] span:not(.fuel-chart) > span[style*="linear-gradient"] {
+[data-role] span:not(.fuel-chart)>span[style*="linear-gradient"] {
   background: linear-gradient(135deg, var(--primary), var(--primary-dark)) !important;
 }
 
@@ -4656,4 +4677,227 @@ svg.lucide {
 [data-role] div[style*="color:#3b82f6"],
 [data-role] div[style*="color:#2563eb"] {
   color: var(--text-accent) !important;
-}
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   22. MOBILE FILTER TABS — Horizontal scroll, no wrap
+   Fixes filter buttons on Reports, Vehicles, Users, Service pages
+   that were breaking into multiple rows on small screens.
+═══════════════════════════════════════════════════════════════════ */
+
+/* Generic filter tabs row: force horizontal scroll on mobile */
+@media (max-width: 768px) {
+
+  /* ── Filter tab rows: scroll horizontally, never wrap ── */
+  /* Matches the Reports page category row */
+  div[style*="overflowX: auto"],
+  div[style*="overflow-x: auto"],
+  div[style*="overflow-x:auto"] {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    padding-bottom: 6px !important;
+  }
+
+  div[style*="overflowX: auto"]::-webkit-scrollbar,
+  div[style*="overflow-x: auto"]::-webkit-scrollbar,
+  div[style*="overflow-x:auto"]::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  /* ── Reports page: category filter tabs row ── */
+  .rpt-tab {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  /* ── Vehicles, Users & Service: filter row — horizontal scroll on mobile ── */
+  .vehicles-toolbar-filters,
+  .users-filter-row,
+  .service-filter-row {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+    gap: 8px !important;
+  }
+
+  .vehicles-toolbar-filters::-webkit-scrollbar,
+  .users-filter-row::-webkit-scrollbar,
+  .service-filter-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* All filter buttons within the rows must not shrink */
+  .vehicles-toolbar-filters > button,
+  .vehicles-toolbar-filters > div,
+  .users-filter-row > button,
+  .users-filter-row > div,
+  .service-filter-row > button,
+  .service-filter-row > div {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  /* Search box takes full row on mobile (separate row) */
+  .vehicles-toolbar-filters > div:first-child {
+    min-width: 100% !important;
+    flex-basis: 100% !important;
+  }
+
+  .service-filter-row > div:first-child,
+  .users-filter-row > div:first-child {
+    min-width: 100% !important;
+    flex-basis: 100% !important;
+  }
+
+  /* ── Vehicles toolbar outer: stack vertically on mobile ── */
+  .vehicles-toolbar-filters {
+    flex-wrap: wrap !important;  /* first item (search) wraps to full width */
+  }
+
+  /* Then make the filter buttons themselves not wrap */
+  .vehicles-toolbar-filters > button {
+    flex-shrink: 0 !important;
+  }
+
+  /* ── Sidebar: ensure logout button is always fully visible ── */
+  .sidebar {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .sidebar-nav {
+    flex: 1 !important;
+    overflow-y: auto !important;
+  }
+
+  /* ── Notification bottom sheet: overlay for mobile ── */
+  .topbar-notif-dropdown::before {
+    content: '';
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+  }
+
+  /* ── Topbar: hamburger always leftmost ── */
+  .topbar-hamburger {
+    order: -1;
+    flex-shrink: 0;
+  }
+
+  /* ── Service toolbar right-action buttons: scrollable on mobile ── */
+  .service-action-btns {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .service-action-btns::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ── Vehicle Service Alerts Strip: Compact on mobile ── */
+  .vehicle-alerts-strip {
+    padding: 14px 16px !important;
+    margin-bottom: 16px !important;
+    border-radius: 16px !important;
+  }
+
+  .vehicle-alerts-header {
+    padding: 10px 12px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .vehicle-alerts-header h3,
+  .vehicle-alerts-header span[style*="font-family"],
+  .vehicle-alerts-header span[style*="Outfit"] {
+    font-size: 0.9rem !important;
+  }
+
+  .vehicle-alerts-header p {
+    font-size: 0.7rem !important;
+  }
+
+  .vehicle-alerts-header span:not([style*="font-family"]) {
+    font-size: 0.68rem !important;
+    padding: 3px 8px !important;
+  }
+
+  .vehicle-alerts-scroll-row {
+    gap: 12px !important;
+    padding: 6px 2px !important;
+  }
+
+  .vehicle-alert-card {
+    min-width: 230px !important;
+    max-width: 250px !important;
+    padding: 14px !important;
+    gap: 10px !important;
+    border-radius: 14px !important;
+  }
+
+  .vehicle-alert-card h4 {
+    font-size: 0.9rem !important;
+  }
+
+  .vehicle-alert-card button {
+    padding: 6px 10px !important;
+    font-size: 0.75rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* ── Even more compact filter tabs ── */
+  .rpt-tab {
+    padding: 6px 12px !important;
+    font-size: 0.72rem !important;
+  }
+
+  /* ── Notification panel header text ── */
+  .topbar-notif-dropdown h3 {
+    font-size: 0.88rem !important;
+  }
+
+  /* ── Service, users & vehicles filter buttons smaller on very small screens ── */
+  .vehicles-toolbar-filters > button,
+  .users-filter-row > button,
+  .service-filter-row > button {
+    padding: 8px 14px !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* ── Section header: action area wraps below title on mobile ── */
+  .section-header-action {
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  /* ── Service toolbar: hide button text labels, show icon only ── */
+  .btn-label-hide-sm {
+    display: none !important;
+  }
+
+  /* ── Service action buttons: compact icon-only on small screens ── */
+  .service-action-btns button {
+    padding: 10px 10px !important;
+    min-width: 40px;
+    justify-content: center;
+  }
+
+  /* ── Vehicle Service Alerts Card tighter on small phones ── */
+  .vehicle-alert-card {
+    min-width: 200px !important;
+    max-width: 220px !important;
+    padding: 12px !important;
+    gap: 8px !important;
+  }
+}
