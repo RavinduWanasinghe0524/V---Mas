@@ -66,14 +66,19 @@ const ProfilePage = () => {
   const D = useD()
   const { theme, toggleTheme } = useTheme()
   const isDark = theme === 'blue'
-  const { user, updateUser } = useAuth()
-
   // State Hooks
   const [profileForm, setProfileForm] = useState({
     email: '', profilePicture: '', fullName: '', phone: '', address: '',
     gender: 'Male', nic: '', dateOfBirth: '', licenseNumber: '', licenseExpiryDate: '',
     licenseDocumentPath: '', dateJoined: '', experience: ''
   })
+  const isDriver = (user?.role || '').toUpperCase() === 'DRIVER'
+
+  const formatDateForInput = (d) => {
+    if (!d) return ''
+    if (typeof d === 'string') return d.split('T')[0]
+    try { return new Date(d).toISOString().split('T')[0] } catch { return '' }
+  }
   const [licenseFile, setLicenseFile] = useState(null)
   const [attachmentViewer, setAttachmentViewer] = useState({
     isOpen: false,
@@ -157,20 +162,15 @@ const ProfilePage = () => {
         address: user.address || '',
         gender: user.gender || 'Male',
         nic: user.nic || '',
-        dateOfBirth: user.dateOfBirth || '',
+        dateOfBirth: formatDateForInput(user.dateOfBirth),
         licenseNumber: user.licenseNumber || '',
-        licenseExpiryDate: user.licenseExpiryDate || '',
+        licenseExpiryDate: formatDateForInput(user.licenseExpiryDate),
         licenseDocumentPath: user.licenseDocumentPath || '',
-        dateJoined: user.dateJoined || '',
+        dateJoined: formatDateForInput(user.dateJoined),
         experience: user.experience || ''
       })
     }
-    setLicenseFile(null)
   }
-  const toggleAlertType = key => setPrivacy(p => ({
-    ...p,
-    alertTypes: p.alertTypes.includes(key) ? p.alertTypes.filter(k => k !== key) : [...p.alertTypes, key],
-  }))
 
   useEffect(() => {
     const fetchLatestProfile = async () => {
@@ -196,17 +196,18 @@ const ProfilePage = () => {
         profilePicture: user.profilePicture || '',
         fullName: user.userName || '',
         phone: user.phoneNumber || '',
+        address: user.address || '',
         gender: user.gender || 'Male',
         nic: user.nic || '',
-        dateOfBirth: user.dateOfBirth || '',
+        dateOfBirth: formatDateForInput(user.dateOfBirth),
         licenseNumber: user.licenseNumber || '',
-        licenseExpiryDate: user.licenseExpiryDate || '',
+        licenseExpiryDate: formatDateForInput(user.licenseExpiryDate),
         licenseDocumentPath: user.licenseDocumentPath || '',
-        dateJoined: user.dateJoined || '',
+        dateJoined: formatDateForInput(user.dateJoined),
         experience: user.experience || ''
       }))
     }
-  }, [user])
+  }, [user, isEditingProfile])
 
   useEffect(() => {
     if (activeModal) {
@@ -222,8 +223,8 @@ const ProfilePage = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        if (user?.role === 'DRIVER') {
-          const res = await fuelAPI.getMyLogs()
+        if (isDriver) {
+          const res = await fuelAPI.getMyLogs().catch(() => ({ data: { data: [] } }))
           const logs = res.data?.data || []
           const avg = logs.length ? (logs.reduce((sum, l) => sum + (l.fuelEfficiency || 0), 0) / logs.length).toFixed(1) : 0
           const last = logs.length ? new Date(logs[logs.length - 1].date).toLocaleDateString() : 'N/A'
@@ -299,7 +300,7 @@ const ProfilePage = () => {
       })
       let updated = res.data?.data
 
-      if (user?.role === 'DRIVER' && licenseFile && updated && updated.id) {
+      if (isDriver && licenseFile && updated && updated.id) {
         const uploadRes = await userAPI.uploadDocument(updated.id, 'license', licenseFile, profileForm.licenseExpiryDate)
         updated = uploadRes.data?.data
       }
@@ -405,7 +406,7 @@ const ProfilePage = () => {
                       </div>
                       <div>
                         <label style={labelStyle}>Phone Number</label>
-                        <input type="tel" value={profileForm.phone} onChange={e => setProfileForm(prev => ({ ...prev, phone: e.target.value }))} required disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                        <input type="tel" value={profileForm.phone} onChange={e => setProfileForm(prev => ({ ...prev, phone: e.target.value }))} disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} />
                       </div>
                       <div>
                         <label style={labelStyle}>Role Status</label>
@@ -421,30 +422,30 @@ const ProfilePage = () => {
                       </div>
                       <div>
                         <label style={labelStyle}>NIC Number</label>
-                        <input type="text" value={profileForm.nic} onChange={e => setProfileForm(prev => ({ ...prev, nic: e.target.value }))} required disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 199912345678" />
+                        <input type="text" value={profileForm.nic} onChange={e => setProfileForm(prev => ({ ...prev, nic: e.target.value }))} disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 199912345678" />
                       </div>
                       <div>
                         <label style={labelStyle}>Date of Birth</label>
-                        <input type="date" value={profileForm.dateOfBirth} onChange={e => setProfileForm(prev => ({ ...prev, dateOfBirth: e.target.value }))} required disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                        <input type="date" value={profileForm.dateOfBirth} onChange={e => setProfileForm(prev => ({ ...prev, dateOfBirth: e.target.value }))} disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} />
                       </div>
 
-                      {user?.role === 'DRIVER' && (
+                      {isDriver && (
                         <>
                           <div>
                             <label style={labelStyle}>License Number</label>
-                            <input type="text" value={profileForm.licenseNumber} onChange={e => setProfileForm(prev => ({ ...prev, licenseNumber: e.target.value }))} required disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                            <input type="text" value={profileForm.licenseNumber} onChange={e => setProfileForm(prev => ({ ...prev, licenseNumber: e.target.value }))} disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} />
                           </div>
                           <div>
                             <label style={labelStyle}>License Expiry Date</label>
-                            <input type="date" value={profileForm.licenseExpiryDate} onChange={e => setProfileForm(prev => ({ ...prev, licenseExpiryDate: e.target.value }))} required disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                            <input type="date" value={profileForm.licenseExpiryDate} onChange={e => setProfileForm(prev => ({ ...prev, licenseExpiryDate: e.target.value }))} disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} />
                           </div>
                           <div>
                             <label style={labelStyle}>Date Joined</label>
-                            <input type="date" value={profileForm.dateJoined} onChange={e => setProfileForm(prev => ({ ...prev, dateJoined: e.target.value }))} required disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                            <input type="date" value={profileForm.dateJoined} onChange={e => setProfileForm(prev => ({ ...prev, dateJoined: e.target.value }))} disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} />
                           </div>
                           <div>
                             <label style={labelStyle}>Experience</label>
-                            <input type="text" value={profileForm.experience} onChange={e => setProfileForm(prev => ({ ...prev, experience: e.target.value }))} required disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 5 years" />
+                            <input type="text" value={profileForm.experience} onChange={e => setProfileForm(prev => ({ ...prev, experience: e.target.value }))} disabled={!isEditingProfile} style={!isEditingProfile ? { ...inputStyle, background: D.surfaceHi, cursor: 'not-allowed', color: D.textSub } : inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. 5 years" />
                           </div>
                           <div style={{ gridColumn: '1 / -1' }}>
                             <label style={labelStyle}>License Document</label>
@@ -802,8 +803,8 @@ const ProfilePage = () => {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              position: 'relative', width: '100%', height: '100%',
-              maxWidth: '85vw', maxHeight: '75vh', marginTop: '40px',
+              position: 'relative', width: '100%', height: 'calc(100% - 60px)',
+              maxWidth: '85vw', maxHeight: '80vh', marginTop: '50px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
