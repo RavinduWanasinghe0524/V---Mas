@@ -199,8 +199,8 @@ public class TripServiceImpl implements TripService {
     @Transactional
     public TripDto completeTrip(Long id, String driverUsername) {
         Trip trip = findOwnedTripOrThrow(id, driverUsername);
-        if (trip.getStatus() != TripStatus.STARTED) {
-            throw new IllegalStateException("Only a started trip can be completed");
+        if (trip.getStatus() != TripStatus.STARTED && trip.getStatus() != TripStatus.ASSIGNED) {
+            throw new IllegalStateException("Only an assigned or started trip can be completed");
         }
         LocalDateTime now = LocalDateTime.now();
         trip.setStatus(TripStatus.COMPLETED);
@@ -225,7 +225,8 @@ public class TripServiceImpl implements TripService {
 
     private Trip findOwnedTripOrThrow(Long id, String driverUsername) {
         Trip trip = findTripOrThrow(id);
-        if (!trip.getDriverUsername().equals(driverUsername)) {
+        if (trip.getDriverUsername() == null || driverUsername == null ||
+            !trip.getDriverUsername().trim().equalsIgnoreCase(driverUsername.trim())) {
             throw new AccessDeniedException("This trip is not assigned to you");
         }
         return trip;

@@ -4177,8 +4177,8 @@ const VehiclesPage = () => {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              position: 'relative', width: '100%', height: '100%',
-              maxWidth: '85vw', maxHeight: '75vh', marginTop: '40px',
+              position: 'relative', width: '100%', height: 'calc(100% - 60px)',
+              maxWidth: '85vw', maxHeight: '80vh', marginTop: '50px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
