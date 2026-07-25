@@ -593,14 +593,6 @@ const UsersPage = () => {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             <span style={{
-              background: roleTheme.bgLight,
-              border: `1px solid ${roleTheme.borderLight}`,
-              borderRadius: 6, padding: '2px 9px',
-              fontSize: '0.72rem', fontWeight: 800, color: roleTheme.primary, letterSpacing: '0.03em',
-            }}>
-              {friendlyRole}
-            </span>
-            <span style={{
               display: 'flex', alignItems: 'center', gap: 4,
               padding: '2px 9px', borderRadius: 6,
               background: badge.shadow.replace('0.45', '0.1'),
@@ -2286,8 +2278,8 @@ const UsersPage = () => {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              position: 'relative', width: '100%', height: '100%',
-              maxWidth: '85vw', maxHeight: '75vh', marginTop: '40px',
+              position: 'relative', width: '100%', height: 'calc(100% - 60px)',
+              maxWidth: '85vw', maxHeight: '80vh', marginTop: '50px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >

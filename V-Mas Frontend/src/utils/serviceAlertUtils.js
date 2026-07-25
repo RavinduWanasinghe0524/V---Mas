@@ -32,20 +32,23 @@ const DATE_ALERT_DAYS = 7
  * }|null}
  */
 export function computeMileageProgress(record, vehicleKm) {
-  const serviceKm = Number(record.currentMileageKm)
-  const nextKm    = Number(record.nextServiceMileageKm)
+  if (!record || vehicleKm == null) return null
+  const nextKm = Number(record.nextServiceMileageKm)
+  if (!record.nextServiceMileageKm || isNaN(nextKm) || nextKm <= 0) return null
 
-  if (!record.nextServiceMileageKm || !record.currentMileageKm || vehicleKm == null) return null
-  if (isNaN(serviceKm) || isNaN(nextKm) || nextKm <= serviceKm) return null
+  const serviceKm = record.currentMileageKm != null ? Number(record.currentMileageKm) : 0
+  if (isNaN(serviceKm)) return null
 
   const currentKm = Number(vehicleKm)
-  const interval  = nextKm - serviceKm
-  const driven    = Math.max(0, currentKm - serviceKm)
-  const pct       = Math.min((driven / interval) * 100, 110) // clamp at 110% for display
+  if (isNaN(currentKm)) return null
+
+  const interval = nextKm > serviceKm ? (nextKm - serviceKm) : nextKm
+  const driven = Math.max(0, currentKm - serviceKm)
+  const pct = interval > 0 ? Math.min((driven / interval) * 100, 110) : 100
   const remaining = nextKm - currentKm
 
   let level = 'OK'
-  if (driven >= interval)                        level = 'OVERDUE'
+  if (remaining <= 0)                        level = 'OVERDUE'
   else if (remaining <= MILEAGE_ALERT_THRESHOLD) level = 'DUE_SOON'
 
   return { pct, driven, interval, remaining, level, serviceKm, nextKm }

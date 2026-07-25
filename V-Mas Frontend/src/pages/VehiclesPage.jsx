@@ -64,8 +64,8 @@ const getVehicleMilestones = (vehicle, services, intervals) => {
       record: lastRecord || {
         vehicleRegNumber: vehicle.registrationNo,
         serviceType: interval.serviceType,
-        currentMileageKm: 0,
-        nextServiceMileageKm: interval.intervalKm,
+        currentMileageKm: lastServiceMileage,
+        nextServiceMileageKm: nextDueMileage,
         serviceDate: null,
         nextServiceDue: null,
         description: 'Initial service milestone'
@@ -1652,7 +1652,7 @@ const VehiclesPage = () => {
                   </div>
                 </div>
                 <div className="vehicle-alerts-scroll-row" style={{ display: 'flex', gap: 16, padding: '10px 4px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
-                  {alertVehicles.map(({ reg, record, level, vehicleKm }, idx) => {
+                  {alertVehicles.map(({ reg, record, level, vehicleKm, remainingKm }, idx) => {
                     const isOverdue = level === 'OVERDUE'
                     const accentColor = isOverdue ? '#f87171' : '#fbbf24'
                     const accentBg = isOverdue ? 'rgba(239, 68, 68, 0.1)' : 'rgba(251, 191, 36, 0.1)'
@@ -1666,10 +1666,19 @@ const VehiclesPage = () => {
                     if (mileage) {
                       progressPct = Math.min(mileage.pct, 100)
                       remainingText = fmtKmRemaining(mileage.remaining)
+                    } else if (remainingKm != null) {
+                      remainingText = fmtKmRemaining(remainingKm)
+                      const nextKm = Number(record?.nextServiceMileageKm || 0)
+                      const lastKm = Number(record?.currentMileageKm || 0)
+                      const interval = nextKm > lastKm ? nextKm - lastKm : nextKm
+                      const driven = Math.max(0, vehicleKm - lastKm)
+                      progressPct = interval > 0 ? Math.min((driven / interval) * 100, 100) : 100
                     } else if (date) {
                       progressPct = Math.max(0, Math.min(100, (30 - date.daysRemaining) / 30 * 100))
                       remainingText = fmtDaysRemaining(date.daysRemaining)
                     }
+
+                    const isMileageOverdue = (mileage && mileage.remaining < 0) || (remainingKm != null && remainingKm < 0)
 
                     return (
                       <div key={`${reg}-${record.serviceType}-${idx}`} className="vehicle-alert-card" style={{
@@ -1734,22 +1743,24 @@ const VehiclesPage = () => {
                           </h4>
                           <p style={{
                             margin: 0,
-                            fontSize: '0.78rem',
-                            color: (mileage && mileage.remaining < 0) || (date && date.daysRemaining < 0) ? '#f87171' : D.textSub,
-                            fontWeight: (mileage && mileage.remaining < 0) || (date && date.daysRemaining < 0) ? 700 : 500,
+                            fontSize: '0.82rem',
+                            color: isMileageOverdue || (date && date.daysRemaining < 0) ? '#f87171' : D.textSub,
+                            fontWeight: isMileageOverdue || (date && date.daysRemaining < 0) ? 800 : 500,
                             display: '-webkit-box',
                             WebkitLineClamp: 1,
                             WebkitBoxOrient: 'vertical',
                             overflow: 'hidden'
                           }}>
-                            {record.description && !/initial service milestone/i.test(record.description)
-                              ? record.description
-                              : (remainingText || (record.nextServiceMileageKm ? `Next due at ${Number(record.nextServiceMileageKm).toLocaleString()} km` : 'Service Milestone'))}
+                            {isMileageOverdue
+                              ? remainingText
+                              : (record.nextServiceMileageKm
+                                  ? `Next due at ${Number(record.nextServiceMileageKm).toLocaleString()} km`
+                                  : (record.description && !/initial service milestone/i.test(record.description) ? record.description : 'Service Milestone'))}
                           </p>
                         </div>
 
                         {/* Progress bar / remaining info */}
-                        {(mileage || date) && (
+                        {(mileage || date || remainingKm != null) && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '2px 0' }}>
                             <div style={{ height: 6, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 999, overflow: 'hidden' }}>
                               <div style={{
@@ -1761,8 +1772,8 @@ const VehiclesPage = () => {
                               }} />
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: accentColor }}>
-                                {remainingText}
+                              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: accentColor }}>
+                                {isMileageOverdue ? '' : remainingText}
                               </span>
                               {mileage && date && (
                                 <span style={{ fontSize: '0.7rem', color: D.textSub, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -4166,8 +4177,8 @@ const VehiclesPage = () => {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              position: 'relative', width: '100%', height: '100%',
-              maxWidth: '85vw', maxHeight: '75vh', marginTop: '40px',
+              position: 'relative', width: '100%', height: 'calc(100% - 60px)',
+              maxWidth: '85vw', maxHeight: '80vh', marginTop: '50px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >

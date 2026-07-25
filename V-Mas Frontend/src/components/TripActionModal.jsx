@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useD } from '../context/ThemeContext'
-import { X, Play, CheckCircle, Ban, Loader2 } from 'lucide-react'
+import { X, Play, CheckCircle, Ban, Loader2, Wrench } from 'lucide-react'
 
 const META = {
   start:    { verb: 'Accept',   Icon: Play,        color: '#10b981', confirm: 'Accept Job' },
@@ -11,10 +11,9 @@ const META = {
 /**
  * Confirmation modal for a driver's trip action (start / decline / complete).
  * For "decline" it also captures an optional reason.
- *
- * Props: action ('start'|'decline'|'complete'), trip, busy, onClose, onConfirm(reason)
+ * For "complete" it offers optional service detail entry if controller granted access.
  */
-const TripActionModal = ({ action, trip, busy, onClose, onConfirm }) => {
+const TripActionModal = ({ action, trip, busy, onClose, onConfirm, onOpenServiceLog, hasServiceAccess, hasPendingLog }) => {
   const D = useD()
   const [reason, setReason] = useState('')
 
@@ -31,18 +30,20 @@ const TripActionModal = ({ action, trip, busy, onClose, onConfirm }) => {
     complete: `Mark the job to "${trip.destination}" as completed. Your controller will be notified.`,
   }[action]
 
+  const showServiceLogPrompt = action === 'complete' && hasServiceAccess && !hasPendingLog
+
   return (
     <div onClick={() => !busy && onClose()}
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20, animation: 'tamFade 0.2s ease' }}>
       <div onClick={e => e.stopPropagation()}
-        style={{ position: 'relative', width: '100%', maxWidth: 440, background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 32px 80px rgba(0,0,0,0.5)', padding: '36px 32px', textAlign: 'center', animation: 'tamScale 0.25s cubic-bezier(0.16,1,0.3,1)' }}>
+        style={{ position: 'relative', width: '100%', maxWidth: 460, background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, boxShadow: '0 32px 80px rgba(0,0,0,0.5)', padding: '36px 32px', textAlign: 'center', animation: 'tamScale 0.25s cubic-bezier(0.16,1,0.3,1)' }}>
         <button type="button" onClick={() => !busy && onClose()} disabled={busy}
           style={{ position: 'absolute', top: 20, right: 20, background: 'transparent', border: 'none', borderRadius: 10, padding: 8, color: D.textSub, cursor: busy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onMouseEnter={e => { if (!busy) e.currentTarget.style.background = 'var(--surface-hi)' }}
           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
           <X size={18} />
         </button>
- 
+
         <div style={{ width: 64, height: 64, borderRadius: 18, background: `${meta.color}22`, border: `1px solid ${meta.color}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: meta.color, margin: '0 auto 20px' }}>
           <Icon size={28} />
         </div>
@@ -52,7 +53,7 @@ const TripActionModal = ({ action, trip, busy, onClose, onConfirm }) => {
         <p style={{ margin: '0 0 22px', fontSize: '0.9rem', color: D.textSub, lineHeight: 1.6 }}>
           {body}
         </p>
- 
+
         {action === 'decline' && (
           <textarea
             value={reason}
@@ -63,19 +64,52 @@ const TripActionModal = ({ action, trip, busy, onClose, onConfirm }) => {
             style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: `1px solid ${D.inputBorder}`, background: D.inputBg, color: D.text, fontSize: '0.85rem', fontFamily: 'inherit', outline: 'none', resize: 'vertical', marginBottom: 24, boxSizing: 'border-box' }}
           />
         )}
- 
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-          <button type="button" onClick={onClose} disabled={busy}
-            style={{ flex: 1, maxWidth: 170, padding: '11px 20px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'transparent', color: D.text, cursor: busy ? 'not-allowed' : 'pointer', fontSize: '0.88rem', fontWeight: 700, fontFamily: 'inherit', transition: 'all 0.2s' }}
-            onMouseEnter={e => { if (!busy) e.currentTarget.style.background = 'var(--surface-hi)' }}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            {action === 'decline' ? 'Keep Job' : 'Not now'}
-          </button>
-          <button type="button" onClick={() => onConfirm(reason)} disabled={busy}
-            style={{ flex: 1, maxWidth: 170, padding: '11px 20px', borderRadius: 12, border: 'none', background: meta.color, color: '#fff', fontSize: '0.88rem', fontWeight: 700, cursor: busy ? 'not-allowed' : 'pointer', boxShadow: `0 4px 12px ${meta.color}55`, fontFamily: 'inherit', opacity: busy ? 0.7 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
-            {busy && <Loader2 size={15} style={{ animation: 'tamSpin 1s linear infinite' }} />}
-            {busy ? 'Working…' : meta.confirm}
-          </button>
+
+        {showServiceLogPrompt && (
+          <div style={{
+            marginBottom: 24, padding: '12px 16px', borderRadius: 14,
+            background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
+            textAlign: 'left', display: 'flex', alignItems: 'flex-start', gap: 10
+          }}>
+            <Wrench size={16} color="#d97706" style={{ marginTop: 2, flexShrink: 0 }} />
+            <div style={{ fontSize: '0.78rem', color: '#92400e', fontWeight: 600, lineHeight: 1.5 }}>
+              Your controller granted access to add service record details. You can fill them out now or skip and complete immediately.
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {showServiceLogPrompt && onOpenServiceLog && (
+            <button
+              type="button"
+              onClick={() => { onClose(); onOpenServiceLog(trip); }}
+              disabled={busy}
+              style={{
+                width: '100%', padding: '12px 20px', borderRadius: 12, border: 'none',
+                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                color: '#fff', fontSize: '0.88rem', fontWeight: 800, cursor: busy ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 14px rgba(245,158,11,0.35)', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+              }}
+            >
+              <Wrench size={15} /> Fill Service Record Details First
+            </button>
+          )}
+
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <button type="button" onClick={onClose} disabled={busy}
+              style={{ flex: 1, padding: '11px 20px', borderRadius: 12, border: `1px solid ${D.border}`, background: 'transparent', color: D.text, cursor: busy ? 'not-allowed' : 'pointer', fontSize: '0.88rem', fontWeight: 700, fontFamily: 'inherit', transition: 'all 0.2s' }}
+              onMouseEnter={e => { if (!busy) e.currentTarget.style.background = 'var(--surface-hi)' }}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              {action === 'decline' ? 'Keep Job' : 'Cancel'}
+            </button>
+
+            <button type="button" onClick={() => onConfirm(reason)} disabled={busy}
+              style={{ flex: 1, padding: '11px 20px', borderRadius: 12, border: 'none', background: meta.color, color: '#fff', fontSize: '0.88rem', fontWeight: 700, cursor: busy ? 'not-allowed' : 'pointer', boxShadow: `0 4px 12px ${meta.color}55`, fontFamily: 'inherit', opacity: busy ? 0.7 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+              {busy && <Loader2 size={15} style={{ animation: 'tamSpin 1s linear infinite' }} />}
+              {busy ? 'Working…' : (showServiceLogPrompt ? 'Complete & Skip Service Details' : meta.confirm)}
+            </button>
+          </div>
         </div>
       </div>
 

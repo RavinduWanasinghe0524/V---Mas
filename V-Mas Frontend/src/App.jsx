@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import React, { lazy, Suspense } from 'react'
 import logo from './assets/V-MAS Logo.svg'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthProvider'
@@ -101,32 +101,80 @@ const PageLoader = () => (
   </div>
 )
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Uncaught error:", error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          minHeight: '100vh', display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', background: '#070d1f',
+          color: '#fff', padding: 30, textAlign: 'center', fontFamily: 'sans-serif'
+        }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ef4444', marginBottom: 8 }}>
+            Page Rendering Error
+          </h2>
+          <p style={{ fontSize: '0.85rem', color: '#94a3b8', maxWidth: 540, margin: '0 0 24px', lineHeight: 1.5 }}>
+            {this.state.error?.message || String(this.state.error)}
+          </p>
+          <button
+            onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
+            style={{
+              padding: '12px 28px', borderRadius: 12, border: 'none',
+              background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+              color: '#fff', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(37,99,235,0.4)'
+            }}
+          >
+            Reload Page
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-      <Router>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/login"            element={<AuthPage />} />
-            <Route path="/signup"           element={<AuthPage />} />
-            <Route path="/dashboard"        element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-            <Route path="/users"            element={<PrivateRoute><UsersPage /></PrivateRoute>} />
-            <Route path="/profile"          element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-            <Route path="/vehicles"         element={<PrivateRoute><VehiclesPage /></PrivateRoute>} />
-            <Route path="/service"          element={<PrivateRoute><ServicePage /></PrivateRoute>} />
-            <Route path="/service/add"      element={<PrivateRoute><AddServicePage /></PrivateRoute>} />
-            <Route path="/service/edit/:id" element={<PrivateRoute><AddServicePage /></PrivateRoute>} />
-            <Route path="/fuel-analysis"    element={<PrivateRoute><FuelAnalysisPage /></PrivateRoute>} />
-            <Route path="/fuel-log"         element={<PrivateRoute><FuelLogPage /></PrivateRoute>} />
-            <Route path="/fuel-management"  element={<PrivateRoute><FuelManagementPage /></PrivateRoute>} />
-            <Route path="/location"         element={<PrivateRoute><LocationPage /></PrivateRoute>} />
-            <Route path="/reports"          element={<PrivateRoute><ReportsPage /></PrivateRoute>} />
-            <Route path="/jobs"             element={<PrivateRoute><TripsPage /></PrivateRoute>} />
-            <Route path="/"                 element={<Navigate to="/login" replace />} />
-          </Routes>
-        </Suspense>
-      </Router>
+        <Router>
+          <ErrorBoundary>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/login"            element={<AuthPage />} />
+                <Route path="/signup"           element={<AuthPage />} />
+                <Route path="/dashboard"        element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+                <Route path="/users"            element={<PrivateRoute><UsersPage /></PrivateRoute>} />
+                <Route path="/profile"          element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+                <Route path="/vehicles"         element={<PrivateRoute><VehiclesPage /></PrivateRoute>} />
+                <Route path="/service"          element={<PrivateRoute><ServicePage /></PrivateRoute>} />
+                <Route path="/service/add"      element={<PrivateRoute><AddServicePage /></PrivateRoute>} />
+                <Route path="/service/edit/:id" element={<PrivateRoute><AddServicePage /></PrivateRoute>} />
+                <Route path="/fuel-analysis"    element={<PrivateRoute><FuelAnalysisPage /></PrivateRoute>} />
+                <Route path="/fuel-log"         element={<PrivateRoute><FuelLogPage /></PrivateRoute>} />
+                <Route path="/fuel-management"  element={<PrivateRoute><FuelManagementPage /></PrivateRoute>} />
+                <Route path="/location"         element={<PrivateRoute><LocationPage /></PrivateRoute>} />
+                <Route path="/reports"          element={<PrivateRoute><ReportsPage /></PrivateRoute>} />
+                <Route path="/jobs"             element={<PrivateRoute><TripsPage /></PrivateRoute>} />
+                <Route path="/"                 element={<Navigate to="/login" replace />} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
+        </Router>
       </AuthProvider>
     </ThemeProvider>
   )

@@ -137,6 +137,7 @@ const SERVICE_TYPE_ICONS = {
 
 /* ── Status helpers ─────────────────────────────────────────────── */
 const getStatus = (s) => {
+  if (s.status === 'PENDING') return 'PENDING'   // driver-submitted, awaiting controller approval
   if (!s.serviceDate) return 'SCHEDULED'
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -146,11 +147,12 @@ const getStatus = (s) => {
 }
 
 const STATUS_CONFIG = {
-  ALL: { label: 'All', color: '#0d9488', bg: 'rgba(13,148,136,0.15)', border: 'rgba(13,148,136,0.3)' },
-  SCHEDULED: { label: 'Scheduled', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' },
-  COMPLETED: { label: 'Completed', color: '#10b981', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)' },
-  UPCOMING: { label: 'Upcoming', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' },
-  OVERDUE: { label: 'Overdue', color: '#ef4444', bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)' },
+  ALL:       { label: 'All',              color: '#0d9488', bg: 'rgba(13,148,136,0.15)',  border: 'rgba(13,148,136,0.3)'  },
+  SCHEDULED: { label: 'Scheduled',        color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' },
+  PENDING:   { label: 'Pending Approval', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' },
+  COMPLETED: { label: 'Completed',        color: '#10b981', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)' },
+  UPCOMING:  { label: 'Upcoming',         color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' },
+  OVERDUE:   { label: 'Overdue',          color: '#ef4444', bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.3)'  },
 }
 
 /* ── Check if a service record is the latest chronologically ── */
@@ -444,8 +446,8 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, isController, curre
   const serviceBgLight = isController ? (isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.08)') : (isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.08)')
   const serviceBorderLight = isController ? (isDark ? 'rgba(245,158,11,0.3)' : 'rgba(245,158,11,0.2)') : (isDark ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.2)')
 
-  // Drivers cannot edit or delete records
-  const canEdit = !isDriver
+  // Drivers can edit only their own PENDING records (awaiting controller approval)
+  const canEdit = !isDriver || (isDriver && record.status === 'PENDING' && record.createdBy === currentUsername)
   const canDelete = !isDriver
 
   return (
@@ -486,15 +488,28 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, isController, curre
             {record.serviceType?.replace(/_/g, ' ') || 'Service'}
           </span>
           {/* Status badge */}
-          <span style={{
-            padding: '2px 10px', borderRadius: 999,
-            fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            background: sc.bg, color: sc.color,
-            border: `1px solid ${sc.border}`,
-          }}>
-            {sc.label}
-          </span>
+          {record.status === 'PENDING' ? (
+            <span style={{
+              padding: '3px 12px', borderRadius: 999,
+              fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              background: 'rgba(245,158,11,0.15)', color: '#d97706',
+              border: '1px solid rgba(245,158,11,0.35)',
+              display: 'inline-flex', alignItems: 'center', gap: 5
+            }}>
+              <Clock size={11} /> PENDING APPROVAL
+            </span>
+          ) : (
+            <span style={{
+              padding: '2px 10px', borderRadius: 999,
+              fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              background: sc.bg, color: sc.color,
+              border: `1px solid ${sc.border}`,
+            }}>
+              {sc.label}
+            </span>
+          )}
           {/* Classification badge */}
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -512,8 +527,8 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, isController, curre
             }} />
             {record.serviceClassification === 'AD_HOC' ? 'Ad-hoc Repair' : 'Routine'}
           </span>
-          {/* Approval status badge */}
-          {(() => {
+          {/* Approval status badge (only for non-pending records) */}
+          {record.status !== 'PENDING' && (() => {
             const ab = approvalBadge(record.status, D);
             return (
               <span style={{
@@ -614,34 +629,35 @@ const ServiceListCard = ({ record, index, isDriver, isAdmin, isController, curre
       {((canEdit || canDelete) || (record.status === 'PENDING' && isController)) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
           {record.status === 'PENDING' && isController && (
-            <>
+            <div style={{ display: 'flex', gap: 6 }}>
               <button
                 onClick={e => { e.stopPropagation(); handleApproveService(record.id); }}
                 style={{
-                  padding: '6px 16px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
-                  background: D.greenDim, color: D.green,
-                  border: `1px solid ${D.green}30`, cursor: 'pointer',
-                  transition: 'all 0.15s',
+                  padding: '7px 14px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 800,
+                  background: 'linear-gradient(135deg, #059669, #10b981)', color: '#ffffff',
+                  border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                  boxShadow: '0 2px 8px rgba(16,185,129,0.3)',
+                  display: 'inline-flex', alignItems: 'center', gap: 5
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = D.green; e.currentTarget.style.color = '#fff' }}
-                onMouseLeave={e => { e.currentTarget.style.background = D.greenDim; e.currentTarget.style.color = D.green }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
               >
-                Approve
+                <Check size={13} /> Approve
               </button>
               <button
                 onClick={e => { e.stopPropagation(); handleRejectService(record.id); }}
                 style={{
-                  padding: '6px 16px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
-                  background: D.redDim, color: D.red,
-                  border: `1px solid ${D.red}30`, cursor: 'pointer',
-                  transition: 'all 0.15s',
+                  padding: '7px 14px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 800,
+                  background: 'rgba(239,68,68,0.12)', color: '#ef4444',
+                  border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer', transition: 'all 0.15s',
+                  display: 'inline-flex', alignItems: 'center', gap: 5
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
-                onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#fff' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; e.currentTarget.style.color = '#ef4444' }}
               >
-                Reject
+                <X size={13} /> Reject
               </button>
-            </>
+            </div>
           )}
           {canEdit && (
             <button
@@ -702,7 +718,8 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
   const btnShadow = isController ? 'rgba(245,158,11,0.35)' : 'rgba(37,99,235,0.35)'
 
   // Drivers and admins cannot edit or delete records
-  const canEdit = !isDriver && !isAdmin
+  // Drivers can edit only their own PENDING records (awaiting controller approval)
+  const canEdit = (!isDriver && !isAdmin) || (isDriver && record.status === 'PENDING' && record.createdBy === currentUsername)
   const canDelete = !isDriver && !isAdmin
 
   return (
@@ -773,27 +790,27 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
-          <div style={{
-            padding: '4px 10px', borderRadius: 999,
-            fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.05em',
-            background: sc.bg, color: sc.color,
-            textTransform: 'uppercase'
-          }}>
-            {sc.label}
-          </div>
-          {(() => {
-            const ab = approvalBadge(record.status, D);
-            return (
-              <div style={{
-                padding: '4px 10px', borderRadius: 999,
-                fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.05em',
-                background: ab.bg, color: ab.color,
-                textTransform: 'uppercase'
-              }}>
-                {ab.label}
-              </div>
-            )
-          })()}
+          {record.status === 'PENDING' ? (
+            <div style={{
+              padding: '4px 12px', borderRadius: 999,
+              fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em',
+              background: 'rgba(245,158,11,0.15)', color: '#d97706',
+              border: '1px solid rgba(245,158,11,0.35)',
+              textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 5
+            }}>
+              <Clock size={11} /> PENDING APPROVAL
+            </div>
+          ) : (
+            <div style={{
+              padding: '4px 10px', borderRadius: 999,
+              fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em',
+              background: sc.bg, color: sc.color,
+              border: `1px solid ${sc.border || 'transparent'}`,
+              textTransform: 'uppercase'
+            }}>
+              {sc.label}
+            </div>
+          )}
         </div>
       </div>
 
@@ -860,70 +877,135 @@ const ServiceGridCard = ({ record, index, isDriver, isAdmin, isController, curre
       </div>
 
 
-      {/* Actions — stop propagation so clicking buttons doesn't also open the detail modal */}
-      <div style={{ display: 'flex', gap: 8, marginTop: 12, borderTop: `1px solid ${D.border}`, paddingTop: 12 }}>
-        {record.status === 'PENDING' && isController && (
-          <>
+      {/* Actions */}
+      <div style={{ marginTop: 12, borderTop: `1px solid ${D.border}`, paddingTop: 12 }}>
+        {record.status === 'PENDING' && isController ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* Row 1: Controller Approval Controls */}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={e => { e.stopPropagation(); handleApproveService(record.id); }}
+                style={{
+                  flex: 1, padding: '9px 12px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 800,
+                  background: 'linear-gradient(135deg, #059669, #10b981)', color: '#ffffff',
+                  border: 'none', cursor: 'pointer', transition: 'all 0.18s ease',
+                  boxShadow: '0 4px 12px rgba(16,185,129,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  fontFamily: 'inherit'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(16,185,129,0.4)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(16,185,129,0.3)'; }}
+              >
+                <Check size={14} /> Approve
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); handleRejectService(record.id); }}
+                style={{
+                  flex: 1, padding: '9px 12px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 800,
+                  background: 'rgba(239,68,68,0.12)', color: '#ef4444',
+                  border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer', transition: 'all 0.18s ease',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  fontFamily: 'inherit'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#ffffff'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; e.currentTarget.style.color = '#ef4444'; }}
+              >
+                <X size={14} /> Reject
+              </button>
+            </div>
+
+            {/* Row 2: Details & Delete */}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={e => { e.stopPropagation(); onView(record) }}
+                style={{
+                  flex: 1, padding: '8px 12px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 800,
+                  background: btnGradient, color: '#ffffff',
+                  border: 'none', cursor: 'pointer', transition: 'all 0.18s ease',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  fontFamily: 'inherit', boxShadow: `0 4px 12px ${btnShadow}`
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = btnHoverGradient; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = btnGradient; e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                <Eye size={14} /> Details
+              </button>
+              {canDelete && (
+                <button
+                  onClick={e => { e.stopPropagation(); onDelete(record.id) }}
+                  style={{
+                    flex: 0.8, padding: '8px 12px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700,
+                    background: D.redDim, color: D.red, border: `1px solid rgba(239,68,68,0.25)`,
+                    cursor: 'pointer', transition: 'all 0.15s',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                    fontFamily: 'inherit'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
+                >
+                  <Trash2 size={13} /> Delete
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: 8 }}>
             <button
-              onClick={e => { e.stopPropagation(); handleApproveService(record.id); }}
+              onClick={e => { e.stopPropagation(); onView(record) }}
               style={{
-                flex: 1, padding: '10px 14px', borderRadius: 12, fontSize: '0.82rem', fontWeight: 800,
-                background: D.greenDim, color: D.green, border: `1px solid ${D.green}30`, cursor: 'pointer', transition: 'all 0.15s'
+                flex: 1, padding: '10px 14px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 800,
+                background: btnGradient, color: '#ffffff',
+                border: 'none', cursor: 'pointer', transition: 'all 0.22s ease',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                fontFamily: 'inherit', letterSpacing: '0.01em',
+                boxShadow: `0 4px 14px ${btnShadow}`,
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = D.green; e.currentTarget.style.color = '#fff' }}
-              onMouseLeave={e => { e.currentTarget.style.background = D.greenDim; e.currentTarget.style.color = D.green }}
-            >
-              Approve
-            </button>
-            <button
-              onClick={e => { e.stopPropagation(); handleRejectService(record.id); }}
-              style={{
-                flex: 1, padding: '10px 14px', borderRadius: 12, fontSize: '0.82rem', fontWeight: 800,
-                background: D.redDim, color: D.red, border: `1px solid ${D.red}30`, cursor: 'pointer', transition: 'all 0.15s'
+              onMouseEnter={e => {
+                e.currentTarget.style.background = btnHoverGradient
+                e.currentTarget.style.transform = 'translateY(-1px)'
+                e.currentTarget.style.boxShadow = `0 6px 20px ${btnShadow}`
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
-              onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = btnGradient
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = `0 4px 14px ${btnShadow}`
+              }}
             >
-              Reject
+              <Eye size={14} /> Details
             </button>
-          </>
-        )}
-        <button
-          onClick={e => { e.stopPropagation(); onView(record) }}
-          style={{
-            flex: 1, padding: '10px 14px', borderRadius: 12, fontSize: '0.82rem', fontWeight: 800,
-            background: btnGradient,
-            color: '#ffffff',
-            border: 'none', cursor: 'pointer', transition: 'all 0.22s ease',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            fontFamily: 'inherit', letterSpacing: '0.01em',
-            boxShadow: `0 4px 14px ${btnShadow}`,
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = btnHoverGradient
-            e.currentTarget.style.transform = 'translateY(-1px)'
-            e.currentTarget.style.boxShadow = `0 6px 20px ${btnShadow}`
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = btnGradient
-            e.currentTarget.style.transform = 'translateY(0)'
-            e.currentTarget.style.boxShadow = `0 4px 14px ${btnShadow}`
-          }}
-        >
-          <Eye size={14} /> Details
-        </button>
-        {canDelete && (
-          <button
-            onClick={e => { e.stopPropagation(); onDelete(record.id) }}
-            style={{
-              flex: 1, padding: '6px 0', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
-              background: D.redDim, color: D.red, border: `1px solid rgba(239,68,68,0.2)`, cursor: 'pointer', transition: 'all 0.15s'
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
-            onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
-          >
-            Delete
-          </button>
+            {canEdit && (
+              <button
+                onClick={e => { e.stopPropagation(); onEdit(record.id) }}
+                style={{
+                  flex: 1, padding: '10px 14px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700,
+                  background: serviceBgLight, color: serviceAccent,
+                  border: `1px solid ${serviceBorderLight}`, cursor: 'pointer', transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  fontFamily: 'inherit'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = serviceAccent; e.currentTarget.style.color = '#fff' }}
+                onMouseLeave={e => { e.currentTarget.style.background = serviceBgLight; e.currentTarget.style.color = serviceAccent }}
+              >
+                <Edit2 size={13} /> Edit
+              </button>
+            )}
+            {canDelete && (
+              <button
+                onClick={e => { e.stopPropagation(); onDelete(record.id) }}
+                style={{
+                  flex: 0.7, padding: '10px 14px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700,
+                  background: D.redDim, color: D.red, border: `1px solid rgba(239,68,68,0.25)`,
+                  cursor: 'pointer', transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                  fontFamily: 'inherit'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }}
+                onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}
+              >
+                <Trash2 size={13} /> Delete
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -1427,6 +1509,9 @@ const ServicePage = () => {
     } else {
       const lastMil = Math.max(baseMil, lastServiceMil)
       setPreviousMileage(lastMil > 0 ? lastMil : null)
+      if (lastMil > 0) {
+        setFormData(prev => ({ ...prev, currentMileageKm: String(lastMil) }))
+      }
     }
   }
 
@@ -1502,7 +1587,12 @@ const ServicePage = () => {
     if (isAdmin) return
     const isEvent = prefill && (prefill.nativeEvent || prefill.target)
     const actualPrefill = isEvent ? {} : prefill
-    const regNo = actualPrefill.vehicleRegNumber || ''
+    let regNo = actualPrefill.vehicleRegNumber || ''
+
+    if (!regNo && isDriver) {
+      const driverVehicle = allVehicles.find(v => v.driverUsername === user?.userName)
+      if (driverVehicle) regNo = driverVehicle.registrationNo
+    }
 
     const todayLocalStr = (() => {
       const d = new Date()
@@ -1512,11 +1602,23 @@ const ServicePage = () => {
       return `${year}-${month}-${day}`
     })()
 
+    let prefillMil = actualPrefill.currentMileageKm || ''
+    if (!prefillMil && regNo) {
+      const vehicleObj = allVehicles.find(v => v.registrationNo === regNo)
+      const baseMil = Number(vehicleObj?.currentMileageKm || 0)
+      const vehicleServices = services.filter(s => s.vehicleRegNumber === regNo && s.currentMileageKm && getStatus(s) !== 'SCHEDULED')
+      vehicleServices.sort((a, b) => Number(b.currentMileageKm) - Number(a.currentMileageKm))
+      const lastServiceMil = vehicleServices.length > 0 ? Number(vehicleServices[0].currentMileageKm) : 0
+      const lastMil = Math.max(baseMil, lastServiceMil)
+      if (lastMil > 0) prefillMil = String(lastMil)
+    }
+
     setFormData({
       ...initialForm,
       serviceDate: todayLocalStr,
       ...actualPrefill,
       vehicleRegNumber: regNo,
+      currentMileageKm: prefillMil,
     })
     setErrors({})
     setSubmitError(null)
@@ -1663,7 +1765,9 @@ const ServicePage = () => {
       const payload = {
         ...formData,
         nextServiceDue: formData.nextServiceDue ? formData.nextServiceDue : null,
-        nextServiceMileageKm: formData.nextServiceMileageKm ? Number(formData.nextServiceMileageKm) : null
+        nextServiceMileageKm: formData.nextServiceMileageKm ? Number(formData.nextServiceMileageKm) : null,
+        // Driver submissions must wait for controller approval before being committed
+        ...(isDriver ? { status: 'PENDING' } : {}),
       }
       let res;
       if (formData.id) {
@@ -1680,21 +1784,34 @@ const ServicePage = () => {
           showToast('Record saved but attachment upload failed.', 'error')
         }
       } else if (!addAttachmentFile) {
-        const msg = `Service record added for ${formData.vehicleRegNumber} without a bill attached.`
-
-        // Save to backend so all controllers see it
-        await notificationAPI.create({
-          vehicleRegNumber: `VEH-${formData.vehicleRegNumber}`,
-          message: msg,
-          type: 'WARNING'
-        }).catch(() => { }) // non-fatal
-
-        // Still fire local events for immediate UI update
-        addControllerNotification(msg, 'WARNING', '/service')
-        if (isDriver) addDriverNotification(msg, 'WARNING', '/service')
+        if (isDriver) {
+          // Driver submitted for approval — notify controllers
+          const approvalMsg = `Driver ${user?.userName} submitted a service record for ${formData.vehicleRegNumber} (${formData.serviceType}) — awaiting your approval.`
+          await notificationAPI.create({
+            vehicleRegNumber: `VEH-${formData.vehicleRegNumber}`,
+            message: approvalMsg,
+            type: 'INFO'
+          }).catch(() => { })
+          addControllerNotification(approvalMsg, 'INFO', '/service')
+        } else {
+          // Controller/Admin: existing no-bill warning
+          const msg = `Service record added for ${formData.vehicleRegNumber} without a bill attached.`
+          await notificationAPI.create({
+            vehicleRegNumber: `VEH-${formData.vehicleRegNumber}`,
+            message: msg,
+            type: 'WARNING'
+          }).catch(() => { })
+          addControllerNotification(msg, 'WARNING', '/service')
+        }
       }
       setIsAddModalOpen(false)
       loadData()
+      showToast(
+        isDriver
+          ? 'Service details submitted for controller approval!'
+          : 'Service record added successfully!',
+        'success'
+      )
       // From the dashboard Quick Command: return to the controller dashboard after adding the record.
       if (fromQuickCommand) {
         setFromQuickCommand(false)
@@ -1850,10 +1967,13 @@ const ServicePage = () => {
         // Find driver's assigned vehicle using driverUsername
         const driverVehicle = loadedVehicles.find(v => v.driverUsername === user?.userName)
 
-        // Filter services for the assigned vehicle only
-        const filteredServices = driverVehicle
+        // All services for the assigned vehicle (used for alert computation)
+        const vehicleServices = driverVehicle
           ? loadedServices.filter(s => s.vehicleRegNumber === driverVehicle.registrationNo)
           : []
+
+        // Only show records this driver personally submitted
+        const filteredServices = loadedServices.filter(s => s.createdBy === user?.userName)
 
         setServices(filteredServices)
         setStats(statsRes?.data?.data || null)
@@ -1862,13 +1982,13 @@ const ServicePage = () => {
         setIntervals(loadedIntervals)
         setLocalIntervals(loadedIntervals)
 
-        // Compute alert records ONLY for the assigned vehicle
+        // Compute alert records ONLY for the assigned vehicle (uses full vehicle history)
         const alerts = []
         if (driverVehicle && !driverVehicle.isDeleted) {
-          const milestones = getVehicleMilestones(driverVehicle, filteredServices, loadedIntervals)
+          const milestones = getVehicleMilestones(driverVehicle, vehicleServices, loadedIntervals)
           milestones.forEach(m => {
             if (m.status === 'OVERDUE' || m.status === 'DUE_SOON') {
-              const completed = filteredServices.filter(s =>
+              const completed = vehicleServices.filter(s =>
                 s.vehicleRegNumber === driverVehicle.registrationNo &&
                 s.serviceType === m.serviceType &&
                 getStatus(s) === 'COMPLETED'
@@ -2361,6 +2481,8 @@ const ServicePage = () => {
       if (getTableStatus(s) !== 'In Progress') return false
     } else if (filter === 'Completed') {
       if (getTableStatus(s) !== 'Completed') return false
+    } else if (filter === 'PENDING') {
+      if (s.status !== 'PENDING') return false
     } else if (filter !== 'ALL' && getStatus(s) !== filter) {
       return false
     }
@@ -2689,10 +2811,19 @@ const ServicePage = () => {
                   if (mileage) {
                     progressPct = Math.min(mileage.pct, 100)
                     remainingText = fmtKmRemaining(mileage.remaining)
+                  } else if (r.remainingKm != null) {
+                    remainingText = fmtKmRemaining(r.remainingKm)
+                    const nextKm = Number(r.nextServiceMileageKm || 0)
+                    const lastKm = Number(r.currentMileageKm || 0)
+                    const interval = nextKm > lastKm ? nextKm - lastKm : nextKm
+                    const driven = Math.max(0, Number(r._vehicleCurrentKm || 0) - lastKm)
+                    progressPct = interval > 0 ? Math.min((driven / interval) * 100, 100) : 100
                   } else if (date) {
                     progressPct = Math.max(0, Math.min(100, (30 - date.daysRemaining) / 30 * 100))
                     remainingText = fmtDaysRemaining(date.daysRemaining)
                   }
+
+                  const isMileageOverdue = (mileage && mileage.remaining < 0) || (r.remainingKm != null && r.remainingKm < 0)
 
                   return (
                     <div
@@ -2768,22 +2899,24 @@ const ServicePage = () => {
                         </h4>
                         <p style={{
                           margin: 0,
-                          fontSize: '0.78rem',
-                          color: (mileage && mileage.remaining < 0) || (date && date.daysRemaining < 0) ? '#f87171' : D.textSub,
-                          fontWeight: (mileage && mileage.remaining < 0) || (date && date.daysRemaining < 0) ? 700 : 500,
+                          fontSize: '0.82rem',
+                          color: isMileageOverdue || (date && date.daysRemaining < 0) ? '#f87171' : D.textSub,
+                          fontWeight: isMileageOverdue || (date && date.daysRemaining < 0) ? 800 : 500,
                           display: '-webkit-box',
                           WebkitLineClamp: 1,
                           WebkitBoxOrient: 'vertical',
                           overflow: 'hidden'
                         }}>
-                          {r.description && !/initial service milestone/i.test(r.description)
-                            ? r.description
-                            : (remainingText || (r.nextServiceMileageKm ? `Next due at ${Number(r.nextServiceMileageKm).toLocaleString()} km` : 'Service Milestone'))}
+                          {isMileageOverdue
+                            ? remainingText
+                            : (r.nextServiceMileageKm
+                                ? `Next due at ${Number(r.nextServiceMileageKm).toLocaleString()} km`
+                                : (r.description && !/initial service milestone/i.test(r.description) ? r.description : 'Service Milestone'))}
                         </p>
                       </div>
 
                       {/* Progress bar / remaining info */}
-                      {(mileage || date) && (
+                      {(mileage || date || r.remainingKm != null) && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '2px 0' }}>
                           <div style={{ height: 6, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 999, overflow: 'hidden' }}>
                             <div style={{
@@ -2795,8 +2928,8 @@ const ServicePage = () => {
                             }} />
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: accentColor }}>
-                              {remainingText}
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: accentColor }}>
+                              {isMileageOverdue ? '' : remainingText}
                             </span>
                             {mileage && date && (
                               <span style={{ fontSize: '0.7rem', color: D.textSub, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -3653,6 +3786,7 @@ const ServicePage = () => {
                               <option value="ALL">All Status</option>
                               <option value="Open">Open</option>
                               <option value="In Progress">In Progress</option>
+                              <option value="PENDING">Pending Approval</option>
                               <option value="Overdue">Overdue</option>
                               <option value="Completed">Done</option>
                             </select>
@@ -4852,27 +4986,27 @@ const ServicePage = () => {
                     </button>
                   </>
                 )}
-                {/* Driver: only show Edit if they created this record */}
-                {isDriver && !r._isPseudo && r.createdBy === user?.userName && (
+                {/* Driver: only show Edit if they created this record AND it's still PENDING (awaiting approval) */}
+                {isDriver && !r._isPseudo && r.status === 'PENDING' && r.createdBy === user?.userName && (
                   <button
                     onClick={() => { closeDetail(); openEditModal(r.id) }}
                     style={{
                       flex: 1, padding: '10px 0', borderRadius: 10, border: 'none',
-                      background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
+                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                       color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                      boxShadow: '0 4px 14px var(--primary-glow)', transition: 'all 0.2s',
+                      boxShadow: '0 4px 14px rgba(245,158,11,0.4)', transition: 'all 0.2s',
                     }}
                     onMouseEnter={e => {
                       e.currentTarget.style.transform = 'translateY(-1px)'
-                      e.currentTarget.style.boxShadow = '0 6px 20px var(--primary-glow)'
+                      e.currentTarget.style.boxShadow = '0 6px 20px rgba(245,158,11,0.5)'
                     }}
                     onMouseLeave={e => {
                       e.currentTarget.style.transform = 'translateY(0)'
-                      e.currentTarget.style.boxShadow = '0 4px 14px var(--primary-glow)'
+                      e.currentTarget.style.boxShadow = '0 4px 14px rgba(245,158,11,0.4)'
                     }}
                   >
-                    <Edit2 size={15} /> Edit Record
+                    <Edit2 size={15} /> Edit Pending Record
                   </button>
                 )}
                 {r._isPseudo && !isAdmin && (
@@ -4949,6 +5083,30 @@ const ServicePage = () => {
             )}
 
             <form onSubmit={handleAddSubmit} style={{ padding: '24px 28px', overflowY: 'auto', flex: 1 }} noValidate>
+
+              {/* ─── Driver Approval Notice Banner ─── */}
+              {isDriver && (
+                <div style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 12,
+                  background: 'rgba(245,158,11,0.1)',
+                  border: '1.5px solid rgba(245,158,11,0.35)',
+                  borderRadius: 12, padding: '12px 16px', marginBottom: 20,
+                }}>
+                  <div style={{
+                    flexShrink: 0, width: 34, height: 34, borderRadius: 9,
+                    background: 'rgba(245,158,11,0.18)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Clock size={17} color="#f59e0b" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#d97706', marginBottom: 3 }}>Requires Controller Approval</div>
+                    <div style={{ fontSize: '0.76rem', color: '#92400e', lineHeight: 1.5, fontWeight: 500 }}>
+                      Your service details will be submitted for review. A Fleet Controller must approve this record before it is committed to the system.
+                    </div>
+                  </div>
+                </div>
+              )}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: D.textSub }}>Vehicle & Service Details</span>
                 <div style={{ flex: 1, height: 1, background: D.border }} />
@@ -5193,8 +5351,8 @@ const ServicePage = () => {
               </div>
 
               <div style={{ display: 'flex', gap: 12 }}>
-                <button type="submit" disabled={formLoading} style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: formLoading ? 'rgba(0,0,0,0.3)' : 'linear-gradient(135deg, var(--primary), var(--primary-dark))', color: '#fff', cursor: formLoading ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: formLoading ? 'none' : '0 4px 16px var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                  {formLoading ? 'Saving...' : <><Check size={16} /> Add Record</>}
+                <button type="submit" disabled={formLoading} style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: formLoading ? 'rgba(0,0,0,0.3)' : isDriver ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, var(--primary), var(--primary-dark))', color: '#fff', cursor: formLoading ? 'not-allowed' : 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: formLoading ? 'none' : isDriver ? '0 4px 16px rgba(245,158,11,0.4)' : '0 4px 16px var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  {formLoading ? 'Submitting...' : isDriver ? <><Clock size={16} /> Submit for Approval</> : <><Check size={16} /> Add Record</>}
                 </button>
                 <button type="button" onClick={closeAddModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'transparent', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}
                   onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}

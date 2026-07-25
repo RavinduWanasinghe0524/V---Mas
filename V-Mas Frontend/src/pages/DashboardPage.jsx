@@ -2188,9 +2188,6 @@ const DashboardPage = () => {
                       <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                         Good day, {user?.userName}!
                       </h1>
-                      <span style={{ background: 'var(--primary-light)', color: '#fff', padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: '1px solid var(--border)' }}>
-                        {roleLabel[user?.role] || user?.role}
-                      </span>
                       {user?.role === 'DRIVER' && user?.accountStatus && (() => {
                         const st = (user.accountStatus || '').toUpperCase()
                         const meta = {
