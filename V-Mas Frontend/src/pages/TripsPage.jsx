@@ -8,7 +8,7 @@ import { tripAPI, userAPI, vehicleAPI, serviceAPI, notificationAPI } from '../se
 import {
   MapPin, Navigation, Car, User, Calendar, Plus, Loader2,
   Play, X, CheckCircle, Ban, Clock, MoreVertical, ClipboardList, Wrench, Fuel, AlertTriangle, UserCheck,
-  Trash2, Archive, Paperclip, Check, FileText, Eye, Gauge, DollarSign, Edit2
+  Trash2, Archive, Paperclip, Check, FileText, Eye, Gauge, DollarSign, Edit2, ChevronDown, ChevronUp
 } from 'lucide-react'
 
 // ── Helpers to parse job type from purpose field ──────────────────────────
@@ -38,13 +38,17 @@ const hasAnyServiceRecordForTrip = (trip, allServices) => {
   const matchedType = SERVICE_TYPES.find(t => t.label.toLowerCase() === cleanP.toLowerCase())?.value
 
   return (allServices || []).some(serv => {
-    if (!serv || serv.isDeleted) return false
+    if (!serv || serv.isDeleted || serv.deleted) return false
     const servReg = (serv.vehicleRegNumber || '').replace(/^VEH-/i, '').trim().toUpperCase()
     if (servReg !== tripReg) return false
 
-    if (matchedType && serv.serviceType === matchedType) return true
-    if (serv.createdBy && trip.driverUsername && serv.createdBy.toLowerCase() === trip.driverUsername.toLowerCase()) return true
-    return false
+    if (matchedType) {
+      return serv.serviceType === matchedType
+    }
+    if (cleanP && serv.serviceTypeDetail) {
+      return serv.serviceTypeDetail.toLowerCase() === cleanP.toLowerCase()
+    }
+    return serv.createdBy && trip.driverUsername && serv.createdBy.toLowerCase() === trip.driverUsername.toLowerCase()
   })
 }
 
@@ -201,6 +205,11 @@ const TripsPage = () => {
   const [serviceLogError, setServiceLogError] = useState(null)
   const [vehicleCurrentMileage, setVehicleCurrentMileage] = useState(null) // fetched on modal open
   const [pendingDetailModal, setPendingDetailModal] = useState(null) // service record object when viewing details
+  const [expandedServices, setExpandedServices] = useState({}) // { [serviceId]: boolean }
+
+  const toggleServiceExpand = (id) => {
+    setExpandedServices(prev => ({ ...prev, [id]: !prev[id] }))
+  }
 
   const flash = (type, text) => {
     setBanner({ type, text })
@@ -780,11 +789,28 @@ const TripsPage = () => {
                   FUEL: { icon: <Fuel size={20} color={D.green} />, bg: D.greenDim, label: 'Fuel' },
                 }[type] || { icon: <Navigation size={20} color={D.blue} />, bg: D.blueDim, label: 'Trip' }
 
-                const pendingServices = allServices.filter(serv =>
-                  serv.status === 'PENDING' &&
-                  serv.vehicleRegNumber === trip.vehicleRegNumber &&
-                  (type === 'SERVICE' || !serv.createdBy || serv.createdBy === trip.driverUsername)
-                )
+                const jobServices = (allServices || []).filter(serv => {
+                  if (!serv || serv.deleted || serv.isDeleted) return false
+                  const servReg = (serv.vehicleRegNumber || '').replace(/^VEH-/i, '').trim().toUpperCase()
+                  const tripReg = (trip.vehicleRegNumber || '').replace(/^VEH-/i, '').trim().toUpperCase()
+                  if (servReg !== tripReg) return false
+
+                  const cleanP = getCleanPurpose(trip.purpose)
+                  const matchedType = SERVICE_TYPES.find(t => t.label.toLowerCase() === cleanP.toLowerCase())?.value
+
+                  if (type === 'SERVICE') {
+                    if (matchedType) {
+                      return serv.serviceType === matchedType
+                    }
+                    if (cleanP && serv.serviceTypeDetail) {
+                      return serv.serviceTypeDetail.toLowerCase() === cleanP.toLowerCase()
+                    }
+                    return serv.createdBy && trip.driverUsername && serv.createdBy.toLowerCase() === trip.driverUsername.toLowerCase()
+                  }
+                  return false
+                })
+
+                const isAnyServiceExpanded = jobServices.length > 0 && jobServices.some(s => expandedServices[s.id])
 
                 return (
                   <div key={trip.id} style={{ display: 'flex', flexDirection: 'column', padding: '20px 32px', borderBottom: i < filteredTrips.length - 1 ? `1px solid ${D.border}` : 'none', transition: 'background 0.18s' }}
@@ -818,7 +844,28 @@ const TripsPage = () => {
                       <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '5px 12px', borderRadius: 999, background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`, textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{badge.label}</span>
 
                       {/* Actions */}
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginLeft: 'auto' }}>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginLeft: 'auto', alignItems: 'center' }}>
+                        {/* View Service Details Button directly on Job Row when service record exists */}
+                        {jobServices.length > 0 && (
+                          <ActionBtn
+                            onClick={() => {
+                              const next = !isAnyServiceExpanded
+                              setExpandedServices(prev => {
+                                const copy = { ...prev }
+                                jobServices.forEach(s => { copy[s.id] = next })
+                                return copy
+                              })
+                            }}
+                            disabled={busy}
+                            bg={isAnyServiceExpanded ? D.surfaceHi : 'rgba(16,185,129,0.12)'}
+                            color={isAnyServiceExpanded ? D.text : '#059669'}
+                            border="1px solid rgba(16,185,129,0.35)"
+                            icon={isAnyServiceExpanded ? <ChevronUp size={14} /> : <Wrench size={14} />}
+                          >
+                            {isAnyServiceExpanded ? 'Hide Service Details' : 'View Service Details'}
+                          </ActionBtn>
+                        )}
+
                         {/* Driver */}
                         {!canManage && s === 'ASSIGNED' && (
                           <>
@@ -878,164 +925,262 @@ const TripsPage = () => {
                       </div>
                     </div>
 
-                    {/* Pending Service Approval Cards */}
-                    {pendingServices.map(pending => {
-                      const typeLabel = pending.serviceTypeDetail || SERVICE_TYPES.find(t => t.value === pending.serviceType)?.label || pending.serviceType
-                      const vehicleObj = vehicles.find(v => v.registrationNo === pending.vehicleRegNumber)
+                    {/* Service Record Cards */}
+                    {jobServices.map(serv => {
+                      const typeLabel = serv.serviceTypeDetail || SERVICE_TYPES.find(t => t.value === serv.serviceType)?.label || serv.serviceType
+                      const vehicleObj = vehicles.find(v => v.registrationNo === serv.vehicleRegNumber)
+                      const isDriverAuthor = serv.createdBy && trip.driverUsername && serv.createdBy.toLowerCase() === trip.driverUsername.toLowerCase()
+                      const isCurrentUserAuthor = serv.createdBy && user?.userName && serv.createdBy.toLowerCase() === user.userName.toLowerCase()
+                      const isPending = serv.status === 'PENDING'
+
+                      // Controller view or Driver view who created the record: show full details when expanded
+                      const showFullDetails = canManage || isDriverAuthor || isCurrentUserAuthor
+                      const isExpanded = !!expandedServices[serv.id]
+
+                      if (!isExpanded) return null
 
                       return (
-                        <div key={pending.id} style={{
-                          marginTop: 16, borderRadius: 20, padding: '20px 24px',
-                          background: isDark ? 'rgba(245,158,11,0.06)' : 'rgba(245,158,11,0.04)',
-                          border: '1.5px solid rgba(245,158,11,0.3)',
+                        <div key={serv.id} style={{
+                          marginTop: 16, borderRadius: 20, padding: '16px 24px',
+                          background: isDark
+                            ? (isPending ? 'rgba(245,158,11,0.06)' : 'rgba(16,185,129,0.06)')
+                            : (isPending ? 'rgba(245,158,11,0.04)' : 'rgba(16,185,129,0.04)'),
+                          border: isPending
+                            ? '1.5px solid rgba(245,158,11,0.3)'
+                            : '1.5px solid rgba(16,185,129,0.3)',
                           boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-                          display: 'flex', flexDirection: 'column', gap: 14
+                          display: 'flex', flexDirection: 'column', gap: isExpanded ? 14 : 0
                         }}>
                           {/* Title & Badges */}
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                              <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(245,158,11,0.18)', border: '1px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', flexShrink: 0 }}>
-                                <Wrench size={20} />
+                              <div style={{
+                                width: 40, height: 40, borderRadius: 12,
+                                background: isPending ? 'rgba(245,158,11,0.18)' : 'rgba(16,185,129,0.18)',
+                                border: isPending ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(16,185,129,0.3)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                color: isPending ? '#d97706' : '#059669', flexShrink: 0
+                              }}>
+                                <Wrench size={18} />
                               </div>
                               <div>
-                                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: '#d97706', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em' }}>
+                                <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 900, color: isPending ? '#d97706' : D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em' }}>
                                   {typeLabel}
                                 </h4>
-                                <div style={{ fontSize: '0.78rem', color: D.textSub, marginTop: 2 }}>
-                                  <strong>{pending.vehicleRegNumber}</strong> {vehicleObj?.model ? `— ${vehicleObj.model}` : ''}
-                                  {pending.createdBy && <span> · By <strong>{pending.createdBy}</strong></span>}
+                                <div style={{ fontSize: '0.76rem', color: D.textSub, marginTop: 2 }}>
+                                  <strong>{serv.vehicleRegNumber}</strong> {vehicleObj?.model ? `— ${vehicleObj.model}` : ''}
+                                  {serv.createdBy && <span> · By <strong>{serv.createdBy}</strong></span>}
                                 </div>
                               </div>
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '4px 12px', borderRadius: 999, background: 'rgba(245,158,11,0.15)', color: '#d97706', border: '1px solid rgba(245,158,11,0.35)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <Clock size={11} /> PENDING APPROVAL
-                              </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              {isPending ? (
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '4px 12px', borderRadius: 999, background: 'rgba(245,158,11,0.15)', color: '#d97706', border: '1px solid rgba(245,158,11,0.35)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Clock size={11} /> PENDING APPROVAL
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '4px 12px', borderRadius: 999, background: 'rgba(16,185,129,0.15)', color: '#059669', border: '1px solid rgba(16,185,129,0.35)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <CheckCircle size={11} /> {showFullDetails ? 'APPROVED' : 'COMPLETED BY CONTROLLER'}
+                                </span>
+                              )}
                             </div>
                           </div>
 
-                          {/* Info Cards Row */}
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12 }}>
-                            <div style={{ background: D.surfaceHi, borderRadius: 12, padding: '10px 14px', border: `1px solid ${D.border}` }}>
-                              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <Calendar size={12} color="#d97706" /> Service Date
-                              </div>
-                              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text }}>
-                                {fmtDate(pending.serviceDate)}
-                              </div>
-                            </div>
+                          {/* Expanded Content Body */}
+                          {isExpanded && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 14, borderTop: `1px solid ${D.border}` }}>
+                              {showFullDetails ? (
+                                <>
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12 }}>
+                                    <div style={{ background: D.surfaceHi, borderRadius: 12, padding: '10px 14px', border: `1px solid ${D.border}` }}>
+                                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                        <Calendar size={12} color="#d97706" /> Service Date
+                                      </div>
+                                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text }}>
+                                        {fmtDate(serv.serviceDate)}
+                                      </div>
+                                    </div>
 
-                            <div style={{ background: D.surfaceHi, borderRadius: 12, padding: '10px 14px', border: `1px solid ${D.border}` }}>
-                              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <Gauge size={12} color="#d97706" /> Mileage
-                              </div>
-                              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text }}>
-                                {Number(pending.currentMileageKm || 0).toLocaleString()} km
-                              </div>
-                            </div>
+                                    <div style={{ background: D.surfaceHi, borderRadius: 12, padding: '10px 14px', border: `1px solid ${D.border}` }}>
+                                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                        <Gauge size={12} color="#d97706" /> Mileage
+                                      </div>
+                                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text }}>
+                                        {Number(serv.currentMileageKm || 0).toLocaleString()} km
+                                      </div>
+                                    </div>
 
-                            <div style={{ background: D.surfaceHi, borderRadius: 12, padding: '10px 14px', border: `1px solid ${D.border}` }}>
-                              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <DollarSign size={12} color="#d97706" /> Cost
-                              </div>
-                              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text }}>
-                                Rs. {Number(pending.serviceCost || 0).toLocaleString()}
-                              </div>
-                            </div>
-                          </div>
+                                    <div style={{ background: D.surfaceHi, borderRadius: 12, padding: '10px 14px', border: `1px solid ${D.border}` }}>
+                                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                        <DollarSign size={12} color="#d97706" /> Cost / Price
+                                      </div>
+                                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text }}>
+                                        Rs. {Number(serv.serviceCost || 0).toLocaleString()}
+                                      </div>
+                                    </div>
+                                  </div>
 
-                          {/* Workshop */}
-                          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub, display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <Wrench size={14} color="#d97706" /> {pending.technicianWorkshop || 'N/A'}
-                          </div>
+                                  {/* Workshop */}
+                                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <Wrench size={14} color="#d97706" /> <strong>Technician/Workshop:</strong> {serv.technicianWorkshop || 'N/A'}
+                                  </div>
 
-                          {/* Actions (Controller: Approve, Reject, Details, Delete) */}
-                          {canManage ? (
-                            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', paddingTop: 6, borderTop: `1px solid ${D.border}` }}>
-                              <button
-                                onClick={() => handleApproveServiceInTrips(pending.id)}
-                                disabled={busyId === pending.id}
-                                style={{
-                                  padding: '9px 20px', borderRadius: 12, border: '1px solid rgba(16,185,129,0.4)',
-                                  background: 'rgba(16,185,129,0.12)', color: '#059669',
-                                  fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s',
-                                  display: 'flex', alignItems: 'center', gap: 6
-                                }}
-                                onMouseEnter={e => { e.currentTarget.style.background = '#10b981'; e.currentTarget.style.color = '#fff'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.12)'; e.currentTarget.style.color = '#059669'; }}
-                              >
-                                {busyId === pending.id ? <Loader2 size={15} className="spin" /> : <Check size={15} />}
-                                Approve
-                              </button>
+                                  {/* Service Record Description / Notes entered by driver */}
+                                  {serv.description && (
+                                    <div style={{ background: D.surfaceHi, padding: '12px 16px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                                      <div style={{ fontSize: '0.7rem', color: D.textSub, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
+                                        Description / Notes
+                                      </div>
+                                      <div style={{ fontSize: '0.85rem', color: D.text, lineHeight: 1.5 }}>
+                                        {serv.description}
+                                      </div>
+                                    </div>
+                                  )}
 
-                              <button
-                                onClick={() => handleRejectServiceInTrips(pending.id)}
-                                disabled={busyId === pending.id}
-                                style={{
-                                  padding: '9px 20px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.3)',
-                                  background: 'rgba(239,68,68,0.1)', color: '#ef4444',
-                                  fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s',
-                                  display: 'flex', alignItems: 'center', gap: 6
-                                }}
-                                onMouseEnter={e => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#fff'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#ef4444'; }}
-                              >
-                                {busyId === pending.id ? <Loader2 size={15} className="spin" /> : <X size={15} />}
-                                Reject
-                              </button>
+                                  {/* Next Service Due */}
+                                  {(serv.nextServiceDue || serv.nextServiceMileageKm) && (
+                                    <div style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <Calendar size={13} color="#3b82f6" />
+                                      <span>
+                                        Next Service Due: <strong>{serv.nextServiceDue ? fmtDate(serv.nextServiceDue) : 'N/A'}</strong>
+                                        {serv.nextServiceMileageKm ? ` at ${Number(serv.nextServiceMileageKm).toLocaleString()} km` : ''}
+                                      </span>
+                                    </div>
+                                  )}
 
-                              <button
-                                onClick={() => setPendingDetailModal(pending)}
-                                style={{
-                                  padding: '9px 20px', borderRadius: 12, border: 'none',
-                                  background: '#d97706', color: '#ffffff',
-                                  fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s',
-                                  boxShadow: '0 4px 12px rgba(217,119,6,0.3)',
-                                  display: 'flex', alignItems: 'center', gap: 6
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#b45309'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#d97706'}
-                              >
-                                <Eye size={15} /> Details
-                              </button>
+                                  {/* Attachment button if uploaded */}
+                                  {serv.attachmentPath && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 4 }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleViewAttachmentInTrips(serv)}
+                                        style={{
+                                          padding: '6px 14px', borderRadius: 10, background: 'rgba(59,130,246,0.12)',
+                                          border: '1px solid rgba(59,130,246,0.3)', color: '#3b82f6',
+                                          fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6
+                                        }}
+                                      >
+                                        <Paperclip size={13} /> View Receipt Attachment
+                                      </button>
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                /* Basic / Enough Service Details for Driver when Controller filled record */
+                                <div style={{ background: D.surfaceHi, padding: '14px 16px', borderRadius: 14, border: `1px solid ${D.border}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: D.text }}>
+                                      Service Date: <strong>{fmtDate(serv.serviceDate)}</strong>
+                                    </div>
+                                    <div style={{ fontSize: '0.78rem', color: D.textSub }}>
+                                      Vehicle: <strong>{serv.vehicleRegNumber}</strong>
+                                    </div>
+                                  </div>
+                                  <div style={{ fontSize: '0.78rem', color: D.textSub, fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <CheckCircle size={13} color="#10b981" /> Service record details completed by Fleet Controller.
+                                  </div>
+                                </div>
+                              )}
 
-                              <button
-                                onClick={() => handleDeleteServiceInTrips(pending.id)}
-                                disabled={busyId === pending.id}
-                                style={{
-                                  padding: '9px 20px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.3)',
-                                  background: 'rgba(239,68,68,0.1)', color: '#ef4444',
-                                  fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s',
-                                  display: 'flex', alignItems: 'center', gap: 6
-                                }}
-                                onMouseEnter={e => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#fff'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#ef4444'; }}
-                              >
-                                {busyId === pending.id ? <Loader2 size={15} className="spin" /> : <Trash2 size={15} />}
-                                Delete
-                              </button>
-                            </div>
-                          ) : (
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, paddingTop: 6, borderTop: `1px solid ${D.border}` }}>
-                              <div style={{ fontSize: '0.8rem', color: '#d97706', fontWeight: 700, fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <Clock size={14} /> Submitted &amp; awaiting Fleet Controller approval.
-                              </div>
-                              {pending.createdBy === user?.userName && (
-                                <button
-                                  onClick={() => openEditServiceLog(pending, trip)}
-                                  style={{
-                                    padding: '8px 16px', borderRadius: 10, border: 'none',
-                                    background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                                    color: '#ffffff', fontSize: '0.82rem', fontWeight: 800,
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-                                    boxShadow: '0 4px 12px rgba(245,158,11,0.35)', transition: 'all 0.15s'
-                                  }}
-                                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)' }}
-                                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
-                                >
-                                  <Edit2 size={14} /> Edit Pending Details
-                                </button>
+                              {/* Actions (Controller vs Driver) */}
+                              {canManage ? (
+                                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', paddingTop: 6, borderTop: `1px solid ${D.border}` }}>
+                                  {isPending && (
+                                    <>
+                                      <button
+                                        onClick={() => handleApproveServiceInTrips(serv.id)}
+                                        disabled={busyId === serv.id}
+                                        style={{
+                                          padding: '9px 20px', borderRadius: 12, border: '1px solid rgba(16,185,129,0.4)',
+                                          background: 'rgba(16,185,129,0.12)', color: '#059669',
+                                          fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s',
+                                          display: 'flex', alignItems: 'center', gap: 6
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = '#10b981'; e.currentTarget.style.color = '#fff'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.12)'; e.currentTarget.style.color = '#059669'; }}
+                                      >
+                                        {busyId === serv.id ? <Loader2 size={15} className="spin" /> : <Check size={15} />}
+                                        Approve
+                                      </button>
+
+                                      <button
+                                        onClick={() => handleRejectServiceInTrips(serv.id)}
+                                        disabled={busyId === serv.id}
+                                        style={{
+                                          padding: '9px 20px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.3)',
+                                          background: 'rgba(239,68,68,0.1)', color: '#ef4444',
+                                          fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s',
+                                          display: 'flex', alignItems: 'center', gap: 6
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#fff'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#ef4444'; }}
+                                      >
+                                        {busyId === serv.id ? <Loader2 size={15} className="spin" /> : <X size={15} />}
+                                        Reject
+                                      </button>
+                                    </>
+                                  )}
+
+                                  <button
+                                    onClick={() => setPendingDetailModal(serv)}
+                                    style={{
+                                      padding: '9px 20px', borderRadius: 12, border: 'none',
+                                      background: '#d97706', color: '#ffffff',
+                                      fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s',
+                                      boxShadow: '0 4px 12px rgba(217,119,6,0.3)',
+                                      display: 'flex', alignItems: 'center', gap: 6
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.background = '#b45309'}
+                                    onMouseLeave={e => e.currentTarget.style.background = '#d97706'}
+                                  >
+                                    <Eye size={15} /> Details
+                                  </button>
+
+                                  <button
+                                    onClick={() => handleDeleteServiceInTrips(serv.id)}
+                                    disabled={busyId === serv.id}
+                                    style={{
+                                      padding: '9px 20px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.3)',
+                                      background: 'rgba(239,68,68,0.1)', color: '#ef4444',
+                                      fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s',
+                                      display: 'flex', alignItems: 'center', gap: 6
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#fff'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#ef4444'; }}
+                                  >
+                                    {busyId === serv.id ? <Loader2 size={15} className="spin" /> : <Trash2 size={15} />}
+                                    Delete
+                                  </button>
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, paddingTop: 6, borderTop: `1px solid ${D.border}` }}>
+                                  {isPending ? (
+                                    <div style={{ fontSize: '0.8rem', color: '#d97706', fontWeight: 700, fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <Clock size={14} /> Submitted &amp; awaiting Fleet Controller approval.
+                                    </div>
+                                  ) : (
+                                    <div style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 700, fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <CheckCircle size={14} /> Service record completed.
+                                    </div>
+                                  )}
+                                  {isPending && (isDriverAuthor || isCurrentUserAuthor) && (
+                                    <button
+                                      onClick={() => openEditServiceLog(serv, trip)}
+                                      style={{
+                                        padding: '8px 16px', borderRadius: 10, border: 'none',
+                                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                        color: '#ffffff', fontSize: '0.82rem', fontWeight: 800,
+                                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                                        boxShadow: '0 4px 12px rgba(245,158,11,0.35)', transition: 'all 0.15s'
+                                      }}
+                                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)' }}
+                                      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
+                                    >
+                                      <Edit2 size={14} /> Edit Pending Details
+                                    </button>
+                                  )}
+                                </div>
                               )}
                             </div>
                           )}
@@ -1700,7 +1845,7 @@ const TripsPage = () => {
                     {pendingDetailModal.serviceTypeDetail || SERVICE_TYPES.find(t => t.value === pendingDetailModal.serviceType)?.label || pendingDetailModal.serviceType}
                   </h2>
                   <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
-                    Vehicle: {pendingDetailModal.vehicleRegNumber} — Pending Controller Approval
+                    Vehicle: {pendingDetailModal.vehicleRegNumber} — {pendingDetailModal.status === 'PENDING' ? 'Pending Controller Approval' : 'Service Record Details'}
                   </p>
                 </div>
               </div>
