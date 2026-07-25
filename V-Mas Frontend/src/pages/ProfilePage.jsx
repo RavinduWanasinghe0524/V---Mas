@@ -4,7 +4,7 @@ import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import api, { profileAPI, fuelAPI, serviceAPI, vehicleAPI, userAPI } from '../services/api'
-import { User, Key, ShieldCheck, Shield, Globe, Fuel, Ruler, Calendar, Car, Wrench, Edit2, AlertCircle, CheckCircle, Eye, EyeOff, Check, Trophy, Activity, Lock, Settings, LogOut, Zap, Bell, Clock, Share2, UserCheck, X, Sun, Moon, FileText, Upload } from 'lucide-react'
+import { User, Key, ShieldCheck, Shield, Globe, Fuel, Ruler, Calendar, Car, Wrench, Edit2, AlertCircle, CheckCircle, Eye, EyeOff, Check, Trophy, Activity, Lock, Settings, LogOut, Zap, Bell, Clock, Share2, UserCheck, X, Sun, Moon, FileText, Upload, Loader2 } from 'lucide-react'
 import { computeLogsEfficiency } from '../utils/fuelUtils'
 
 const onFocus = e => {
@@ -63,6 +63,7 @@ const Modal = ({ title, icon, onClose, children, D, maxWidth = 580 }) => (
 )
 
 const ProfilePage = () => {
+  const { user, updateUser } = useAuth()
   const D = useD()
   const { theme, toggleTheme } = useTheme()
   const isDark = theme === 'blue'
@@ -556,19 +557,18 @@ const ProfilePage = () => {
                           disabled={profileLoading}
                           style={{
                             padding: '12px 24px', borderRadius: 12, border: 'none',
-                            background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                            background: profileLoading ? '#9ca3af' : 'linear-gradient(135deg, #2563eb, #1d4ed8)',
                             color: '#fff', fontSize: '0.9rem', fontWeight: 800,
                             cursor: profileLoading ? 'not-allowed' : 'pointer',
                             display: 'flex', alignItems: 'center', gap: 8,
-                            transition: 'all 0.25s', boxShadow: '0 4px 12px rgba(37,99,235,0.2)'
+                            transition: 'all 0.25s', boxShadow: profileLoading ? 'none' : '0 4px 12px rgba(37,99,235,0.2)'
                           }}
                           onMouseEnter={e => { if (!profileLoading) e.currentTarget.style.transform = 'translateY(-1px)' }}
                           onMouseLeave={e => { if (!profileLoading) e.currentTarget.style.transform = 'translateY(0)' }}
                         >
                           {profileLoading ? (
                             <>
-                              <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite' }} />
-                              Saving...
+                              <Loader2 size={16} className="spin" /> Saving...
                             </>
                           ) : (
                             <>
