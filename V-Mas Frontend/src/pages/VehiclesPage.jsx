@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import api, { vehicleAPI, serviceAPI, fuelAPI, userAPI } from '../services/api'
 import { getAlertLevel, computeMileageProgress, computeDateAlert, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
-import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download, Phone, IdCard, Shield, Star, Zap, LayoutGrid, List, Archive, RotateCcw, UserCheck, UserX, ChevronDown } from 'lucide-react'
+import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download, Phone, IdCard, Shield, Star, Zap, LayoutGrid, List, Archive, RotateCcw, UserCheck, UserX, ChevronDown, Loader2 } from 'lucide-react'
 import { generateStyledExcel } from '../utils/excelExport'
 import { computeLogsEfficiency, formatFuelType } from '../utils/fuelUtils'
 
@@ -648,6 +648,7 @@ const VehiclesPage = () => {
   const [licenseFile, setLicenseFile] = useState(null)
   const [editInsuranceFile, setEditInsuranceFile] = useState(null)
   const [editLicenseFile, setEditLicenseFile] = useState(null)
+  const [editSubmitting, setEditSubmitting] = useState(false)
 
   useEffect(() => {
     if (isModalOpen || isEditModalOpen || isDeleteModalOpen || isProfileOpen || isOdometerModalOpen || deletedDrawer) {
@@ -771,9 +772,9 @@ const VehiclesPage = () => {
     e.preventDefault()
     setAddError('')
 
-    const regRegex = /^([A-Z]{2}-[A-Z]{2,3}-\d{4}|[A-Z]{2,3}-\d{4}|\d{2,3}-\d{4})$/;
+    const regRegex = /^(?:(WP|SP|CP|EP|NP|NW|NC|UP|SG|SB)-[A-Z]{2,3}-\d{4}|[A-Z]{2,3}-\d{4}|\d{2,3}-\d{4})$/i;
     if (!regRegex.test(formData.registrationNo)) {
-      setAddError('Invalid registration format. Use WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, or ABC-1234')
+      setAddError('Invalid registration format. Valid province codes: WP, SP, CP, EP, NP, NW, NC, UP, SG. Examples: WP-ABN-5577, CAB-1234, 24-2345')
       return;
     }
 
@@ -885,12 +886,13 @@ const VehiclesPage = () => {
     e.preventDefault()
     setEditError('')
 
-    const regRegex = /^([A-Z]{2}-[A-Z]{2,3}-\d{4}|[A-Z]{2,3}-\d{4}|\d{2,3}-\d{4})$/;
+    const regRegex = /^(?:(WP|SP|CP|EP|NP|NW|NC|UP|SG|SB)-[A-Z]{2,3}-\d{4}|[A-Z]{2,3}-\d{4}|\d{2,3}-\d{4})$/i;
     if (!regRegex.test(editFormData.registrationNo)) {
-      setEditError('Invalid registration format. Use WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, or ABC-1234')
+      setEditError('Invalid registration format. Valid province codes: WP, SP, CP, EP, NP, NW, NC, UP, SG. Examples: WP-ABN-5577, CAB-1234, 24-2345')
       return;
     }
 
+    setEditSubmitting(true)
     try {
       await vehicleAPI.updateVehicle(editingVehicle.id, {
         model: editFormData.model,
@@ -928,6 +930,8 @@ const VehiclesPage = () => {
       const msg = err.response?.data?.message || err.message || 'Failed to update vehicle.'
       setEditError(msg)
       console.error('Error updating vehicle:', err)
+    } finally {
+      setEditSubmitting(false)
     }
   }
 
@@ -2130,7 +2134,7 @@ const VehiclesPage = () => {
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label style={labelStyle}>Registration Number <span style={{ color: D.red }}>*</span></label>
                     <input type="text" name="registrationNo" value={formData.registrationNo} onChange={(e) => setFormData({ ...formData, registrationNo: e.target.value.toUpperCase() })} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. WP-CAB-1234, 24-2345, 112-2345" />
-                    <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Format: WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, ABC-1234</p>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Provinces: WP, SP, CP, EP, NP, NW, NC, UP, SG (e.g. WP-ABN-5577, CAB-1234, 24-2345)</p>
                   </div>
                   <div>
                     <label style={labelStyle}>Chassis Number</label>
@@ -2336,7 +2340,7 @@ const VehiclesPage = () => {
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label style={labelStyle}>Registration Number</label>
                     <input type="text" name="registrationNo" value={editFormData.registrationNo} onChange={(e) => setEditFormData({ ...editFormData, registrationNo: e.target.value.toUpperCase() })} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
-                    <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Format: WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, ABC-1234</p>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Provinces: WP, SP, CP, EP, NP, NW, NC, UP, SG (e.g. WP-ABN-5577, CAB-1234, 24-2345)</p>
                   </div>
                   <div>
                     <label style={labelStyle}>Chassis Number</label>
@@ -2592,8 +2596,27 @@ const VehiclesPage = () => {
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    <Check size={16} /> Save Changes
+                  <button
+                    type="submit"
+                    disabled={editSubmitting}
+                    style={{
+                      flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none',
+                      background: editSubmitting ? '#9ca3af' : 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
+                      color: '#fff', cursor: editSubmitting ? 'not-allowed' : 'pointer',
+                      fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease',
+                      boxShadow: editSubmitting ? 'none' : '0 4px 16px var(--primary-glow)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                    }}
+                  >
+                    {editSubmitting ? (
+                      <>
+                        <Loader2 size={16} className="spin" /> Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Check size={16} /> Save Changes
+                      </>
+                    )}
                   </button>
                   <button type="button" onClick={closeEditModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'transparent', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}
                     onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}

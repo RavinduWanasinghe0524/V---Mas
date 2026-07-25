@@ -17,7 +17,7 @@ import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import api, { userAPI } from '../services/api'
 import { getDriverMetrics } from '../utils/driverUtils'
-import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car, BarChart2, Star, Activity, CheckCircle, RotateCcw, Archive, Trash2, User, FileText, Upload, Search, UserCog, Mail, ClipboardList, Eye, Edit2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Check, X, Clock, RefreshCw, AlertCircle, Users, UserCheck, UserPlus, ShieldCheck, Phone, IdCard, Shield, Car, BarChart2, Star, Activity, CheckCircle, RotateCcw, Archive, Trash2, User, FileText, Upload, Search, UserCog, Mail, ClipboardList, Eye, Edit2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
@@ -147,6 +147,7 @@ const UsersPage = () => {
   const [deletedDetail, setDeletedDetail] = useState(null)
   const [userToDelete, setUserToDelete] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [userSubmitting, setUserSubmitting] = useState(false)
   const [confirmAction, setConfirmAction] = useState(null) // { type: 'approve'|'reject', id, username }
 
   const loadDeletedUsers = useCallback(async () => {
@@ -457,6 +458,7 @@ const UsersPage = () => {
       return
     }
 
+    setUserSubmitting(true)
     try {
       const submitData = { ...formData }
       if (!submitData.profilePicture)
@@ -489,6 +491,8 @@ const UsersPage = () => {
       loadPending()
     } catch (e) {
       setError(e.response?.data?.message || 'Operation failed')
+    } finally {
+      setUserSubmitting(false)
     }
   }
 
@@ -1727,11 +1731,29 @@ const UsersPage = () => {
               )}
 
               <div style={{ display: 'flex', gap: 16 }}>
-                <button type="submit" style={{ flex: 1, padding: '14px 24px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', color: '#fff', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 800, transition: 'all 0.25s', boxShadow: '0 8px 24px var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 32px var(--primary-glow)' }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px var(--primary-glow)' }}
+                <button
+                  type="submit"
+                  disabled={userSubmitting}
+                  style={{
+                    flex: 1, padding: '14px 24px', borderRadius: 16, border: 'none',
+                    background: userSubmitting ? '#9ca3af' : 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
+                    color: '#fff', cursor: userSubmitting ? 'not-allowed' : 'pointer',
+                    fontSize: '0.95rem', fontWeight: 800, transition: 'all 0.25s',
+                    boxShadow: userSubmitting ? 'none' : '0 8px 24px var(--primary-glow)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                  }}
+                  onMouseEnter={e => { if (!userSubmitting) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 32px var(--primary-glow)' } }}
+                  onMouseLeave={e => { if (!userSubmitting) { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px var(--primary-glow)' } }}
                 >
-                  <Check size={18} /> {editingUser ? 'Save Changes' : 'Create User'}
+                  {userSubmitting ? (
+                    <>
+                      <Loader2 size={18} className="spin" /> Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Check size={18} /> {editingUser ? 'Save Changes' : 'Create User'}
+                    </>
+                  )}
                 </button>
                 <button type="button" onClick={() => setShowModal(false)} style={{ flex: 0.4, padding: '14px 24px', borderRadius: 16, border: `1px solid ${D.border}`, background: 'transparent', color: D.text, cursor: 'pointer', fontSize: '0.95rem', fontWeight: 800, transition: 'all 0.2s' }}
                   onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}
