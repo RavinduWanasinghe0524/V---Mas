@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
 import api, { vehicleAPI, serviceAPI, fuelAPI, userAPI } from '../services/api'
 import { getAlertLevel, computeMileageProgress, computeDateAlert, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
-import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download, Phone, IdCard, Shield, Star, Zap, LayoutGrid, List, Archive, RotateCcw, UserCheck, UserX, ChevronDown } from 'lucide-react'
+import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download, Phone, IdCard, Shield, Star, Zap, LayoutGrid, List, Archive, RotateCcw, UserCheck, UserX, ChevronDown, Loader2 } from 'lucide-react'
 import { generateStyledExcel } from '../utils/excelExport'
 import { computeLogsEfficiency, formatFuelType } from '../utils/fuelUtils'
 
@@ -648,6 +648,7 @@ const VehiclesPage = () => {
   const [licenseFile, setLicenseFile] = useState(null)
   const [editInsuranceFile, setEditInsuranceFile] = useState(null)
   const [editLicenseFile, setEditLicenseFile] = useState(null)
+  const [editSubmitting, setEditSubmitting] = useState(false)
 
   useEffect(() => {
     if (isModalOpen || isEditModalOpen || isDeleteModalOpen || isProfileOpen || isOdometerModalOpen || deletedDrawer) {
@@ -771,9 +772,9 @@ const VehiclesPage = () => {
     e.preventDefault()
     setAddError('')
 
-    const regRegex = /^([A-Z]{2}-[A-Z]{2,3}-\d{4}|[A-Z]{2,3}-\d{4}|\d{2,3}-\d{4})$/;
+    const regRegex = /^(?:(WP|SP|CP|EP|NP|NW|NC|UP|SG|SB)-[A-Z]{2,3}-\d{4}|[A-Z]{2,3}-\d{4}|\d{2,3}-\d{4})$/i;
     if (!regRegex.test(formData.registrationNo)) {
-      setAddError('Invalid registration format. Use WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, or ABC-1234')
+      setAddError('Invalid registration format. Valid province codes: WP, SP, CP, EP, NP, NW, NC, UP, SG. Examples: WP-ABN-5577, CAB-1234, 24-2345')
       return;
     }
 
@@ -885,12 +886,13 @@ const VehiclesPage = () => {
     e.preventDefault()
     setEditError('')
 
-    const regRegex = /^([A-Z]{2}-[A-Z]{2,3}-\d{4}|[A-Z]{2,3}-\d{4}|\d{2,3}-\d{4})$/;
+    const regRegex = /^(?:(WP|SP|CP|EP|NP|NW|NC|UP|SG|SB)-[A-Z]{2,3}-\d{4}|[A-Z]{2,3}-\d{4}|\d{2,3}-\d{4})$/i;
     if (!regRegex.test(editFormData.registrationNo)) {
-      setEditError('Invalid registration format. Use WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, or ABC-1234')
+      setEditError('Invalid registration format. Valid province codes: WP, SP, CP, EP, NP, NW, NC, UP, SG. Examples: WP-ABN-5577, CAB-1234, 24-2345')
       return;
     }
 
+    setEditSubmitting(true)
     try {
       await vehicleAPI.updateVehicle(editingVehicle.id, {
         model: editFormData.model,
@@ -928,6 +930,8 @@ const VehiclesPage = () => {
       const msg = err.response?.data?.message || err.message || 'Failed to update vehicle.'
       setEditError(msg)
       console.error('Error updating vehicle:', err)
+    } finally {
+      setEditSubmitting(false)
     }
   }
 
@@ -1607,20 +1611,20 @@ const VehiclesPage = () => {
               <div className="vehicle-alerts-strip" style={{
                 background: D.surface,
                 border: `1px solid ${alertVehicles.some(a => a.level === 'OVERDUE') ? 'rgba(239, 68, 68, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`,
-                borderRadius: 20,
-                marginBottom: 28,
-                padding: '24px 28px',
+                borderRadius: 14,
+                marginBottom: 16,
+                padding: '14px 18px',
                 display: 'flex',
                 flexDirection: 'column',
-                boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
                 animation: 'fadeIn 0.3s ease',
               }}>
                 <div className="vehicle-alerts-header" style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10
                 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>Vehicle Service Alerts</h3>
-                    <p style={{ margin: 0, fontSize: '0.75rem', color: D.textSub }}>Upcoming & overdue milestones</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <h3 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>Vehicle Service Alerts</h3>
+                    <p style={{ margin: 0, fontSize: '0.7rem', color: D.textSub }}>Upcoming & overdue milestones</p>
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {alertVehicles.filter(a => a.level === 'OVERDUE').length > 0 && (
@@ -1628,9 +1632,9 @@ const VehiclesPage = () => {
                         background: 'rgba(239, 68, 68, 0.15)',
                         color: '#f87171',
                         border: '1px solid rgba(239, 68, 68, 0.3)',
-                        fontSize: '0.75rem',
+                        fontSize: '0.7rem',
                         fontWeight: 800,
-                        padding: '4px 12px',
+                        padding: '2px 8px',
                         borderRadius: 999,
                       }}>
                         {alertVehicles.filter(a => a.level === 'OVERDUE').length} Overdue
@@ -1641,9 +1645,9 @@ const VehiclesPage = () => {
                         background: 'rgba(245, 158, 11, 0.15)',
                         color: '#fbbf24',
                         border: '1px solid rgba(245, 158, 11, 0.3)',
-                        fontSize: '0.75rem',
+                        fontSize: '0.7rem',
                         fontWeight: 800,
-                        padding: '4px 12px',
+                        padding: '2px 8px',
                         borderRadius: 999,
                       }}>
                         {alertVehicles.filter(a => a.level === 'DUE_SOON').length} Due Soon
@@ -1651,7 +1655,7 @@ const VehiclesPage = () => {
                     )}
                   </div>
                 </div>
-                <div className="vehicle-alerts-scroll-row" style={{ display: 'flex', gap: 16, padding: '10px 4px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
+                <div className="vehicle-alerts-scroll-row" style={{ display: 'flex', gap: 10, padding: '4px 2px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
                   {alertVehicles.map(({ reg, record, level, vehicleKm, remainingKm }, idx) => {
                     const isOverdue = level === 'OVERDUE'
                     const accentColor = isOverdue ? '#f87171' : '#fbbf24'
@@ -1682,33 +1686,33 @@ const VehiclesPage = () => {
 
                     return (
                       <div key={`${reg}-${record.serviceType}-${idx}`} className="vehicle-alert-card" style={{
-                        flexShrink: 0, minWidth: 290, maxWidth: 320,
+                        flexShrink: 0, minWidth: 240, maxWidth: 265,
                         background: D.surfaceHi, border: `1px solid ${accentBorder}`,
-                        borderRadius: 16, padding: '20px',
-                        display: 'flex', flexDirection: 'column', gap: 16,
-                        boxShadow: `0 4px 20px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`,
+                        borderRadius: 12, padding: '12px 14px',
+                        display: 'flex', flexDirection: 'column', gap: 10,
+                        boxShadow: `0 2px 10px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`,
                         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                         position: 'relative', overflow: 'hidden'
                       }}
                         onMouseEnter={e => {
                           e.currentTarget.style.borderColor = accentColor
-                          e.currentTarget.style.transform = 'translateY(-4px)'
-                          e.currentTarget.style.boxShadow = `0 12px 30px ${isOverdue ? 'rgba(239, 68, 68, 0.15)' : 'rgba(251, 191, 36, 0.15)'}`
+                          e.currentTarget.style.transform = 'translateY(-2px)'
+                          e.currentTarget.style.boxShadow = `0 6px 18px ${isOverdue ? 'rgba(239, 68, 68, 0.12)' : 'rgba(251, 191, 36, 0.12)'}`
                         }}
                         onMouseLeave={e => {
                           e.currentTarget.style.borderColor = accentBorder
                           e.currentTarget.style.transform = 'translateY(0)'
-                          e.currentTarget.style.boxShadow = `0 4px 20px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`
+                          e.currentTarget.style.boxShadow = `0 2px 10px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`
                         }}
                       >
                         {/* Top Row: Vehicle Chip and Status Tag */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                           <div style={{
                             background: 'rgba(255, 255, 255, 0.04)',
                             border: `1.5px solid ${D.borderHi}`,
-                            borderRadius: 10,
-                            padding: '4px 12px',
-                            fontSize: '0.82rem',
+                            borderRadius: 6,
+                            padding: '2px 8px',
+                            fontSize: '0.75rem',
                             fontWeight: 800,
                             color: D.text,
                             fontFamily: "'Outfit', monospace",
@@ -1717,15 +1721,15 @@ const VehiclesPage = () => {
                           }}>
                             {reg}
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                             <span style={{
-                              width: 8, height: 8, borderRadius: '50%',
+                              width: 6, height: 6, borderRadius: '50%',
                               background: accentColor,
-                              boxShadow: `0 0 8px ${accentColor}`,
+                              boxShadow: `0 0 6px ${accentColor}`,
                               animation: 'pulseBar 1.5s ease-in-out infinite'
                             }} />
                             <span style={{
-                              fontSize: '0.68rem',
+                              fontSize: '0.62rem',
                               fontWeight: 800,
                               color: accentColor,
                               textTransform: 'uppercase',
@@ -1737,13 +1741,13 @@ const VehiclesPage = () => {
                         </div>
 
                         {/* Center: Service Task Info */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: D.text }}>
                             {record.serviceType?.replace(/_/g, ' ')}
                           </h4>
                           <p style={{
                             margin: 0,
-                            fontSize: '0.82rem',
+                            fontSize: '0.74rem',
                             color: isMileageOverdue || (date && date.daysRemaining < 0) ? '#f87171' : D.textSub,
                             fontWeight: isMileageOverdue || (date && date.daysRemaining < 0) ? 800 : 500,
                             display: '-webkit-box',
@@ -1761,8 +1765,8 @@ const VehiclesPage = () => {
 
                         {/* Progress bar / remaining info */}
                         {(mileage || date || remainingKm != null) && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '2px 0' }}>
-                            <div style={{ height: 6, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 999, overflow: 'hidden' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '0' }}>
+                            <div style={{ height: 4, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 999, overflow: 'hidden' }}>
                               <div style={{
                                 width: `${progressPct}%`,
                                 height: '100%',
@@ -1772,12 +1776,12 @@ const VehiclesPage = () => {
                               }} />
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: accentColor }}>
+                              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: accentColor }}>
                                 {isMileageOverdue ? '' : remainingText}
                               </span>
                               {mileage && date && (
-                                <span style={{ fontSize: '0.7rem', color: D.textSub, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  <Calendar size={11} /> {fmtDaysRemaining(date.daysRemaining)}
+                                <span style={{ fontSize: '0.65rem', color: D.textSub, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                  <Calendar size={10} /> {fmtDaysRemaining(date.daysRemaining)}
                                 </span>
                               )}
                             </div>
@@ -1788,7 +1792,7 @@ const VehiclesPage = () => {
                         <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
 
                         {/* Actions Row */}
-                        <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
+                        <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
                           {!isDriver && !isAdmin && (
                             <button
                               onClick={e => {
@@ -1807,28 +1811,28 @@ const VehiclesPage = () => {
                                 background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
                                 border: 'none',
                                 color: isOverdue ? '#fff' : '#000',
-                                borderRadius: 10,
-                                padding: '8px 14px',
-                                fontSize: '0.8rem',
+                                borderRadius: 8,
+                                padding: '5px 10px',
+                                fontSize: '0.73rem',
                                 fontWeight: 800,
                                 cursor: 'pointer',
                                 transition: 'all 0.2s',
-                                boxShadow: `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`,
+                                boxShadow: `0 2px 8px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                gap: 6
+                                gap: 5
                               }}
                               onMouseEnter={e => {
                                 e.currentTarget.style.transform = 'translateY(-1px)'
-                                e.currentTarget.style.boxShadow = `0 6px 16px ${isOverdue ? 'rgba(239, 68, 68, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`
+                                e.currentTarget.style.boxShadow = `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`
                               }}
                               onMouseLeave={e => {
                                 e.currentTarget.style.transform = 'translateY(0)'
-                                e.currentTarget.style.boxShadow = `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`
+                                e.currentTarget.style.boxShadow = `0 2px 8px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`
                               }}
                             >
-                              <Wrench size={12} />
+                              <Wrench size={11} />
                               Log Service
                             </button>
                           )}
@@ -1842,16 +1846,16 @@ const VehiclesPage = () => {
                               background: 'rgba(255, 255, 255, 0.05)',
                               border: `1px solid ${D.borderHi}`,
                               color: D.text,
-                              borderRadius: 10,
-                              padding: '8px 14px',
-                              fontSize: '0.8rem',
+                              borderRadius: 8,
+                              padding: '5px 10px',
+                              fontSize: '0.73rem',
                               fontWeight: 700,
                               cursor: 'pointer',
                               transition: 'all 0.2s',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: 6
+                              gap: 5
                             }}
                             onMouseEnter={e => {
                               e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
@@ -1860,7 +1864,7 @@ const VehiclesPage = () => {
                               e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
                             }}
                           >
-                            <Eye size={12} />
+                            <Eye size={11} />
                             View Profile
                           </button>
                         </div>
@@ -2130,7 +2134,7 @@ const VehiclesPage = () => {
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label style={labelStyle}>Registration Number <span style={{ color: D.red }}>*</span></label>
                     <input type="text" name="registrationNo" value={formData.registrationNo} onChange={(e) => setFormData({ ...formData, registrationNo: e.target.value.toUpperCase() })} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} placeholder="e.g. WP-CAB-1234, 24-2345, 112-2345" />
-                    <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Format: WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, ABC-1234</p>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Provinces: WP, SP, CP, EP, NP, NW, NC, UP, SG (e.g. WP-ABN-5577, CAB-1234, 24-2345)</p>
                   </div>
                   <div>
                     <label style={labelStyle}>Chassis Number</label>
@@ -2336,7 +2340,7 @@ const VehiclesPage = () => {
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label style={labelStyle}>Registration Number</label>
                     <input type="text" name="registrationNo" value={editFormData.registrationNo} onChange={(e) => setEditFormData({ ...editFormData, registrationNo: e.target.value.toUpperCase() })} required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
-                    <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Format: WP-WS-3445, WP-ABN-3445, 24-2345, 112-2345, ABC-1234</p>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: D.textFaint }}>Provinces: WP, SP, CP, EP, NP, NW, NC, UP, SG (e.g. WP-ABN-5577, CAB-1234, 24-2345)</p>
                   </div>
                   <div>
                     <label style={labelStyle}>Chassis Number</label>
@@ -2592,8 +2596,27 @@ const VehiclesPage = () => {
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <button type="submit" style={{ flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease', boxShadow: '0 4px 16px var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    <Check size={16} /> Save Changes
+                  <button
+                    type="submit"
+                    disabled={editSubmitting}
+                    style={{
+                      flex: 1, padding: '11px 24px', borderRadius: 10, border: 'none',
+                      background: editSubmitting ? '#9ca3af' : 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
+                      color: '#fff', cursor: editSubmitting ? 'not-allowed' : 'pointer',
+                      fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease',
+                      boxShadow: editSubmitting ? 'none' : '0 4px 16px var(--primary-glow)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                    }}
+                  >
+                    {editSubmitting ? (
+                      <>
+                        <Loader2 size={16} className="spin" /> Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Check size={16} /> Save Changes
+                      </>
+                    )}
                   </button>
                   <button type="button" onClick={closeEditModal} style={{ flex: 0.4, padding: '11px 24px', borderRadius: 10, border: `1px solid ${D.border}`, background: 'transparent', color: D.text, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700, transition: 'all 0.2s ease' }}
                     onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}
