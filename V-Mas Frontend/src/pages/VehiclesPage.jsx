@@ -1611,20 +1611,20 @@ const VehiclesPage = () => {
               <div className="vehicle-alerts-strip" style={{
                 background: D.surface,
                 border: `1px solid ${alertVehicles.some(a => a.level === 'OVERDUE') ? 'rgba(239, 68, 68, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`,
-                borderRadius: 20,
-                marginBottom: 28,
-                padding: '24px 28px',
+                borderRadius: 14,
+                marginBottom: 16,
+                padding: '14px 18px',
                 display: 'flex',
                 flexDirection: 'column',
-                boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
                 animation: 'fadeIn 0.3s ease',
               }}>
                 <div className="vehicle-alerts-header" style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10
                 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>Vehicle Service Alerts</h3>
-                    <p style={{ margin: 0, fontSize: '0.75rem', color: D.textSub }}>Upcoming & overdue milestones</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <h3 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: D.text, fontFamily: "'Outfit', sans-serif" }}>Vehicle Service Alerts</h3>
+                    <p style={{ margin: 0, fontSize: '0.7rem', color: D.textSub }}>Upcoming & overdue milestones</p>
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {alertVehicles.filter(a => a.level === 'OVERDUE').length > 0 && (
@@ -1632,9 +1632,9 @@ const VehiclesPage = () => {
                         background: 'rgba(239, 68, 68, 0.15)',
                         color: '#f87171',
                         border: '1px solid rgba(239, 68, 68, 0.3)',
-                        fontSize: '0.75rem',
+                        fontSize: '0.7rem',
                         fontWeight: 800,
-                        padding: '4px 12px',
+                        padding: '2px 8px',
                         borderRadius: 999,
                       }}>
                         {alertVehicles.filter(a => a.level === 'OVERDUE').length} Overdue
@@ -1645,9 +1645,9 @@ const VehiclesPage = () => {
                         background: 'rgba(245, 158, 11, 0.15)',
                         color: '#fbbf24',
                         border: '1px solid rgba(245, 158, 11, 0.3)',
-                        fontSize: '0.75rem',
+                        fontSize: '0.7rem',
                         fontWeight: 800,
-                        padding: '4px 12px',
+                        padding: '2px 8px',
                         borderRadius: 999,
                       }}>
                         {alertVehicles.filter(a => a.level === 'DUE_SOON').length} Due Soon
@@ -1655,7 +1655,7 @@ const VehiclesPage = () => {
                     )}
                   </div>
                 </div>
-                <div className="vehicle-alerts-scroll-row" style={{ display: 'flex', gap: 16, padding: '10px 4px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
+                <div className="vehicle-alerts-scroll-row" style={{ display: 'flex', gap: 10, padding: '4px 2px', overflowX: 'auto', scrollbarWidth: 'thin' }}>
                   {alertVehicles.map(({ reg, record, level, vehicleKm, remainingKm }, idx) => {
                     const isOverdue = level === 'OVERDUE'
                     const accentColor = isOverdue ? '#f87171' : '#fbbf24'
@@ -1686,33 +1686,33 @@ const VehiclesPage = () => {
 
                     return (
                       <div key={`${reg}-${record.serviceType}-${idx}`} className="vehicle-alert-card" style={{
-                        flexShrink: 0, minWidth: 290, maxWidth: 320,
+                        flexShrink: 0, minWidth: 240, maxWidth: 265,
                         background: D.surfaceHi, border: `1px solid ${accentBorder}`,
-                        borderRadius: 16, padding: '20px',
-                        display: 'flex', flexDirection: 'column', gap: 16,
-                        boxShadow: `0 4px 20px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`,
+                        borderRadius: 12, padding: '12px 14px',
+                        display: 'flex', flexDirection: 'column', gap: 10,
+                        boxShadow: `0 2px 10px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`,
                         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                         position: 'relative', overflow: 'hidden'
                       }}
                         onMouseEnter={e => {
                           e.currentTarget.style.borderColor = accentColor
-                          e.currentTarget.style.transform = 'translateY(-4px)'
-                          e.currentTarget.style.boxShadow = `0 12px 30px ${isOverdue ? 'rgba(239, 68, 68, 0.15)' : 'rgba(251, 191, 36, 0.15)'}`
+                          e.currentTarget.style.transform = 'translateY(-2px)'
+                          e.currentTarget.style.boxShadow = `0 6px 18px ${isOverdue ? 'rgba(239, 68, 68, 0.12)' : 'rgba(251, 191, 36, 0.12)'}`
                         }}
                         onMouseLeave={e => {
                           e.currentTarget.style.borderColor = accentBorder
                           e.currentTarget.style.transform = 'translateY(0)'
-                          e.currentTarget.style.boxShadow = `0 4px 20px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`
+                          e.currentTarget.style.boxShadow = `0 2px 10px ${isOverdue ? 'rgba(239, 68, 68, 0.04)' : 'rgba(251, 191, 36, 0.04)'}`
                         }}
                       >
                         {/* Top Row: Vehicle Chip and Status Tag */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                           <div style={{
                             background: 'rgba(255, 255, 255, 0.04)',
                             border: `1.5px solid ${D.borderHi}`,
-                            borderRadius: 10,
-                            padding: '4px 12px',
-                            fontSize: '0.82rem',
+                            borderRadius: 6,
+                            padding: '2px 8px',
+                            fontSize: '0.75rem',
                             fontWeight: 800,
                             color: D.text,
                             fontFamily: "'Outfit', monospace",
@@ -1721,15 +1721,15 @@ const VehiclesPage = () => {
                           }}>
                             {reg}
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                             <span style={{
-                              width: 8, height: 8, borderRadius: '50%',
+                              width: 6, height: 6, borderRadius: '50%',
                               background: accentColor,
-                              boxShadow: `0 0 8px ${accentColor}`,
+                              boxShadow: `0 0 6px ${accentColor}`,
                               animation: 'pulseBar 1.5s ease-in-out infinite'
                             }} />
                             <span style={{
-                              fontSize: '0.68rem',
+                              fontSize: '0.62rem',
                               fontWeight: 800,
                               color: accentColor,
                               textTransform: 'uppercase',
@@ -1741,13 +1741,13 @@ const VehiclesPage = () => {
                         </div>
 
                         {/* Center: Service Task Info */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: D.text }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: D.text }}>
                             {record.serviceType?.replace(/_/g, ' ')}
                           </h4>
                           <p style={{
                             margin: 0,
-                            fontSize: '0.82rem',
+                            fontSize: '0.74rem',
                             color: isMileageOverdue || (date && date.daysRemaining < 0) ? '#f87171' : D.textSub,
                             fontWeight: isMileageOverdue || (date && date.daysRemaining < 0) ? 800 : 500,
                             display: '-webkit-box',
@@ -1765,8 +1765,8 @@ const VehiclesPage = () => {
 
                         {/* Progress bar / remaining info */}
                         {(mileage || date || remainingKm != null) && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '2px 0' }}>
-                            <div style={{ height: 6, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 999, overflow: 'hidden' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '0' }}>
+                            <div style={{ height: 4, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 999, overflow: 'hidden' }}>
                               <div style={{
                                 width: `${progressPct}%`,
                                 height: '100%',
@@ -1776,12 +1776,12 @@ const VehiclesPage = () => {
                               }} />
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: accentColor }}>
+                              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: accentColor }}>
                                 {isMileageOverdue ? '' : remainingText}
                               </span>
                               {mileage && date && (
-                                <span style={{ fontSize: '0.7rem', color: D.textSub, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  <Calendar size={11} /> {fmtDaysRemaining(date.daysRemaining)}
+                                <span style={{ fontSize: '0.65rem', color: D.textSub, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                  <Calendar size={10} /> {fmtDaysRemaining(date.daysRemaining)}
                                 </span>
                               )}
                             </div>
@@ -1792,7 +1792,7 @@ const VehiclesPage = () => {
                         <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
 
                         {/* Actions Row */}
-                        <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
+                        <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
                           {!isDriver && !isAdmin && (
                             <button
                               onClick={e => {
@@ -1811,28 +1811,28 @@ const VehiclesPage = () => {
                                 background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
                                 border: 'none',
                                 color: isOverdue ? '#fff' : '#000',
-                                borderRadius: 10,
-                                padding: '8px 14px',
-                                fontSize: '0.8rem',
+                                borderRadius: 8,
+                                padding: '5px 10px',
+                                fontSize: '0.73rem',
                                 fontWeight: 800,
                                 cursor: 'pointer',
                                 transition: 'all 0.2s',
-                                boxShadow: `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`,
+                                boxShadow: `0 2px 8px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                gap: 6
+                                gap: 5
                               }}
                               onMouseEnter={e => {
                                 e.currentTarget.style.transform = 'translateY(-1px)'
-                                e.currentTarget.style.boxShadow = `0 6px 16px ${isOverdue ? 'rgba(239, 68, 68, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`
+                                e.currentTarget.style.boxShadow = `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`
                               }}
                               onMouseLeave={e => {
                                 e.currentTarget.style.transform = 'translateY(0)'
-                                e.currentTarget.style.boxShadow = `0 4px 12px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`
+                                e.currentTarget.style.boxShadow = `0 2px 8px ${isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`
                               }}
                             >
-                              <Wrench size={12} />
+                              <Wrench size={11} />
                               Log Service
                             </button>
                           )}
@@ -1846,16 +1846,16 @@ const VehiclesPage = () => {
                               background: 'rgba(255, 255, 255, 0.05)',
                               border: `1px solid ${D.borderHi}`,
                               color: D.text,
-                              borderRadius: 10,
-                              padding: '8px 14px',
-                              fontSize: '0.8rem',
+                              borderRadius: 8,
+                              padding: '5px 10px',
+                              fontSize: '0.73rem',
                               fontWeight: 700,
                               cursor: 'pointer',
                               transition: 'all 0.2s',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: 6
+                              gap: 5
                             }}
                             onMouseEnter={e => {
                               e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
@@ -1864,7 +1864,7 @@ const VehiclesPage = () => {
                               e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
                             }}
                           >
-                            <Eye size={12} />
+                            <Eye size={11} />
                             View Profile
                           </button>
                         </div>
