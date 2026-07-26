@@ -257,7 +257,13 @@ const UsersPage = () => {
     try {
       const res = await userAPI.getPendingUsers()
       const data = res.data?.data || res.data || []
-      setPendingUsers(Array.isArray(data) ? data : [])
+      let rawList = Array.isArray(data) ? data : []
+      if (isAdmin) {
+        rawList = rawList.filter(u => u.role === 'ADMIN')
+      } else if (isController) {
+        rawList = rawList.filter(u => u.role === 'DRIVER' || u.role === 'CONTROLLER')
+      }
+      setPendingUsers(rawList)
     } catch {
       setPendingUsers([])
     } finally {
@@ -914,7 +920,7 @@ const UsersPage = () => {
                   </div>
                   <p style={{ margin: '6px 0 0', color: '#f8fafc', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <ShieldCheck size={14} />
-                    {isAdmin ? 'Manage system users, roles, permissions & access approvals across the platform' : 'Review and process pending driver account requests'}
+                    {isAdmin ? 'Manage system users, roles, permissions & access approvals across the platform' : 'Review and process pending driver & controller account requests'}
                   </p>
                 </div>
               </div>
@@ -949,92 +955,139 @@ const UsersPage = () => {
 
               {/* Pending Approvals */}
               {pendingUsers.length > 0 && (
-                <div style={{ background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.25)' }}>
-                  <div style={{ padding: '22px 32px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                      <div style={{ width: 44, height: 44, borderRadius: 12, background: D.goldDim, border: `1px solid ${D.gold}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.gold }}>
-                        <Clock size={20} />
+                <div style={{ background: D.surface, borderRadius: 14, border: `1px solid ${D.border}`, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+                  <div style={{ padding: '12px 18px', borderBottom: `1px solid ${D.border}`, background: D.surfaceHi, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: D.goldDim, border: `1px solid ${D.gold}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.gold }}>
+                        <Clock size={16} />
                       </div>
-                      <div>
-                        <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.1rem' }}>Pending Approvals</h3>
-                        <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: D.textSub }}>Accounts awaiting access review</p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <h3 style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.92rem', fontFamily: "'Outfit', sans-serif" }}>Pending Approvals</h3>
+                        <p style={{ margin: 0, fontSize: '0.7rem', color: D.textSub }}>Accounts awaiting access review</p>
                       </div>
                       {!pendingLoad && pendingUsers.length > 0 && (
-                        <span style={{ background: D.gold, color: '#000', padding: '4px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 800, marginLeft: 8 }}>{pendingUsers.length}</span>
+                        <span style={{ background: D.gold, color: '#000', padding: '2px 8px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 800, marginLeft: 6 }}>{pendingUsers.length}</span>
                       )}
                     </div>
-                    <button onClick={loadPending} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 8, borderRadius: 8, transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}><RefreshCw size={18} /></button>
+                    <button onClick={loadPending} style={{ background: 'none', border: 'none', color: D.textSub, cursor: 'pointer', padding: 4, borderRadius: 6, transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}><RefreshCw size={14} /></button>
                   </div>
-                  <div style={{ padding: '24px 32px 28px' }}>
+                  <div style={{ padding: '12px 14px 14px' }}>
                     {pendingLoad ? (
-                      <div style={{ textAlign: 'center', color: D.textSub, padding: 20 }}>Loading...</div>
+                      <div style={{ textAlign: 'center', color: D.textSub, padding: 12, fontSize: '0.75rem' }}>Loading...</div>
                     ) : (
                       <>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
-                          {(showAllPending ? pendingUsers : pendingUsers.slice(0, 1)).map((u, i) => (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 265px))', gap: 10 }}>
+                          {(showAllPending ? pendingUsers : pendingUsers.slice(0, 4)).map((u, i) => (
                             <div key={u.id} style={{
-                              background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', gap: 20,
-                              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                              background: D.surface, border: `1px solid ${D.border}`, borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10,
+                              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
                             }}
-                              onMouseEnter={e => { e.currentTarget.style.borderColor = D.gold + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}
-                              onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                                <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`} alt={u.userName} style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${D.border}` }} onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`; }} />
-                                <div>
-                                  <p style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '1.05rem' }}>{u.userName}</p>
-                                  <p style={{ margin: '2px 0 8px', fontSize: '0.8rem', color: D.textSub }}>{u.email}</p>
-                                  <RoleBadge role={u.role} D={D} />
+                              onMouseEnter={e => { e.currentTarget.style.borderColor = D.gold + '60'; e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)' }}
+                              onMouseLeave={e => { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.background = D.surface; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)' }}>
+                              
+                              {/* Basic Identity Details (Click to open full profile) */}
+                              <div
+                                onClick={() => openProfile(u)}
+                                style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                                title="Click to view full user profile details"
+                              >
+                                {/* Profile Picture / Avatar */}
+                                <img src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`} alt={u.userName} style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${D.border}`, flexShrink: 0 }} onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.userName)}&background=2563eb&color=fff&bold=true`; }} />
+                                
+                                <div style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                  {/* Username */}
+                                  <p style={{ margin: 0, fontWeight: 800, color: D.text, fontSize: '0.88rem', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={u.userName}>
+                                    {u.userName}
+                                  </p>
+                                  
+                                  {/* Email Address */}
+                                  <p style={{ margin: 0, fontSize: '0.72rem', color: D.textSub, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={u.email}>
+                                    {u.email}
+                                  </p>
+                                  
+                                  {/* Requested Role Badge */}
+                                  <div style={{ marginTop: 2 }}>
+                                    <RoleBadge role={u.role} D={D} />
+                                  </div>
                                 </div>
                               </div>
-                              <div style={{ display: 'flex', gap: 12 }}>
-                                <button onClick={() => handleApprove(u.id, u.userName)} style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: D.greenDim, color: D.green, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}
-                                  onMouseEnter={e => { e.currentTarget.style.background = D.green; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = D.greenDim; e.currentTarget.style.color = D.green }}>
-                                  <Check size={18} /> Approve
+
+                              {/* Action Buttons: View Details, Approve, Reject */}
+                              <div style={{ display: 'flex', gap: 5, marginTop: 'auto' }}>
+                                <button
+                                  onClick={() => openProfile(u)}
+                                  style={{
+                                    flex: 1,
+                                    padding: '5px 6px',
+                                    borderRadius: 8,
+                                    border: `1px solid ${D.borderHi}`,
+                                    background: 'rgba(255, 255, 255, 0.05)',
+                                    color: D.text,
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 4,
+                                    transition: 'all 0.2s'
+                                  }}
+                                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+                                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+                                  title="View full user details"
+                                >
+                                  <Eye size={12} /> View
                                 </button>
-                                <button onClick={() => handleReject(u.id, u.userName)} style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: D.redDim, color: D.red, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}
+                                <button onClick={() => handleApprove(u.id, u.userName)} style={{ flex: 1, padding: '5px 6px', borderRadius: 8, border: 'none', background: D.greenDim, color: D.green, fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, transition: 'all 0.2s' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = D.green; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = D.greenDim; e.currentTarget.style.color = D.green }}>
+                                  <Check size={12} /> Approve
+                                </button>
+                                <button onClick={() => handleReject(u.id, u.userName)} style={{ flex: 1, padding: '5px 6px', borderRadius: 8, border: 'none', background: D.redDim, color: D.red, fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, transition: 'all 0.2s' }}
                                   onMouseEnter={e => { e.currentTarget.style.background = D.red; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = D.redDim; e.currentTarget.style.color = D.red }}>
-                                  <X size={18} /> Reject
+                                  <X size={12} /> Reject
                                 </button>
                               </div>
                             </div>
                           ))}
                         </div>
 
-                        {pendingUsers.length > 1 && (
-                          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
+                        {pendingUsers.length > 4 && (
+                          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 14 }}>
                             <button
                               onClick={() => setShowAllPending(!showAllPending)}
                               style={{
-                                padding: '10px 24px',
-                                borderRadius: 12,
-                                border: `1.5px solid ${showAllPending ? D.border : D.gold + '60'}`,
+                                padding: '6px 20px',
+                                borderRadius: 999,
+                                border: `1.5px solid ${showAllPending ? D.border : D.gold}`,
                                 background: showAllPending ? 'transparent' : D.goldDim,
                                 color: showAllPending ? D.textSub : D.gold,
-                                fontSize: '0.84rem',
+                                fontSize: '0.78rem',
                                 fontWeight: 800,
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: 8,
-                                transition: 'all 0.2s ease',
+                                gap: 6,
+                                transition: 'all 0.25s ease',
                                 boxShadow: showAllPending ? 'none' : `0 4px 14px ${D.goldDim}`
                               }}
                               onMouseEnter={e => {
                                 e.currentTarget.style.background = showAllPending ? D.surfaceHi : D.gold;
                                 e.currentTarget.style.color = showAllPending ? D.text : '#000';
+                                e.currentTarget.style.transform = 'translateY(-1px)';
                               }}
                               onMouseLeave={e => {
                                 e.currentTarget.style.background = showAllPending ? 'transparent' : D.goldDim;
                                 e.currentTarget.style.color = showAllPending ? D.textSub : D.gold;
+                                e.currentTarget.style.transform = 'translateY(0)';
                               }}
                             >
                               {showAllPending ? (
                                 <>
-                                  <ChevronUp size={16} /> Show Less
+                                  <ChevronUp size={14} /> Show Less
                                 </>
                               ) : (
                                 <>
-                                  <ChevronDown size={16} /> See More ({pendingUsers.length - 1} More Pending {pendingUsers.length - 1 === 1 ? 'Account' : 'Accounts'})
+                                  <ChevronDown size={14} /> See More ({pendingUsers.length - 4} More Pending {pendingUsers.length - 4 === 1 ? 'User' : 'Users'})
                                 </>
                               )}
                             </button>
@@ -1315,6 +1368,11 @@ const UsersPage = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>
                     <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>User ID</span>
                     <span style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>#{u.id}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub }}>Email Address</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text, wordBreak: 'break-all' }}>{u.email || 'N/A'}</span>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${D.border}`, paddingBottom: 10 }}>

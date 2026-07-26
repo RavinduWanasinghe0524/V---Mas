@@ -66,9 +66,14 @@ public class UserController {
     public ResponseEntity<ApiResponse<List<UserDto>>> getPendingUsers() {
         log.info("Get pending users request received");
         List<UserDto> pending = userService.getPendingUsers();
-        if (!isAdmin() && isController()) {
+        if (isAdmin()) {
             pending = pending.stream()
-                    .filter(u -> net.javaguids.ems_backend.enums.Role.DRIVER.equals(u.getRole()))
+                    .filter(u -> net.javaguids.ems_backend.enums.Role.ADMIN.equals(u.getRole()))
+                    .collect(Collectors.toList());
+        } else if (isController()) {
+            pending = pending.stream()
+                    .filter(u -> net.javaguids.ems_backend.enums.Role.DRIVER.equals(u.getRole())
+                              || net.javaguids.ems_backend.enums.Role.CONTROLLER.equals(u.getRole()))
                     .collect(Collectors.toList());
         }
         log.info("Returning {} pending users", pending.size());
@@ -79,10 +84,14 @@ public class UserController {
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     public ResponseEntity<ApiResponse<UserDto>> approveUser(@PathVariable Long id) {
         log.info("Approve user request received for ID: {}", id);
-        if (!isAdmin() && isController()) {
-            UserDto existingUser = userService.getUserById(id);
-            if (!net.javaguids.ems_backend.enums.Role.DRIVER.equals(existingUser.getRole())) {
-                throw new RuntimeException("Controllers can only approve driver accounts");
+        UserDto existingUser = userService.getUserById(id);
+        if (isAdmin()) {
+            if (!net.javaguids.ems_backend.enums.Role.ADMIN.equals(existingUser.getRole())) {
+                throw new RuntimeException("Admins can only approve admin accounts");
+            }
+        } else if (isController()) {
+            if (net.javaguids.ems_backend.enums.Role.ADMIN.equals(existingUser.getRole())) {
+                throw new RuntimeException("Controllers can only approve driver and controller accounts");
             }
         }
         UserDto updated = userService.approveUser(id);
@@ -94,10 +103,14 @@ public class UserController {
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     public ResponseEntity<ApiResponse<UserDto>> rejectUser(@PathVariable Long id) {
         log.info("Reject user request received for ID: {}", id);
-        if (!isAdmin() && isController()) {
-            UserDto existingUser = userService.getUserById(id);
-            if (!net.javaguids.ems_backend.enums.Role.DRIVER.equals(existingUser.getRole())) {
-                throw new RuntimeException("Controllers can only reject driver accounts");
+        UserDto existingUser = userService.getUserById(id);
+        if (isAdmin()) {
+            if (!net.javaguids.ems_backend.enums.Role.ADMIN.equals(existingUser.getRole())) {
+                throw new RuntimeException("Admins can only reject admin accounts");
+            }
+        } else if (isController()) {
+            if (net.javaguids.ems_backend.enums.Role.ADMIN.equals(existingUser.getRole())) {
+                throw new RuntimeException("Controllers can only reject driver and controller accounts");
             }
         }
         UserDto updated = userService.rejectUser(id);
