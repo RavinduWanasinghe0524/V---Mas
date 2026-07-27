@@ -40,7 +40,6 @@ import net.javaguids.ems_backend.enums.TripStatus;
 import net.javaguids.ems_backend.repository.TripRepository;
 
 @Service
-@SuppressWarnings("null")
 public class ServiceRecordServiceImpl implements ServiceRecordService {
 
     private final ServiceRecordRepository serviceRecordRepository;

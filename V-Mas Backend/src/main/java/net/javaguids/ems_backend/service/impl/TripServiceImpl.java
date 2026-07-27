@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @AllArgsConstructor
-@SuppressWarnings("null")
 public class TripServiceImpl implements TripService {
 
     private final TripRepository tripRepository;
