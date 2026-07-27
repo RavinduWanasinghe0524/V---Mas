@@ -111,6 +111,9 @@
 							<artifactId>lombok</artifactId>
 						</path>
 					</annotationProcessorPaths>
+					<compilerArgs>
+						<arg>-Xlint:-processing</arg>
+					</compilerArgs>
 				</configuration>
 			</plugin>
 			<plugin>

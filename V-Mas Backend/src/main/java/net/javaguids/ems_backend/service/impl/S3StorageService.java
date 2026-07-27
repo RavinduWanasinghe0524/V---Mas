@@ -18,7 +18,6 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import java.io.IOException;
 import java.io.InputStream;
 
-@SuppressWarnings("null")
 public class S3StorageService implements StorageService {
 
     private final S3Client s3Client;
