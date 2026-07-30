@@ -298,10 +298,10 @@ const TripsPage = () => {
 
   // Lock body scroll while a modal is open
   useEffect(() => {
-    const open = showAssignModal || !!tripToCancel || !!driverModal
+    const open = showAssignModal || !!tripToCancel || !!driverModal || !!pendingDetailModal || !!serviceLogModal || !!deleteConfirmTrip || deletedDrawer
     document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
-  }, [showAssignModal, tripToCancel, driverModal])
+  }, [showAssignModal, tripToCancel, driverModal, pendingDetailModal, serviceLogModal, deleteConfirmTrip, deletedDrawer])
 
   // ── Controller: assign a job ──────────────────────────────────────────
   const handleAssign = async (e) => {
