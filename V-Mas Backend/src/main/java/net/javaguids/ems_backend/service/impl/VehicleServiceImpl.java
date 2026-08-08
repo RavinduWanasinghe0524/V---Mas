@@ -30,7 +30,6 @@ import net.javaguids.ems_backend.repository.TripRepository;
 
 @Service
 @AllArgsConstructor
-@SuppressWarnings("null")
 public class VehicleServiceImpl implements VehicleService {
 
     private final VehicleRepository vehicleRepository;

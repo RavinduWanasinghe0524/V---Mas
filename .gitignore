@@ -47,3 +47,4 @@ V-Mas Backend/uploads/
 **/.env
 **/.env.local
 **/.env.production
+**/application-local.properties

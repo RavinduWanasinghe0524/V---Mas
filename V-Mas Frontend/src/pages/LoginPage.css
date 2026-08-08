@@ -372,3 +372,210 @@
     padding: 1.5rem 0;
   }
 }
+
+/* ══════════════════════════════════════════════════
+   FORGOT PASSWORD MODAL
+══════════════════════════════════════════════════ */
+
+@keyframes fpw-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes fpw-card-in {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes fpw-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Backdrop */
+.fpw-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+  animation: fpw-backdrop-in 0.22s ease both;
+}
+
+/* Card */
+.fpw-card {
+  position: relative;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 2.5rem 2rem 2rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.18),
+    0 8px 24px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  animation: fpw-card-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Close button */
+.fpw-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: #f5f5f5;
+  border: none;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #888;
+  transition: background 0.2s, color 0.2s;
+}
+.fpw-close:hover {
+  background: #eee;
+  color: #333;
+}
+
+/* Icon circle */
+.fpw-icon-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fff4f0 0%, #ffe8e0 100%);
+  color: #e84a1f;
+  border: 1.5px solid #fcd5c8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+}
+
+.fpw-icon-wrap--success {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+.fpw-icon-wrap--error {
+  background: linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%);
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+/* Title */
+.fpw-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #111;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.6rem;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Description */
+.fpw-desc {
+  font-size: 0.87rem;
+  color: #666;
+  line-height: 1.6;
+  margin: 0 0 1.5rem;
+}
+.fpw-desc strong {
+  color: #333;
+  font-weight: 600;
+}
+
+/* Hint below success */
+.fpw-hint {
+  font-size: 0.82rem;
+  color: #888;
+  margin: -0.75rem 0 0;
+}
+
+/* Retry inline link */
+.fpw-retry-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #e84a1f;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: 'Inter', sans-serif;
+  transition: color 0.2s;
+}
+.fpw-retry-link:hover { color: #c73e18; }
+
+/* Form */
+.fpw-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  text-align: left;
+  margin-bottom: 0.75rem;
+}
+
+.fpw-field {
+  position: relative;
+}
+
+.fpw-field--error .pay-input {
+  border-color: #fca5a5;
+  background: #fff5f5;
+}
+.fpw-field--error .pay-input:focus {
+  border-color: #f87171;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.fpw-field-error {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: #dc2626;
+  margin-top: 0.35rem;
+  padding-left: 0.1rem;
+}
+
+/* Server error banner */
+.fpw-server-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fff2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 0.82rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+}
+
+/* Back to sign-in text button */
+.fpw-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #888;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: color 0.2s;
+}
+.fpw-back-link:hover { color: #333; }
+
+/* Spinner on the loading button */
+.fpw-spin {
+  animation: fpw-spin 0.8s linear infinite;
+}
+

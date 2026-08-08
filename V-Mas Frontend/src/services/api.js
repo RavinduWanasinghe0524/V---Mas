@@ -27,7 +27,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const url = error.config?.url || ''
-    const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register')
+    const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/forgot-password') || url.includes('/auth/reset-password')
     const isProfileEndpoint = url.includes('/users/me')
 
     if (!isAuthEndpoint && !isProfileEndpoint && error.response?.status === 401) {
@@ -40,9 +40,11 @@ api.interceptors.response.use(
 )
 
 export const authAPI = {
-  register: (data) => api.post('/auth/register', data),
-  login:    (data) => api.post('/auth/login', data),
-  logout:   ()     => api.post('/auth/logout'),
+  register:        (data)                => api.post('/auth/register', data),
+  login:           (data)                => api.post('/auth/login', data),
+  logout:          ()                    => api.post('/auth/logout'),
+  forgotPassword:  (email)               => api.post('/auth/forgot-password', { email }),
+  resetPassword:   (token, newPassword)  => api.post('/auth/reset-password', { token, newPassword }),
 }
 
 export const userAPI = {
