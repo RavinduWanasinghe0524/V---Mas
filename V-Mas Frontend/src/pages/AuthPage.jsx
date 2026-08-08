@@ -7,6 +7,7 @@ import {
   Users, CheckCircle, ChevronDown, Clock, ArrowLeft, Mail, Sun, Moon
 } from 'lucide-react';
 import { getRoleLogo } from '../utils/roleAssets';
+import { authAPI } from '../services/api';
 import './AuthPage.css';
 
 /* ─────────────────────────────────────────────────────
@@ -480,10 +481,15 @@ const ForgotSlide = ({ onSwitch, isActive }) => {
       return;
     }
     setLoading(true);
-    // Simulate sending recovery email beautifully
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setSuccess(true);
-    setLoading(false);
+    try {
+      await authAPI.forgotPassword(email.trim());
+      setSuccess(true);
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to send reset link. Please try again.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (success) {
