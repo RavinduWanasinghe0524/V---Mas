@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, LogIn, AlertCircle, X, Mail, CheckCircle, ArrowLeft, Loader2 } from 'lucide-react';
 import { getRoleLogo } from '../utils/roleAssets';
+import { authAPI } from '../services/api';
 import fleetHero from '../assets/fleet-hero.png';
 import './LoginPage.css';
 
@@ -12,6 +13,7 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
 
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -123,7 +125,11 @@ const LoginPage = () => {
               </div>
             </div>
 
-            <a href="#" className="pay-forgot" onClick={(e) => e.preventDefault()}>
+            <a
+              href="#"
+              className="pay-forgot"
+              onClick={(e) => { e.preventDefault(); setShowForgotModal(true); }}
+            >
               Forgot password?
             </a>
 
@@ -145,8 +151,174 @@ const LoginPage = () => {
           <Link to="/signup">Create account</Link>
         </div>
       </div>
+
+      {/* ── Forgot Password Modal ── */}
+      {showForgotModal && (
+        <ForgotPasswordModal onClose={() => setShowForgotModal(false)} />
+      )}
     </div>
   );
 };
 
 export default LoginPage;
+
+/* ═══════════════════════════════════════════════════════════
+   FORGOT PASSWORD MODAL
+═══════════════════════════════════════════════════════════ */
+const ForgotPasswordModal = ({ onClose }) => {
+  const [step, setStep] = useState('email'); // 'email' | 'sent' | 'error'
+  const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState('');
+
+  const validateEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setEmailError('');
+    setServerError('');
+
+    if (!email.trim()) {
+      setEmailError('Please enter your email address.');
+      return;
+    }
+    if (!validateEmail(email)) {
+      setEmailError('Please enter a valid email address.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await authAPI.forgotPassword(email.trim());
+      setStep('sent');
+    } catch (err) {
+      const msg =
+        err.response?.data?.message ||
+        'Something went wrong. Please try again.';
+      setServerError(msg);
+      setStep('error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Close on backdrop click
+  const handleBackdrop = (e) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
+  return (
+    <div className="fpw-backdrop" onClick={handleBackdrop}>
+      <div className="fpw-card">
+        {/* Close button */}
+        <button className="fpw-close" onClick={onClose} aria-label="Close">
+          <X size={18} />
+        </button>
+
+        {/* ── Step: Email Input ── */}
+        {step === 'email' && (
+          <>
+            <div className="fpw-icon-wrap">
+              <Mail size={26} />
+            </div>
+            <h2 className="fpw-title">Forgot password?</h2>
+            <p className="fpw-desc">
+              Enter your registered email and we'll send you a link to reset your password.
+            </p>
+
+            <form onSubmit={handleSubmit} className="fpw-form" noValidate>
+              <div className={`fpw-field ${emailError ? 'fpw-field--error' : ''}`}>
+                <input
+                  id="forgot-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
+                  placeholder="Your email address"
+                  className="pay-input"
+                  autoFocus
+                  autoComplete="email"
+                />
+                {emailError && (
+                  <span className="fpw-field-error">
+                    <AlertCircle size={13} /> {emailError}
+                  </span>
+                )}
+              </div>
+
+              {serverError && (
+                <div className="fpw-server-error">
+                  <AlertCircle size={14} /> {serverError}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="pay-submit-btn"
+                disabled={loading}
+                id="forgot-submit"
+              >
+                {loading ? (
+                  <><Loader2 size={16} className="fpw-spin" /> Sending…</>
+                ) : (
+                  <>Send Reset Link</>
+                )}
+              </button>
+            </form>
+
+            <button className="fpw-back-link" onClick={onClose}>
+              <ArrowLeft size={14} /> Back to Sign In
+            </button>
+          </>
+        )}
+
+        {/* ── Step: Email Sent ── */}
+        {step === 'sent' && (
+          <>
+            <div className="fpw-icon-wrap fpw-icon-wrap--success">
+              <CheckCircle size={26} />
+            </div>
+            <h2 className="fpw-title">Check your inbox!</h2>
+            <p className="fpw-desc">
+              We've sent a password reset link to <strong>{email}</strong>.
+              The link expires in <strong>30 minutes</strong>.
+            </p>
+            <p className="fpw-hint">
+              Didn't receive it? Check your spam folder or{' '}
+              <button
+                className="fpw-retry-link"
+                onClick={() => { setStep('email'); setServerError(''); }}
+              >
+                try again
+              </button>.
+            </p>
+            <button className="pay-submit-btn" style={{ marginTop: '1.25rem' }} onClick={onClose}>
+              Back to Sign In
+            </button>
+          </>
+        )}
+
+        {/* ── Step: Error ── */}
+        {step === 'error' && (
+          <>
+            <div className="fpw-icon-wrap fpw-icon-wrap--error">
+              <AlertCircle size={26} />
+            </div>
+            <h2 className="fpw-title">Something went wrong</h2>
+            <p className="fpw-desc">{serverError || 'Unable to send the reset email. Please try again.'}</p>
+            <button
+              className="pay-submit-btn"
+              style={{ marginTop: '1rem' }}
+              onClick={() => { setStep('email'); setServerError(''); }}
+            >
+              Try Again
+            </button>
+            <button className="fpw-back-link" onClick={onClose}>
+              <ArrowLeft size={14} /> Back to Sign In
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
