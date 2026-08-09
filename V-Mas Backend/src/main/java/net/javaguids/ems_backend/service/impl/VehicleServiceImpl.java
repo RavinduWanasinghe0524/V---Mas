@@ -389,9 +389,9 @@ public class VehicleServiceImpl implements VehicleService {
             return enrichWithActiveTripDriver(VehicleMapper.mapToVehicleDto(vehicleOpt.get()));
         }
 
-        // If no vehicle assigned directly, check active trips
+        // If no vehicle is permanently assigned, fall back to any active trip (ASSIGNED or STARTED)
         List<Trip> activeTrips = tripRepository.findByDriverUsernameAndStatusInAndDeletedFalseOrderByCreatedAtDesc(
-                driverUsername, java.util.List.of(TripStatus.STARTED));
+                driverUsername, java.util.List.of(TripStatus.ASSIGNED, TripStatus.STARTED));
         if (!activeTrips.isEmpty()) {
             String vehicleReg = activeTrips.get(0).getVehicleRegNumber();
             Vehicle vehicle = vehicleRepository.findByRegistrationNo(vehicleReg)
