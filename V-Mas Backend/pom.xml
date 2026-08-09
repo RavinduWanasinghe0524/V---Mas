@@ -104,6 +104,13 @@
 			<artifactId>sendgrid-java</artifactId>
 			<version>4.10.2</version>
 		</dependency>
+
+		<!-- Twilio — SMS notifications for trip assignments -->
+		<dependency>
+			<groupId>com.twilio.sdk</groupId>
+			<artifactId>twilio</artifactId>
+			<version>10.6.1</version>
+		</dependency>
 	</dependencies>
 
 	<build>
