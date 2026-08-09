@@ -13,6 +13,7 @@ import net.javaguids.ems_backend.repository.TripRepository;
 import net.javaguids.ems_backend.repository.UserRepository;
 import net.javaguids.ems_backend.repository.VehicleRepository;
 import net.javaguids.ems_backend.service.NotificationService;
+import net.javaguids.ems_backend.service.SmsService;
 import net.javaguids.ems_backend.service.TripService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ public class TripServiceImpl implements TripService {
     private final UserRepository userRepository;
     private final VehicleRepository vehicleRepository;
     private final NotificationService notificationService;
+    private final SmsService smsService;
 
     // ==================== CONTROLLER / ADMIN ====================
 
@@ -73,7 +75,11 @@ public class TripServiceImpl implements TripService {
                 "New trip assigned to " + saved.getDestination() + " with vehicle " + saved.getVehicleRegNumber(),
                 "TRIP_ASSIGNED");
 
-        return toEnrichedDto(saved);
+        // Send SMS to the driver's mobile phone
+        TripDto savedDto = toEnrichedDto(saved);
+        smsService.sendTripAssignedSms(driver.getPhoneNumber(), savedDto);
+
+        return savedDto;
     }
 
     @Override
