@@ -28,29 +28,56 @@ import org.springframework.stereotype.Service;
  * Trial limitation:
  *   During the free trial, SMS can only be delivered to phone numbers you have
  *   verified under Twilio Console → Phone Numbers → Verified Caller IDs.
+ *
+ * NOTE: If credentials are not yet configured (still placeholders), the service
+ *       starts in disabled mode and SMS calls are silently skipped so the rest
+ *       of the app continues to work normally.
  */
 @Slf4j
 @Service
 public class TwilioSmsServiceImpl implements SmsService {
 
-    @Value("${twilio.account-sid}")
+    @Value("${twilio.account-sid:NOT_CONFIGURED}")
     private String accountSid;
 
-    @Value("${twilio.auth-token}")
+    @Value("${twilio.auth-token:NOT_CONFIGURED}")
     private String authToken;
 
-    @Value("${twilio.from-number}")
+    @Value("${twilio.from-number:NOT_CONFIGURED}")
     private String fromNumber;
 
-    /** Initialise the Twilio client once after the bean is constructed. */
+    /** True once Twilio has been successfully initialised with real credentials. */
+    private boolean enabled = false;
+
+    /**
+     * Initialise the Twilio client once after the bean is constructed.
+     * Skips initialisation gracefully if credentials are still placeholders,
+     * so Spring Boot starts normally without real Twilio keys.
+     */
     @PostConstruct
     public void init() {
-        Twilio.init(accountSid, authToken);
-        log.info("Twilio SMS client initialised (from-number: {})", fromNumber);
+        if (!accountSid.startsWith("AC")
+                || authToken.equals("NOT_CONFIGURED")
+                || fromNumber.equals("NOT_CONFIGURED")) {
+            log.warn("Twilio SMS is NOT configured — trip assignment SMS will be skipped. "
+                    + "Add real credentials to application-local.properties to enable.");
+            return;
+        }
+        try {
+            Twilio.init(accountSid, authToken);
+            enabled = true;
+            log.info("Twilio SMS client initialised successfully (from-number: {})", fromNumber);
+        } catch (Exception e) {
+            log.error("Twilio init failed — SMS disabled: {}", e.getMessage());
+        }
     }
 
     @Override
     public void sendTripAssignedSms(String toPhoneNumber, TripDto trip) {
+        if (!enabled) {
+            log.debug("Twilio not configured — skipping SMS for trip id={}", trip.getId());
+            return;
+        }
         if (toPhoneNumber == null || toPhoneNumber.isBlank()) {
             log.warn("Cannot send trip-assigned SMS: driver has no phone number on record (trip id={})", trip.getId());
             return;
