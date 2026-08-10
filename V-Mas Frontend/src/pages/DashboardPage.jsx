@@ -1832,7 +1832,7 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
         <StatCard
           icon={<Car size={20} color={A.driverColor}/>}
           label="Assigned Vehicle"
-          value={vehicleLoading ? '…' : (showVehicle ? myVehicle.registrationNo : '—')}
+          value={vehicleLoading ? '…' : (showVehicle ? myVehicle.registrationNo : 'None')}
           colorDim={A.driverDim} colorHex={A.driverColor}
           change={showVehicle ? `${myVehicle.manufacturer || ''} ${myVehicle.model || ''}`.trim() || 'My vehicle' : 'No vehicle assigned'}
           onClick={() => showVehicle && navigate('/vehicles', { state: { openVehicleProfile: myVehicle.registrationNo } })}
