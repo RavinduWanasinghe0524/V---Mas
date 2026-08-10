@@ -2197,7 +2197,7 @@ const DashboardPage = () => {
                           SUSPENDED: { label: 'Suspended', color: '#f87171', bg: 'rgba(239,68,68,0.22)',   border: 'rgba(239,68,68,0.45)' },
                         }[st] || { label: st.charAt(0) + st.slice(1).toLowerCase(), color: '#cbd5e1', bg: 'rgba(148,163,184,0.22)', border: 'rgba(148,163,184,0.45)' }
                         return (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: meta.bg, color: meta.color, padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: `1px solid ${meta.border}` }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: meta.bg, color: '#fff', padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: `1px solid ${meta.border}` }}>
                             <span style={{ width: 7, height: 7, borderRadius: '50%', background: meta.color, display: 'inline-block', boxShadow: `0 0 6px ${meta.color}` }} />
                             {meta.label}
                           </span>
