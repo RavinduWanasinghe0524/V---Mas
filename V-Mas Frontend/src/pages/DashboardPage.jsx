@@ -1823,6 +1823,8 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
     INACTIVE:    { bg: 'rgba(239,68,68,0.12)', color: '#f87171', border: '#f8717140' },
   }
 
+  const showVehicle = myVehicle && activeTrip
+
   return (
     <>
       <SectionHeader title="My Overview" />
@@ -1830,10 +1832,10 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
         <StatCard
           icon={<Car size={20} color={A.driverColor}/>}
           label="Assigned Vehicle"
-          value={vehicleLoading ? '…' : (myVehicle ? myVehicle.registrationNo : '—')}
+          value={vehicleLoading ? '…' : (showVehicle ? myVehicle.registrationNo : 'None')}
           colorDim={A.driverDim} colorHex={A.driverColor}
-          change={myVehicle ? `${myVehicle.manufacturer || ''} ${myVehicle.model || ''}`.trim() || 'My vehicle' : 'No vehicle assigned'}
-          onClick={() => myVehicle && navigate('/vehicles', { state: { openVehicleProfile: myVehicle.registrationNo } })}
+          change={showVehicle ? `${myVehicle.manufacturer || ''} ${myVehicle.model || ''}`.trim() || 'My vehicle' : 'No vehicle assigned'}
+          onClick={() => showVehicle && navigate('/vehicles', { state: { openVehicleProfile: myVehicle.registrationNo } })}
         />
         <StatCard
           icon={<ClipboardList size={20} color={A.driverColor}/>}
@@ -1855,14 +1857,14 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
           {/* Icon */}
           <div style={{
             width: 52, height: 52, borderRadius: 16, flexShrink: 0,
-            background: myVehicle ? 'linear-gradient(135deg,#1e3a8a,#2563eb)' : 'rgba(255,255,255,0.06)',
-            color: myVehicle ? '#fff' : 'var(--text-muted)',
+            background: showVehicle ? 'linear-gradient(135deg,#1e3a8a,#2563eb)' : 'rgba(255,255,255,0.06)',
+            color: showVehicle ? '#fff' : 'var(--text-muted)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: myVehicle ? '0 8px 20px rgba(37,99,235,0.35)' : 'none'
+            boxShadow: showVehicle ? '0 8px 20px rgba(37,99,235,0.35)' : 'none'
           }}>
             <Car size={24} />
           </div>
-          {myVehicle ? (
+          {showVehicle ? (
             <>
               <div style={{ flex: 1, minWidth: 180 }}>
                 <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>My Assigned Vehicle</div>
@@ -2197,7 +2199,7 @@ const DashboardPage = () => {
                           SUSPENDED: { label: 'Suspended', color: '#f87171', bg: 'rgba(239,68,68,0.22)',   border: 'rgba(239,68,68,0.45)' },
                         }[st] || { label: st.charAt(0) + st.slice(1).toLowerCase(), color: '#cbd5e1', bg: 'rgba(148,163,184,0.22)', border: 'rgba(148,163,184,0.45)' }
                         return (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: meta.bg, color: meta.color, padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: `1px solid ${meta.border}` }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: meta.bg, color: '#fff', padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)', border: `1px solid ${meta.border}` }}>
                             <span style={{ width: 7, height: 7, borderRadius: '50%', background: meta.color, display: 'inline-block', boxShadow: `0 0 6px ${meta.color}` }} />
                             {meta.label}
                           </span>
