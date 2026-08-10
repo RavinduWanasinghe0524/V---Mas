@@ -1833,7 +1833,7 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
           value={vehicleLoading ? '…' : (myVehicle ? myVehicle.registrationNo : '—')}
           colorDim={A.driverDim} colorHex={A.driverColor}
           change={myVehicle ? `${myVehicle.manufacturer || ''} ${myVehicle.model || ''}`.trim() || 'My vehicle' : 'No vehicle assigned'}
-          onClick={() => navigate('/vehicles')}
+          onClick={() => myVehicle && navigate('/vehicles', { state: { openVehicleProfile: myVehicle.registrationNo } })}
         />
         <StatCard
           icon={<ClipboardList size={20} color={A.driverColor}/>}
@@ -1890,7 +1890,7 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
                     </span>
                   )
                 })()}
-                <button onClick={() => navigate('/vehicles')}
+                <button onClick={() => myVehicle && navigate('/vehicles', { state: { openVehicleProfile: myVehicle.registrationNo } })}
                   style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--primary-dark), var(--primary))', color: '#fff', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 12px var(--primary-glow)' }}>
                   View Details
                 </button>
