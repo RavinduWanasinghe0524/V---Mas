@@ -1823,6 +1823,8 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
     INACTIVE:    { bg: 'rgba(239,68,68,0.12)', color: '#f87171', border: '#f8717140' },
   }
 
+  const showVehicle = myVehicle && activeTrip
+
   return (
     <>
       <SectionHeader title="My Overview" />
@@ -1830,10 +1832,10 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
         <StatCard
           icon={<Car size={20} color={A.driverColor}/>}
           label="Assigned Vehicle"
-          value={vehicleLoading ? '…' : (myVehicle ? myVehicle.registrationNo : '—')}
+          value={vehicleLoading ? '…' : (showVehicle ? myVehicle.registrationNo : '—')}
           colorDim={A.driverDim} colorHex={A.driverColor}
-          change={myVehicle ? `${myVehicle.manufacturer || ''} ${myVehicle.model || ''}`.trim() || 'My vehicle' : 'No vehicle assigned'}
-          onClick={() => myVehicle && navigate('/vehicles', { state: { openVehicleProfile: myVehicle.registrationNo } })}
+          change={showVehicle ? `${myVehicle.manufacturer || ''} ${myVehicle.model || ''}`.trim() || 'My vehicle' : 'No vehicle assigned'}
+          onClick={() => showVehicle && navigate('/vehicles', { state: { openVehicleProfile: myVehicle.registrationNo } })}
         />
         <StatCard
           icon={<ClipboardList size={20} color={A.driverColor}/>}
@@ -1855,14 +1857,14 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
           {/* Icon */}
           <div style={{
             width: 52, height: 52, borderRadius: 16, flexShrink: 0,
-            background: myVehicle ? 'linear-gradient(135deg,#1e3a8a,#2563eb)' : 'rgba(255,255,255,0.06)',
-            color: myVehicle ? '#fff' : 'var(--text-muted)',
+            background: showVehicle ? 'linear-gradient(135deg,#1e3a8a,#2563eb)' : 'rgba(255,255,255,0.06)',
+            color: showVehicle ? '#fff' : 'var(--text-muted)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: myVehicle ? '0 8px 20px rgba(37,99,235,0.35)' : 'none'
+            boxShadow: showVehicle ? '0 8px 20px rgba(37,99,235,0.35)' : 'none'
           }}>
             <Car size={24} />
           </div>
-          {myVehicle ? (
+          {showVehicle ? (
             <>
               <div style={{ flex: 1, minWidth: 180 }}>
                 <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>My Assigned Vehicle</div>
