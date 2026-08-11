@@ -4047,8 +4047,9 @@ textarea.form-control {
 /* Inline-style stat card grids (most pages use inline gridTemplateColumns) */
 .stats-grid>div {
   display: flex !important;
-  flex-direction: column !important;
-  min-height: 110px;
+  align-items: center;
+  min-height: 100px;
+  min-width: 0;
 }
 
 /* Consistent icon container in stat cards */
@@ -4102,6 +4103,14 @@ textarea.form-control {
   flex-shrink: 0;
 }
 
+/* Text wrapper container inside inline stat cards */
+.stats-grid>div>div:nth-child(2),
+.stats-grid>div>div:last-child {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
 /* The numeric/text value (usually largest text in the card) */
 .stats-grid>div>div>div[style*="1.6rem"],
 .stats-grid>div>div>div[style*="1.7rem"],
@@ -4109,7 +4118,7 @@ textarea.form-control {
 .stats-grid>div>div>div[style*="2rem"],
 .stats-grid>div>div>div[style*="1.85rem"],
 .stats-grid>div>div>div[style*="1.9rem"] {
-  font-size: 1.75rem !important;
+  font-size: 1.4rem !important;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
