@@ -21,10 +21,10 @@ const navItems = {
   CONTROLLER: [
     { label: 'Dashboard',       icon: <LayoutDashboard size={23} strokeWidth={1.5} />, to: '/dashboard'       },
     { label: 'Vehicles',        icon: <Truck size={23} strokeWidth={1.5} />,           to: '/vehicles'        },
+    { label: 'Job Management',  icon: <ClipboardList size={23} strokeWidth={1.5} />,   to: '/jobs'            },
     { label: 'Users',           icon: <Users size={23} strokeWidth={1.5} />,           to: '/users'           },
     { label: 'Service',         icon: <Wrench size={23} strokeWidth={1.5} />,          to: '/service'         },
     { label: 'Fuel Management', icon: <Fuel size={23} strokeWidth={1.5} />,            to: '/fuel-management' },
-    { label: 'Job Management',  icon: <ClipboardList size={23} strokeWidth={1.5} />,   to: '/jobs'            },
     { label: 'My Profile',      icon: <User size={23} strokeWidth={1.5} />,            to: '/profile'         },
   ],
   DRIVER: [
