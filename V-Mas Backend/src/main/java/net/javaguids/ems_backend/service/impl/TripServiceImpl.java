@@ -96,8 +96,17 @@ public class TripServiceImpl implements TripService {
     @Transactional
     public TripDto updateTrip(Long id, TripDto tripDto) {
         Trip trip = findTripOrThrow(id);
-        if (trip.getStatus() == TripStatus.STARTED || trip.getStatus() == TripStatus.COMPLETED || trip.getStatus() == TripStatus.CANCELLED) {
-            throw new IllegalStateException("Trip details cannot be edited after the driver has accepted the trip");
+        if (trip.getStatus() == TripStatus.COMPLETED || trip.getStatus() == TripStatus.CANCELLED) {
+            throw new IllegalStateException("A completed or cancelled trip cannot be edited");
+        }
+
+        if (trip.getStatus() == TripStatus.STARTED) {
+            if (tripDto.getDestination() != null && !tripDto.getDestination().isBlank()) {
+                trip.setDestination(tripDto.getDestination());
+            }
+            trip.setUpdatedAt(LocalDateTime.now());
+            Trip saved = tripRepository.save(trip);
+            return toEnrichedDto(saved);
         }
 
         if (tripDto.getDriverUsername() != null && !tripDto.getDriverUsername().isBlank()) {
@@ -131,6 +140,9 @@ public class TripServiceImpl implements TripService {
     @Transactional
     public void cancelTrip(Long id) {
         Trip trip = findTripOrThrow(id);
+        if (trip.getStatus() != TripStatus.ASSIGNED) {
+            throw new IllegalStateException("Only assigned trips can be cancelled");
+        }
         trip.setStatus(TripStatus.CANCELLED);
         trip.setUpdatedAt(LocalDateTime.now());
         tripRepository.save(trip);

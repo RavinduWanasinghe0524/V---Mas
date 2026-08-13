@@ -173,7 +173,7 @@ const TripsPage = () => {
 
   const [showAssignModal, setShowAssignModal] = useState(false)
   const [activeTab, setActiveTab] = useState('TRIP') // 'TRIP' | 'SERVICE' | 'FUEL'
-  const emptyForm = { driverUsername: '', vehicleRegNumber: '', origin: '', destination: '', purpose: '', scheduledDate: '', allowDriverServiceLog: true }
+  const emptyForm = { driverUsername: '', vehicleRegNumber: '', origin: '', destination: '', purpose: '', scheduledDate: '', allowDriverServiceLog: true, status: '' }
   const [form, setForm] = useState(emptyForm)
   const [submitting, setSubmitting] = useState(false)
   const [editingTripId, setEditingTripId] = useState(null)
@@ -919,7 +919,7 @@ const TripsPage = () => {
                               </ActionBtn>
                             )}
 
-                            {(s === 'ASSIGNED' || s === 'DECLINED') && (
+                            {(s === 'ASSIGNED' || s === 'DECLINED' || s === 'STARTED') && (
                               <ActionBtn
                                 onClick={() => {
                                   const jobType = getJobType(trip.purpose)
@@ -932,7 +932,8 @@ const TripsPage = () => {
                                     destination: trip.destination || '',
                                     purpose: getCleanPurpose(trip.purpose) || '',
                                     scheduledDate: trip.scheduledDate ? trip.scheduledDate.split('T')[0] : '',
-                                    allowDriverServiceLog: hasDriverServiceAccess(trip)
+                                    allowDriverServiceLog: hasDriverServiceAccess(trip),
+                                    status: trip.status
                                   })
                                   setShowAssignModal(true)
                                 }}
@@ -950,7 +951,7 @@ const TripsPage = () => {
                                 {s === 'DECLINED' && trip.declineReason ? `Reason: ${trip.declineReason}` : <><Clock size={13} /> Closed</>}
                               </span>
                             )}
-                            {(s === 'ASSIGNED' || s === 'STARTED') && (
+                            {s === 'ASSIGNED' && (
                               <ActionBtn onClick={() => setTripToCancel(trip)} disabled={busy} bg={D.redDim} color={D.red} border={`1px solid ${D.red}40`} icon={<Ban size={14} />}>Cancel</ActionBtn>
                             )}
                             <ActionBtn onClick={() => setDeleteConfirmTrip(trip)} disabled={busy} bg="rgba(239,68,68,0.1)" color="#ef4444" border="1px solid rgba(239,68,68,0.2)" icon={<Trash2 size={14} />}>Delete</ActionBtn>
@@ -1279,14 +1280,14 @@ const TripsPage = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
                 <div>
                   <label style={labelStyle}>Driver *</label>
-                  <select style={inputStyle} value={form.driverUsername} onChange={e => setForm(f => ({ ...f, driverUsername: e.target.value }))} onFocus={onFocus} onBlur={onBlur}>
+                  <select style={inputStyle} value={form.driverUsername} onChange={e => setForm(f => ({ ...f, driverUsername: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={form.status === 'STARTED'}>
                     <option value="">Select driver…</option>
                     {drivers.map(d => <option key={d.id} value={d.userName}>{d.userName}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={labelStyle}>Vehicle *</label>
-                  <select style={inputStyle} value={form.vehicleRegNumber} onChange={e => handleVehicleChange(e.target.value)} onFocus={onFocus} onBlur={onBlur}>
+                  <select style={inputStyle} value={form.vehicleRegNumber} onChange={e => handleVehicleChange(e.target.value)} onFocus={onFocus} onBlur={onBlur} disabled={form.status === 'STARTED'}>
                     <option value="">Select vehicle…</option>
                     {vehicles.map(v => <option key={v.id} value={v.registrationNo}>{v.registrationNo}{v.model ? ` — ${v.model}` : ''}{v.driverUsername ? ` 👤 ${v.driverUsername}` : ''}</option>)}
                   </select>
@@ -1301,7 +1302,7 @@ const TripsPage = () => {
                 {activeTab === 'TRIP' && (
                   <div>
                     <label style={labelStyle}>Origin</label>
-                    <input style={inputStyle} placeholder="e.g. Colombo" value={form.origin} onChange={e => setForm(f => ({ ...f, origin: e.target.value }))} onFocus={onFocus} onBlur={onBlur} />
+                    <input style={inputStyle} placeholder="e.g. Colombo" value={form.origin} onChange={e => setForm(f => ({ ...f, origin: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={form.status === 'STARTED'} />
                   </div>
                 )}
                 
@@ -1320,7 +1321,7 @@ const TripsPage = () => {
                 
                 <div>
                   <label style={labelStyle}>Scheduled Date *</label>
-                  <input type="date" style={inputStyle} value={form.scheduledDate} onChange={e => setForm(f => ({ ...f, scheduledDate: e.target.value }))} onFocus={onFocus} onBlur={onBlur} />
+                  <input type="date" style={inputStyle} value={form.scheduledDate} onChange={e => setForm(f => ({ ...f, scheduledDate: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={form.status === 'STARTED'} />
                 </div>
                 
                 <div>
@@ -1328,7 +1329,7 @@ const TripsPage = () => {
                     {activeTab === 'TRIP' ? 'Purpose' : activeTab === 'SERVICE' ? 'Service Description *' : 'Instructions'}
                   </label>
                   {activeTab === 'SERVICE' ? (
-                    <select style={inputStyle} value={form.purpose} onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))} onFocus={onFocus} onBlur={onBlur}>
+                    <select style={inputStyle} value={form.purpose} onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={form.status === 'STARTED'}>
                       <option value="">Select service type…</option>
                       {sortedServiceTypes.map(t => (
                         <option key={t.value} value={t.label} style={{ color: t.isOverdue ? '#ef4444' : 'inherit', fontWeight: t.isOverdue ? 'bold' : 'normal' }}>
@@ -1343,6 +1344,7 @@ const TripsPage = () => {
                       onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))} 
                       onFocus={onFocus} 
                       onBlur={onBlur} 
+                      disabled={form.status === 'STARTED'}
                     />
                   )}
                 </div>
@@ -1373,12 +1375,13 @@ const TripsPage = () => {
                       </div>
                     </div>
                   </div>
-                  <label style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, minWidth: 44, minHeight: 24, cursor: 'pointer', flexShrink: 0, margin: 0, padding: 0, boxSizing: 'border-box' }}>
+                  <label style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, minWidth: 44, minHeight: 24, cursor: form.status === 'STARTED' ? 'not-allowed' : 'pointer', flexShrink: 0, margin: 0, padding: 0, boxSizing: 'border-box' }}>
                     <input
                       type="checkbox"
                       checked={form.allowDriverServiceLog}
-                      onChange={e => setForm(f => ({ ...f, allowDriverServiceLog: e.target.checked }))}
+                      onChange={e => { if (form.status !== 'STARTED') setForm(f => ({ ...f, allowDriverServiceLog: e.target.checked })) }}
                       style={{ position: 'absolute', opacity: 0, width: 0, height: 0, margin: 0, padding: 0 }}
+                      disabled={form.status === 'STARTED'}
                     />
                     <div style={{
                       position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 999,
