@@ -48,6 +48,9 @@ public class TripServiceImpl implements TripService {
         if (tripDto.getDestination() == null || tripDto.getDestination().isBlank()) {
             throw new IllegalArgumentException("A destination is required for the trip");
         }
+        if (tripDto.getScheduledDate() == null) {
+            throw new IllegalArgumentException("Scheduled date is required for the trip");
+        }
 
         // Validate the driver exists and actually is a driver
         User driver = userRepository.findByUserName(tripDto.getDriverUsername())
@@ -93,8 +96,8 @@ public class TripServiceImpl implements TripService {
     @Transactional
     public TripDto updateTrip(Long id, TripDto tripDto) {
         Trip trip = findTripOrThrow(id);
-        if (trip.getStatus() == TripStatus.COMPLETED || trip.getStatus() == TripStatus.CANCELLED) {
-            throw new IllegalStateException("A completed or cancelled trip cannot be edited");
+        if (trip.getStatus() == TripStatus.STARTED || trip.getStatus() == TripStatus.COMPLETED || trip.getStatus() == TripStatus.CANCELLED) {
+            throw new IllegalStateException("Trip details cannot be edited after the driver has accepted the trip");
         }
 
         if (tripDto.getDriverUsername() != null && !tripDto.getDriverUsername().isBlank()) {
