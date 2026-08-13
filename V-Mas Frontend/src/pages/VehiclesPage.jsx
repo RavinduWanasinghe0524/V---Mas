@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
@@ -120,6 +120,7 @@ const VehiclesPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
+  const { regNo } = useParams()
 
 
 
@@ -280,6 +281,10 @@ const VehiclesPage = () => {
   }
 
   const openProfile = async (vehicle, initialTab = 'overview') => {
+    const path = `/vehicle/${vehicle.registrationNo}`
+    if (location.pathname !== path) {
+      navigate(path)
+    }
     setSelectedProfileVehicle(vehicle)
     setProfileActiveTab(initialTab)
     setIsProfileOpen(true)
@@ -298,6 +303,9 @@ const VehiclesPage = () => {
   }
 
   const closeProfile = () => {
+    if (location.pathname !== '/vehicles') {
+      navigate('/vehicles')
+    }
     setIsProfileOpen(false)
     setSelectedProfileVehicle(null)
     setProfileFuelLogs([])
@@ -833,6 +841,10 @@ const VehiclesPage = () => {
   }
 
   const openEditModal = (vehicle) => {
+    const path = `/vehicle/${vehicle.registrationNo}/edit`
+    if (location.pathname !== path) {
+      navigate(path)
+    }
     setEditingVehicle(vehicle)
     setEditFormData({
       model: vehicle.model || '',
@@ -854,6 +866,9 @@ const VehiclesPage = () => {
   }
 
   const closeEditModal = () => {
+    if (location.pathname !== '/vehicles') {
+      navigate('/vehicles')
+    }
     setIsEditModalOpen(false)
     setEditingVehicle(null)
     setEditError('')
@@ -877,6 +892,32 @@ const VehiclesPage = () => {
     setEditInsuranceFile(null)
     setEditLicenseFile(null)
   }
+
+  useEffect(() => {
+    if (regNo && vehicles.length > 0) {
+      const match = vehicles.find(v => (v.registrationNo || '').trim().toUpperCase() === (regNo || '').trim().toUpperCase())
+      if (match) {
+        if (location.pathname.endsWith('/edit')) {
+          if (!isEditModalOpen || editingVehicle?.id !== match.id) {
+            openEditModal(match)
+          }
+        } else {
+          if (!isProfileOpen || selectedProfileVehicle?.id !== match.id) {
+            openProfile(match)
+          }
+        }
+      }
+    } else if (!regNo && vehicles.length > 0) {
+      if (isProfileOpen) {
+        setIsProfileOpen(false)
+        setSelectedProfileVehicle(null)
+      }
+      if (isEditModalOpen) {
+        setIsEditModalOpen(false)
+        setEditingVehicle(null)
+      }
+    }
+  }, [regNo, vehicles, location.pathname])
 
   const handleEditChange = (e) => {
     setEditFormData({ ...editFormData, [e.target.name]: e.target.value })
