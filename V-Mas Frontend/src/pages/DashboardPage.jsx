@@ -14,12 +14,11 @@ const StatCard = ({ icon, label, value, colorDim, colorHex, change, onClick }) =
     background: 'var(--surface)', borderRadius: 24,
     border: '1px solid var(--surface-border)',
     boxShadow: '0 4px 24px rgba(0,0,0,0.25)', overflow: 'hidden',
-    padding: '24px 28px', display: 'flex', alignItems: 'center', gap: 20,
+    padding: '28px', display: 'flex', alignItems: 'center', gap: 24,
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     cursor: onClick ? 'pointer' : 'default',
     backdropFilter: 'blur(12px)',
     WebkitBackdropFilter: 'blur(12px)',
-    minWidth: 0,
   }}
     onMouseEnter={e => {
       e.currentTarget.style.transform = 'translateY(-6px)'
@@ -31,13 +30,13 @@ const StatCard = ({ icon, label, value, colorDim, colorHex, change, onClick }) =
       e.currentTarget.style.borderColor = 'var(--surface-border)'
       e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)'
     }}>
-    <div style={{ width: 56, height: 56, borderRadius: 18, background: colorDim, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${colorHex}30`, flexShrink: 0, boxShadow: `0 4px 12px ${colorHex}20` }}>
+    <div style={{ width: 60, height: 60, borderRadius: 18, background: colorDim, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${colorHex}30`, flexShrink: 0, boxShadow: `0 4px 12px ${colorHex}20` }}>
       {icon}
     </div>
-    <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
-      <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={typeof value === 'string' ? value : undefined}>{value}</div>
-      {change && <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{change}</div>}
+    <div>
+      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.1 }}>{value}</div>
+      {change && <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 6, fontWeight: 600 }}>{change}</div>}
     </div>
   </div>
 )
