@@ -281,26 +281,9 @@ const VehiclesPage = () => {
     }
   }
 
-  const openProfile = async (vehicle, initialTab = 'overview') => {
-    const path = `/vehicle/${vehicle.registrationNo}`
-    if (location.pathname !== path) {
-      navigate(path)
-    }
-    setSelectedProfileVehicle(vehicle)
-    setProfileActiveTab(initialTab)
-    setIsProfileOpen(true)
-    setLoadingProfileFuel(true)
-    try {
-      const res = await fuelAPI.getLogsByVehicle(vehicle.registrationNo)
-      const rawLogs = res.data.data || []
-      const logsWithEff = computeLogsEfficiency(rawLogs, vehicles)
-      setProfileFuelLogs(logsWithEff)
-    } catch (err) {
-      console.error('Error fetching fuel logs for profile:', err)
-      setProfileFuelLogs([])
-    } finally {
-      setLoadingProfileFuel(false)
-    }
+  const openProfile = (vehicle, initialTab = 'overview') => {
+    if (!vehicle?.registrationNo) return
+    navigate(`/vehicle/${encodeURIComponent(vehicle.registrationNo)}`)
   }
 
   const closeProfile = () => {

@@ -1541,7 +1541,7 @@ const AlertSection = ({ alerts, navigate, isDark }) => {
                 if (alert.type === 'SERVICE_DUE') {
                   navigate('/service')
                 } else {
-                  navigate('/vehicles', { state: { openVehicleProfile: alert.vehicleRegNumber } })
+                  navigate(`/vehicle/${encodeURIComponent(alert.vehicleRegNumber)}`)
                 }
               }}
               style={{
@@ -1835,7 +1835,7 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
           value={vehicleLoading ? '…' : (showVehicle ? myVehicle.registrationNo : 'None')}
           colorDim={A.driverDim} colorHex={A.driverColor}
           change={showVehicle ? `${myVehicle.manufacturer || ''} ${myVehicle.model || ''}`.trim() || 'My vehicle' : 'No vehicle assigned'}
-          onClick={() => showVehicle && navigate('/vehicles', { state: { openVehicleProfile: myVehicle.registrationNo } })}
+          onClick={() => showVehicle && navigate(`/vehicle/${encodeURIComponent(myVehicle.registrationNo)}`)}
         />
         <StatCard
           icon={<ClipboardList size={20} color={A.driverColor}/>}
@@ -1892,7 +1892,7 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
                     </span>
                   )
                 })()}
-                <button onClick={() => myVehicle && navigate('/vehicles', { state: { openVehicleProfile: myVehicle.registrationNo } })}
+                <button onClick={() => myVehicle && navigate(`/vehicle/${encodeURIComponent(myVehicle.registrationNo)}`)}
                   style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--primary-dark), var(--primary))', color: '#fff', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 12px var(--primary-glow)' }}>
                   View Details
                 </button>

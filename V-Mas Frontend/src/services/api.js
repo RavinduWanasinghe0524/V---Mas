@@ -90,6 +90,7 @@ export const employeeAPI = {
 export const vehicleAPI = {
   getAllVehicles:    ()                  => api.get('/vehicles'),
   getVehicleById:   (id)                => api.get(`/vehicles/${id}`),
+  getVehicleByRegNo: (regNo)             => api.get(`/vehicles/registration/${encodeURIComponent(regNo)}`),
   updateVehicle:    (id, data)          => api.put(`/vehicles/${id}`, data),
   deleteVehicle:    (id)                => api.delete(`/vehicles/${id}`),
   registerVehicle:  (data)              => api.post('/vehicles', data),
