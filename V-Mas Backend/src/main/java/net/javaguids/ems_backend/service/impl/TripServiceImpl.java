@@ -48,6 +48,9 @@ public class TripServiceImpl implements TripService {
         if (tripDto.getDestination() == null || tripDto.getDestination().isBlank()) {
             throw new IllegalArgumentException("A destination is required for the trip");
         }
+        if (tripDto.getScheduledDate() == null) {
+            throw new IllegalArgumentException("Scheduled date is required for the trip");
+        }
 
         // Validate the driver exists and actually is a driver
         User driver = userRepository.findByUserName(tripDto.getDriverUsername())
@@ -97,6 +100,15 @@ public class TripServiceImpl implements TripService {
             throw new IllegalStateException("A completed or cancelled trip cannot be edited");
         }
 
+        if (trip.getStatus() == TripStatus.STARTED) {
+            if (tripDto.getDestination() != null && !tripDto.getDestination().isBlank()) {
+                trip.setDestination(tripDto.getDestination());
+            }
+            trip.setUpdatedAt(LocalDateTime.now());
+            Trip saved = tripRepository.save(trip);
+            return toEnrichedDto(saved);
+        }
+
         if (tripDto.getDriverUsername() != null && !tripDto.getDriverUsername().isBlank()) {
             User driver = userRepository.findByUserName(tripDto.getDriverUsername())
                     .orElseThrow(() -> new ResourceNotFoundException(
@@ -128,6 +140,9 @@ public class TripServiceImpl implements TripService {
     @Transactional
     public void cancelTrip(Long id) {
         Trip trip = findTripOrThrow(id);
+        if (trip.getStatus() != TripStatus.ASSIGNED) {
+            throw new IllegalStateException("Only assigned trips can be cancelled");
+        }
         trip.setStatus(TripStatus.CANCELLED);
         trip.setUpdatedAt(LocalDateTime.now());
         tripRepository.save(trip);

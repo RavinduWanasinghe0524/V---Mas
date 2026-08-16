@@ -173,9 +173,10 @@ const TripsPage = () => {
 
   const [showAssignModal, setShowAssignModal] = useState(false)
   const [activeTab, setActiveTab] = useState('TRIP') // 'TRIP' | 'SERVICE' | 'FUEL'
-  const emptyForm = { driverUsername: '', vehicleRegNumber: '', origin: '', destination: '', purpose: '', scheduledDate: '', allowDriverServiceLog: true }
+  const emptyForm = { driverUsername: '', vehicleRegNumber: '', origin: '', destination: '', purpose: '', scheduledDate: '', allowDriverServiceLog: true, status: '' }
   const [form, setForm] = useState(emptyForm)
   const [submitting, setSubmitting] = useState(false)
+  const [editingTripId, setEditingTripId] = useState(null)
 
   const [tripToCancel, setTripToCancel] = useState(null)
   const [cancelling, setCancelling] = useState(false)
@@ -310,6 +311,10 @@ const TripsPage = () => {
       flash('error', 'Driver, vehicle and destination/location are required')
       return
     }
+    if (!form.scheduledDate) {
+      flash('error', 'Scheduled Date is required')
+      return
+    }
     if (activeTab === 'SERVICE' && !form.purpose) {
       flash('error', 'Service Description is required')
       return
@@ -320,24 +325,32 @@ const TripsPage = () => {
       const prefix = activeTab === 'SERVICE' ? '[Service] ' : activeTab === 'FUEL' ? '[Fuel] ' : '[Trip] '
       const finalPurpose = `${prefix}${accessTag} ${(form.purpose || '').trim()}`
 
-      await tripAPI.assignTrip({
+      const payload = {
         ...form,
         purpose: finalPurpose,
         allowDriverServiceLog: form.allowDriverServiceLog,
         scheduledDate: form.scheduledDate || null
-      })
-      flash('success', `${activeTab === 'SERVICE' ? 'Service' : activeTab === 'FUEL' ? 'Fuel' : 'Trip'} job assigned successfully`)
+      }
+
+      if (editingTripId) {
+        await tripAPI.updateTrip(editingTripId, payload)
+        flash('success', `${activeTab === 'SERVICE' ? 'Service' : activeTab === 'FUEL' ? 'Fuel' : 'Trip'} job updated successfully`)
+      } else {
+        await tripAPI.assignTrip(payload)
+        flash('success', `${activeTab === 'SERVICE' ? 'Service' : activeTab === 'FUEL' ? 'Fuel' : 'Trip'} job assigned successfully`)
+      }
       setForm(emptyForm)
+      setEditingTripId(null)
       setShowAssignModal(false)
       loadTrips()
     } catch (err) {
-      flash('error', err.response?.data?.message || 'Failed to assign job')
+      flash('error', err.response?.data?.message || `Failed to ${editingTripId ? 'update' : 'assign'} job`)
     } finally {
       setSubmitting(false)
     }
   }
 
-  const closeAssignModal = () => { if (!submitting) { setShowAssignModal(false); setForm(emptyForm) } }
+  const closeAssignModal = () => { if (!submitting) { setShowAssignModal(false); setForm(emptyForm); setEditingTripId(null); } }
 
   // When a vehicle is selected in the modal, auto-fill the assigned driver (but allow override)
   const handleVehicleChange = (regNo) => {
@@ -906,12 +919,39 @@ const TripsPage = () => {
                               </ActionBtn>
                             )}
 
+                            {(s === 'ASSIGNED' || s === 'DECLINED' || s === 'STARTED') && (
+                              <ActionBtn
+                                onClick={() => {
+                                  const jobType = getJobType(trip.purpose)
+                                  setActiveTab(jobType)
+                                  setEditingTripId(trip.id)
+                                  setForm({
+                                    driverUsername: trip.driverUsername || '',
+                                    vehicleRegNumber: trip.vehicleRegNumber || '',
+                                    origin: trip.origin || '',
+                                    destination: trip.destination || '',
+                                    purpose: getCleanPurpose(trip.purpose) || '',
+                                    scheduledDate: trip.scheduledDate ? trip.scheduledDate.split('T')[0] : '',
+                                    allowDriverServiceLog: hasDriverServiceAccess(trip),
+                                    status: trip.status
+                                  })
+                                  setShowAssignModal(true)
+                                }}
+                                disabled={busy}
+                                bg="linear-gradient(135deg, var(--primary-dark), var(--primary))"
+                                color="#fff"
+                                icon={<Edit2 size={14} />}
+                              >
+                                Edit
+                              </ActionBtn>
+                            )}
+
                             {(s === 'DECLINED' || s === 'COMPLETED' || s === 'CANCELLED') && (
                               <span style={{ fontSize: '0.76rem', color: D.textSub, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginRight: 4 }}>
                                 {s === 'DECLINED' && trip.declineReason ? `Reason: ${trip.declineReason}` : <><Clock size={13} /> Closed</>}
                               </span>
                             )}
-                            {(s === 'ASSIGNED' || s === 'STARTED') && (
+                            {s === 'ASSIGNED' && (
                               <ActionBtn onClick={() => setTripToCancel(trip)} disabled={busy} bg={D.redDim} color={D.red} border={`1px solid ${D.red}40`} icon={<Ban size={14} />}>Cancel</ActionBtn>
                             )}
                             <ActionBtn onClick={() => setDeleteConfirmTrip(trip)} disabled={busy} bg="rgba(239,68,68,0.1)" color="#ef4444" border="1px solid rgba(239,68,68,0.2)" icon={<Trash2 size={14} />}>Delete</ActionBtn>
@@ -1219,10 +1259,10 @@ const TripsPage = () => {
                 </div>
                 <div>
                   <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>
-                    Assign a {activeTab === 'TRIP' ? 'Trip' : activeTab === 'SERVICE' ? 'Service Job' : 'Fuel Job'}
+                    {editingTripId ? 'Edit' : 'Assign'} a {activeTab === 'TRIP' ? 'Trip' : activeTab === 'SERVICE' ? 'Service Job' : 'Fuel Job'}
                   </h2>
                   <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: 'rgba(255,255,255,0.75)', fontWeight: 500 }}>
-                    {activeTab === 'TRIP' ? 'Assign a trip and a vehicle to a driver' : activeTab === 'SERVICE' ? 'Assign driver to perform vehicle service' : 'Assign driver to fill up gas for a vehicle'}
+                    {editingTripId ? 'Update details for this assignment' : (activeTab === 'TRIP' ? 'Assign a trip and a vehicle to a driver' : activeTab === 'SERVICE' ? 'Assign driver to perform vehicle service' : 'Assign driver to fill up gas for a vehicle')}
                   </p>
                 </div>
               </div>
@@ -1240,14 +1280,14 @@ const TripsPage = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
                 <div>
                   <label style={labelStyle}>Driver *</label>
-                  <select style={inputStyle} value={form.driverUsername} onChange={e => setForm(f => ({ ...f, driverUsername: e.target.value }))} onFocus={onFocus} onBlur={onBlur}>
+                  <select style={inputStyle} value={form.driverUsername} onChange={e => setForm(f => ({ ...f, driverUsername: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={form.status === 'STARTED'}>
                     <option value="">Select driver…</option>
                     {drivers.map(d => <option key={d.id} value={d.userName}>{d.userName}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={labelStyle}>Vehicle *</label>
-                  <select style={inputStyle} value={form.vehicleRegNumber} onChange={e => handleVehicleChange(e.target.value)} onFocus={onFocus} onBlur={onBlur}>
+                  <select style={inputStyle} value={form.vehicleRegNumber} onChange={e => handleVehicleChange(e.target.value)} onFocus={onFocus} onBlur={onBlur} disabled={form.status === 'STARTED'}>
                     <option value="">Select vehicle…</option>
                     {vehicles.map(v => <option key={v.id} value={v.registrationNo}>{v.registrationNo}{v.model ? ` — ${v.model}` : ''}{v.driverUsername ? ` 👤 ${v.driverUsername}` : ''}</option>)}
                   </select>
@@ -1262,7 +1302,7 @@ const TripsPage = () => {
                 {activeTab === 'TRIP' && (
                   <div>
                     <label style={labelStyle}>Origin</label>
-                    <input style={inputStyle} placeholder="e.g. Colombo" value={form.origin} onChange={e => setForm(f => ({ ...f, origin: e.target.value }))} onFocus={onFocus} onBlur={onBlur} />
+                    <input style={inputStyle} placeholder="e.g. Colombo" value={form.origin} onChange={e => setForm(f => ({ ...f, origin: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={form.status === 'STARTED'} />
                   </div>
                 )}
                 
@@ -1280,8 +1320,8 @@ const TripsPage = () => {
                 </div>
                 
                 <div>
-                  <label style={labelStyle}>Scheduled Date</label>
-                  <input type="date" style={inputStyle} value={form.scheduledDate} onChange={e => setForm(f => ({ ...f, scheduledDate: e.target.value }))} onFocus={onFocus} onBlur={onBlur} />
+                  <label style={labelStyle}>Scheduled Date *</label>
+                  <input type="date" style={inputStyle} value={form.scheduledDate} onChange={e => setForm(f => ({ ...f, scheduledDate: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={form.status === 'STARTED'} />
                 </div>
                 
                 <div>
@@ -1289,7 +1329,7 @@ const TripsPage = () => {
                     {activeTab === 'TRIP' ? 'Purpose' : activeTab === 'SERVICE' ? 'Service Description *' : 'Instructions'}
                   </label>
                   {activeTab === 'SERVICE' ? (
-                    <select style={inputStyle} value={form.purpose} onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))} onFocus={onFocus} onBlur={onBlur}>
+                    <select style={inputStyle} value={form.purpose} onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={form.status === 'STARTED'}>
                       <option value="">Select service type…</option>
                       {sortedServiceTypes.map(t => (
                         <option key={t.value} value={t.label} style={{ color: t.isOverdue ? '#ef4444' : 'inherit', fontWeight: t.isOverdue ? 'bold' : 'normal' }}>
@@ -1304,6 +1344,7 @@ const TripsPage = () => {
                       onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))} 
                       onFocus={onFocus} 
                       onBlur={onBlur} 
+                      disabled={form.status === 'STARTED'}
                     />
                   )}
                 </div>
@@ -1334,24 +1375,25 @@ const TripsPage = () => {
                       </div>
                     </div>
                   </div>
-                  <label style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, cursor: 'pointer', flexShrink: 0 }}>
+                  <label style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, minWidth: 44, minHeight: 24, cursor: form.status === 'STARTED' ? 'not-allowed' : 'pointer', flexShrink: 0, margin: 0, padding: 0, boxSizing: 'border-box' }}>
                     <input
                       type="checkbox"
                       checked={form.allowDriverServiceLog}
-                      onChange={e => setForm(f => ({ ...f, allowDriverServiceLog: e.target.checked }))}
-                      style={{ opacity: 0, width: 0, height: 0 }}
+                      onChange={e => { if (form.status !== 'STARTED') setForm(f => ({ ...f, allowDriverServiceLog: e.target.checked })) }}
+                      style={{ position: 'absolute', opacity: 0, width: 0, height: 0, margin: 0, padding: 0 }}
+                      disabled={form.status === 'STARTED'}
                     />
-                    <span style={{
-                      position: 'absolute', inset: 0, borderRadius: 999,
+                    <div style={{
+                      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 999,
                       background: form.allowDriverServiceLog ? '#10b981' : D.border,
-                      transition: '0.2s'
-                    }}>
-                      <span style={{
-                        position: 'absolute', top: 3, left: form.allowDriverServiceLog ? 23 : 3,
-                        width: 18, height: 18, borderRadius: '50%', background: '#fff',
-                        transition: '0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                      }} />
-                    </span>
+                      transition: 'background 0.2s ease', boxSizing: 'border-box'
+                    }} />
+                    <div style={{
+                      position: 'absolute', top: '4px', left: form.allowDriverServiceLog ? '24px' : '4px',
+                      width: '16px', height: '16px', borderRadius: '50%', background: '#fff',
+                      transition: 'left 0.2s ease', boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                      boxSizing: 'border-box'
+                    }} />
                   </label>
                 </div>
 
@@ -1377,8 +1419,8 @@ const TripsPage = () => {
                 <button type="submit" disabled={submitting}
                   style={{ flex: 1, padding: '13px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg, var(--primary-dark), var(--primary))', color: '#fff', fontSize: '0.95rem', fontWeight: 800, cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: '0 8px 24px var(--primary-glow)', opacity: submitting ? 0.7 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                 >
-                  {submitting ? <Loader2 size={17} className="spin" /> : <Plus size={17} strokeWidth={3} />}
-                  {submitting ? 'Assigning…' : `Assign ${activeTab === 'TRIP' ? 'Trip' : activeTab === 'SERVICE' ? 'Service' : 'Fuel'}`}
+                  {submitting ? <Loader2 size={17} className="spin" /> : (editingTripId ? <Edit2 size={17} /> : <Plus size={17} strokeWidth={3} />)}
+                  {submitting ? (editingTripId ? 'Updating…' : 'Assigning…') : (editingTripId ? 'Update Details' : `Assign ${activeTab === 'TRIP' ? 'Trip' : activeTab === 'SERVICE' ? 'Service' : 'Fuel'}`)}
                 </button>
               </div>
             </form>

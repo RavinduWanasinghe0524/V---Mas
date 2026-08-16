@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
@@ -120,6 +120,7 @@ const VehiclesPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
+  const { regNo } = useParams()
 
 
 
@@ -140,6 +141,7 @@ const VehiclesPage = () => {
   const [odometerVehicle, setOdometerVehicle] = useState(null)
   const [newOdometerValue, setNewOdometerValue] = useState('')
   const [odometerError, setOdometerError] = useState('')
+  const [expandedCardId, setExpandedCardId] = useState(null)
 
   const [isFuelModalOpen, setIsFuelModalOpen] = useState(false)
   const [fuelModalVehicle, setFuelModalVehicle] = useState(null)
@@ -280,6 +282,10 @@ const VehiclesPage = () => {
   }
 
   const openProfile = async (vehicle, initialTab = 'overview') => {
+    const path = `/vehicle/${vehicle.registrationNo}`
+    if (location.pathname !== path) {
+      navigate(path)
+    }
     setSelectedProfileVehicle(vehicle)
     setProfileActiveTab(initialTab)
     setIsProfileOpen(true)
@@ -298,6 +304,9 @@ const VehiclesPage = () => {
   }
 
   const closeProfile = () => {
+    if (location.pathname !== '/vehicles') {
+      navigate('/vehicles')
+    }
     setIsProfileOpen(false)
     setSelectedProfileVehicle(null)
     setProfileFuelLogs([])
@@ -833,6 +842,10 @@ const VehiclesPage = () => {
   }
 
   const openEditModal = (vehicle) => {
+    const path = `/vehicle/${vehicle.registrationNo}/edit`
+    if (location.pathname !== path) {
+      navigate(path)
+    }
     setEditingVehicle(vehicle)
     setEditFormData({
       model: vehicle.model || '',
@@ -854,6 +867,9 @@ const VehiclesPage = () => {
   }
 
   const closeEditModal = () => {
+    if (location.pathname !== '/vehicles') {
+      navigate('/vehicles')
+    }
     setIsEditModalOpen(false)
     setEditingVehicle(null)
     setEditError('')
@@ -877,6 +893,32 @@ const VehiclesPage = () => {
     setEditInsuranceFile(null)
     setEditLicenseFile(null)
   }
+
+  useEffect(() => {
+    if (regNo && vehicles.length > 0) {
+      const match = vehicles.find(v => (v.registrationNo || '').trim().toUpperCase() === (regNo || '').trim().toUpperCase())
+      if (match) {
+        if (location.pathname.endsWith('/edit')) {
+          if (!isEditModalOpen || editingVehicle?.id !== match.id) {
+            openEditModal(match)
+          }
+        } else {
+          if (!isProfileOpen || selectedProfileVehicle?.id !== match.id) {
+            openProfile(match)
+          }
+        }
+      }
+    } else if (!regNo && vehicles.length > 0) {
+      if (isProfileOpen) {
+        setIsProfileOpen(false)
+        setSelectedProfileVehicle(null)
+      }
+      if (isEditModalOpen) {
+        setIsEditModalOpen(false)
+        setEditingVehicle(null)
+      }
+    }
+  }, [regNo, vehicles, location.pathname])
 
   const handleEditChange = (e) => {
     setEditFormData({ ...editFormData, [e.target.name]: e.target.value })
@@ -1299,10 +1341,12 @@ const VehiclesPage = () => {
 
     const cardBorderColor = (isInsExpired || isLicExpired) ? 'rgba(239,68,68,0.45)' : (isInsAlert || isLicAlert) ? 'rgba(245,158,11,0.4)' : D.border
     const hoverGlow = { ACTIVE: 'rgba(16,185,129,0.22)', AVAILABLE: 'rgba(59,130,246,0.22)', SERVICE: 'rgba(245,158,11,0.22)', INACTIVE: 'rgba(239,68,68,0.18)' }[v.status] || (isOrangeTheme ? 'rgba(245,158,11,0.25)' : 'rgba(99,102,241,0.2)')
+    const isExpanded = expandedCardId === v.id
+    const toggleExpand = (e) => { e.stopPropagation(); setExpandedCardId(isExpanded ? null : v.id) }
     return (
-      <div key={v.id} style={{ background: D.surface, border: `1px solid ${cardBorderColor}`, borderRadius: 24, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.35)' : '0 4px 24px rgba(0,0,0,0.1)', transition: 'all 0.32s cubic-bezier(0.4,0,0.2,1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, cursor: 'default', position: 'relative' }}
-        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-8px)'; e.currentTarget.style.boxShadow = `0 20px 48px ${hoverGlow}, 0 6px 20px rgba(0,0,0,0.15)`; e.currentTarget.style.borderColor = (isInsExpired || isLicExpired) ? 'rgba(239,68,68,0.6)' : (isInsAlert || isLicAlert) ? 'rgba(245,158,11,0.55)' : (isOrangeTheme ? 'rgba(245,158,11,0.45)' : 'rgba(99,102,241,0.4)') }}
-        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isDark ? '0 4px 24px rgba(0,0,0,0.35)' : '0 4px 24px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = cardBorderColor }}
+      <div key={v.id} onClick={toggleExpand} style={{ background: D.surface, border: `1px solid ${isExpanded ? (isOrangeTheme ? 'rgba(245,158,11,0.5)' : 'rgba(99,102,241,0.45)') : cardBorderColor}`, borderRadius: 24, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: isExpanded ? `0 20px 48px ${hoverGlow}, 0 6px 20px rgba(0,0,0,0.15)` : (isDark ? '0 4px 24px rgba(0,0,0,0.35)' : '0 4px 24px rgba(0,0,0,0.1)'), transition: 'all 0.32s cubic-bezier(0.4,0,0.2,1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, cursor: 'pointer', position: 'relative', transform: isExpanded ? 'translateY(-4px)' : 'translateY(0)' }}
+        onMouseEnter={e => { if (!isExpanded) { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = `0 16px 40px ${hoverGlow}, 0 6px 20px rgba(0,0,0,0.15)`; e.currentTarget.style.borderColor = (isInsExpired || isLicExpired) ? 'rgba(239,68,68,0.6)' : (isInsAlert || isLicAlert) ? 'rgba(245,158,11,0.55)' : (isOrangeTheme ? 'rgba(245,158,11,0.45)' : 'rgba(99,102,241,0.4)') } }}
+        onMouseLeave={e => { if (!isExpanded) { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isDark ? '0 4px 24px rgba(0,0,0,0.35)' : '0 4px 24px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = cardBorderColor } }}
       >
         {/* ── Image / Hero Area (Full Area, Edge-to-Edge) ── */}
         <div style={{
@@ -1329,90 +1373,116 @@ const VehiclesPage = () => {
             <img src={v.vehicleImage} alt={v.registrationNo} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           ) : (
             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Car size={52} style={{ color: isOrangeTheme ? (isDark ? 'rgba(251,191,36,0.4)' : 'rgba(217,119,6,0.35)') : (isDark ? 'rgba(148,163,184,0.5)' : 'rgba(99,102,241,0.35)') }} />
+              <Car size={44} style={{ color: isOrangeTheme ? (isDark ? 'rgba(251,191,36,0.4)' : 'rgba(217,119,6,0.35)') : (isDark ? 'rgba(148,163,184,0.5)' : 'rgba(99,102,241,0.35)') }} />
             </div>
           )}
         </div>
 
         {/* ── Vehicle Identity Section (below image) ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 16px 0' }}>
-          <div style={{ fontSize: '1.18rem', fontWeight: 900, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em', textAlign: 'center', lineHeight: 1.2, marginBottom: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '14px 14px 12px', position: 'relative' }}>
+          {/* Status badge - top right of identity */}
+          <div style={{ position: 'absolute', top: 14, right: 14, background: badge.bg, borderRadius: 8, padding: '3px 9px', fontSize: '0.62rem', fontWeight: 800, color: '#fff', boxShadow: `0 2px 8px ${badge.shadow}`, letterSpacing: '0.04em' }}>
+            {badge.label}
+          </div>
+          <div style={{ fontSize: '1.15rem', fontWeight: 900, color: D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em', textAlign: 'center', lineHeight: 1.2, marginBottom: 5 }}>
             {v.manufacturer ?? ''} {v.model ?? ''}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: D.textSub, fontWeight: 600 }}>
-            <span style={{ background: primaryBgLight, border: `1px solid ${primaryBorderLight}`, borderRadius: 6, padding: '1px 8px', fontSize: '0.72rem', fontWeight: 800, color: primaryAccent, letterSpacing: '0.04em' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', color: D.textSub, fontWeight: 600, marginBottom: 8 }}>
+            <span style={{ background: primaryBgLight, border: `1px solid ${primaryBorderLight}`, borderRadius: 6, padding: '1px 8px', fontSize: '0.7rem', fontWeight: 800, color: primaryAccent, letterSpacing: '0.04em' }}>
               {v.registrationNo ?? 'N/A'}
             </span>
             {v.year && (<><span style={{ color: D.border }}>·</span><span>{v.year}</span></>)}
           </div>
+          {/* Chevron expand indicator */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', fontWeight: 600, color: D.textSub, opacity: 0.7, transition: 'all 0.25s' }}>
+            <span>{isExpanded ? 'Click to collapse' : 'Click to expand'}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
         </div>
-        <div style={{ padding: '14px 20px 0', display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)' }}>
-            <Fuel size={13} style={{ color: primaryAccent, flexShrink: 0 }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Fuel Type</span>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
-              {formatFuelType(v.fuelType) || 'N/A'}
-            </span>
-          </div>
-          <div
-            onClick={e => { if (!isController) return; e.stopPropagation(); openOdometerModal(e, v) }}
-            title={isController ? 'Quick update mileage' : ''}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)', cursor: isController ? 'pointer' : 'default', transition: 'opacity 0.2s' }}
-            onMouseEnter={e => { if (isController) e.currentTarget.style.opacity = '0.78' }}
-            onMouseLeave={e => { if (isController) e.currentTarget.style.opacity = '1' }}
-          >
-            <Gauge size={13} style={{ color: primaryAccent, flexShrink: 0 }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Mileage</span>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              {v.currentMileageKm ? `${v.currentMileageKm.toLocaleString()} km` : '0 km'}
-              {isController && <Edit2 size={9} style={{ opacity: 0.6 }} />}
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)' }}>
-            <Car size={13} style={{ color: primaryAccent, flexShrink: 0 }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Vehicle Type</span>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: D.text }}>
-              {v.vehicleType ? (v.vehicleType.charAt(0) + v.vehicleType.slice(1).toLowerCase()) : 'N/A'}
-            </span>
-          </div>
-          <div onClick={e => { e.stopPropagation(); openProfile(v, 'services') }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: hasServiceAlert ? (isDark ? `${ac.color}12` : `${ac.color}0d`) : primaryRowBg, cursor: 'pointer', transition: 'opacity 0.2s' }} onMouseEnter={e => { e.currentTarget.style.opacity = '0.78' }} onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}>
-            <Wrench size={13} style={{ color: hasServiceAlert ? ac.color : primaryAccent, flexShrink: 0 }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: hasServiceAlert ? ac.color : primaryAccent, flex: 1 }}>Service: {hasServiceAlert ? ac.label : 'OK'}</span>
-            <ArrowUpRight size={11} style={{ color: hasServiceAlert ? ac.color : primaryAccent, opacity: 0.6 }} />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isInsExpired ? (isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.06)') : isInsAlert ? (isDark ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.06)') : (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)') }}>
-            <Calendar size={13} style={{ color: isInsExpired ? D.red : isInsAlert ? D.orange : primaryAccent, flexShrink: 0 }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isInsExpired ? D.red : isInsAlert ? D.orange : D.textSub, flex: 1 }}>Insurance</span>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isInsExpired ? D.red : isInsAlert ? D.orange : D.text }}>
-              {v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}{isInsExpired ? ' · Expired' : isInsAlert ? ` · ${insDiff}d left` : ''}
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: isLicExpired ? (isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.06)') : isLicAlert ? (isDark ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.06)') : (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)') }}>
-            <Clock size={13} style={{ color: isLicExpired ? D.red : isLicAlert ? D.orange : primaryAccent, flexShrink: 0 }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isLicExpired ? D.red : isLicAlert ? D.orange : D.textSub, flex: 1 }}>License</span>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isLicExpired ? D.red : isLicAlert ? D.orange : D.text }}>
-              {v.licenseExpiryDate ? new Date(v.licenseExpiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}{isLicExpired ? ' · Expired' : isLicAlert ? ` · ${licDiff}d left` : ''}
-            </span>
-          </div>
-          {!isDriver && v.driverUsername && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: primaryRowBg }}>
-              <UserCheck size={13} style={{ color: primaryAccent, flexShrink: 0 }} />
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: D.textSub, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Driver: <strong style={{ color: D.text }}>{v.driverUsername}</strong></span>
-              <span style={{ fontSize: '0.6rem', fontWeight: 800, padding: '2px 7px', borderRadius: 6, background: primaryBgLight, color: primaryAccent, flexShrink: 0, border: `1px solid ${primaryBorderLight}` }}>ASSIGNED</span>
+        {/* ── Collapsible Details + Buttons ── */}
+        <div style={{ overflow: 'hidden', maxHeight: isExpanded ? '600px' : '0px', transition: 'max-height 0.4s cubic-bezier(0.4,0,0.2,1)', opacity: isExpanded ? 1 : 0, transition: 'max-height 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease' }}>
+          <div style={{ padding: '0 16px 0', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {/* Row 1: Fuel & Service */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 10, background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)' }}>
+              <Fuel size={13} style={{ color: primaryAccent, flexShrink: 0 }} />
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Fuel Type</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: D.text }}>
+                {formatFuelType(v.fuelType) || 'N/A'}
+              </span>
             </div>
-          )}
-        </div>
-        <div style={{ padding: '16px 20px 20px', display: 'flex', gap: 10, marginTop: 'auto' }}>
-          <button onClick={e => { e.stopPropagation(); openProfile(v) }} title="View Profile" style={{ flex: 1, padding: '11px 14px', borderRadius: 14, border: `2px solid ${primaryBtnBorder}`, background: primaryBtnBg, color: primaryAccent, cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.22s', fontFamily: 'inherit', letterSpacing: '0.01em' }}
-            onMouseEnter={e => { e.currentTarget.style.background = primaryBtnBgHover; e.currentTarget.style.borderColor = primaryBtnBorderHover; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `0 4px 14px ${primaryShadow}` }}
-            onMouseLeave={e => { e.currentTarget.style.background = primaryBtnBg; e.currentTarget.style.borderColor = primaryBtnBorder; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
-          ><Eye size={14} />{isDriver ? 'View Details' : 'Profile'}</button>
-          {isController && (
-            <button onClick={e => { e.stopPropagation(); openEditModal(v) }} title="Edit Vehicle" style={{ flex: 1, padding: '11px 14px', borderRadius: 14, border: 'none', background: editBtnBg, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.22s', fontFamily: 'inherit', letterSpacing: '0.01em', boxShadow: `0 4px 14px ${primaryShadow}` }}
-              onMouseEnter={e => { e.currentTarget.style.background = editBtnHover; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `0 6px 20px ${primaryShadow}` }}
-              onMouseLeave={e => { e.currentTarget.style.background = editBtnBg; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = `0 4px 14px ${primaryShadow}` }}
-            ><Edit2 size={14} />Edit</button>
-          )}
+
+            <div onClick={e => { e.stopPropagation(); openProfile(v, 'services') }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 10, background: hasServiceAlert ? (isDark ? `${ac.color}12` : `${ac.color}0d`) : primaryRowBg, cursor: 'pointer', transition: 'opacity 0.2s' }} onMouseEnter={e => { e.currentTarget.style.opacity = '0.78' }} onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}>
+              <Wrench size={13} style={{ color: hasServiceAlert ? ac.color : primaryAccent, flexShrink: 0 }} />
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: hasServiceAlert ? ac.color : primaryAccent, flex: 1 }}>Service: {hasServiceAlert ? ac.label : 'OK'}</span>
+              <ArrowUpRight size={11} style={{ color: hasServiceAlert ? ac.color : primaryAccent, opacity: 0.6 }} />
+            </div>
+
+            {/* Row 2: Mileage */}
+            <div
+              onClick={e => { if (!isController) return; e.stopPropagation(); openOdometerModal(e, v) }}
+              title={isController ? 'Quick update mileage' : ''}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 10, background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)', cursor: isController ? 'pointer' : 'default', transition: 'opacity 0.2s' }}
+              onMouseEnter={e => { if (isController) e.currentTarget.style.opacity = '0.78' }}
+              onMouseLeave={e => { if (isController) e.currentTarget.style.opacity = '1' }}
+            >
+              <Gauge size={13} style={{ color: primaryAccent, flexShrink: 0 }} />
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Mileage</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: D.text, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span>{v.currentMileageKm ? `${v.currentMileageKm.toLocaleString()} km` : '0 km'}</span>
+                {isController && <Edit2 size={9} style={{ opacity: 0.6 }} />}
+              </span>
+            </div>
+
+            {/* Row 3: Insurance */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 10, background: isInsExpired ? (isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.06)') : isInsAlert ? (isDark ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.06)') : (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)') }}>
+              <Calendar size={13} style={{ color: isInsExpired ? D.red : isInsAlert ? D.orange : primaryAccent, flexShrink: 0 }} />
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: isInsExpired ? D.red : isInsAlert ? D.orange : D.textSub, flex: 1 }}>Insurance</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: isInsExpired ? D.red : isInsAlert ? D.orange : D.text }}>
+                {v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+              </span>
+            </div>
+
+            {/* Row 4: Vehicle Type */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 10, background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)' }}>
+              <Car size={13} style={{ color: primaryAccent, flexShrink: 0 }} />
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Vehicle Type</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: D.text }}>
+                {v.vehicleType ? (v.vehicleType.charAt(0) + v.vehicleType.slice(1).toLowerCase()) : 'N/A'}
+              </span>
+            </div>
+
+            {/* Row 5: License */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 10, background: isLicExpired ? (isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.06)') : isLicAlert ? (isDark ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.06)') : (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)') }}>
+              <Clock size={13} style={{ color: isLicExpired ? D.red : isLicAlert ? D.orange : primaryAccent, flexShrink: 0 }} />
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: isLicExpired ? D.red : isLicAlert ? D.orange : D.textSub, flex: 1 }}>License</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: isLicExpired ? D.red : isLicAlert ? D.orange : D.text }}>
+                {v.licenseExpiryDate ? new Date(v.licenseExpiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+              </span>
+            </div>
+
+            {/* Row 6: Driver */}
+            {!isDriver && v.driverUsername && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 10, background: primaryRowBg }}>
+                <UserCheck size={13} style={{ color: primaryAccent, flexShrink: 0 }} />
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: D.textSub, flex: 1 }}>Driver: <strong style={{ color: D.text }}>{v.driverUsername}</strong></span>
+                <span style={{ fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: primaryBgLight, color: primaryAccent, flexShrink: 0, border: `1px solid ${primaryBorderLight}` }}>ASSIGNED</span>
+              </div>
+            )}
+          </div>
+          <div style={{ padding: '12px 16px 16px', display: 'flex', gap: 8 }}>
+            <button onClick={e => { e.stopPropagation(); openProfile(v) }} title="View Profile" style={{ flex: 1, padding: '9px 12px', borderRadius: 12, border: `2px solid ${primaryBtnBorder}`, background: primaryBtnBg, color: primaryAccent, cursor: 'pointer', fontWeight: 800, fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.22s', fontFamily: 'inherit', letterSpacing: '0.01em' }}
+              onMouseEnter={e => { e.currentTarget.style.background = primaryBtnBgHover; e.currentTarget.style.borderColor = primaryBtnBorderHover; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `0 4px 14px ${primaryShadow}` }}
+              onMouseLeave={e => { e.currentTarget.style.background = primaryBtnBg; e.currentTarget.style.borderColor = primaryBtnBorder; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+            ><Eye size={13} />{isDriver ? 'View Details' : 'Profile'}</button>
+            {isController && (
+              <button onClick={e => { e.stopPropagation(); openEditModal(v) }} title="Edit Vehicle" style={{ flex: 1, padding: '9px 12px', borderRadius: 12, border: 'none', background: editBtnBg, color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.22s', fontFamily: 'inherit', letterSpacing: '0.01em', boxShadow: `0 4px 14px ${primaryShadow}` }}
+                onMouseEnter={e => { e.currentTarget.style.background = editBtnHover; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `0 6px 20px ${primaryShadow}` }}
+                onMouseLeave={e => { e.currentTarget.style.background = editBtnBg; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = `0 4px 14px ${primaryShadow}` }}
+              ><Edit2 size={13} />Edit</button>
+            )}
+          </div>
         </div>
       </div>
     )
