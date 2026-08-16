@@ -8,7 +8,8 @@ import { tripAPI, userAPI, vehicleAPI, serviceAPI, notificationAPI } from '../se
 import {
   MapPin, Navigation, Car, User, Calendar, Plus, Loader2,
   Play, X, CheckCircle, Ban, Clock, MoreVertical, ClipboardList, Wrench, Fuel, AlertTriangle, UserCheck,
-  Trash2, Archive, Paperclip, Check, FileText, Eye, Gauge, DollarSign, Edit2, ChevronDown, ChevronUp
+  Trash2, Archive, Paperclip, Check, FileText, Eye, Gauge, DollarSign, Edit2, ChevronDown, ChevronUp,
+  Filter
 } from 'lucide-react'
 
 // ── Helpers to parse job type from purpose field ──────────────────────────
@@ -192,6 +193,7 @@ const TripsPage = () => {
 
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterDriver, setFilterDriver] = useState('all')
+  const [filterJobType, setFilterJobType] = useState('all')
 
   // ── Service Log Modal (driver: log service details for a SERVICE job) ─
   const emptyServiceLog = {
@@ -612,6 +614,7 @@ const TripsPage = () => {
   const filteredTrips = trips.filter(t => {
     if (filterStatus !== 'all' && up(t.status) !== filterStatus) return false
     if (canManage && filterDriver !== 'all' && t.driverUsername !== filterDriver) return false
+    if (filterJobType !== 'all' && getJobType(t.purpose) !== filterJobType) return false
     return true
   })
 
@@ -742,6 +745,17 @@ const TripsPage = () => {
                     <option value="COMPLETED">Completed</option>
                     <option value="DECLINED">Declined</option>
                     <option value="CANCELLED">Cancelled</option>
+                  </select>
+                  <MoreVertical size={13} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
+                </div>
+                {/* Job Type filter */}
+                <div style={{ position: 'relative', flex: '1 1 auto', minWidth: 160 }}>
+                  <Filter size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.indigo, pointerEvents: 'none', opacity: 0.8 }} />
+                  <select value={filterJobType} onChange={e => setFilterJobType(e.target.value)} style={{ ...filterStyle, paddingLeft: 38 }} onFocus={onFocus} onBlur={onBlur}>
+                    <option value="all">All Job Types</option>
+                    <option value="TRIP">Trip Assignment</option>
+                    <option value="SERVICE">Service Assignment</option>
+                    <option value="FUEL">Fuel Assignment</option>
                   </select>
                   <MoreVertical size={13} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub }} />
                 </div>
