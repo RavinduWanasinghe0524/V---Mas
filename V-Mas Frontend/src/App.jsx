@@ -14,6 +14,7 @@ const DashboardPage     = lazy(() => import('./pages/DashboardPage'))
 const UsersPage         = lazy(() => import('./pages/UsersPage'))
 const ProfilePage       = lazy(() => import('./pages/ProfilePage'))
 const VehiclesPage      = lazy(() => import('./pages/VehiclesPage'))
+const VehicleProfilePage = lazy(() => import('./pages/VehicleProfilePage'))
 const ServicePage       = lazy(() => import('./pages/ServicePage'))
 const AddServicePage    = lazy(() => import('./pages/AddServicePage'))
 const FuelAnalysisPage  = lazy(() => import('./pages/FuelAnalysisPage'))
@@ -163,7 +164,7 @@ function App() {
                 <Route path="/users"            element={<PrivateRoute><UsersPage /></PrivateRoute>} />
                 <Route path="/profile"          element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
                 <Route path="/vehicles"         element={<PrivateRoute><VehiclesPage /></PrivateRoute>} />
-                <Route path="/vehicle/:regNo"      element={<PrivateRoute><VehiclesPage /></PrivateRoute>} />
+                <Route path="/vehicle/:regNo"      element={<PrivateRoute><VehicleProfilePage /></PrivateRoute>} />
                 <Route path="/vehicle/:regNo/edit" element={<PrivateRoute><VehiclesPage /></PrivateRoute>} />
                 <Route path="/service"          element={<PrivateRoute><ServicePage /></PrivateRoute>} />
                 <Route path="/service/add"      element={<PrivateRoute><AddServicePage /></PrivateRoute>} />
