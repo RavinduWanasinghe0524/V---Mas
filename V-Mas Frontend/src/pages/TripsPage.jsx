@@ -174,7 +174,8 @@ const TripsPage = () => {
 
   const [showAssignModal, setShowAssignModal] = useState(false)
   const [activeTab, setActiveTab] = useState('TRIP') // 'TRIP' | 'SERVICE' | 'FUEL'
-  const emptyForm = { driverUsername: '', vehicleRegNumber: '', origin: '', destination: '', purpose: '', scheduledDate: '', allowDriverServiceLog: true, status: '' }
+  const emptyForm = { driverUsername: '', vehicleRegNumber: '', origin: '', destination: '', purpose: '', scheduledDate: '', allowDriverServiceLog: true }
+  const [editingTripStatus, setEditingTripStatus] = useState('')  // tracks status of trip being edited (for UI disabling), NOT sent to backend
   const [form, setForm] = useState(emptyForm)
   const [submitting, setSubmitting] = useState(false)
   const [editingTripId, setEditingTripId] = useState(null)
@@ -327,11 +328,16 @@ const TripsPage = () => {
       const prefix = activeTab === 'SERVICE' ? '[Service] ' : activeTab === 'FUEL' ? '[Fuel] ' : '[Trip] '
       const finalPurpose = `${prefix}${accessTag} ${(form.purpose || '').trim()}`
 
+      // Only send fields that exist in the backend TripDto.
+      // Do NOT send `allowDriverServiceLog` (not a backend field — embedded in purpose string)
+      // Do NOT send `status` (backend controls status transitions; empty string breaks enum deserialization)
       const payload = {
-        ...form,
+        driverUsername: form.driverUsername,
+        vehicleRegNumber: form.vehicleRegNumber,
+        origin: form.origin || null,
+        destination: form.destination,
         purpose: finalPurpose,
-        allowDriverServiceLog: form.allowDriverServiceLog,
-        scheduledDate: form.scheduledDate || null
+        scheduledDate: form.scheduledDate || null,
       }
 
       if (editingTripId) {
@@ -343,6 +349,7 @@ const TripsPage = () => {
       }
       setForm(emptyForm)
       setEditingTripId(null)
+      setEditingTripStatus('')
       setShowAssignModal(false)
       loadTrips()
     } catch (err) {
@@ -352,7 +359,7 @@ const TripsPage = () => {
     }
   }
 
-  const closeAssignModal = () => { if (!submitting) { setShowAssignModal(false); setForm(emptyForm); setEditingTripId(null); } }
+  const closeAssignModal = () => { if (!submitting) { setShowAssignModal(false); setForm(emptyForm); setEditingTripId(null); setEditingTripStatus('') } }
 
   // When a vehicle is selected in the modal, auto-fill the assigned driver (but allow override)
   const handleVehicleChange = (regNo) => {
@@ -939,6 +946,7 @@ const TripsPage = () => {
                                   const jobType = getJobType(trip.purpose)
                                   setActiveTab(jobType)
                                   setEditingTripId(trip.id)
+                                  setEditingTripStatus(trip.status || '')
                                   setForm({
                                     driverUsername: trip.driverUsername || '',
                                     vehicleRegNumber: trip.vehicleRegNumber || '',
@@ -947,7 +955,6 @@ const TripsPage = () => {
                                     purpose: getCleanPurpose(trip.purpose) || '',
                                     scheduledDate: trip.scheduledDate ? trip.scheduledDate.split('T')[0] : '',
                                     allowDriverServiceLog: hasDriverServiceAccess(trip),
-                                    status: trip.status
                                   })
                                   setShowAssignModal(true)
                                 }}
@@ -1294,14 +1301,14 @@ const TripsPage = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
                 <div>
                   <label style={labelStyle}>Driver *</label>
-                  <select style={inputStyle} value={form.driverUsername} onChange={e => setForm(f => ({ ...f, driverUsername: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={form.status === 'STARTED'}>
+                  <select style={inputStyle} value={form.driverUsername} onChange={e => setForm(f => ({ ...f, driverUsername: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={editingTripStatus === 'STARTED'}>
                     <option value="">Select driver…</option>
                     {drivers.map(d => <option key={d.id} value={d.userName}>{d.userName}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={labelStyle}>Vehicle *</label>
-                  <select style={inputStyle} value={form.vehicleRegNumber} onChange={e => handleVehicleChange(e.target.value)} onFocus={onFocus} onBlur={onBlur} disabled={form.status === 'STARTED'}>
+                  <select style={inputStyle} value={form.vehicleRegNumber} onChange={e => handleVehicleChange(e.target.value)} onFocus={onFocus} onBlur={onBlur} disabled={editingTripStatus === 'STARTED'}>
                     <option value="">Select vehicle…</option>
                     {vehicles.map(v => <option key={v.id} value={v.registrationNo}>{v.registrationNo}{v.model ? ` — ${v.model}` : ''}{v.driverUsername ? ` 👤 ${v.driverUsername}` : ''}</option>)}
                   </select>
@@ -1316,7 +1323,7 @@ const TripsPage = () => {
                 {activeTab === 'TRIP' && (
                   <div>
                     <label style={labelStyle}>Origin</label>
-                    <input style={inputStyle} placeholder="e.g. Colombo" value={form.origin} onChange={e => setForm(f => ({ ...f, origin: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={form.status === 'STARTED'} />
+                    <input style={inputStyle} placeholder="e.g. Colombo" value={form.origin} onChange={e => setForm(f => ({ ...f, origin: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={editingTripStatus === 'STARTED'} />
                   </div>
                 )}
                 
@@ -1335,7 +1342,7 @@ const TripsPage = () => {
                 
                 <div>
                   <label style={labelStyle}>Scheduled Date *</label>
-                  <input type="date" style={inputStyle} value={form.scheduledDate} onChange={e => setForm(f => ({ ...f, scheduledDate: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={form.status === 'STARTED'} />
+                  <input type="date" style={inputStyle} value={form.scheduledDate} onChange={e => setForm(f => ({ ...f, scheduledDate: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={editingTripStatus === 'STARTED'} />
                 </div>
                 
                 <div>
@@ -1343,7 +1350,7 @@ const TripsPage = () => {
                     {activeTab === 'TRIP' ? 'Purpose' : activeTab === 'SERVICE' ? 'Service Description *' : 'Instructions'}
                   </label>
                   {activeTab === 'SERVICE' ? (
-                    <select style={inputStyle} value={form.purpose} onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={form.status === 'STARTED'}>
+                    <select style={inputStyle} value={form.purpose} onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={editingTripStatus === 'STARTED'}>
                       <option value="">Select service type…</option>
                       {sortedServiceTypes.map(t => (
                         <option key={t.value} value={t.label} style={{ color: t.isOverdue ? '#ef4444' : 'inherit', fontWeight: t.isOverdue ? 'bold' : 'normal' }}>
@@ -1358,7 +1365,7 @@ const TripsPage = () => {
                       onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))} 
                       onFocus={onFocus} 
                       onBlur={onBlur} 
-                      disabled={form.status === 'STARTED'}
+                      disabled={editingTripStatus === 'STARTED'}
                     />
                   )}
                 </div>
@@ -1389,13 +1396,13 @@ const TripsPage = () => {
                       </div>
                     </div>
                   </div>
-                  <label style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, minWidth: 44, minHeight: 24, cursor: form.status === 'STARTED' ? 'not-allowed' : 'pointer', flexShrink: 0, margin: 0, padding: 0, boxSizing: 'border-box' }}>
+                  <label style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, minWidth: 44, minHeight: 24, cursor: editingTripStatus === 'STARTED' ? 'not-allowed' : 'pointer', flexShrink: 0, margin: 0, padding: 0, boxSizing: 'border-box' }}>
                     <input
                       type="checkbox"
                       checked={form.allowDriverServiceLog}
-                      onChange={e => { if (form.status !== 'STARTED') setForm(f => ({ ...f, allowDriverServiceLog: e.target.checked })) }}
+                      onChange={e => { if (editingTripStatus !== 'STARTED') setForm(f => ({ ...f, allowDriverServiceLog: e.target.checked })) }}
                       style={{ position: 'absolute', opacity: 0, width: 0, height: 0, margin: 0, padding: 0 }}
-                      disabled={form.status === 'STARTED'}
+                      disabled={editingTripStatus === 'STARTED'}
                     />
                     <div style={{
                       position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 999,
