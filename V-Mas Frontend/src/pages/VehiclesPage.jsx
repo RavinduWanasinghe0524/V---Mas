@@ -4,9 +4,9 @@ import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import { useAuth } from '../context/AuthContext'
 import { useD, useTheme } from '../context/ThemeContext'
-import api, { vehicleAPI, serviceAPI, fuelAPI, userAPI } from '../services/api'
+import api, { vehicleAPI, serviceAPI, fuelAPI, userAPI, tripAPI } from '../services/api'
 import { getAlertLevel, computeMileageProgress, computeDateAlert, ALERT_COLORS, fmtKmRemaining, fmtDaysRemaining } from '../utils/serviceAlertUtils'
-import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download, Phone, IdCard, Shield, Star, Zap, LayoutGrid, List, Archive, RotateCcw, UserCheck, UserX, ChevronDown, Loader2 } from 'lucide-react'
+import { Car, CheckCircle, Wrench, Circle, Search, Edit2, Trash2, AlertTriangle, AlertCircle, X, Check, BellRing, Gauge, Calendar, Eye, Fuel, User, Clock, ArrowUpRight, Info, Plus, FileText, Upload, Download, Phone, IdCard, Shield, Star, Zap, LayoutGrid, List, Archive, RotateCcw, UserCheck, UserX, ChevronDown, Loader2, Ban } from 'lucide-react'
 import { generateStyledExcel } from '../utils/excelExport'
 import { computeLogsEfficiency, formatFuelType } from '../utils/fuelUtils'
 
@@ -81,10 +81,10 @@ const VehiclesPage = () => {
   const solidBlue = isDark ? '#60a5fa' : '#2563eb'
 
   const statusColors = {
-    ACTIVE: { bg: D.greenDim, color: D.green, border: `${D.green}50` },
-    AVAILABLE: { bg: D.blueDim, color: D.blue, border: `${D.blue}50` },
-    SERVICE: { bg: D.orangeDim, color: D.orange, border: `${D.orange}50` },
-    INACTIVE: { bg: D.redDim, color: D.red, border: `${D.red}50` },
+    ACTIVE:     { bg: D.greenDim,  color: D.green,  border: `${D.green}50`  },
+    AVAILABLE:  { bg: D.blueDim,   color: D.blue,   border: `${D.blue}50`   },
+    IN_SERVICE: { bg: D.orangeDim, color: D.orange, border: `${D.orange}50` },
+    INACTIVE:   { bg: D.redDim,    color: D.red,    border: `${D.red}50`    },
   }
   const inputStyle = {
     width: '100%', padding: '10px 14px', borderRadius: 8,
@@ -97,6 +97,7 @@ const VehiclesPage = () => {
     color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.02em',
   }
 
+  const [activeTrips, setActiveTrips] = useState([])
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('ALL')
   const [fuelFilter, setFuelFilter] = useState('ALL')
@@ -141,7 +142,7 @@ const VehiclesPage = () => {
   const [odometerVehicle, setOdometerVehicle] = useState(null)
   const [newOdometerValue, setNewOdometerValue] = useState('')
   const [odometerError, setOdometerError] = useState('')
-  const [expandedCardId, setExpandedCardId] = useState(null)
+  const [expandedCardIds, setExpandedCardIds] = useState({})
 
   const [isFuelModalOpen, setIsFuelModalOpen] = useState(false)
   const [fuelModalVehicle, setFuelModalVehicle] = useState(null)
@@ -344,6 +345,47 @@ const VehiclesPage = () => {
   }
 
   const [uploadingDoc, setUploadingDoc] = useState({ type: '', loading: false })
+  const [deactivateReason, setDeactivateReason] = useState('')
+  const [deactivateBusy, setDeactivateBusy] = useState(false)
+
+  const handleDeactivateVehicle = async () => {
+    if (!editingVehicle || !deactivateReason.trim()) return
+    setDeactivateBusy(true)
+    try {
+      await vehicleAPI.updateVehicle(editingVehicle.id, {
+        ...editFormData,
+        status: 'INACTIVE',
+        deactivationReason: deactivateReason.trim()
+      })
+      const response = await vehicleAPI.getAllVehicles()
+      setVehicles(response.data.data || [])
+      setEditFormData(prev => ({ ...prev, status: 'INACTIVE', deactivationReason: deactivateReason.trim() }))
+      setDeactivateReason('')
+    } catch (err) {
+      console.error('Failed to deactivate vehicle:', err)
+    } finally {
+      setDeactivateBusy(false)
+    }
+  }
+
+  const handleReactivateVehicle = async () => {
+    if (!editingVehicle) return
+    setDeactivateBusy(true)
+    try {
+      await vehicleAPI.updateVehicle(editingVehicle.id, {
+        ...editFormData,
+        status: 'AVAILABLE',
+        deactivationReason: null
+      })
+      const response = await vehicleAPI.getAllVehicles()
+      setVehicles(response.data.data || [])
+      setEditFormData(prev => ({ ...prev, status: 'AVAILABLE', deactivationReason: null }))
+    } catch (err) {
+      console.error('Failed to reactivate vehicle:', err)
+    } finally {
+      setDeactivateBusy(false)
+    }
+  }
 
   const downloadDocument = async (id, docType, filename) => {
     try {
@@ -664,7 +706,7 @@ const VehiclesPage = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [vehicleRes, serviceRes, fuelStatsRes, intervalsRes] = await Promise.all([
+        const [vehicleRes, serviceRes, fuelStatsRes, intervalsRes, tripsRes] = await Promise.all([
           vehicleAPI.getAllVehicles().catch(err => {
             console.error('Failed to load vehicles:', err);
             return { data: { data: [] } };
@@ -674,13 +716,15 @@ const VehiclesPage = () => {
             return { data: { data: [] } };
           }),
           fuelAPI.getVehicleStats().catch(() => ({ data: { data: [] } })),
-          serviceAPI.getAllIntervals().catch(() => ({ data: { data: [] } }))
+          serviceAPI.getAllIntervals().catch(() => ({ data: { data: [] } })),
+          (!isDriver ? tripAPI.getAllTrips() : tripAPI.getMyTrips()).catch(() => ({ data: { data: [] } }))
         ])
         const loadedVehicles = vehicleRes.data.data || []
         setVehicles(loadedVehicles)
         setServiceRecords(serviceRes.data.data || [])
         setFuelStats(fuelStatsRes.data?.data || [])
         setIntervals(intervalsRes.data?.data || [])
+        setActiveTrips((tripsRes.data?.data || []).filter(t => !t.deleted))
 
       } catch (err) {
         console.error('Error loading data:', err)
@@ -844,7 +888,8 @@ const VehiclesPage = () => {
       fuelCapacity: vehicle.fuelCapacity || '',
       status: vehicle.status || '',
       vehicleType: vehicle.vehicleType || 'CAR',
-      vehicleImage: vehicle.vehicleImage || ''
+      vehicleImage: vehicle.vehicleImage || '',
+      deactivationReason: vehicle.deactivationReason || ''
     })
     setIsEditModalOpen(true)
   }
@@ -871,10 +916,12 @@ const VehiclesPage = () => {
       fuelCapacity: '',
       status: '',
       vehicleType: 'CAR',
-      vehicleImage: ''
+      vehicleImage: '',
+      deactivationReason: ''
     })
     setEditInsuranceFile(null)
     setEditLicenseFile(null)
+    setDeactivateReason('')
   }
 
   useEffect(() => {
@@ -932,6 +979,7 @@ const VehiclesPage = () => {
         insuranceExpiryDate: editFormData.insuranceExpiryDate || null,
         licenseExpiryDate: editFormData.licenseExpiryDate || null,
         status: editFormData.status,
+        deactivationReason: editFormData.deactivationReason || null,
         vehicleType: editFormData.vehicleType,
         vehicleImage: editFormData.vehicleImage || null
       })
@@ -1017,6 +1065,22 @@ const VehiclesPage = () => {
 
 
   const loggedInUsername = user?.userName || user?.username
+
+  // ── Compute real-time vehicle status from active trip data ───────────────
+  const computeVehicleStatus = (vehicle) => {
+    const backendStatus = (vehicle.status || '').toUpperCase()
+    if (backendStatus === 'INACTIVE') return 'INACTIVE'
+    const reg = (vehicle.registrationNo || '').toLowerCase().trim()
+    const startedJob = activeTrips.find(t => {
+      const tReg = (t.vehicleRegNumber || '').toLowerCase().trim()
+      return tReg === reg && t.status === 'STARTED'
+    })
+    if (startedJob) {
+      return (startedJob.purpose || '').startsWith('[Service]') ? 'IN_SERVICE' : 'ACTIVE'
+    }
+    return 'AVAILABLE'
+  }
+
   const filtered = vehicles.filter(v => {
     if (isDriver) {
       return v.driverUsername && loggedInUsername && v.driverUsername.toLowerCase() === loggedInUsername.toLowerCase()
@@ -1026,7 +1090,7 @@ const VehiclesPage = () => {
       v.model?.toLowerCase().includes(search.toLowerCase()) ||
       v.registrationNo?.toLowerCase().includes(search.toLowerCase()) ||
       v.manufacturer?.toLowerCase().includes(search.toLowerCase())
-    const matchFilter = filter === 'ALL' || v.status === filter
+    const matchFilter = filter === 'ALL' || computeVehicleStatus(v) === filter
     const matchFuel = fuelFilter === 'ALL' || v.fuelType?.toUpperCase() === fuelFilter
     return matchSearch && matchFilter && matchFuel
   })
@@ -1038,7 +1102,7 @@ const VehiclesPage = () => {
         `"${v.registrationNo || ''}"`,
         `"${v.manufacturer || ''}"`,
         `"${v.model || ''}"`,
-        `"${v.status || ''}"`,
+        `"${computeVehicleStatus(v)}"`,
         v.currentMileageKm || 0,
         `"${v.fuelType || ''}"`,
         `"${v.chassisNumber || ''}"`,
@@ -1062,10 +1126,10 @@ const VehiclesPage = () => {
     : vehicles
 
   const counts = {
-    ACTIVE: targetVehicles.filter(v => v.status === 'ACTIVE').length,
-    AVAILABLE: targetVehicles.filter(v => v.status === 'AVAILABLE').length,
-    SERVICE: targetVehicles.filter(v => v.status === 'SERVICE').length,
-    INACTIVE: targetVehicles.filter(v => v.status === 'INACTIVE').length,
+    ACTIVE:     targetVehicles.filter(v => computeVehicleStatus(v) === 'ACTIVE').length,
+    AVAILABLE:  targetVehicles.filter(v => computeVehicleStatus(v) === 'AVAILABLE').length,
+    IN_SERVICE: targetVehicles.filter(v => computeVehicleStatus(v) === 'IN_SERVICE').length,
+    INACTIVE:   targetVehicles.filter(v => computeVehicleStatus(v) === 'INACTIVE').length,
   }
 
   // â”€â”€ Compute service due alerts per vehicle â”€â”€
@@ -1160,7 +1224,9 @@ const VehiclesPage = () => {
   })
 
   const renderVehicleTableRow = (v, i) => {
-    const s = statusColors[v.status] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
+    const computedStatus = computeVehicleStatus(v)
+    const s = statusColors[computedStatus] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
+    const statusLabel = { ACTIVE: 'Active', AVAILABLE: 'Available', IN_SERVICE: 'In Service', INACTIVE: 'Inactive' }[computedStatus] || computedStatus
 
     const today = new Date()
     const insExpiry = v.insuranceExpiryDate ? new Date(v.insuranceExpiryDate) : null
@@ -1218,7 +1284,7 @@ const VehiclesPage = () => {
             background: s.bg, color: s.color, border: `1px solid ${s.border || (s.color + '30')}`,
             textTransform: 'uppercase', letterSpacing: '0.02em', display: 'inline-block'
           }}>
-            {v.status ?? 'N/A'}
+            {statusLabel}
           </span>
         </td>
         <td style={{ padding: '14px 20px' }}>
@@ -1302,13 +1368,14 @@ const VehiclesPage = () => {
     const isInsExpired = insDiff !== null && insDiff < 0
     const isLicExpired = licDiff !== null && licDiff < 0
     const hasServiceAlert = ac && ac.level !== 'OK'
+    const computedStatus = computeVehicleStatus(v)
     const statusBadge = {
-      ACTIVE: { label: 'Active', bg: 'linear-gradient(135deg,#10b981,#059669)', shadow: 'rgba(16,185,129,0.45)' },
-      AVAILABLE: { label: 'Available', bg: 'linear-gradient(135deg,#3b82f6,#2563eb)', shadow: 'rgba(59,130,246,0.45)' },
-      SERVICE: { label: 'In Service', bg: 'linear-gradient(135deg,#f59e0b,#d97706)', shadow: 'rgba(245,158,11,0.45)' },
-      INACTIVE: { label: 'Inactive', bg: 'linear-gradient(135deg,#ef4444,#b91c1c)', shadow: 'rgba(239,68,68,0.45)' },
+      ACTIVE:     { label: 'Active',      bg: 'linear-gradient(135deg,#10b981,#059669)', shadow: 'rgba(16,185,129,0.45)' },
+      AVAILABLE:  { label: 'Available',   bg: 'linear-gradient(135deg,#3b82f6,#2563eb)', shadow: 'rgba(59,130,246,0.45)' },
+      IN_SERVICE: { label: 'In Service',  bg: 'linear-gradient(135deg,#f59e0b,#d97706)', shadow: 'rgba(245,158,11,0.45)' },
+      INACTIVE:   { label: 'Inactive',    bg: 'linear-gradient(135deg,#ef4444,#b91c1c)', shadow: 'rgba(239,68,68,0.45)' },
     }
-    const badge = statusBadge[v.status] || { label: v.status || 'Unknown', bg: `linear-gradient(135deg,${D.purple},${D.indigo})`, shadow: 'rgba(124,58,237,0.45)' }
+    const badge = statusBadge[computedStatus] || { label: computedStatus || 'Unknown', bg: `linear-gradient(135deg,${D.purple},${D.indigo})`, shadow: 'rgba(124,58,237,0.45)' }
     const isOrangeTheme = isController
     const primaryAccent = isOrangeTheme ? (isDark ? '#fbbf24' : '#d97706') : (isDark ? '#818cf8' : '#4f46e5')
     const primaryBgLight = isOrangeTheme ? (isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.08)') : (isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)')
@@ -1323,9 +1390,15 @@ const VehiclesPage = () => {
     const primaryShadow = isOrangeTheme ? 'rgba(245,158,11,0.35)' : 'rgba(99,102,241,0.35)'
 
     const cardBorderColor = (isInsExpired || isLicExpired) ? 'rgba(239,68,68,0.45)' : (isInsAlert || isLicAlert) ? 'rgba(245,158,11,0.4)' : D.border
-    const hoverGlow = { ACTIVE: 'rgba(16,185,129,0.22)', AVAILABLE: 'rgba(59,130,246,0.22)', SERVICE: 'rgba(245,158,11,0.22)', INACTIVE: 'rgba(239,68,68,0.18)' }[v.status] || (isOrangeTheme ? 'rgba(245,158,11,0.25)' : 'rgba(99,102,241,0.2)')
-    const isExpanded = expandedCardId === v.id
-    const toggleExpand = (e) => { e.stopPropagation(); setExpandedCardId(isExpanded ? null : v.id) }
+    const hoverGlow = { ACTIVE: 'rgba(16,185,129,0.22)', AVAILABLE: 'rgba(59,130,246,0.22)', IN_SERVICE: 'rgba(245,158,11,0.22)', INACTIVE: 'rgba(239,68,68,0.18)' }[computedStatus] || (isOrangeTheme ? 'rgba(245,158,11,0.25)' : 'rgba(99,102,241,0.2)')
+    const isExpanded = !!expandedCardIds[v.id]
+    const toggleExpand = (e) => {
+      e.stopPropagation()
+      setExpandedCardIds(prev => ({
+        ...prev,
+        [v.id]: !prev[v.id]
+      }))
+    }
     return (
       <div key={v.id} onClick={toggleExpand} style={{ background: D.surface, border: `1px solid ${isExpanded ? (isOrangeTheme ? 'rgba(245,158,11,0.5)' : 'rgba(99,102,241,0.45)') : cardBorderColor}`, borderRadius: 24, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: isExpanded ? `0 20px 48px ${hoverGlow}, 0 6px 20px rgba(0,0,0,0.15)` : (isDark ? '0 4px 24px rgba(0,0,0,0.35)' : '0 4px 24px rgba(0,0,0,0.1)'), transition: 'all 0.32s cubic-bezier(0.4,0,0.2,1)', animation: `fadeUp 0.4s ease ${i * 0.05}s both`, cursor: 'pointer', position: 'relative', transform: isExpanded ? 'translateY(-4px)' : 'translateY(0)' }}
         onMouseEnter={e => { if (!isExpanded) { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = `0 16px 40px ${hoverGlow}, 0 6px 20px rgba(0,0,0,0.15)`; e.currentTarget.style.borderColor = (isInsExpired || isLicExpired) ? 'rgba(239,68,68,0.6)' : (isInsAlert || isLicAlert) ? 'rgba(245,158,11,0.55)' : (isOrangeTheme ? 'rgba(245,158,11,0.45)' : 'rgba(99,102,241,0.4)') } }}
@@ -1377,7 +1450,7 @@ const VehiclesPage = () => {
             {v.year && (<><span style={{ color: D.border }}>·</span><span>{v.year}</span></>)}
           </div>
           {/* Chevron expand indicator */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', fontWeight: 600, color: D.textSub, opacity: 0.7, transition: 'all 0.25s' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', fontWeight: 600, color: D.textSub, opacity: 0.85, transition: 'all 0.25s' }}>
             <span>{isExpanded ? 'Click to collapse' : 'Click to expand'}</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
               <polyline points="6 9 12 15 18 9" />
@@ -1385,8 +1458,28 @@ const VehiclesPage = () => {
           </div>
         </div>
         {/* ── Collapsible Details + Buttons ── */}
-        <div style={{ overflow: 'hidden', maxHeight: isExpanded ? '600px' : '0px', transition: 'max-height 0.4s cubic-bezier(0.4,0,0.2,1)', opacity: isExpanded ? 1 : 0, transition: 'max-height 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease' }}>
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            overflow: 'hidden',
+            maxHeight: isExpanded ? '600px' : '0px',
+            transition: 'max-height 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease',
+            opacity: isExpanded ? 1 : 0
+          }}
+        >
           <div style={{ padding: '0 16px 0', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {/* Inactive banner with reason */}
+            {computedStatus === 'INACTIVE' && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 10, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <Ban size={13} style={{ color: D.red, flexShrink: 0, marginTop: 2 }} />
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: D.red }}>INACTIVE</span>
+                  {v.deactivationReason && (
+                    <div style={{ fontSize: '0.72rem', color: D.textSub, marginTop: 2, lineHeight: 1.4 }}>{v.deactivationReason}</div>
+                  )}
+                </div>
+              </div>
+            )}
             {/* Row 1: Fuel & Service */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 10, background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)' }}>
               <Fuel size={13} style={{ color: primaryAccent, flexShrink: 0 }} />
@@ -1516,10 +1609,10 @@ const VehiclesPage = () => {
 
   const renderGroupedVehicles = () => {
     if (filter === 'ALL') {
-      const active = sorted.filter(v => v.status === 'ACTIVE')
-      const available = sorted.filter(v => v.status === 'AVAILABLE')
-      const service = sorted.filter(v => v.status === 'SERVICE')
-      const inactive = sorted.filter(v => v.status === 'INACTIVE')
+      const active = sorted.filter(v => computeVehicleStatus(v) === 'ACTIVE')
+      const available = sorted.filter(v => computeVehicleStatus(v) === 'AVAILABLE')
+      const service = sorted.filter(v => computeVehicleStatus(v) === 'IN_SERVICE')
+      const inactive = sorted.filter(v => computeVehicleStatus(v) === 'INACTIVE')
 
       return (
         <>
@@ -1533,7 +1626,7 @@ const VehiclesPage = () => {
       const titleMap = {
         ACTIVE: "Active Vehicles",
         AVAILABLE: "Available Vehicles",
-        SERVICE: "In Service Vehicles",
+        IN_SERVICE: "In Service Vehicles",
         INACTIVE: "Inactive Vehicles"
       }
       return renderVehicleGroup(titleMap[filter] || "Vehicles", sorted)
@@ -1953,17 +2046,17 @@ const VehiclesPage = () => {
                       <div style={{
                         position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)',
                         width: 8, height: 8, borderRadius: '50%', pointerEvents: 'none',
-                        background: filter === 'ALL'       ? '#6366f1'
-                                  : filter === 'ACTIVE'    ? '#10b981'
-                                  : filter === 'AVAILABLE' ? '#3b82f6'
-                                  : filter === 'SERVICE'   ? '#f59e0b'
-                                  :                          '#ef4444',
+                        background: filter === 'ALL'          ? '#6366f1'
+                                  : filter === 'ACTIVE'       ? '#10b981'
+                                  : filter === 'AVAILABLE'    ? '#3b82f6'
+                                  : filter === 'IN_SERVICE'   ? '#f59e0b'
+                                  :                             '#ef4444',
                         boxShadow: `0 0 6px ${
-                          filter === 'ALL'       ? '#6366f180'
-                        : filter === 'ACTIVE'    ? '#10b98180'
-                        : filter === 'AVAILABLE' ? '#3b82f680'
-                        : filter === 'SERVICE'   ? '#f59e0b80'
-                        :                          '#ef444480'}`,
+                          filter === 'ALL'          ? '#6366f180'
+                        : filter === 'ACTIVE'       ? '#10b98180'
+                        : filter === 'AVAILABLE'    ? '#3b82f680'
+                        : filter === 'IN_SERVICE'   ? '#f59e0b80'
+                        :                             '#ef444480'}`,
                         transition: 'background 0.2s ease, box-shadow 0.2s ease',
                       }} />
                       <select
@@ -1972,30 +2065,30 @@ const VehiclesPage = () => {
                         style={{
                           width: '100%', padding: '10px 32px 10px 28px', height: '40px',
                           background: filter !== 'ALL'
-                            ? (filter === 'ACTIVE'    ? 'rgba(16,185,129,0.08)'
-                             : filter === 'AVAILABLE' ? 'rgba(59,130,246,0.08)'
-                             : filter === 'SERVICE'   ? 'rgba(245,158,11,0.08)'
+                            ? (filter === 'ACTIVE'       ? 'rgba(16,185,129,0.08)'
+                             : filter === 'AVAILABLE'    ? 'rgba(59,130,246,0.08)'
+                             : filter === 'IN_SERVICE'   ? 'rgba(245,158,11,0.08)'
                              : 'rgba(239,68,68,0.08)')
                             : 'rgba(255,255,255,0.05)',
                           border: `1.5px solid ${
-                            filter === 'ALL'       ? D.border
-                          : filter === 'ACTIVE'    ? 'rgba(16,185,129,0.4)'
-                          : filter === 'AVAILABLE' ? 'rgba(59,130,246,0.4)'
-                          : filter === 'SERVICE'   ? 'rgba(245,158,11,0.4)'
+                            filter === 'ALL'          ? D.border
+                          : filter === 'ACTIVE'       ? 'rgba(16,185,129,0.4)'
+                          : filter === 'AVAILABLE'    ? 'rgba(59,130,246,0.4)'
+                          : filter === 'IN_SERVICE'   ? 'rgba(245,158,11,0.4)'
                           : 'rgba(239,68,68,0.4)'}`,
                           borderRadius: 12,
-                          color: filter === 'ALL'       ? D.textSub
-                               : filter === 'ACTIVE'    ? '#10b981'
-                               : filter === 'AVAILABLE' ? '#3b82f6'
-                               : filter === 'SERVICE'   ? '#d97706'
+                          color: filter === 'ALL'          ? D.textSub
+                               : filter === 'ACTIVE'       ? '#10b981'
+                               : filter === 'AVAILABLE'    ? '#3b82f6'
+                               : filter === 'IN_SERVICE'   ? '#d97706'
                                : '#ef4444',
                           fontSize: '0.8rem', fontWeight: 700, outline: 'none',
                           cursor: 'pointer', appearance: 'none', fontFamily: 'inherit',
                           boxSizing: 'border-box', transition: 'all 0.2s ease',
                           boxShadow: filter !== 'ALL' ? `0 4px 12px ${
-                            filter === 'ACTIVE'    ? 'rgba(16,185,129,0.15)'
-                          : filter === 'AVAILABLE' ? 'rgba(59,130,246,0.15)'
-                          : filter === 'SERVICE'   ? 'rgba(245,158,11,0.15)'
+                            filter === 'ACTIVE'       ? 'rgba(16,185,129,0.15)'
+                          : filter === 'AVAILABLE'    ? 'rgba(59,130,246,0.15)'
+                          : filter === 'IN_SERVICE'   ? 'rgba(245,158,11,0.15)'
                           : 'rgba(239,68,68,0.15)'}` : 'none',
                         }}
                         onFocus={e => e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'}
@@ -2004,7 +2097,7 @@ const VehiclesPage = () => {
                         <option value="ALL">All Status</option>
                         <option value="ACTIVE">Active</option>
                         <option value="AVAILABLE">Available</option>
-                        <option value="SERVICE">In Service</option>
+                        <option value="IN_SERVICE">In Service</option>
                         <option value="INACTIVE">Inactive</option>
                       </select>
                       <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: D.textSub, fontSize: '0.75rem' }}>▾</div>
@@ -2439,16 +2532,6 @@ const VehiclesPage = () => {
 
 
                   <div>
-                    <label style={labelStyle}>Vehicle Status</label>
-                    <select name="status" value={editFormData.status} onChange={handleEditChange} required style={{ ...inputStyle, cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
-                      <option value="AVAILABLE" style={{ background: D.surfaceHi }}>Available</option>
-                      <option value="ACTIVE" style={{ background: D.surfaceHi }}>Active</option>
-                      <option value="SERVICE" style={{ background: D.surfaceHi }}>In Service (Maintenance)</option>
-                      <option value="INACTIVE" style={{ background: D.surfaceHi }}>Inactive</option>
-                    </select>
-                  </div>
-
-                  <div>
                     <label style={labelStyle}>Insurance Expiry</label>
                     <input type="date" name="insuranceExpiryDate" value={editFormData.insuranceExpiryDate} onChange={handleEditChange} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                   </div>
@@ -2643,6 +2726,87 @@ const VehiclesPage = () => {
                     )}
                   </div>
                 </div>
+
+                {/* Deactivate / Reactivate Section */}
+                {isController && (
+                  <div style={{ marginTop: 8, borderTop: `1px solid ${editFormData.status === 'INACTIVE' ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.15)'}`, paddingTop: 18 }}>
+                    {editFormData.status === 'INACTIVE' ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.red, flexShrink: 0 }}>
+                            <AlertCircle size={16} />
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: D.red }}>Vehicle is Inactive</div>
+                            <div style={{ fontSize: '0.72rem', color: D.textSub, marginTop: 2 }}>This vehicle is currently marked as inactive.</div>
+                          </div>
+                        </div>
+                        {editFormData.deactivationReason && (
+                          <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: D.red, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Deactivation Reason</div>
+                            <div style={{ fontSize: '0.82rem', color: D.text, fontWeight: 600, lineHeight: 1.5 }}>{editFormData.deactivationReason}</div>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          disabled={deactivateBusy}
+                          onClick={handleReactivateVehicle}
+                          style={{
+                            padding: '10px 20px', borderRadius: 10, border: '1.5px solid rgba(16,185,129,0.4)',
+                            background: 'rgba(16,185,129,0.08)', color: '#10b981',
+                            fontWeight: 800, fontSize: '0.82rem', cursor: deactivateBusy ? 'not-allowed' : 'pointer',
+                            display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s'
+                          }}
+                        >
+                          {deactivateBusy ? <Loader2 size={14} className="spin" /> : <CheckCircle size={14} />}
+                          Reactivate Vehicle (Mark as Available)
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.red, flexShrink: 0 }}>
+                            <AlertCircle size={16} />
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: D.red }}>Deactivate Vehicle</div>
+                            <div style={{ fontSize: '0.72rem', color: D.textSub, marginTop: 2 }}>Mark this vehicle as inactive — it will no longer be assignable to jobs.</div>
+                          </div>
+                        </div>
+                        <textarea
+                          placeholder="Reason for deactivation (required)"
+                          value={deactivateReason}
+                          onChange={e => setDeactivateReason(e.target.value)}
+                          rows={2}
+                          style={{
+                            width: '100%', padding: '10px 14px', borderRadius: 10, resize: 'vertical',
+                            border: `1.5px solid ${deactivateReason.trim() ? 'rgba(239,68,68,0.4)' : D.inputBorder}`,
+                            background: D.inputBg, color: D.text, fontSize: '0.82rem', fontFamily: 'inherit',
+                            outline: 'none', boxSizing: 'border-box', lineHeight: 1.5, minHeight: 64
+                          }}
+                        />
+                        <button
+                          type="button"
+                          disabled={!deactivateReason.trim() || deactivateBusy}
+                          onClick={handleDeactivateVehicle}
+                          style={{
+                            padding: '10px 20px', borderRadius: 10, border: 'none',
+                            background: !deactivateReason.trim() ? 'rgba(239,68,68,0.25)' : 'linear-gradient(135deg,#ef4444,#b91c1c)',
+                            color: '#fff', fontWeight: 800, fontSize: '0.82rem',
+                            cursor: (!deactivateReason.trim() || deactivateBusy) ? 'not-allowed' : 'pointer',
+                            display: 'flex', alignItems: 'center', gap: 8, opacity: !deactivateReason.trim() ? 0.5 : 1,
+                            boxShadow: deactivateReason.trim() ? '0 4px 14px rgba(239,68,68,0.35)' : 'none',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {deactivateBusy ? <Loader2 size={14} className="spin" /> : <Ban size={14} />}
+                          Mark Vehicle as Inactive
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {editError && (
                   <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 8, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', color: D.red, fontSize: '0.83rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <AlertCircle size={14} /> {editError}
@@ -3226,10 +3390,12 @@ const VehiclesPage = () => {
                   <span style={{ color: D.border, fontSize: '0.8rem' }}>·</span>
                   {/* Status pill */}
                   {(() => {
-                    const s = statusColors[selectedProfileVehicle.status] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
+                    const computedSt = computeVehicleStatus(selectedProfileVehicle)
+                    const s = statusColors[computedSt] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
+                    const label = { ACTIVE: 'Active', AVAILABLE: 'Available', IN_SERVICE: 'In Service', INACTIVE: 'Inactive' }[computedSt] || computedSt
                     return (
                       <span style={{ background: s.bg, color: s.color, padding: '3px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', border: `1px solid ${s.border}` }}>
-                        {selectedProfileVehicle.status}
+                        {label}
                       </span>
                     )
                   })()}
@@ -3271,6 +3437,34 @@ const VehiclesPage = () => {
             <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px', background: D.bg }}>
               {profileActiveTab === 'overview' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  {/* Inactive Notice Banner */}
+                  {(selectedProfileVehicle.status === 'INACTIVE' || computeVehicleStatus(selectedProfileVehicle) === 'INACTIVE') && (
+                    <div style={{
+                      padding: '14px 18px', borderRadius: 16,
+                      background: 'rgba(239,68,68,0.08)', border: '1.5px solid rgba(239,68,68,0.25)',
+                      display: 'flex', alignItems: 'flex-start', gap: 12
+                    }}>
+                      <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(239,68,68,0.15)', color: D.red, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Ban size={18} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 800, color: D.red, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span>Vehicle is Inactive</span>
+                        </div>
+                        {selectedProfileVehicle.deactivationReason ? (
+                          <div style={{ marginTop: 6, fontSize: '0.82rem', color: D.text, lineHeight: 1.5 }}>
+                            <strong style={{ color: D.textSub, fontSize: '0.72rem', textTransform: 'uppercase', display: 'block', letterSpacing: '0.04em' }}>Reason:</strong>
+                            {selectedProfileVehicle.deactivationReason}
+                          </div>
+                        ) : (
+                          <div style={{ marginTop: 4, fontSize: '0.78rem', color: D.textSub }}>
+                            No specific reason was provided upon deactivation.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Specs Grid */}
                   <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 12 }}>
                     {[

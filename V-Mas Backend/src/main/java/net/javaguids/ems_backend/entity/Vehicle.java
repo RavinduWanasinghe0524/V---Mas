@@ -116,4 +116,8 @@ public class Vehicle {
     /** Timestamp of when the soft-delete was performed. */
     @Column(name = "deleted_at")
     private java.time.LocalDateTime deletedAt;
+
+    /** Reason provided by controller when marking the vehicle as INACTIVE. Cleared on reactivation. */
+    @Column(name = "deactivation_reason", length = 500, nullable = true)
+    private String deactivationReason;
 }

@@ -35,7 +35,8 @@ public class VehicleMapper {
                 vehicle.getDeletedBy(),
                 vehicle.getDeletedAt(),
                 vehicle.getFuelCapacity(),
-                vehicle.getDriver() != null ? vehicle.getDriver().getUserName() : null
+                vehicle.getDriver() != null ? vehicle.getDriver().getUserName() : null,
+                vehicle.getDeactivationReason()
         );
     }
 
@@ -66,6 +67,7 @@ public class VehicleMapper {
         vehicle.setDeletedBy(dto.getDeletedBy());
         vehicle.setDeletedAt(dto.getDeletedAt());
         vehicle.setFuelCapacity(dto.getFuelCapacity());
+        vehicle.setDeactivationReason(dto.getDeactivationReason());
         return vehicle;
     }
 }
