@@ -4046,9 +4046,12 @@ textarea.form-control {
 
 /* Inline-style stat card grids (most pages use inline gridTemplateColumns) */
 .stats-grid>div {
-  display: flex !important;
-  flex-direction: column !important;
-  min-height: 110px;
+  min-height: 100px;
+}
+
+/* Ensure text container inside stat cards does not overflow flex bounds */
+.stats-grid>div>div:last-child {
+  min-width: 0;
 }
 
 /* Consistent icon container in stat cards */
@@ -4109,7 +4112,6 @@ textarea.form-control {
 .stats-grid>div>div>div[style*="2rem"],
 .stats-grid>div>div>div[style*="1.85rem"],
 .stats-grid>div>div>div[style*="1.9rem"] {
-  font-size: 1.75rem !important;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
