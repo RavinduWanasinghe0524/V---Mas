@@ -174,14 +174,11 @@ public class UserController {
         return ApiResponseUtil.<Object>success("User created successfully", user, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<Object>> updateUser(@PathVariable Long id, @RequestBody UserDto userDto) {
         log.info("Update user request received for ID: {}", id);
         User currentUser = getCurrentUser();
-        if (!isAdmin() && !isController() && !currentUser.getId().equals(id)) {
-            log.warn("Access denied: User {} attempted to update user {}", currentUser.getId(), id);
-            return ApiResponseUtil.error("You don't have permission to access this resource", HttpStatus.FORBIDDEN);
-        }
         if (!isAdmin() && isController() && !currentUser.getId().equals(id)) {
             UserDto targetUser = userService.getUserById(id);
             if (Role.ADMIN.equals(targetUser.getRole())) {

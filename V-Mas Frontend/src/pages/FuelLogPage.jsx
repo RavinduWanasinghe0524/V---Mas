@@ -7,38 +7,7 @@ import { fuelAPI, vehicleAPI, tripAPI } from '../services/api'
 import { addDriverNotification } from '../services/notificationService'
 import { Fuel, CircleDollarSign, BarChart2, Car, Check, X, Plus, Loader2, Calendar, Gauge } from 'lucide-react'
 
-import { computeLogsEfficiency, formatFuelType, getFuelLogType } from '../utils/fuelUtils'
-
-// ── Shared fuel-type badge helper ──────────────────────────────────────
-const fuelBadge = (ft, D) => {
-  const clean = (ft || '').toUpperCase().replace('_', ' ');
-  if (clean.includes('PETROL 92') || clean === 'PETROL') {
-    return { color: D.gold, bg: D.goldDim };
-  }
-  if (clean.includes('PETROL 95') || clean === 'SUPER PETROL') {
-    return { color: '#ea580c', bg: 'rgba(234,88,12,0.12)' };
-  }
-  if (clean.includes('AUTO DIESEL') || clean === 'DIESEL') {
-    return { color: D.indigo, bg: D.indigoDim };
-  }
-  if (clean.includes('SUPER DIESEL')) {
-    return { color: '#7c3aed', bg: 'rgba(124,58,237,0.12)' };
-  }
-  if (clean.includes('HYBRID')) {
-    return { color: D.green, bg: D.greenDim };
-  }
-  if (clean.includes('ELECTRIC')) {
-    return { color: D.blue, bg: D.blueDim };
-  }
-  return { color: D.textSub, bg: D.surfaceHi };
-}
-
-const approvalBadge = (status, D) => {
-  const s = (status || 'APPROVED').toUpperCase()
-  if (s === 'PENDING') return { label: 'Pending', bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: 'rgba(245,158,11,0.25)' }
-  if (s === 'REJECTED') return { label: 'Rejected', bg: 'rgba(239,68,68,0.12)', color: '#ef4444', border: 'rgba(239,68,68,0.25)' }
-  return { label: 'Approved', bg: 'rgba(16,185,129,0.12)', color: '#10b981', border: 'rgba(16,185,129,0.25)' }
-}
+import { computeLogsEfficiency, formatFuelType, getFuelLogType, fuelBadge, approvalBadge } from '../utils/fuelUtils'
 
 
 

@@ -431,4 +431,15 @@ public class VehicleServiceImpl implements VehicleService {
         }
         return dtos;
     }
+    @Override
+    public VehicleDto getVehicleByRegistrationNo(String registrationNo) {
+        Vehicle vehicle = vehicleRepository.findByRegistrationNo(registrationNo)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Vehicle not found with registration number: " + registrationNo));
+        if (vehicle.isDeleted()) {
+            throw new ResourceNotFoundException(
+                    "Vehicle not found with registration number: " + registrationNo);
+        }
+        return enrichWithActiveTripDriver(VehicleMapper.mapToVehicleDto(vehicle));
+    }
 }
