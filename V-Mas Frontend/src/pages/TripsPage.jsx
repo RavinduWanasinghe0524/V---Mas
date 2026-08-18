@@ -4,7 +4,8 @@ import Topbar from '../components/Topbar'
 import TripActionModal from '../components/TripActionModal'
 import { useD, useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
-import { tripAPI, userAPI, vehicleAPI, serviceAPI, notificationAPI } from '../services/api'
+import { tripAPI, userAPI, vehicleAPI, serviceAPI, fuelAPI, notificationAPI } from '../services/api'
+import { formatFuelType } from '../utils/fuelUtils'
 import {
   MapPin, Navigation, Car, User, Calendar, Plus, Loader2,
   Play, X, CheckCircle, Ban, Clock, MoreVertical, ClipboardList, Wrench, Fuel, AlertTriangle, UserCheck,
@@ -27,6 +28,8 @@ const getCleanPurpose = (purposeText) => {
 
 const hasDriverServiceAccess = (trip) => {
   if (!trip) return false
+  const type = getJobType(trip.purpose)
+  if (type !== 'SERVICE') return false
   if (trip.allowDriverServiceLog === false) return false
   if (trip.purpose?.includes('[Access:NO]')) return false
   return true
@@ -51,6 +54,34 @@ const hasAnyServiceRecordForTrip = (trip, allServices) => {
     }
     return serv.createdBy && trip.driverUsername && serv.createdBy.toLowerCase() === trip.driverUsername.toLowerCase()
   })
+}
+
+const isJobFuelLog = (log, trip) => {
+  if (!log || log.deleted || log.isDeleted || !trip) return false
+  const type = getJobType(trip.purpose)
+  if (type !== 'TRIP' && type !== 'FUEL') return false
+
+  const logReg = (log.vehicleRegNumber || '').replace(/^VEH-/i, '').trim().toUpperCase()
+  const tripReg = (trip.vehicleRegNumber || '').replace(/^VEH-/i, '').trim().toUpperCase()
+  if (logReg !== tripReg) return false
+
+  if (trip.driverUsername && log.driverUsername) {
+    if (log.driverUsername.toLowerCase() !== trip.driverUsername.toLowerCase()) return false
+  }
+
+  // Only show fuel records for this specific assigned job's scheduled timeframe (+/- 1 day)
+  const targetDateStr = (trip.scheduledDate || trip.createdAt || '').split('T')[0]
+  if (targetDateStr && log.date) {
+    const logDateStr = typeof log.date === 'string' ? log.date.split('T')[0] : ''
+    if (logDateStr) {
+      const targetTime = new Date(targetDateStr).getTime()
+      const logTime = new Date(logDateStr).getTime()
+      const diffDays = Math.abs(targetTime - logTime) / (1000 * 60 * 60 * 24)
+      if (diffDays > 1) return false
+    }
+  }
+
+  return true
 }
 
 // ── Helpers for checking overdue services (sync with ServicePage) ────────
@@ -177,6 +208,8 @@ const TripsPage = () => {
   const emptyForm = { driverUsername: '', vehicleRegNumber: '', origin: '', destination: '', purpose: '', scheduledDate: '', allowDriverServiceLog: true }
   const [editingTripStatus, setEditingTripStatus] = useState('')  // tracks status of trip being edited (for UI disabling), NOT sent to backend
   const [form, setForm] = useState(emptyForm)
+  const [assignError, setAssignError] = useState(null)
+  const [fieldErrors, setFieldErrors] = useState({})
   // Today's date in YYYY-MM-DD (local timezone) — used as min for the scheduled date picker
   const todayStr = new Date().toLocaleDateString('en-CA') // en-CA gives YYYY-MM-DD format
   const [submitting, setSubmitting] = useState(false)
@@ -185,6 +218,7 @@ const TripsPage = () => {
   const [tripToCancel, setTripToCancel] = useState(null)
   const [cancelling, setCancelling] = useState(false)
   const [driverModal, setDriverModal] = useState(null) // { action, trip }
+  const [selectedJobDetail, setSelectedJobDetail] = useState(null) // trip object for slide-over drawer
 
   const [deletedDrawer, setDeletedDrawer] = useState(false)
   const [deletedTrips, setDeletedTrips] = useState([])
@@ -212,6 +246,24 @@ const TripsPage = () => {
   const [vehicleCurrentMileage, setVehicleCurrentMileage] = useState(null) // fetched on modal open
   const [pendingDetailModal, setPendingDetailModal] = useState(null) // service record object when viewing details
   const [expandedServices, setExpandedServices] = useState({}) // { [serviceId]: boolean }
+
+  // ── Fuel Log Modal (driver: log fuel fill-up details for a TRIP or FUEL job) ──
+  const emptyFuelLog = {
+    vehicleRegNumber: '',
+    fuelType: 'Auto Diesel',
+    liters: '',
+    costPerLiter: '',
+    totalCost: '',
+    mileage: '',
+    date: todayStr,
+  }
+  const [fuelLogModal, setFuelLogModal] = useState(null) // trip object when open
+  const [fuelLogForm, setFuelLogForm] = useState(emptyFuelLog)
+  const [fuelLogSubmitting, setFuelLogSubmitting] = useState(false)
+  const [fuelLogError, setFuelLogError] = useState(null)
+  const [fuelVehicleMileage, setFuelVehicleMileage] = useState(null)
+  const [allFuelLogs, setAllFuelLogs] = useState([])
+  const [expandedFuelLogs, setExpandedFuelLogs] = useState({})
 
   const toggleServiceExpand = (id) => {
     setExpandedServices(prev => ({ ...prev, [id]: !prev[id] }))
@@ -283,8 +335,18 @@ const TripsPage = () => {
     }
   }, [canManage])
 
+  const loadFuelLogs = useCallback(async () => {
+    try {
+      const res = canManage ? await fuelAPI.getAllFuelLogs() : await fuelAPI.getMyLogs()
+      setAllFuelLogs(res.data?.data || [])
+    } catch (err) {
+      console.error('Error loading fuel logs:', err)
+    }
+  }, [canManage])
+
   useEffect(() => {
     loadTrips()
+    loadFuelLogs()
     serviceAPI.getAllServices()
       .then(res => setAllServices(res.data.data || []))
       .catch(err => console.error('Error loading services:', err))
@@ -300,40 +362,56 @@ const TripsPage = () => {
         .then(res => setAllIntervals(res.data.data || []))
         .catch(err => console.error('Error loading intervals:', err))
     }
-  }, [loadTrips, canManage])
+  }, [loadTrips, loadFuelLogs, canManage])
 
   // Lock body scroll while a modal is open
   useEffect(() => {
-    const open = showAssignModal || !!tripToCancel || !!driverModal || !!pendingDetailModal || !!serviceLogModal || !!deleteConfirmTrip || deletedDrawer
+    const open = showAssignModal || !!tripToCancel || !!driverModal || !!pendingDetailModal || !!serviceLogModal || !!fuelLogModal || !!deleteConfirmTrip || deletedDrawer || !!selectedJobDetail
     document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
-  }, [showAssignModal, tripToCancel, driverModal, pendingDetailModal, serviceLogModal, deleteConfirmTrip, deletedDrawer])
+  }, [showAssignModal, tripToCancel, driverModal, pendingDetailModal, serviceLogModal, fuelLogModal, deleteConfirmTrip, deletedDrawer, selectedJobDetail])
 
   // ── Controller: assign a job ──────────────────────────────────────────
   const handleAssign = async (e) => {
     e.preventDefault()
-    if (!form.driverUsername || !form.vehicleRegNumber || !form.destination.trim()) {
-      flash('error', 'Driver, vehicle and destination/location are required')
-      return
+    setAssignError(null)
+    const errors = {}
+
+    if (!form.driverUsername) {
+      errors.driverUsername = 'Please select a driver'
+    }
+    if (!form.vehicleRegNumber) {
+      errors.vehicleRegNumber = 'Please select a vehicle'
+    }
+    if (!form.destination.trim()) {
+      errors.destination = activeTab === 'SERVICE'
+        ? 'Please enter the service center or location'
+        : activeTab === 'FUEL'
+          ? 'Please enter the fuel station or location'
+          : 'Please enter the destination'
     }
     if (!form.scheduledDate) {
-      flash('error', 'Scheduled Date is required')
-      return
-    }
-    // Reject past dates — only today or future dates are allowed
-    if (form.scheduledDate < todayStr) {
-      flash('error', 'Scheduled Date cannot be in the past')
-      return
+      errors.scheduledDate = 'Please select a scheduled date'
+    } else if (form.scheduledDate < todayStr && editingTripStatus !== 'STARTED') {
+      errors.scheduledDate = 'Scheduled date cannot be in the past'
     }
     if (activeTab === 'SERVICE' && !form.purpose) {
-      flash('error', 'Service Description is required')
+      errors.purpose = 'Please select a service description'
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      const errorList = Object.values(errors)
+      setAssignError(errorList.length === 1 ? errorList[0] : 'Please fill in all required fields marked with * before assigning.')
       return
     }
+
+    setFieldErrors({})
     setSubmitting(true)
     try {
-      const accessTag = form.allowDriverServiceLog ? '[Access:YES]' : '[Access:NO]'
       const prefix = activeTab === 'SERVICE' ? '[Service] ' : activeTab === 'FUEL' ? '[Fuel] ' : '[Trip] '
-      const finalPurpose = `${prefix}${accessTag} ${(form.purpose || '').trim()}`
+      const accessTag = (activeTab === 'SERVICE' && form.allowDriverServiceLog) ? '[Access:YES]' : (activeTab === 'SERVICE' ? '[Access:NO]' : '')
+      const finalPurpose = `${prefix}${accessTag ? accessTag + ' ' : ''}${(form.purpose || '').trim()}`.trim()
 
       // Only send fields that exist in the backend TripDto.
       // Do NOT send `allowDriverServiceLog` (not a backend field — embedded in purpose string)
@@ -357,16 +435,28 @@ const TripsPage = () => {
       setForm(emptyForm)
       setEditingTripId(null)
       setEditingTripStatus('')
+      setAssignError(null)
+      setFieldErrors({})
       setShowAssignModal(false)
       loadTrips()
     } catch (err) {
-      flash('error', err.response?.data?.message || `Failed to ${editingTripId ? 'update' : 'assign'} job`)
+      const msg = err.response?.data?.message || `Failed to ${editingTripId ? 'update' : 'assign'} job`
+      setAssignError(msg)
     } finally {
       setSubmitting(false)
     }
   }
 
-  const closeAssignModal = () => { if (!submitting) { setShowAssignModal(false); setForm(emptyForm); setEditingTripId(null); setEditingTripStatus('') } }
+  const closeAssignModal = () => {
+    if (!submitting) {
+      setShowAssignModal(false)
+      setForm(emptyForm)
+      setEditingTripId(null)
+      setEditingTripStatus('')
+      setAssignError(null)
+      setFieldErrors({})
+    }
+  }
 
   // When a vehicle is selected in the modal, auto-fill the assigned driver (but allow override)
   const handleVehicleChange = (regNo) => {
@@ -558,6 +648,121 @@ const TripsPage = () => {
     }
   }
 
+  // ── Driver: open fuel log modal for a TRIP or FUEL job ─────────────────
+  const openFuelLog = (trip) => {
+    const tripDate = trip.scheduledDate ? trip.scheduledDate.split('T')[0] : new Date().toISOString().split('T')[0]
+    const targetVeh = vehicles.find(v => (v.registrationNo || '').replace(/^VEH-/i, '').toUpperCase() === (trip.vehicleRegNumber || '').replace(/^VEH-/i, '').toUpperCase())
+    const currentKm = targetVeh?.currentMileageKm ?? targetVeh?.initialMileageKm ?? null
+    const fuelType = targetVeh?.fuelType ? formatFuelType(targetVeh.fuelType) : 'Auto Diesel'
+
+    setFuelVehicleMileage(currentKm)
+    setFuelLogForm({
+      vehicleRegNumber: trip.vehicleRegNumber || '',
+      fuelType: fuelType || 'Auto Diesel',
+      liters: '',
+      costPerLiter: '',
+      totalCost: '',
+      mileage: currentKm != null ? String(currentKm) : '',
+      date: tripDate,
+    })
+    setFuelLogError(null)
+    setFuelLogModal(trip)
+  }
+
+  const closeFuelLog = () => {
+    if (fuelLogSubmitting) return
+    setFuelLogModal(null)
+    setFuelLogForm(emptyFuelLog)
+    setFuelLogError(null)
+  }
+
+  const handleFuelLogSubmit = async (e) => {
+    e.preventDefault()
+    if (!fuelLogForm.liters || parseFloat(fuelLogForm.liters) <= 0) {
+      setFuelLogError('Fuel quantity (liters) is required.')
+      return
+    }
+    if (!fuelLogForm.costPerLiter || parseFloat(fuelLogForm.costPerLiter) <= 0) {
+      setFuelLogError('Cost per liter is required.')
+      return
+    }
+    if (!fuelLogForm.mileage || parseFloat(fuelLogForm.mileage) <= 0) {
+      setFuelLogError('Current mileage is required.')
+      return
+    }
+    if (!fuelLogForm.date) {
+      setFuelLogError('Date is required.')
+      return
+    }
+
+    setFuelLogSubmitting(true)
+    setFuelLogError(null)
+    try {
+      const liters = parseFloat(fuelLogForm.liters)
+      const costPerLiter = parseFloat(fuelLogForm.costPerLiter)
+      const totalCost = fuelLogForm.totalCost ? parseFloat(fuelLogForm.totalCost) : (liters * costPerLiter)
+
+      const payload = {
+        vehicleRegNumber: (fuelLogForm.vehicleRegNumber || '').replace(/^VEH-/i, '').trim(),
+        fuelType: fuelLogForm.fuelType,
+        liters,
+        costPerLiter,
+        totalCost,
+        mileage: parseFloat(fuelLogForm.mileage),
+        date: fuelLogForm.date,
+      }
+
+      await fuelAPI.addFuelLog(payload)
+      flash('success', `Fuel log (${liters}L) recorded successfully for ${fuelLogForm.vehicleRegNumber}! Awaiting controller approval.`)
+      closeFuelLog()
+      await loadFuelLogs()
+    } catch (err) {
+      setFuelLogError(err.response?.data?.message || 'Failed to submit fuel log. Please try again.')
+    } finally {
+      setFuelLogSubmitting(false)
+    }
+  }
+
+  // ── Controller: Approve / Reject / Delete Fuel Record from Job Management ──
+  const handleApproveFuelInTrips = async (fuelLogId) => {
+    try {
+      setBusyId(fuelLogId)
+      await fuelAPI.approveLog(fuelLogId)
+      flash('success', 'Fuel record approved successfully!')
+      await loadFuelLogs()
+    } catch (err) {
+      flash('error', err.response?.data?.message || 'Failed to approve fuel record')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const handleRejectFuelInTrips = async (fuelLogId) => {
+    try {
+      setBusyId(fuelLogId)
+      await fuelAPI.rejectLog(fuelLogId)
+      flash('error', 'Fuel record rejected')
+      await loadFuelLogs()
+    } catch (err) {
+      flash('error', err.response?.data?.message || 'Failed to reject fuel record')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const handleDeleteFuelInTrips = async (fuelLogId) => {
+    try {
+      setBusyId(fuelLogId)
+      await fuelAPI.controllerDeleteLog(fuelLogId)
+      flash('success', 'Fuel record deleted')
+      await loadFuelLogs()
+    } catch (err) {
+      flash('error', err.response?.data?.message || 'Failed to delete fuel record')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   // ── Controller: Approve / Reject / Delete Service Record from Job Management ──
   const handleApproveServiceInTrips = async (serviceId) => {
     try {
@@ -716,7 +921,7 @@ const TripsPage = () => {
                 { type: 'SERVICE', label: 'Service Assignment', desc: 'Dispatch driver for maintenance & services', icon: <Wrench size={22} />, color: D.gold, bg: D.goldDim },
                 { type: 'FUEL', label: 'Fuel Assignment', desc: 'Assign driver to fill up gas before trip or when low', icon: <Fuel size={22} />, color: D.green, bg: D.greenDim },
               ].map(act => (
-                <div key={act.type} onClick={() => { setActiveTab(act.type); setShowAssignModal(true) }}
+                <div key={act.type} onClick={() => { setActiveTab(act.type); setForm(emptyForm); setEditingTripId(null); setEditingTripStatus(''); setAssignError(null); setFieldErrors({}); setShowAssignModal(true) }}
                   style={{
                     background: D.surface, borderRadius: 24, border: `1px solid ${D.border}`, padding: '24px',
                     display: 'flex', alignItems: 'center', gap: 20, cursor: 'pointer', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -853,8 +1058,14 @@ const TripsPage = () => {
 
                 const isAnyServiceExpanded = jobServices.length > 0 && jobServices.some(s => expandedServices[s.id])
 
+                const jobFuelLogs = (allFuelLogs || []).filter(log => isJobFuelLog(log, trip))
+
+                const isAnyFuelExpanded = jobFuelLogs.length > 0 && jobFuelLogs.some(f => expandedFuelLogs[f.id])
+
                 return (
-                  <div key={trip.id} style={{ display: 'flex', flexDirection: 'column', padding: '20px 32px', borderBottom: i < filteredTrips.length - 1 ? `1px solid ${D.border}` : 'none', transition: 'background 0.18s' }}
+                  <div key={trip.id}
+                    onClick={() => setSelectedJobDetail(trip)}
+                    style={{ display: 'flex', flexDirection: 'column', padding: '20px 32px', borderBottom: i < filteredTrips.length - 1 ? `1px solid ${D.border}` : 'none', transition: 'background 0.18s', cursor: 'pointer' }}
                     onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
@@ -886,38 +1097,55 @@ const TripsPage = () => {
 
                       {/* Actions */}
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginLeft: 'auto', alignItems: 'center' }}>
-                        {/* View Service Details Button directly on Job Row when service record exists */}
-                        {jobServices.length > 0 && (
-                          <ActionBtn
-                            onClick={() => {
-                              const next = !isAnyServiceExpanded
-                              setExpandedServices(prev => {
-                                const copy = { ...prev }
-                                jobServices.forEach(s => { copy[s.id] = next })
-                                return copy
-                              })
-                            }}
-                            disabled={busy}
-                            bg={isAnyServiceExpanded ? D.surfaceHi : 'rgba(16,185,129,0.12)'}
-                            color={isAnyServiceExpanded ? D.text : '#059669'}
-                            border="1px solid rgba(16,185,129,0.35)"
-                            icon={isAnyServiceExpanded ? <ChevronUp size={14} /> : <Wrench size={14} />}
-                          >
-                            {isAnyServiceExpanded ? 'Hide Service Details' : 'View Service Details'}
-                          </ActionBtn>
-                        )}
+                        {/* Unified Details Button */}
+                        <ActionBtn
+                          onClick={() => setSelectedJobDetail(trip)}
+                          disabled={busy}
+                          bg={D.surfaceHi}
+                          color={D.text}
+                          border={`1px solid ${D.border}`}
+                          icon={<Eye size={14} color="var(--primary)" />}
+                        >
+                          Details
+                          {(jobServices.length > 0 || jobFuelLogs.length > 0) && (
+                            <span style={{
+                              fontSize: '0.68rem', fontWeight: 800, padding: '1px 6px', borderRadius: 999,
+                              background: 'var(--primary-glow)', color: 'var(--primary)',
+                              border: '1px solid var(--primary-border)', marginLeft: 2
+                            }}>
+                              {jobServices.length + jobFuelLogs.length}
+                            </span>
+                          )}
+                        </ActionBtn>
 
-                        {/* Driver */}
+                        {/* Driver Actions */}
                         {!canManage && s === 'ASSIGNED' && (
                           <>
-                            <ActionBtn onClick={() => setDriverModal({ action: 'start', trip })} disabled={busy} bg="linear-gradient(135deg,#059669,#10b981)" color="#fff" icon={<Play size={14} />}>Accept</ActionBtn>
-                            <ActionBtn onClick={() => setDriverModal({ action: 'decline', trip })} disabled={busy} bg={D.redDim} color={D.red} border={`1px solid ${D.red}40`} icon={<X size={14} />}>Decline</ActionBtn>
+                            <ActionBtn
+                              onClick={() => setDriverModal({ action: 'start', trip })}
+                              disabled={busy}
+                              bg="linear-gradient(135deg,#059669,#10b981)"
+                              color="#fff"
+                              icon={<Play size={14} />}
+                            >
+                              Accept
+                            </ActionBtn>
+                            <ActionBtn
+                              onClick={() => setDriverModal({ action: 'decline', trip })}
+                              disabled={busy}
+                              bg={D.redDim}
+                              color={D.red}
+                              border={`1px solid ${D.red}40`}
+                              icon={<X size={14} />}
+                            >
+                              Decline
+                            </ActionBtn>
                           </>
                         )}
                         {!canManage && s === 'STARTED' && (
                           <>
                             {/* Service jobs: show 'Log Service' button if controller granted access */}
-                            {hasDriverServiceAccess(trip) && (
+                            {type === 'SERVICE' && hasDriverServiceAccess(trip) && (
                               <ActionBtn
                                 onClick={() => openServiceLog(trip)}
                                 disabled={busy}
@@ -928,14 +1156,35 @@ const TripsPage = () => {
                                 Log Service
                               </ActionBtn>
                             )}
-                            <ActionBtn onClick={() => setDriverModal({ action: 'complete', trip })} disabled={busy} bg="linear-gradient(135deg,var(--primary-dark),var(--primary))" color="#fff" icon={<CheckCircle size={14} />}>Complete</ActionBtn>
+                            {/* Trip or Fuel jobs: driver can log fuel fill-ups */}
+                            {(type === 'TRIP' || type === 'FUEL') && (
+                              <ActionBtn
+                                onClick={() => openFuelLog(trip)}
+                                disabled={busy}
+                                bg="linear-gradient(135deg,#059669,#10b981)"
+                                color="#fff"
+                                icon={<Fuel size={14} />}
+                              >
+                                Log Fuel
+                              </ActionBtn>
+                            )}
+                            <ActionBtn
+                              onClick={() => setDriverModal({ action: 'complete', trip })}
+                              disabled={busy}
+                              bg="linear-gradient(135deg,var(--primary-dark),var(--primary))"
+                              color="#fff"
+                              icon={<CheckCircle size={14} />}
+                            >
+                              Complete
+                            </ActionBtn>
                           </>
                         )}
-                        {/* Controller */}
+
+                        {/* Controller Actions */}
                         {canManage && (
                           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                             {/* Controller: Add Service Record ONLY if no service record has been entered for this job yet */}
-                            {type === 'SERVICE' && !hasAnyServiceRecordForTrip(trip, allServices) && (
+                            {type === 'SERVICE' && !hasAnyServiceRecordForTrip(trip, allServices) && (s === 'ASSIGNED' || s === 'STARTED') && (
                               <ActionBtn
                                 onClick={() => openServiceLog(trip)}
                                 disabled={busy}
@@ -947,7 +1196,7 @@ const TripsPage = () => {
                               </ActionBtn>
                             )}
 
-                            {(s === 'ASSIGNED' || s === 'DECLINED' || s === 'STARTED') && (
+                            {s === 'ASSIGNED' && (
                               <ActionBtn
                                 onClick={() => {
                                   const jobType = getJobType(trip.purpose)
@@ -974,287 +1223,32 @@ const TripsPage = () => {
                               </ActionBtn>
                             )}
 
-                            {(s === 'DECLINED' || s === 'COMPLETED' || s === 'CANCELLED') && (
-                              <span style={{ fontSize: '0.76rem', color: D.textSub, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginRight: 4 }}>
-                                {s === 'DECLINED' && trip.declineReason ? `Reason: ${trip.declineReason}` : <><Clock size={13} /> Closed</>}
-                              </span>
+                            {(s === 'ASSIGNED' || s === 'STARTED') && (
+                              <ActionBtn
+                                onClick={() => setTripToCancel(trip)}
+                                disabled={busy}
+                                bg={D.redDim}
+                                color={D.red}
+                                border={`1px solid ${D.red}40`}
+                                icon={<Ban size={14} />}
+                              >
+                                Cancel
+                              </ActionBtn>
                             )}
-                            {s === 'ASSIGNED' && (
-                              <ActionBtn onClick={() => setTripToCancel(trip)} disabled={busy} bg={D.redDim} color={D.red} border={`1px solid ${D.red}40`} icon={<Ban size={14} />}>Cancel</ActionBtn>
-                            )}
-                            <ActionBtn onClick={() => setDeleteConfirmTrip(trip)} disabled={busy} bg="rgba(239,68,68,0.1)" color="#ef4444" border="1px solid rgba(239,68,68,0.2)" icon={<Trash2 size={14} />}>Delete</ActionBtn>
+                            <ActionBtn
+                              onClick={() => setDeleteConfirmTrip(trip)}
+                              disabled={busy}
+                              bg="rgba(239,68,68,0.1)"
+                              color="#ef4444"
+                              border="1px solid rgba(239,68,68,0.2)"
+                              icon={<Trash2 size={14} />}
+                            >
+                              Delete
+                            </ActionBtn>
                           </div>
-                        )}
-                        {!canManage && (s === 'DECLINED' || s === 'COMPLETED' || s === 'CANCELLED') && (
-                          <span style={{ fontSize: '0.76rem', color: D.textSub, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                            {s === 'DECLINED' && trip.declineReason ? `Reason: ${trip.declineReason}` : <><Clock size={13} /> Closed</>}
-                          </span>
                         )}
                       </div>
                     </div>
-
-                    {/* Service Record Cards */}
-                    {jobServices.map(serv => {
-                      const typeLabel = serv.serviceTypeDetail || SERVICE_TYPES.find(t => t.value === serv.serviceType)?.label || serv.serviceType
-                      const vehicleObj = vehicles.find(v => v.registrationNo === serv.vehicleRegNumber)
-                      const isDriverAuthor = serv.createdBy && trip.driverUsername && serv.createdBy.toLowerCase() === trip.driverUsername.toLowerCase()
-                      const isCurrentUserAuthor = serv.createdBy && user?.userName && serv.createdBy.toLowerCase() === user.userName.toLowerCase()
-                      const isPending = serv.status === 'PENDING'
-
-                      // Controller view or Driver view who created the record: show full details when expanded
-                      const showFullDetails = canManage || isDriverAuthor || isCurrentUserAuthor
-                      const isExpanded = !!expandedServices[serv.id]
-
-                      if (!isExpanded) return null
-
-                      return (
-                        <div key={serv.id} style={{
-                          marginTop: 16, borderRadius: 20, padding: '16px 24px',
-                          background: isDark
-                            ? (isPending ? 'rgba(245,158,11,0.06)' : 'rgba(16,185,129,0.06)')
-                            : (isPending ? 'rgba(245,158,11,0.04)' : 'rgba(16,185,129,0.04)'),
-                          border: isPending
-                            ? '1.5px solid rgba(245,158,11,0.3)'
-                            : '1.5px solid rgba(16,185,129,0.3)',
-                          boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-                          display: 'flex', flexDirection: 'column', gap: isExpanded ? 14 : 0
-                        }}>
-                          {/* Title & Badges */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                              <div style={{
-                                width: 40, height: 40, borderRadius: 12,
-                                background: isPending ? 'rgba(245,158,11,0.18)' : 'rgba(16,185,129,0.18)',
-                                border: isPending ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(16,185,129,0.3)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                color: isPending ? '#d97706' : '#059669', flexShrink: 0
-                              }}>
-                                <Wrench size={18} />
-                              </div>
-                              <div>
-                                <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 900, color: isPending ? '#d97706' : D.text, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em' }}>
-                                  {typeLabel}
-                                </h4>
-                                <div style={{ fontSize: '0.76rem', color: D.textSub, marginTop: 2 }}>
-                                  <strong>{serv.vehicleRegNumber}</strong> {vehicleObj?.model ? `— ${vehicleObj.model}` : ''}
-                                  {serv.createdBy && <span> · By <strong>{serv.createdBy}</strong></span>}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              {isPending ? (
-                                <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '4px 12px', borderRadius: 999, background: 'rgba(245,158,11,0.15)', color: '#d97706', border: '1px solid rgba(245,158,11,0.35)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  <Clock size={11} /> PENDING APPROVAL
-                                </span>
-                              ) : (
-                                <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '4px 12px', borderRadius: 999, background: 'rgba(16,185,129,0.15)', color: '#059669', border: '1px solid rgba(16,185,129,0.35)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  <CheckCircle size={11} /> {showFullDetails ? 'APPROVED' : 'COMPLETED BY CONTROLLER'}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Expanded Content Body */}
-                          {isExpanded && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 14, borderTop: `1px solid ${D.border}` }}>
-                              {showFullDetails ? (
-                                <>
-                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12 }}>
-                                    <div style={{ background: D.surfaceHi, borderRadius: 12, padding: '10px 14px', border: `1px solid ${D.border}` }}>
-                                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
-                                        <Calendar size={12} color="#d97706" /> Service Date
-                                      </div>
-                                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text }}>
-                                        {fmtDate(serv.serviceDate)}
-                                      </div>
-                                    </div>
-
-                                    <div style={{ background: D.surfaceHi, borderRadius: 12, padding: '10px 14px', border: `1px solid ${D.border}` }}>
-                                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
-                                        <Gauge size={12} color="#d97706" /> Mileage
-                                      </div>
-                                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text }}>
-                                        {Number(serv.currentMileageKm || 0).toLocaleString()} km
-                                      </div>
-                                    </div>
-
-                                    <div style={{ background: D.surfaceHi, borderRadius: 12, padding: '10px 14px', border: `1px solid ${D.border}` }}>
-                                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: D.textSub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
-                                        <DollarSign size={12} color="#d97706" /> Cost / Price
-                                      </div>
-                                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text }}>
-                                        Rs. {Number(serv.serviceCost || 0).toLocaleString()}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Workshop */}
-                                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: D.textSub, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <Wrench size={14} color="#d97706" /> <strong>Technician/Workshop:</strong> {serv.technicianWorkshop || 'N/A'}
-                                  </div>
-
-                                  {/* Service Record Description / Notes entered by driver */}
-                                  {serv.description && (
-                                    <div style={{ background: D.surfaceHi, padding: '12px 16px', borderRadius: 12, border: `1px solid ${D.border}` }}>
-                                      <div style={{ fontSize: '0.7rem', color: D.textSub, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
-                                        Description / Notes
-                                      </div>
-                                      <div style={{ fontSize: '0.85rem', color: D.text, lineHeight: 1.5 }}>
-                                        {serv.description}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Next Service Due */}
-                                  {(serv.nextServiceDue || serv.nextServiceMileageKm) && (
-                                    <div style={{ fontSize: '0.78rem', color: D.textSub, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                      <Calendar size={13} color="#3b82f6" />
-                                      <span>
-                                        Next Service Due: <strong>{serv.nextServiceDue ? fmtDate(serv.nextServiceDue) : 'N/A'}</strong>
-                                        {serv.nextServiceMileageKm ? ` at ${Number(serv.nextServiceMileageKm).toLocaleString()} km` : ''}
-                                      </span>
-                                    </div>
-                                  )}
-
-                                  {/* Attachment button if uploaded */}
-                                  {serv.attachmentPath && (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 4 }}>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleViewAttachmentInTrips(serv)}
-                                        style={{
-                                          padding: '6px 14px', borderRadius: 10, background: 'rgba(59,130,246,0.12)',
-                                          border: '1px solid rgba(59,130,246,0.3)', color: '#3b82f6',
-                                          fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6
-                                        }}
-                                      >
-                                        <Paperclip size={13} /> View Receipt Attachment
-                                      </button>
-                                    </div>
-                                  )}
-                                </>
-                              ) : (
-                                /* Basic / Enough Service Details for Driver when Controller filled record */
-                                <div style={{ background: D.surfaceHi, padding: '14px 16px', borderRadius: 14, border: `1px solid ${D.border}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: D.text }}>
-                                      Service Date: <strong>{fmtDate(serv.serviceDate)}</strong>
-                                    </div>
-                                    <div style={{ fontSize: '0.78rem', color: D.textSub }}>
-                                      Vehicle: <strong>{serv.vehicleRegNumber}</strong>
-                                    </div>
-                                  </div>
-                                  <div style={{ fontSize: '0.78rem', color: D.textSub, fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <CheckCircle size={13} color="#10b981" /> Service record details completed by Fleet Controller.
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Actions (Controller vs Driver) */}
-                              {canManage ? (
-                                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', paddingTop: 6, borderTop: `1px solid ${D.border}` }}>
-                                  {isPending && (
-                                    <>
-                                      <button
-                                        onClick={() => handleApproveServiceInTrips(serv.id)}
-                                        disabled={busyId === serv.id}
-                                        style={{
-                                          padding: '9px 20px', borderRadius: 12, border: '1px solid rgba(16,185,129,0.4)',
-                                          background: 'rgba(16,185,129,0.12)', color: '#059669',
-                                          fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s',
-                                          display: 'flex', alignItems: 'center', gap: 6
-                                        }}
-                                        onMouseEnter={e => { e.currentTarget.style.background = '#10b981'; e.currentTarget.style.color = '#fff'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.12)'; e.currentTarget.style.color = '#059669'; }}
-                                      >
-                                        {busyId === serv.id ? <Loader2 size={15} className="spin" /> : <Check size={15} />}
-                                        Approve
-                                      </button>
-
-                                      <button
-                                        onClick={() => handleRejectServiceInTrips(serv.id)}
-                                        disabled={busyId === serv.id}
-                                        style={{
-                                          padding: '9px 20px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.3)',
-                                          background: 'rgba(239,68,68,0.1)', color: '#ef4444',
-                                          fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s',
-                                          display: 'flex', alignItems: 'center', gap: 6
-                                        }}
-                                        onMouseEnter={e => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#fff'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#ef4444'; }}
-                                      >
-                                        {busyId === serv.id ? <Loader2 size={15} className="spin" /> : <X size={15} />}
-                                        Reject
-                                      </button>
-                                    </>
-                                  )}
-
-                                  <button
-                                    onClick={() => setPendingDetailModal(serv)}
-                                    style={{
-                                      padding: '9px 20px', borderRadius: 12, border: 'none',
-                                      background: '#d97706', color: '#ffffff',
-                                      fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s',
-                                      boxShadow: '0 4px 12px rgba(217,119,6,0.3)',
-                                      display: 'flex', alignItems: 'center', gap: 6
-                                    }}
-                                    onMouseEnter={e => e.currentTarget.style.background = '#b45309'}
-                                    onMouseLeave={e => e.currentTarget.style.background = '#d97706'}
-                                  >
-                                    <Eye size={15} /> Details
-                                  </button>
-
-                                  <button
-                                    onClick={() => handleDeleteServiceInTrips(serv.id)}
-                                    disabled={busyId === serv.id}
-                                    style={{
-                                      padding: '9px 20px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.3)',
-                                      background: 'rgba(239,68,68,0.1)', color: '#ef4444',
-                                      fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s',
-                                      display: 'flex', alignItems: 'center', gap: 6
-                                    }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#fff'; }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#ef4444'; }}
-                                  >
-                                    {busyId === serv.id ? <Loader2 size={15} className="spin" /> : <Trash2 size={15} />}
-                                    Delete
-                                  </button>
-                                </div>
-                              ) : (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, paddingTop: 6, borderTop: `1px solid ${D.border}` }}>
-                                  {isPending ? (
-                                    <div style={{ fontSize: '0.8rem', color: '#d97706', fontWeight: 700, fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                      <Clock size={14} /> Submitted &amp; awaiting Fleet Controller approval.
-                                    </div>
-                                  ) : (
-                                    <div style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 700, fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                      <CheckCircle size={14} /> Service record completed.
-                                    </div>
-                                  )}
-                                  {isPending && (isDriverAuthor || isCurrentUserAuthor) && (
-                                    <button
-                                      onClick={() => openEditServiceLog(serv, trip)}
-                                      style={{
-                                        padding: '8px 16px', borderRadius: 10, border: 'none',
-                                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                                        color: '#ffffff', fontSize: '0.82rem', fontWeight: 800,
-                                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-                                        boxShadow: '0 4px 12px rgba(245,158,11,0.35)', transition: 'all 0.15s'
-                                      }}
-                                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)' }}
-                                      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
-                                    >
-                                      <Edit2 size={14} /> Edit Pending Details
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
                   </div>
                 )
               })
@@ -1305,20 +1299,53 @@ const TripsPage = () => {
             </div>
 
             <form onSubmit={handleAssign} style={{ padding: '24px' }}>
+              {/* In-modal Error Alert Banner */}
+              {assignError && (
+                <div style={{
+                  marginBottom: 20, padding: '12px 16px', borderRadius: 14,
+                  background: 'rgba(239, 68, 68, 0.12)', border: '1.5px solid rgba(239, 68, 68, 0.35)',
+                  display: 'flex', alignItems: 'center', gap: 10, color: '#ef4444',
+                  fontSize: '0.84rem', fontWeight: 700, animation: 'fadeIn 0.2s ease',
+                }}>
+                  <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+                  <span style={{ flex: 1, lineHeight: 1.4 }}>{assignError}</span>
+                  <button
+                    type="button"
+                    onClick={() => setAssignError(null)}
+                    style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
                 <div>
-                  <label style={labelStyle}>Driver *</label>
-                  <select style={inputStyle} value={form.driverUsername} onChange={e => setForm(f => ({ ...f, driverUsername: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={editingTripStatus === 'STARTED'}>
-                    <option value="">Select driver…</option>
-                    {drivers.map(d => <option key={d.id} value={d.userName}>{d.userName}</option>)}
-                  </select>
-                </div>
-                <div>
                   <label style={labelStyle}>Vehicle *</label>
-                  <select style={inputStyle} value={form.vehicleRegNumber} onChange={e => handleVehicleChange(e.target.value)} onFocus={onFocus} onBlur={onBlur} disabled={editingTripStatus === 'STARTED'}>
+                  <select
+                    style={{
+                      ...inputStyle,
+                      border: fieldErrors.vehicleRegNumber ? '1.5px solid #ef4444' : `1px solid ${D.inputBorder}`,
+                      background: fieldErrors.vehicleRegNumber ? 'rgba(239, 68, 68, 0.04)' : D.inputBg,
+                    }}
+                    value={form.vehicleRegNumber}
+                    onChange={e => {
+                      handleVehicleChange(e.target.value)
+                      if (fieldErrors.vehicleRegNumber) setFieldErrors(fe => ({ ...fe, vehicleRegNumber: null }))
+                      if (assignError) setAssignError(null)
+                    }}
+                    onFocus={onFocus}
+                    onBlur={onBlur}
+                    disabled={editingTripStatus === 'STARTED'}
+                  >
                     <option value="">Select vehicle…</option>
                     {vehicles.map(v => <option key={v.id} value={v.registrationNo}>{v.registrationNo}{v.model ? ` — ${v.model}` : ''}{v.driverUsername ? ` 👤 ${v.driverUsername}` : ''}</option>)}
                   </select>
+                  {fieldErrors.vehicleRegNumber && (
+                    <span style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 700, marginTop: 4, display: 'block' }}>
+                      {fieldErrors.vehicleRegNumber}
+                    </span>
+                  )}
                   {/* Show auto-fill hint */}
                   {form.vehicleRegNumber && vehicles.find(v => v.registrationNo === form.vehicleRegNumber)?.driverUsername && (
                     <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: D.green, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1326,11 +1353,46 @@ const TripsPage = () => {
                     </p>
                   )}
                 </div>
+                <div>
+                  <label style={labelStyle}>Driver *</label>
+                  <select
+                    style={{
+                      ...inputStyle,
+                      border: fieldErrors.driverUsername ? '1.5px solid #ef4444' : `1px solid ${D.inputBorder}`,
+                      background: fieldErrors.driverUsername ? 'rgba(239, 68, 68, 0.04)' : D.inputBg,
+                    }}
+                    value={form.driverUsername}
+                    onChange={e => {
+                      setForm(f => ({ ...f, driverUsername: e.target.value }))
+                      if (fieldErrors.driverUsername) setFieldErrors(fe => ({ ...fe, driverUsername: null }))
+                      if (assignError) setAssignError(null)
+                    }}
+                    onFocus={onFocus}
+                    onBlur={onBlur}
+                    disabled={editingTripStatus === 'STARTED'}
+                  >
+                    <option value="">Select driver…</option>
+                    {drivers.map(d => <option key={d.id} value={d.userName}>{d.userName}</option>)}
+                  </select>
+                  {fieldErrors.driverUsername && (
+                    <span style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 700, marginTop: 4, display: 'block' }}>
+                      {fieldErrors.driverUsername}
+                    </span>
+                  )}
+                </div>
                 
                 {activeTab === 'TRIP' && (
                   <div>
                     <label style={labelStyle}>Origin</label>
-                    <input style={inputStyle} placeholder="e.g. Colombo" value={form.origin} onChange={e => setForm(f => ({ ...f, origin: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={editingTripStatus === 'STARTED'} />
+                    <input
+                      style={inputStyle}
+                      placeholder="e.g. Colombo"
+                      value={form.origin}
+                      onChange={e => setForm(f => ({ ...f, origin: e.target.value }))}
+                      onFocus={onFocus}
+                      onBlur={onBlur}
+                      disabled={editingTripStatus === 'STARTED'}
+                    />
                   </div>
                 )}
                 
@@ -1338,27 +1400,54 @@ const TripsPage = () => {
                   <label style={labelStyle}>
                     {activeTab === 'TRIP' ? 'Destination *' : activeTab === 'SERVICE' ? 'Service Center / Location *' : 'Fuel Station / Location *'}
                   </label>
-                  <input style={inputStyle} 
+                  <input
+                    style={{
+                      ...inputStyle,
+                      border: fieldErrors.destination ? '1.5px solid #ef4444' : `1px solid ${D.inputBorder}`,
+                      background: fieldErrors.destination ? 'rgba(239, 68, 68, 0.04)' : D.inputBg,
+                    }}
                     placeholder={activeTab === 'TRIP' ? 'e.g. Kandy' : activeTab === 'SERVICE' ? 'e.g. Toyota Service Center, Colombo' : 'e.g. Lanka IOC Station, Kandy'} 
                     value={form.destination} 
-                    onChange={e => setForm(f => ({ ...f, destination: e.target.value }))} 
+                    onChange={e => {
+                      setForm(f => ({ ...f, destination: e.target.value }))
+                      if (fieldErrors.destination) setFieldErrors(fe => ({ ...fe, destination: null }))
+                      if (assignError) setAssignError(null)
+                    }}
                     onFocus={onFocus} 
                     onBlur={onBlur} 
                   />
+                  {fieldErrors.destination && (
+                    <span style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 700, marginTop: 4, display: 'block' }}>
+                      {fieldErrors.destination}
+                    </span>
+                  )}
                 </div>
                 
                 <div>
                   <label style={labelStyle}>Scheduled Date *</label>
                   <input
                     type="date"
-                    style={inputStyle}
+                    style={{
+                      ...inputStyle,
+                      border: fieldErrors.scheduledDate ? '1.5px solid #ef4444' : `1px solid ${D.inputBorder}`,
+                      background: fieldErrors.scheduledDate ? 'rgba(239, 68, 68, 0.04)' : D.inputBg,
+                    }}
                     value={form.scheduledDate}
                     min={editingTripStatus === 'STARTED' ? undefined : todayStr}
-                    onChange={e => setForm(f => ({ ...f, scheduledDate: e.target.value }))}
+                    onChange={e => {
+                      setForm(f => ({ ...f, scheduledDate: e.target.value }))
+                      if (fieldErrors.scheduledDate) setFieldErrors(fe => ({ ...fe, scheduledDate: null }))
+                      if (assignError) setAssignError(null)
+                    }}
                     onFocus={onFocus}
                     onBlur={onBlur}
                     disabled={editingTripStatus === 'STARTED'}
                   />
+                  {fieldErrors.scheduledDate && (
+                    <span style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 700, marginTop: 4, display: 'block' }}>
+                      {fieldErrors.scheduledDate}
+                    </span>
+                  )}
                 </div>
                 
                 <div>
@@ -1366,16 +1455,39 @@ const TripsPage = () => {
                     {activeTab === 'TRIP' ? 'Purpose' : activeTab === 'SERVICE' ? 'Service Description *' : 'Instructions'}
                   </label>
                   {activeTab === 'SERVICE' ? (
-                    <select style={inputStyle} value={form.purpose} onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={editingTripStatus === 'STARTED'}>
-                      <option value="">Select service type…</option>
-                      {sortedServiceTypes.map(t => (
-                        <option key={t.value} value={t.label} style={{ color: t.isOverdue ? '#ef4444' : 'inherit', fontWeight: t.isOverdue ? 'bold' : 'normal' }}>
-                          {t.isOverdue ? `⚠️ [OVERDUE] ${t.label}` : t.label}
-                        </option>
-                      ))}
-                    </select>
+                    <>
+                      <select
+                        style={{
+                          ...inputStyle,
+                          border: fieldErrors.purpose ? '1.5px solid #ef4444' : `1px solid ${D.inputBorder}`,
+                          background: fieldErrors.purpose ? 'rgba(239, 68, 68, 0.04)' : D.inputBg,
+                        }}
+                        value={form.purpose}
+                        onChange={e => {
+                          setForm(f => ({ ...f, purpose: e.target.value }))
+                          if (fieldErrors.purpose) setFieldErrors(fe => ({ ...fe, purpose: null }))
+                          if (assignError) setAssignError(null)
+                        }}
+                        onFocus={onFocus}
+                        onBlur={onBlur}
+                        disabled={editingTripStatus === 'STARTED'}
+                      >
+                        <option value="">Select service type…</option>
+                        {sortedServiceTypes.map(t => (
+                          <option key={t.value} value={t.label} style={{ color: t.isOverdue ? '#ef4444' : 'inherit', fontWeight: t.isOverdue ? 'bold' : 'normal' }}>
+                            {t.isOverdue ? `⚠️ [OVERDUE] ${t.label}` : t.label}
+                          </option>
+                        ))}
+                      </select>
+                      {fieldErrors.purpose && (
+                        <span style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 700, marginTop: 4, display: 'block' }}>
+                          {fieldErrors.purpose}
+                        </span>
+                      )}
+                    </>
                   ) : (
-                    <input style={inputStyle} 
+                    <input
+                      style={inputStyle} 
                       placeholder={activeTab === 'TRIP' ? 'e.g. Cargo delivery' : 'e.g. Fill full tank Octane 95 before trip'} 
                       value={form.purpose} 
                       onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))} 
@@ -1386,53 +1498,55 @@ const TripsPage = () => {
                   )}
                 </div>
 
-                {/* Controller access grant toggle for Service Record Details */}
-                <div style={{
-                  gridColumn: '1 / -1', padding: '14px 18px', borderRadius: 16,
-                  background: form.allowDriverServiceLog ? 'rgba(16,185,129,0.08)' : D.surfaceHi,
-                  border: `1.5px solid ${form.allowDriverServiceLog ? 'rgba(16,185,129,0.3)' : D.border}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
-                  transition: 'all 0.2s'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 10,
-                      background: form.allowDriverServiceLog ? 'rgba(16,185,129,0.18)' : D.border,
-                      color: form.allowDriverServiceLog ? '#10b981' : D.textSub,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                    }}>
-                      <Wrench size={18} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>
-                        Grant Access for Driver Service Details Entry
+                {/* Controller access grant toggle for Service Record Details (SERVICE jobs only) */}
+                {activeTab === 'SERVICE' && (
+                  <div style={{
+                    gridColumn: '1 / -1', padding: '14px 18px', borderRadius: 16,
+                    background: form.allowDriverServiceLog ? 'rgba(16,185,129,0.08)' : D.surfaceHi,
+                    border: `1.5px solid ${form.allowDriverServiceLog ? 'rgba(16,185,129,0.3)' : D.border}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
+                    transition: 'all 0.2s'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 10,
+                        background: form.allowDriverServiceLog ? 'rgba(16,185,129,0.18)' : D.border,
+                        color: form.allowDriverServiceLog ? '#10b981' : D.textSub,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                      }}>
+                        <Wrench size={18} />
                       </div>
-                      <div style={{ fontSize: '0.74rem', color: D.textSub, marginTop: 2 }}>
-                        Allow driver to add service record cost, date &amp; workshop details. Driver can also skip if not needed.
+                      <div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text }}>
+                          Grant Access for Driver Service Details Entry
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: D.textSub, marginTop: 2 }}>
+                          Allow driver to add service record cost, date &amp; workshop details. Driver can also skip if not needed.
+                        </div>
                       </div>
                     </div>
+                    <label style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, minWidth: 44, minHeight: 24, cursor: editingTripStatus === 'STARTED' ? 'not-allowed' : 'pointer', flexShrink: 0, margin: 0, padding: 0, boxSizing: 'border-box' }}>
+                      <input
+                        type="checkbox"
+                        checked={form.allowDriverServiceLog}
+                        onChange={e => { if (editingTripStatus !== 'STARTED') setForm(f => ({ ...f, allowDriverServiceLog: e.target.checked })) }}
+                        style={{ position: 'absolute', opacity: 0, width: 0, height: 0, margin: 0, padding: 0 }}
+                        disabled={editingTripStatus === 'STARTED'}
+                      />
+                      <div style={{
+                        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 999,
+                        background: form.allowDriverServiceLog ? '#10b981' : D.border,
+                        transition: 'background 0.2s ease', boxSizing: 'border-box'
+                      }} />
+                      <div style={{
+                        position: 'absolute', top: '4px', left: form.allowDriverServiceLog ? '24px' : '4px',
+                        width: '16px', height: '16px', borderRadius: '50%', background: '#fff',
+                        transition: 'left 0.2s ease', boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                        boxSizing: 'border-box'
+                      }} />
+                    </label>
                   </div>
-                  <label style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, minWidth: 44, minHeight: 24, cursor: editingTripStatus === 'STARTED' ? 'not-allowed' : 'pointer', flexShrink: 0, margin: 0, padding: 0, boxSizing: 'border-box' }}>
-                    <input
-                      type="checkbox"
-                      checked={form.allowDriverServiceLog}
-                      onChange={e => { if (editingTripStatus !== 'STARTED') setForm(f => ({ ...f, allowDriverServiceLog: e.target.checked })) }}
-                      style={{ position: 'absolute', opacity: 0, width: 0, height: 0, margin: 0, padding: 0 }}
-                      disabled={editingTripStatus === 'STARTED'}
-                    />
-                    <div style={{
-                      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 999,
-                      background: form.allowDriverServiceLog ? '#10b981' : D.border,
-                      transition: 'background 0.2s ease', boxSizing: 'border-box'
-                    }} />
-                    <div style={{
-                      position: 'absolute', top: '4px', left: form.allowDriverServiceLog ? '24px' : '4px',
-                      width: '16px', height: '16px', borderRadius: '50%', background: '#fff',
-                      transition: 'left 0.2s ease', boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                      boxSizing: 'border-box'
-                    }} />
-                  </label>
-                </div>
+                )}
 
                 {/* Overdue alert banner inside the form */}
                 {activeTab === 'SERVICE' && selectedVehicle && sortedServiceTypes.some(t => t.isOverdue) && (
@@ -1552,6 +1666,445 @@ const TripsPage = () => {
           </div>
         </div>
       )}
+
+      {/* ── Job Details Slide-over Drawer (Controller & Driver) ────── */}
+      {selectedJobDetail && (() => {
+        const trip = selectedJobDetail
+        const type = getJobType(trip.purpose)
+        const cleanPurpose = getCleanPurpose(trip.purpose)
+        const badge = statusBadge(trip.status)
+        const s = up(trip.status)
+        const vehicleObj = vehicles.find(v => (v.registrationNo || '').replace(/^VEH-/i, '').toUpperCase() === (trip.vehicleRegNumber || '').replace(/^VEH-/i, '').toUpperCase())
+        const driverObj = drivers.find(d => (d.userName || '').toLowerCase() === (trip.driverUsername || '').toLowerCase())
+
+        const typeHeaderGradients = {
+          TRIP: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%)',
+          SERVICE: 'linear-gradient(135deg, #78350f 0%, #b45309 50%, #d97706 100%)',
+          FUEL: 'linear-gradient(135deg, #064e3b 0%, #047857 50%, #10b981 100%)',
+        }
+
+        const typeIcons = {
+          TRIP: <Navigation size={22} />,
+          SERVICE: <Wrench size={22} />,
+          FUEL: <Fuel size={22} />,
+        }
+
+        const typeLabels = {
+          TRIP: 'Trip Assignment',
+          SERVICE: 'Service Assignment',
+          FUEL: 'Fuel Assignment',
+        }
+
+        const jobServices = (allServices || []).filter(serv => {
+          if (!serv || serv.deleted || serv.isDeleted) return false
+          const servReg = (serv.vehicleRegNumber || '').replace(/^VEH-/i, '').trim().toUpperCase()
+          const tripReg = (trip.vehicleRegNumber || '').replace(/^VEH-/i, '').trim().toUpperCase()
+          if (servReg !== tripReg) return false
+          if (type === 'SERVICE') {
+            const matchedType = SERVICE_TYPES.find(t => t.label.toLowerCase() === cleanPurpose.toLowerCase())?.value
+            if (matchedType) return serv.serviceType === matchedType
+            if (cleanPurpose && serv.serviceTypeDetail) return serv.serviceTypeDetail.toLowerCase() === cleanPurpose.toLowerCase()
+            return serv.createdBy && trip.driverUsername && serv.createdBy.toLowerCase() === trip.driverUsername.toLowerCase()
+          }
+          return false
+        })
+
+        const jobFuelLogs = (allFuelLogs || []).filter(log => isJobFuelLog(log, trip))
+
+        return (
+          <div
+            onClick={() => setSelectedJobDetail(null)}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
+              backdropFilter: 'blur(6px)', zIndex: 1250,
+              animation: 'fadeIn 0.18s ease',
+            }}
+          >
+            {/* Drawer panel */}
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                position: 'fixed', top: 0, right: 0, bottom: 0,
+                width: '100%', maxWidth: 640,
+                background: D.bg, display: 'flex', flexDirection: 'column',
+                boxShadow: '-20px 0 60px rgba(0,0,0,0.45)',
+                animation: 'slideInRight 0.28s cubic-bezier(0.22,1,0.36,1)',
+                borderLeft: `1px solid ${D.border}`,
+                overflow: 'hidden',
+              }}
+            >
+              {/* Header */}
+              <div style={{
+                background: 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
+                padding: '24px 28px', display: 'flex', alignItems: 'center',
+                justifyContent: 'space-between', flexShrink: 0, gap: 16,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{
+                    width: 48, height: 48, borderRadius: 14,
+                    background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.25)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+                    flexShrink: 0
+                  }}>
+                    {typeIcons[type] || <Navigation size={22} />}
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 900, padding: '2px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.22)', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        {typeLabels[type] || type}
+                      </span>
+                      <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>
+                        Job #{trip.id}
+                      </span>
+                    </div>
+                    <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: '-0.02em' }}>
+                      {type === 'TRIP' && trip.origin ? `${trip.origin} → ` : ''}{trip.destination}
+                    </h2>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedJobDetail(null)}
+                  style={{
+                    background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.22)',
+                    borderRadius: 10, cursor: 'pointer', color: '#fff',
+                    padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.15s'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.28)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* Status Notice Banner */}
+                <div style={{
+                  padding: '14px 18px', borderRadius: 16,
+                  background: badge.bg, border: `1.5px solid ${badge.border}`,
+                  display: 'flex', alignItems: 'flex-start', gap: 12
+                }}>
+                  <div style={{ marginTop: 2, color: badge.color, flexShrink: 0 }}>
+                    {s === 'COMPLETED' ? <CheckCircle size={18} /> : s === 'DECLINED' ? <AlertTriangle size={18} /> : s === 'CANCELLED' ? <Ban size={18} /> : <Clock size={18} />}
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: '0.74rem', fontWeight: 900, color: badge.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        {badge.label}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: D.text, marginTop: 4, fontWeight: 500, lineHeight: 1.4 }}>
+                      {s === 'ASSIGNED' && (canManage ? `Assigned to driver ${trip.driverUsername}. Waiting for driver to accept or decline.` : `You have been assigned this job. Please accept or decline the assignment.`)}
+                      {s === 'STARTED' && (canManage ? `Job accepted by ${trip.driverUsername} and currently in progress.` : `You have accepted this job and it is currently in progress.`)}
+                      {s === 'COMPLETED' && `Job has been successfully completed.`}
+                      {s === 'CANCELLED' && `This assignment was cancelled by the controller.`}
+                      {s === 'DECLINED' && (
+                        <span>
+                          {canManage ? 'Driver declined this assignment.' : 'You declined this assignment.'} {trip.declineReason ? <>Reason: <strong style={{ color: D.red }}>"{trip.declineReason}"</strong></> : 'No reason provided.'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Assignment Details Card */}
+                <div style={{ background: D.surface, borderRadius: 18, border: `1px solid ${D.border}`, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Navigation size={16} color="var(--primary)" /> Route &amp; Assignment Details
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    {type === 'TRIP' && trip.origin && (
+                      <div style={{ background: D.surfaceHi, padding: '10px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase' }}>Origin</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 800, color: D.text, marginTop: 2 }}>{trip.origin}</div>
+                      </div>
+                    )}
+                    <div style={{ background: D.surfaceHi, padding: '10px 14px', borderRadius: 12, border: `1px solid ${D.border}`, gridColumn: (type === 'TRIP' && trip.origin) ? 'auto' : 'span 2' }}>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase' }}>
+                        {type === 'SERVICE' ? 'Service Center / Workshop' : type === 'FUEL' ? 'Fuel Station' : 'Destination'}
+                      </div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: D.text, marginTop: 2 }}>{trip.destination}</div>
+                    </div>
+                    <div style={{ background: D.surfaceHi, padding: '10px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase' }}>Scheduled Date</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: D.text, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Calendar size={14} color="var(--primary)" /> {fmtDate(trip.scheduledDate)}
+                      </div>
+                    </div>
+                    <div style={{ background: D.surfaceHi, padding: '10px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase' }}>Job Type</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: D.text, marginTop: 2 }}>{type}</div>
+                    </div>
+                  </div>
+                  {cleanPurpose && (
+                    <div style={{ background: D.surfaceHi, padding: '12px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase', marginBottom: 4 }}>
+                        {type === 'SERVICE' ? 'Service Task Description' : type === 'FUEL' ? 'Fuel Instructions' : 'Trip Purpose'}
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: D.text, lineHeight: 1.5 }}>{cleanPurpose}</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Vehicle Details Card */}
+                <div style={{ background: D.surface, borderRadius: 18, border: `1px solid ${D.border}`, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Car size={16} color="var(--primary)" /> Assigned Vehicle
+                    </div>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 10px', borderRadius: 999, background: D.surfaceHi, color: 'var(--primary)', border: `1px solid ${D.border}` }}>
+                      {trip.vehicleRegNumber}
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div style={{ background: D.surfaceHi, padding: '10px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase' }}>Model / Make</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text, marginTop: 2 }}>
+                        {vehicleObj ? `${vehicleObj.manufacturer || ''} ${vehicleObj.model || ''}`.trim() : 'N/A'}
+                      </div>
+                    </div>
+                    <div style={{ background: D.surfaceHi, padding: '10px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase' }}>Fuel Type</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text, marginTop: 2 }}>
+                        {vehicleObj?.fuelType ? formatFuelType(vehicleObj.fuelType) : 'N/A'}
+                      </div>
+                    </div>
+                    <div style={{ background: D.surfaceHi, padding: '10px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase' }}>Odometer / Mileage</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Gauge size={14} color="var(--primary)" />
+                        {vehicleObj?.currentMileageKm ? `${Number(vehicleObj.currentMileageKm).toLocaleString()} km` : 'N/A'}
+                      </div>
+                    </div>
+                    <div style={{ background: D.surfaceHi, padding: '10px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase' }}>Vehicle Type</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text, marginTop: 2 }}>
+                        {vehicleObj?.vehicleType || 'Standard'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Driver Details Card (Controller only) */}
+                {canManage && (
+                  <div style={{ background: D.surface, borderRadius: 18, border: `1px solid ${D.border}`, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <User size={16} color="var(--primary)" /> Assigned Driver
+                      </div>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 10px', borderRadius: 999, background: 'var(--primary-glow)', color: 'var(--primary)', border: '1px solid var(--primary-border)' }}>
+                        @{trip.driverUsername}
+                      </span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div style={{ background: D.surfaceHi, padding: '10px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase' }}>Driver Name</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text, marginTop: 2 }}>
+                          {driverObj ? `${driverObj.firstName || ''} ${driverObj.lastName || ''}`.trim() || driverObj.userName : trip.driverUsername}
+                        </div>
+                      </div>
+                      <div style={{ background: D.surfaceHi, padding: '10px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase' }}>Phone / Contact</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text, marginTop: 2 }}>
+                          {driverObj?.phoneNumber || driverObj?.phone || 'N/A'}
+                        </div>
+                      </div>
+                      <div style={{ background: D.surfaceHi, padding: '10px 14px', borderRadius: 12, border: `1px solid ${D.border}`, gridColumn: 'span 2' }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase' }}>Email</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text, marginTop: 2 }}>
+                          {driverObj?.email || 'N/A'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Service Details in Drawer if available */}
+                {jobServices.length > 0 && (
+                  <div style={{ background: D.surface, borderRadius: 18, border: `1px solid ${D.border}`, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Wrench size={16} color={D.gold} /> Recorded Service Details ({jobServices.length})
+                    </div>
+                    {jobServices.map(serv => (
+                      <div key={serv.id} style={{ background: D.surfaceHi, borderRadius: 14, padding: '12px 16px', border: `1px solid ${D.border}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontWeight: 800, fontSize: '0.88rem', color: D.text }}>
+                            {serv.serviceTypeDetail || SERVICE_TYPES.find(t => t.value === serv.serviceType)?.label || serv.serviceType}
+                          </span>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: serv.status === 'PENDING' ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)', color: serv.status === 'PENDING' ? '#d97706' : '#059669' }}>
+                            {serv.status || 'APPROVED'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: D.textSub, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                          <span>Cost: <strong>Rs. {Number(serv.serviceCost || 0).toLocaleString()}</strong></span>
+                          <span>Mileage: <strong>{Number(serv.currentMileageKm || 0).toLocaleString()} km</strong></span>
+                          <span>Workshop: <strong>{serv.technicianWorkshop || 'N/A'}</strong></span>
+                        </div>
+                        {serv.attachmentPath && (
+                          <button
+                            type="button"
+                            onClick={() => handleViewAttachmentInTrips(serv)}
+                            style={{ alignSelf: 'flex-start', marginTop: 4, padding: '6px 12px', borderRadius: 8, background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 700, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+                          >
+                            <Paperclip size={12} /> View Attachment
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Fuel Details in Drawer if available */}
+                {jobFuelLogs.length > 0 && (
+                  <div style={{ background: D.surface, borderRadius: 18, border: `1px solid ${D.border}`, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Fuel size={16} color="#10b981" /> Recorded Fuel Fill-Up Details ({jobFuelLogs.length})
+                    </div>
+                    {jobFuelLogs.map(log => {
+                      const isPending = log.status === 'PENDING'
+                      const isRejected = log.status === 'REJECTED'
+                      return (
+                        <div key={log.id} style={{
+                          background: D.surfaceHi, borderRadius: 14, padding: '14px 16px',
+                          border: isPending ? '1.5px solid rgba(245,158,11,0.35)' : isRejected ? '1.5px solid rgba(239,68,68,0.35)' : '1.5px solid rgba(16,185,129,0.35)',
+                          display: 'flex', flexDirection: 'column', gap: 10
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                            <span style={{ fontWeight: 800, fontSize: '0.9rem', color: D.text, display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <Fuel size={14} color="#10b981" /> {formatFuelType(log.fuelType)}
+                            </span>
+                            <span style={{
+                              fontSize: '0.7rem', fontWeight: 800, padding: '3px 10px', borderRadius: 999,
+                              background: isPending ? 'rgba(245,158,11,0.15)' : isRejected ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)',
+                              color: isPending ? '#d97706' : isRejected ? '#ef4444' : '#059669',
+                              border: isPending ? '1px solid rgba(245,158,11,0.3)' : isRejected ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(16,185,129,0.3)'
+                            }}>
+                              {isPending ? 'PENDING APPROVAL' : isRejected ? 'REJECTED' : 'APPROVED'}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: D.textSub, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                            <span>Date: <strong>{fmtDate(log.date)}</strong></span>
+                            <span>Quantity: <strong>{log.liters} L</strong></span>
+                            <span>Cost/L: <strong>Rs. {Number(log.costPerLiter || 0).toFixed(2)}</strong></span>
+                            <span>Total Cost: <strong style={{ color: '#10b981' }}>Rs. {Number(log.totalCost || 0).toLocaleString()}</strong></span>
+                            <span>Mileage: <strong>{Number(log.mileage || 0).toLocaleString()} km</strong></span>
+                          </div>
+
+                          {/* Controller Direct Approval inside Drawer */}
+                          {canManage && isPending && (
+                            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                              <button
+                                type="button"
+                                onClick={() => handleApproveFuelInTrips(log.id)}
+                                disabled={busyId === log.id}
+                                style={{
+                                  padding: '7px 14px', borderRadius: 8, border: 'none',
+                                  background: 'linear-gradient(135deg, #059669, #10b981)', color: '#fff',
+                                  fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5
+                                }}
+                              >
+                                {busyId === log.id ? <Loader2 size={13} className="spin" /> : <Check size={13} />} Approve
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRejectFuelInTrips(log.id)}
+                                disabled={busyId === log.id}
+                                style={{
+                                  padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)',
+                                  background: 'rgba(239,68,68,0.1)', color: '#ef4444',
+                                  fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5
+                                }}
+                              >
+                                {busyId === log.id ? <Loader2 size={13} className="spin" /> : <X size={13} />} Reject
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Drawer Footer Actions */}
+              <div style={{ padding: '18px 28px', background: D.surfaceHi, borderTop: `1px solid ${D.border}`, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                {canManage && s === 'ASSIGNED' && (
+                  <button
+                    onClick={() => {
+                      const jobType = getJobType(trip.purpose)
+                      setActiveTab(jobType)
+                      setEditingTripId(trip.id)
+                      setEditingTripStatus(trip.status || '')
+                      setForm({
+                        driverUsername: trip.driverUsername || '',
+                        vehicleRegNumber: trip.vehicleRegNumber || '',
+                        origin: trip.origin || '',
+                        destination: trip.destination || '',
+                        purpose: getCleanPurpose(trip.purpose) || '',
+                        scheduledDate: trip.scheduledDate ? trip.scheduledDate.split('T')[0] : '',
+                        allowDriverServiceLog: hasDriverServiceAccess(trip),
+                      })
+                      setSelectedJobDetail(null)
+                      setShowAssignModal(true)
+                    }}
+                    style={{
+                      flex: 1, minWidth: 110, padding: '10px 16px', borderRadius: 12, border: 'none',
+                      background: 'linear-gradient(135deg, var(--primary-dark), var(--primary))', color: '#fff',
+                      fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      boxShadow: '0 4px 12px var(--primary-glow)'
+                    }}
+                  >
+                    <Edit2 size={14} /> Edit
+                  </button>
+                )}
+
+                {canManage && s === 'ASSIGNED' && (
+                  <button
+                    onClick={() => {
+                      setSelectedJobDetail(null)
+                      setTripToCancel(trip)
+                    }}
+                    style={{
+                      flex: 1, minWidth: 110, padding: '10px 16px', borderRadius: 12, border: `1px solid ${D.red}40`,
+                      background: D.redDim, color: D.red, fontSize: '0.85rem', fontWeight: 800,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                    }}
+                  >
+                    <Ban size={14} /> Cancel
+                  </button>
+                )}
+
+                {canManage && (
+                  <button
+                    onClick={() => {
+                      setSelectedJobDetail(null)
+                      setDeleteConfirmTrip(trip)
+                    }}
+                    style={{
+                      flex: 1, minWidth: 110, padding: '10px 16px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.25)',
+                      background: 'rgba(239,68,68,0.1)', color: '#ef4444', fontSize: '0.85rem', fontWeight: 800,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                    }}
+                  >
+                    <Trash2 size={14} /> Delete
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setSelectedJobDetail(null)}
+                  style={{
+                    flex: 1, minWidth: 90, padding: '10px 16px', borderRadius: 12, border: `1px solid ${D.border}`,
+                    background: 'transparent', color: D.text, fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer'
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── Deleted Jobs Drawer ─────────────────────────────────── */}
       {deletedDrawer && (
@@ -1903,6 +2456,205 @@ const TripsPage = () => {
         </div>
       )}
 
+      {/* ── Fuel Log Modal (driver submits fuel fill-up details for TRIP or FUEL job) ─── */}
+      {fuelLogModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: 20, animation: 'fadeIn 0.2s ease' }}
+          onClick={closeFuelLog}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: D.surface, borderRadius: 24, width: '94%', maxWidth: 580, maxHeight: '92vh', boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.28s cubic-bezier(0.16,1,0.3,1)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+          >
+            {/* Header */}
+            <div style={{ background: 'linear-gradient(135deg, #065f46 0%, #047857 45%, #10b981 100%)', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+                  <Fuel size={20} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>
+                    Log Fuel Details
+                  </h2>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: 'rgba(255,255,255,0.78)', fontWeight: 500 }}>
+                    Job #{fuelLogModal?.id} · {fuelLogModal?.vehicleRegNumber} — Record fuel fill-up
+                  </p>
+                </div>
+              </div>
+              <button onClick={closeFuelLog} style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 10, padding: 8, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Notice */}
+            <div style={{ margin: '16px 24px 0', padding: '10px 14px', borderRadius: 10, background: 'rgba(16,185,129,0.1)', border: '1.5px solid rgba(16,185,129,0.3)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <Fuel size={15} color="#10b981" style={{ flexShrink: 0, marginTop: 1 }} />
+              <span style={{ fontSize: '0.76rem', color: D.green, fontWeight: 600, lineHeight: 1.5 }}>
+                Record fuel quantity, cost per liter, and current vehicle odometer reading for this trip.
+              </span>
+            </div>
+
+            {/* Error */}
+            {fuelLogError && (
+              <div style={{ margin: '12px 24px 0', padding: '10px 14px', borderRadius: 10, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertTriangle size={15} /> {fuelLogError}
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleFuelLogSubmit} style={{ overflowY: 'auto', flex: 1, padding: '20px 24px 24px' }} noValidate>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+
+                {/* Vehicle (read-only) */}
+                <div>
+                  <label style={labelStyle}>Vehicle (License Plate)</label>
+                  <input
+                    value={fuelLogForm.vehicleRegNumber}
+                    readOnly
+                    style={{ ...inputStyle, background: D.surfaceHi, color: D.textSub, cursor: 'default' }}
+                  />
+                </div>
+
+                {/* Fuel Type */}
+                <div>
+                  <label style={labelStyle}>Fuel Type *</label>
+                  <select
+                    value={fuelLogForm.fuelType}
+                    onChange={e => setFuelLogForm(f => ({ ...f, fuelType: e.target.value }))}
+                    style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }}
+                    onFocus={onFocus} onBlur={onBlur}
+                  >
+                    <option value="Auto Diesel">Auto Diesel</option>
+                    <option value="Super Diesel">Super Diesel</option>
+                    <option value="Petrol 92 Octane">Petrol 92 Octane</option>
+                    <option value="Petrol 95 Octane">Petrol 95 Octane</option>
+                    <option value="Diesel">Diesel</option>
+                    <option value="Petrol">Petrol</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="Electric">Electric</option>
+                  </select>
+                </div>
+
+                {/* Liters */}
+                <div>
+                  <label style={labelStyle}>Fuel Quantity (Liters) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="e.g. 45.5"
+                    value={fuelLogForm.liters}
+                    onChange={e => {
+                      const liters = e.target.value
+                      const costPerLiter = fuelLogForm.costPerLiter
+                      const totalCost = (liters && costPerLiter) ? (parseFloat(liters) * parseFloat(costPerLiter)).toFixed(2) : fuelLogForm.totalCost
+                      setFuelLogForm(f => ({ ...f, liters, totalCost }))
+                    }}
+                    style={inputStyle} onFocus={onFocus} onBlur={onBlur}
+                  />
+                </div>
+
+                {/* Cost Per Liter */}
+                <div>
+                  <label style={labelStyle}>Cost Per Liter (Rs.) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="e.g. 370.00"
+                    value={fuelLogForm.costPerLiter}
+                    onChange={e => {
+                      const costPerLiter = e.target.value
+                      const liters = fuelLogForm.liters
+                      const totalCost = (liters && costPerLiter) ? (parseFloat(liters) * parseFloat(costPerLiter)).toFixed(2) : fuelLogForm.totalCost
+                      setFuelLogForm(f => ({ ...f, costPerLiter, totalCost }))
+                    }}
+                    style={inputStyle} onFocus={onFocus} onBlur={onBlur}
+                  />
+                </div>
+
+                {/* Total Cost */}
+                <div>
+                  <label style={labelStyle}>Total Cost (Rs.)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="e.g. 16835.00"
+                    value={fuelLogForm.totalCost || (fuelLogForm.liters && fuelLogForm.costPerLiter ? (parseFloat(fuelLogForm.liters) * parseFloat(fuelLogForm.costPerLiter)).toFixed(2) : '')}
+                    onChange={e => setFuelLogForm(f => ({ ...f, totalCost: e.target.value }))}
+                    style={inputStyle} onFocus={onFocus} onBlur={onBlur}
+                  />
+                </div>
+
+                {/* Current Mileage */}
+                <div>
+                  <label style={labelStyle}>
+                    Current Mileage (km) *
+                    {fuelVehicleMileage != null && (
+                      <span style={{ marginLeft: 6, color: '#10b981', fontWeight: 800, fontSize: '0.74rem' }}>
+                        (Current: {Number(fuelVehicleMileage).toLocaleString()} km)
+                      </span>
+                    )}
+                  </label>
+                  <input
+                    type="number"
+                    value={fuelLogForm.mileage}
+                    onChange={e => setFuelLogForm(f => ({ ...f, mileage: e.target.value }))}
+                    placeholder={fuelVehicleMileage != null ? `Current: ${fuelVehicleMileage} km` : 'e.g. 53000'}
+                    style={inputStyle} onFocus={onFocus} onBlur={onBlur}
+                  />
+                </div>
+
+                {/* Date */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={labelStyle}>Date *</label>
+                  <input
+                    type="date"
+                    value={fuelLogForm.date}
+                    max={new Date().toISOString().split('T')[0]}
+                    onChange={e => setFuelLogForm(f => ({ ...f, date: e.target.value }))}
+                    style={inputStyle} onFocus={onFocus} onBlur={onBlur}
+                  />
+                </div>
+              </div>
+
+              {/* Submit / Discard buttons */}
+              <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+                <button
+                  type="button"
+                  disabled={fuelLogSubmitting}
+                  onClick={closeFuelLog}
+                  style={{
+                    flex: 1, padding: '13px', borderRadius: 14, border: `1px solid ${D.border}`,
+                    background: 'transparent', color: D.text, fontSize: '0.92rem', fontWeight: 800,
+                    cursor: fuelLogSubmitting ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={e => { if (!fuelLogSubmitting) e.currentTarget.style.background = D.surfaceHi }}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  Discard
+                </button>
+                <button
+                  type="submit"
+                  disabled={fuelLogSubmitting}
+                  style={{
+                    flex: 2, padding: '13px', borderRadius: 14, border: 'none',
+                    background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                    color: '#fff', fontSize: '0.92rem', fontWeight: 800,
+                    cursor: fuelLogSubmitting ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                    boxShadow: '0 8px 24px rgba(16,185,129,0.35)', opacity: fuelLogSubmitting ? 0.7 : 1,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                  }}
+                >
+                  {fuelLogSubmitting ? <Loader2 size={17} className="spin" /> : <Fuel size={17} />}
+                  {fuelLogSubmitting ? 'Saving Fuel Log…' : 'Submit Fuel Log'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ── Pending Service Details Modal (Controller) ─── */}
       {pendingDetailModal && (
         <div
@@ -2026,6 +2778,7 @@ const TripsPage = () => {
         @keyframes spin { 100% { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes scaleIn { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
         @media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2, 1fr) !important; } }
       `}</style>
     </div>
@@ -2033,7 +2786,7 @@ const TripsPage = () => {
 }
 
 const ActionBtn = ({ children, onClick, disabled, bg, color, border, icon }) => (
-  <button onClick={onClick} disabled={disabled} style={{
+  <button onClick={(e) => { e.stopPropagation(); onClick?.(e) }} disabled={disabled} style={{
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '8px 16px', borderRadius: 10, border: border || 'none',
     background: bg, color, fontSize: '0.81rem', fontWeight: 700,
