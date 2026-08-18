@@ -1772,9 +1772,16 @@ const ActiveTripPanel = ({ trip, isDark, onChanged, navigate }) => {
           </>
         )}
         {status === 'STARTED' && (
-          <button onClick={() => setModalAction('complete')} disabled={busy} style={tripBtnStyle('linear-gradient(135deg,var(--primary-dark),var(--primary))', '#fff', busy)}>
-            <CheckCircle size={15} /> Complete Job
-          </button>
+          <>
+            {(jobType === 'TRIP' || jobType === 'FUEL') && (
+              <button onClick={() => navigate('/fuel-log')} style={tripBtnStyle('linear-gradient(135deg,#059669,#10b981)', '#fff', false)}>
+                <Fuel size={15} /> Log Fuel
+              </button>
+            )}
+            <button onClick={() => setModalAction('complete')} disabled={busy} style={tripBtnStyle('linear-gradient(135deg,var(--primary-dark),var(--primary))', '#fff', busy)}>
+              <CheckCircle size={15} /> Complete Job
+            </button>
+          </>
         )}
         <button onClick={() => navigate('/jobs')} style={tripBtnStyle('var(--surface-hi)', 'var(--text-primary)', false, '1px solid var(--surface-border)')}>
           View all my jobs →
