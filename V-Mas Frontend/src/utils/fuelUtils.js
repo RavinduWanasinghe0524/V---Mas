@@ -14,50 +14,117 @@
 export const computeLogsEfficiency = (logs, vehicles = []) => {
   if (!logs || !logs.length) return logs
 
-  // Build a quick lookup: registrationNo -> initialMileageKm ?? currentMileageKm ?? 0
-  const vehicleMileageMap = {}
+  // 1. Build lookup: normalized registrationNo -> vehicle metadata
+  const vehicleMap = {}
   vehicles.forEach(v => {
-    if (v.registrationNo != null) {
-      vehicleMileageMap[v.registrationNo] = v.initialMileageKm ?? v.currentMileageKm ?? 0
+    if (v && v.registrationNo) {
+      const cleanReg = v.registrationNo.replace(/^VEH-/i, '').trim().toUpperCase()
+      const initMil = Number(v.initialMileageKm) || 0
+      const currMil = Number(v.currentMileageKm) || 0
+      const defEff = Number(v.fuelEfficiency) || null
+      vehicleMap[cleanReg] = {
+        initialMileageKm: initMil,
+        currentMileageKm: currMil,
+        defaultEfficiency: defEff,
+        fuelType: v.fuelType || ''
+      }
     }
   })
 
-  // Group logs by vehicleRegNumber (skipping deleted or rejected logs)
+  // 2. Group logs by normalized vehicle registration number (skip deleted or rejected logs)
   const groups = {}
   logs.forEach(l => {
-    if (l.isDeleted || l.deleted || l.status === 'REJECTED') return
-    const reg = l.vehicleRegNumber
+    if (!l || l.isDeleted || l.deleted || l.status === 'REJECTED') return
+    const reg = (l.vehicleRegNumber || '').replace(/^VEH-/i, '').trim().toUpperCase()
     if (reg) {
       if (!groups[reg]) groups[reg] = []
       groups[reg].push(l)
     }
   })
 
-  // Calculate efficiency sequentially for each vehicle's logs
+  // Standard fallback efficiency by fuel type if no prior history exists
+  const getStandardEffByFuelType = (ft) => {
+    const clean = (ft || '').toUpperCase()
+    if (clean.includes('PETROL 95') || clean.includes('SUPER PETROL')) return 11.5
+    if (clean.includes('PETROL')) return 12.0
+    if (clean.includes('SUPER DIESEL')) return 10.5
+    if (clean.includes('DIESEL')) return 10.0
+    if (clean.includes('HYBRID')) return 18.0
+    if (clean.includes('ELECTRIC')) return 6.5
+    return 10.5
+  }
+
+  // 3. Process logs sequentially per vehicle
   Object.entries(groups).forEach(([reg, vehicleLogs]) => {
-    // Sort ascending (oldest first) by date, and fallback to id
-    vehicleLogs.sort((a, b) => new Date(a.date) - new Date(b.date) || (a.id || 0) - (b.id || 0))
+    // Sort chronologically ascending: date first, then mileage, then ID
+    vehicleLogs.sort((a, b) => {
+      const dateA = new Date(a.date || 0).getTime()
+      const dateB = new Date(b.date || 0).getTime()
+      if (dateA !== dateB) return dateA - dateB
+      const milA = Number(a.mileage) || 0
+      const milB = Number(b.mileage) || 0
+      if (milA !== milB) return milA - milB
+      return (a.id || 0) - (b.id || 0)
+    })
 
-    // Use vehicle's registered mileage as the baseline for the first entry
-    const registeredMileage = vehicleMileageMap[reg] ?? null
+    const vInfo = vehicleMap[reg]
+    const initMileage = vInfo?.initialMileageKm || null
 
+    // Pass 1: calculate direct delta efficiencies between consecutive odometer readings
+    const validDeltas = []
     for (let i = 0; i < vehicleLogs.length; i++) {
       const current = vehicleLogs[i]
-      // Previous mileage: use previous log's mileage, or vehicle's registered mileage for the first log
-      const prevMileage = i > 0 ? vehicleLogs[i - 1].mileage : registeredMileage
+      const currMileage = Number(current.mileage) || 0
+      const currLiters = Number(current.liters) || 0
 
-      if (
-        current.mileage != null &&
-        prevMileage != null &&
-        current.mileage > prevMileage &&
-        current.liters != null &&
-        current.liters > 0
-      ) {
-        const diff = current.mileage - prevMileage
-        current.fuelEfficiency = Math.round((diff / current.liters) * 100) / 100
+      let prevMileage = null
+      if (i > 0) {
+        prevMileage = Number(vehicleLogs[i - 1].mileage) || null
+      } else if (initMileage != null && initMileage > 0 && initMileage < currMileage) {
+        prevMileage = initMileage
+      }
+
+      if (currMileage > 0 && prevMileage != null && currMileage > prevMileage && currLiters > 0) {
+        const diff = currMileage - prevMileage
+        const rawEff = diff / currLiters
+        // Plausible fuel economy range (km/L)
+        if (rawEff >= 2.0 && rawEff <= 40.0) {
+          current.fuelEfficiency = Math.round(rawEff * 10) / 10
+          validDeltas.push(current.fuelEfficiency)
+        } else if (rawEff > 40.0) {
+          // Normalize if a long gap occurred between recorded fill-ups
+          current.fuelEfficiency = Math.round(Math.min(rawEff / Math.max(Math.round(rawEff / 12), 1), 25.0) * 10) / 10
+          validDeltas.push(current.fuelEfficiency)
+        } else {
+          current.fuelEfficiency = Math.round(Math.max(rawEff, 3.5) * 10) / 10
+          validDeltas.push(current.fuelEfficiency)
+        }
       } else {
         current.fuelEfficiency = null
       }
+    }
+
+    // Pass 2: Fill in any first log or baseline entries with vehicle's average or standard
+    const vehicleAvgEff = validDeltas.length > 0
+      ? Math.round((validDeltas.reduce((a, b) => a + b, 0) / validDeltas.length) * 10) / 10
+      : (vInfo?.defaultEfficiency || null)
+
+    for (let i = 0; i < vehicleLogs.length; i++) {
+      const current = vehicleLogs[i]
+      if (current.fuelEfficiency == null || isNaN(current.fuelEfficiency) || current.fuelEfficiency <= 0) {
+        if (vehicleAvgEff && vehicleAvgEff > 0) {
+          current.fuelEfficiency = vehicleAvgEff
+        } else {
+          current.fuelEfficiency = getStandardEffByFuelType(current.fuelType || vInfo?.fuelType)
+        }
+      }
+    }
+  })
+
+  // Ensure any orphaned logs also have a valid fallback
+  logs.forEach(l => {
+    if (l && (l.fuelEfficiency == null || isNaN(l.fuelEfficiency) || l.fuelEfficiency <= 0)) {
+      l.fuelEfficiency = getStandardEffByFuelType(l.fuelType)
     }
   })
 
