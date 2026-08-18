@@ -11,38 +11,7 @@ import {
   Edit2, AlertTriangle, Check, X, Loader2, RotateCcw, FileText, 
   Calendar, Clock, User, MoreVertical, Archive
 } from 'lucide-react'
-import { computeLogsEfficiency, formatFuelType, getFuelLogType } from '../utils/fuelUtils'
-
-// ── Shared fuel-type badge helper ───────────────────────────────────────
-const fuelBadge = (ft, D) => {
-  const clean = (ft || '').toUpperCase().replace('_', ' ');
-  if (clean.includes('PETROL 92') || clean === 'PETROL') {
-    return { color: D.gold, bg: D.goldDim };
-  }
-  if (clean.includes('PETROL 95') || clean === 'SUPER PETROL') {
-    return { color: '#ea580c', bg: 'rgba(234,88,12,0.12)' };
-  }
-  if (clean.includes('AUTO DIESEL') || clean === 'DIESEL') {
-    return { color: D.indigo, bg: D.indigoDim };
-  }
-  if (clean.includes('SUPER DIESEL')) {
-    return { color: '#7c3aed', bg: 'rgba(124,58,237,0.12)' };
-  }
-  if (clean.includes('HYBRID')) {
-    return { color: D.green, bg: D.greenDim };
-  }
-  if (clean.includes('ELECTRIC')) {
-    return { color: D.blue, bg: D.blueDim };
-  }
-  return { color: D.textSub, bg: D.surfaceHi };
-}
-
-const approvalBadge = (status, D) => {
-  const s = (status || 'APPROVED').toUpperCase()
-  if (s === 'PENDING') return { label: 'Pending', bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: 'rgba(245,158,11,0.25)' }
-  if (s === 'REJECTED') return { label: 'Rejected', bg: 'rgba(239,68,68,0.12)', color: '#ef4444', border: 'rgba(239,68,68,0.25)' }
-  return { label: 'Approved', bg: 'rgba(16,185,129,0.12)', color: '#10b981', border: 'rgba(16,185,129,0.25)' }
-}
+import { computeLogsEfficiency, formatFuelType, getFuelLogType, fuelBadge, approvalBadge } from '../utils/fuelUtils'
 
 /* ── Fuel Management Page ────────────────────────────────────────────────── */
 const FuelManagementPage = () => {
@@ -500,10 +469,10 @@ const FuelManagementPage = () => {
   }
 
   const effBadge = eff => {
-    if (!eff) return { label: 'N/A', bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
-    if (eff > 10) return { label: 'Excellent', bg: D.greenDim, color: D.green, border: 'rgba(74,222,128,0.3)' }
-    if (eff > 7) return { label: 'Good', bg: D.blueDim, color: D.blue, border: 'rgba(96,165,250,0.3)' }
-    if (eff > 5) return { label: 'Average', bg: D.goldDim, color: D.gold, border: 'rgba(251,191,36,0.3)' }
+    if (!eff || eff <= 0) return { label: 'N/A', bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
+    if (eff >= 10) return { label: 'Excellent', bg: D.greenDim, color: D.green, border: 'rgba(74,222,128,0.3)' }
+    if (eff >= 7) return { label: 'Good', bg: D.blueDim, color: D.blue, border: 'rgba(96,165,250,0.3)' }
+    if (eff >= 5) return { label: 'Average', bg: D.goldDim, color: D.gold, border: 'rgba(251,191,36,0.3)' }
     return { label: 'Poor', bg: D.redDim, color: D.red, border: 'rgba(248,113,113,0.3)' }
   }
 
@@ -811,10 +780,15 @@ const FuelManagementPage = () => {
                         </div>
 
                         {/* Efficiency */}
-                        <div style={{ width: 160, textAlign: 'right' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderRadius: 12, background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`, boxShadow: `0 4px 12px ${badge.color}15` }}>
+                        <div style={{ width: 170, textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 12, background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`, boxShadow: `0 4px 12px ${badge.color}15` }}>
                             <span style={{ fontSize: '0.78rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{badge.label}</span>
-                            {log.fuelEfficiency && <span style={{ fontWeight: 950, fontSize: '1rem' }}>{log.fuelEfficiency.toFixed(1)}</span>}
+                            {log.fuelEfficiency != null && log.fuelEfficiency > 0 && (
+                              <span style={{ fontWeight: 950, fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                                {Number(log.fuelEfficiency).toFixed(1)}
+                                <span style={{ fontSize: '0.68rem', opacity: 0.75, fontWeight: 700 }}>km/L</span>
+                              </span>
+                            )}
                           </div>
                         </div>
 

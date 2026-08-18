@@ -126,9 +126,17 @@ public class VehicleServiceImpl implements VehicleService {
         if (vehicleDto.getRegistrationBookPath() != null) vehicle.setRegistrationBookPath(vehicleDto.getRegistrationBookPath());
         if (vehicleDto.getVehicleImage() != null) vehicle.setVehicleImage(vehicleDto.getVehicleImage());
         
-        // Status update
+        // Status update — when marking INACTIVE, persist the reason; when reactivating, clear it
         if (vehicleDto.getStatus() != null) {
-            vehicle.setStatus(vehicleDto.getStatus());
+            net.javaguids.ems_backend.enums.VehicleSatus newStatus = vehicleDto.getStatus();
+            vehicle.setStatus(newStatus);
+            if (newStatus == net.javaguids.ems_backend.enums.VehicleSatus.INACTIVE) {
+                // Store the reason (may be null/blank if not provided)
+                vehicle.setDeactivationReason(vehicleDto.getDeactivationReason());
+            } else {
+                // Reactivating — clear the reason
+                vehicle.setDeactivationReason(null);
+            }
         }
 
         vehicle.setUpdatedBy(updatedBy);
@@ -430,5 +438,16 @@ public class VehicleServiceImpl implements VehicleService {
             }
         }
         return dtos;
+    }
+    @Override
+    public VehicleDto getVehicleByRegistrationNo(String registrationNo) {
+        Vehicle vehicle = vehicleRepository.findByRegistrationNo(registrationNo)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Vehicle not found with registration number: " + registrationNo));
+        if (vehicle.isDeleted()) {
+            throw new ResourceNotFoundException(
+                    "Vehicle not found with registration number: " + registrationNo);
+        }
+        return enrichWithActiveTripDriver(VehicleMapper.mapToVehicleDto(vehicle));
     }
 }

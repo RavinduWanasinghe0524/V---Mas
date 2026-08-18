@@ -14,11 +14,12 @@ const StatCard = ({ icon, label, value, colorDim, colorHex, change, onClick }) =
     background: 'var(--surface)', borderRadius: 24,
     border: '1px solid var(--surface-border)',
     boxShadow: '0 4px 24px rgba(0,0,0,0.25)', overflow: 'hidden',
-    padding: '28px', display: 'flex', alignItems: 'center', gap: 24,
+    padding: '24px 28px', display: 'flex', alignItems: 'center', gap: 20,
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     cursor: onClick ? 'pointer' : 'default',
     backdropFilter: 'blur(12px)',
     WebkitBackdropFilter: 'blur(12px)',
+    minWidth: 0,
   }}
     onMouseEnter={e => {
       e.currentTarget.style.transform = 'translateY(-6px)'
@@ -30,13 +31,13 @@ const StatCard = ({ icon, label, value, colorDim, colorHex, change, onClick }) =
       e.currentTarget.style.borderColor = 'var(--surface-border)'
       e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)'
     }}>
-    <div style={{ width: 60, height: 60, borderRadius: 18, background: colorDim, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${colorHex}30`, flexShrink: 0, boxShadow: `0 4px 12px ${colorHex}20` }}>
+    <div style={{ width: 56, height: 56, borderRadius: 18, background: colorDim, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${colorHex}30`, flexShrink: 0, boxShadow: `0 4px 12px ${colorHex}20` }}>
       {icon}
     </div>
-    <div>
-      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{label}</div>
-      <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.1 }}>{value}</div>
-      {change && <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 6, fontWeight: 600 }}>{change}</div>}
+    <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
+      <div title={typeof value === 'string' ? value : undefined} style={{ fontSize: typeof value === 'string' && value.length > 14 ? '1.25rem' : '1.5rem', fontWeight: 900, color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
+      {change && <div title={typeof change === 'string' ? change : undefined} style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{change}</div>}
     </div>
   </div>
 )
@@ -1771,9 +1772,16 @@ const ActiveTripPanel = ({ trip, isDark, onChanged, navigate }) => {
           </>
         )}
         {status === 'STARTED' && (
-          <button onClick={() => setModalAction('complete')} disabled={busy} style={tripBtnStyle('linear-gradient(135deg,var(--primary-dark),var(--primary))', '#fff', busy)}>
-            <CheckCircle size={15} /> Complete Job
-          </button>
+          <>
+            {(jobType === 'TRIP' || jobType === 'FUEL') && (
+              <button onClick={() => navigate('/fuel-log')} style={tripBtnStyle('linear-gradient(135deg,#059669,#10b981)', '#fff', false)}>
+                <Fuel size={15} /> Log Fuel
+              </button>
+            )}
+            <button onClick={() => setModalAction('complete')} disabled={busy} style={tripBtnStyle('linear-gradient(135deg,var(--primary-dark),var(--primary))', '#fff', busy)}>
+              <CheckCircle size={15} /> Complete Job
+            </button>
+          </>
         )}
         <button onClick={() => navigate('/jobs')} style={tripBtnStyle('var(--surface-hi)', 'var(--text-primary)', false, '1px solid var(--surface-border)')}>
           View all my jobs →
@@ -1828,9 +1836,9 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
   return (
     <>
       <SectionHeader title="My Overview" />
-      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16, marginBottom: 32 }}>
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 32 }}>
         <StatCard
-          icon={<Car size={20} color={A.driverColor}/>}
+          icon={<Car size={22} color={A.driverColor}/>}
           label="Assigned Vehicle"
           value={vehicleLoading ? '…' : (showVehicle ? myVehicle.registrationNo : 'None')}
           colorDim={A.driverDim} colorHex={A.driverColor}
@@ -1838,7 +1846,7 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
           onClick={() => showVehicle && navigate(`/vehicle/${encodeURIComponent(myVehicle.registrationNo)}`)}
         />
         <StatCard
-          icon={<ClipboardList size={20} color={A.driverColor}/>}
+          icon={<ClipboardList size={22} color={A.driverColor}/>}
           label="Assigned Job"
           value={activeTrip ? activeTrip.destination : 'None'}
           colorDim={A.driverDim} colorHex={A.driverColor}

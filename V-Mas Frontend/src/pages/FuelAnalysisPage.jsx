@@ -1726,9 +1726,9 @@ const FuelAnalysisPage = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
                       {displayLogs.map((log, i) => {
                         const badge = log.fuelEfficiency ? (
-                          log.fuelEfficiency > 10 ? { label: 'Excellent', bg: D.greenDim, color: D.green, border: 'rgba(74,222,128,0.3)' } :
-                            log.fuelEfficiency > 7 ? { label: 'Good', bg: D.blueDim, color: D.blue, border: 'rgba(96,165,250,0.3)' } :
-                              log.fuelEfficiency > 5 ? { label: 'Average', bg: D.goldDim, color: D.gold, border: 'rgba(251,191,36,0.3)' } :
+                          log.fuelEfficiency >= 10 ? { label: 'Excellent', bg: D.greenDim, color: D.green, border: 'rgba(74,222,128,0.3)' } :
+                            log.fuelEfficiency >= 7 ? { label: 'Good', bg: D.blueDim, color: D.blue, border: 'rgba(96,165,250,0.3)' } :
+                              log.fuelEfficiency >= 5 ? { label: 'Average', bg: D.goldDim, color: D.gold, border: 'rgba(251,191,36,0.3)' } :
                                 { label: 'Poor', bg: D.redDim, color: D.red, border: 'rgba(248,113,113,0.3)' }
                         ) : { label: 'N/A', bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border };
 
@@ -1782,9 +1782,13 @@ const FuelAnalysisPage = () => {
                             {/* Efficiency */}
                             <div style={{ width: 140, flexShrink: 0, padding: '0 16px', borderLeft: `1px solid ${D.border}` }}>
                               <div style={{ fontSize: '0.68rem', fontWeight: 900, color: D.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Efficiency</div>
-                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 10, background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
                                 <span style={{ fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{badge.label}</span>
-                                {log.fuelEfficiency != null && <span style={{ fontWeight: 950, fontSize: '0.85rem' }}>{log.fuelEfficiency.toFixed(1)}</span>}
+                                {log.fuelEfficiency != null && log.fuelEfficiency > 0 && (
+                                  <span style={{ fontWeight: 950, fontSize: '0.85rem' }}>
+                                    {Number(log.fuelEfficiency).toFixed(1)} <span style={{ fontSize: '0.65rem', opacity: 0.75 }}>km/L</span>
+                                  </span>
+                                )}
                               </div>
                             </div>
 
