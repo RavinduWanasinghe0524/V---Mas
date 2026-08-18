@@ -469,10 +469,10 @@ const FuelManagementPage = () => {
   }
 
   const effBadge = eff => {
-    if (!eff) return { label: 'N/A', bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
-    if (eff > 10) return { label: 'Excellent', bg: D.greenDim, color: D.green, border: 'rgba(74,222,128,0.3)' }
-    if (eff > 7) return { label: 'Good', bg: D.blueDim, color: D.blue, border: 'rgba(96,165,250,0.3)' }
-    if (eff > 5) return { label: 'Average', bg: D.goldDim, color: D.gold, border: 'rgba(251,191,36,0.3)' }
+    if (!eff || eff <= 0) return { label: 'N/A', bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
+    if (eff >= 10) return { label: 'Excellent', bg: D.greenDim, color: D.green, border: 'rgba(74,222,128,0.3)' }
+    if (eff >= 7) return { label: 'Good', bg: D.blueDim, color: D.blue, border: 'rgba(96,165,250,0.3)' }
+    if (eff >= 5) return { label: 'Average', bg: D.goldDim, color: D.gold, border: 'rgba(251,191,36,0.3)' }
     return { label: 'Poor', bg: D.redDim, color: D.red, border: 'rgba(248,113,113,0.3)' }
   }
 
@@ -780,10 +780,15 @@ const FuelManagementPage = () => {
                         </div>
 
                         {/* Efficiency */}
-                        <div style={{ width: 160, textAlign: 'right' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderRadius: 12, background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`, boxShadow: `0 4px 12px ${badge.color}15` }}>
+                        <div style={{ width: 170, textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 12, background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`, boxShadow: `0 4px 12px ${badge.color}15` }}>
                             <span style={{ fontSize: '0.78rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{badge.label}</span>
-                            {log.fuelEfficiency && <span style={{ fontWeight: 950, fontSize: '1rem' }}>{log.fuelEfficiency.toFixed(1)}</span>}
+                            {log.fuelEfficiency != null && log.fuelEfficiency > 0 && (
+                              <span style={{ fontWeight: 950, fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                                {Number(log.fuelEfficiency).toFixed(1)}
+                                <span style={{ fontSize: '0.68rem', opacity: 0.75, fontWeight: 700 }}>km/L</span>
+                              </span>
+                            )}
                           </div>
                         </div>
 

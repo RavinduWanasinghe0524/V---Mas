@@ -5,7 +5,7 @@ import TripActionModal from '../components/TripActionModal'
 import { useD, useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { tripAPI, userAPI, vehicleAPI, serviceAPI, fuelAPI, notificationAPI } from '../services/api'
-import { formatFuelType } from '../utils/fuelUtils'
+import { formatFuelType, computeLogsEfficiency } from '../utils/fuelUtils'
 import {
   MapPin, Navigation, Car, User, Calendar, Plus, Loader2,
   Play, X, CheckCircle, Ban, Clock, MoreVertical, ClipboardList, Wrench, Fuel, AlertTriangle, UserCheck,
@@ -338,11 +338,13 @@ const TripsPage = () => {
   const loadFuelLogs = useCallback(async () => {
     try {
       const res = canManage ? await fuelAPI.getAllFuelLogs() : await fuelAPI.getMyLogs()
-      setAllFuelLogs(res.data?.data || [])
+      const raw = res.data?.data || []
+      computeLogsEfficiency(raw, vehicles)
+      setAllFuelLogs(raw)
     } catch (err) {
       console.error('Error loading fuel logs:', err)
     }
-  }, [canManage])
+  }, [canManage, vehicles])
 
   useEffect(() => {
     loadTrips()
@@ -1983,12 +1985,15 @@ const TripsPage = () => {
                               {isPending ? 'PENDING APPROVAL' : isRejected ? 'REJECTED' : 'APPROVED'}
                             </span>
                           </div>
-                          <div style={{ fontSize: '0.78rem', color: D.textSub, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                          <div style={{ fontSize: '0.78rem', color: D.textSub, display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
                             <span>Date: <strong>{fmtDate(log.date)}</strong></span>
                             <span>Quantity: <strong>{log.liters} L</strong></span>
                             <span>Cost/L: <strong>Rs. {Number(log.costPerLiter || 0).toFixed(2)}</strong></span>
                             <span>Total Cost: <strong style={{ color: '#10b981' }}>Rs. {Number(log.totalCost || 0).toLocaleString()}</strong></span>
                             <span>Mileage: <strong>{Number(log.mileage || 0).toLocaleString()} km</strong></span>
+                            {log.fuelEfficiency != null && log.fuelEfficiency > 0 && (
+                              <span>Consumption: <strong style={{ color: '#10b981' }}>{Number(log.fuelEfficiency).toFixed(1)} km/L</strong></span>
+                            )}
                           </div>
 
                           {/* Controller Direct Approval inside Drawer */}
