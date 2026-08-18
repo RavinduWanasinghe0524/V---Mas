@@ -177,6 +177,8 @@ const TripsPage = () => {
   const emptyForm = { driverUsername: '', vehicleRegNumber: '', origin: '', destination: '', purpose: '', scheduledDate: '', allowDriverServiceLog: true }
   const [editingTripStatus, setEditingTripStatus] = useState('')  // tracks status of trip being edited (for UI disabling), NOT sent to backend
   const [form, setForm] = useState(emptyForm)
+  // Today's date in YYYY-MM-DD (local timezone) — used as min for the scheduled date picker
+  const todayStr = new Date().toLocaleDateString('en-CA') // en-CA gives YYYY-MM-DD format
   const [submitting, setSubmitting] = useState(false)
   const [editingTripId, setEditingTripId] = useState(null)
 
@@ -316,6 +318,11 @@ const TripsPage = () => {
     }
     if (!form.scheduledDate) {
       flash('error', 'Scheduled Date is required')
+      return
+    }
+    // Reject past dates — only today or future dates are allowed
+    if (form.scheduledDate < todayStr) {
+      flash('error', 'Scheduled Date cannot be in the past')
       return
     }
     if (activeTab === 'SERVICE' && !form.purpose) {
@@ -1342,7 +1349,16 @@ const TripsPage = () => {
                 
                 <div>
                   <label style={labelStyle}>Scheduled Date *</label>
-                  <input type="date" style={inputStyle} value={form.scheduledDate} onChange={e => setForm(f => ({ ...f, scheduledDate: e.target.value }))} onFocus={onFocus} onBlur={onBlur} disabled={editingTripStatus === 'STARTED'} />
+                  <input
+                    type="date"
+                    style={inputStyle}
+                    value={form.scheduledDate}
+                    min={editingTripStatus === 'STARTED' ? undefined : todayStr}
+                    onChange={e => setForm(f => ({ ...f, scheduledDate: e.target.value }))}
+                    onFocus={onFocus}
+                    onBlur={onBlur}
+                    disabled={editingTripStatus === 'STARTED'}
+                  />
                 </div>
                 
                 <div>
