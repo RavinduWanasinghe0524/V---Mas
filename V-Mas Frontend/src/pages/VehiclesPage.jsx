@@ -841,10 +841,12 @@ const VehiclesPage = () => {
 
       const response = await vehicleAPI.getAllVehicles()
       setVehicles(response.data.data || [])
+      window.alert('Vehicle added successfully!')
       closeModal()
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Failed to add vehicle.'
       setAddError(msg)
+      window.alert(msg)
       console.error('Error adding vehicle:', err)
     }
   }
