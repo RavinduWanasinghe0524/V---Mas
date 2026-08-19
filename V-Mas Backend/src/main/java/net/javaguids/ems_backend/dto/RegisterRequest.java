@@ -24,4 +24,5 @@ public class RegisterRequest {
     private java.time.LocalDate licenseExpiryDate;
     private java.time.LocalDate dateJoined;
     private String experience;
+    private String address;
 }

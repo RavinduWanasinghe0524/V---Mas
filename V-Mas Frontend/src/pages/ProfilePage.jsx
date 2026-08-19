@@ -297,7 +297,8 @@ const ProfilePage = () => {
         licenseNumber: profileForm.licenseNumber,
         licenseExpiryDate: profileForm.licenseExpiryDate || null,
         dateJoined: profileForm.dateJoined || null,
-        experience: profileForm.experience
+        experience: profileForm.experience,
+        address: profileForm.address
       })
       let updated = res.data?.data
 

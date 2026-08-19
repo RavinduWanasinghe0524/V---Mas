@@ -24,6 +24,7 @@ const buildUser = (userDto) => ({
   licenseDocumentPath: userDto.licenseDocumentPath,
   dateJoined:          userDto.dateJoined,
   experience:          userDto.experience,
+  address:             userDto.address,
 })
 
 export const AuthProvider = ({ children }) => {
