@@ -9,7 +9,7 @@ import { computeLogsEfficiency, formatFuelType } from '../utils/fuelUtils'
 import {
   Car, Wrench, Gauge, Fuel, User, Clock, ChevronLeft,
   FileText, Upload, Download, UserCheck, UserX, X,
-  RotateCcw, AlertTriangle, Activity, Settings
+  RotateCcw, AlertTriangle, Activity, Settings, Calendar, Shield, IdCard
 } from 'lucide-react'
 
 export default function VehicleProfilePage() {
@@ -59,13 +59,16 @@ export default function VehicleProfilePage() {
     INACTIVE:  { bg: 'rgba(239,68,68,0.12)',  color: '#f87171', border: 'rgba(239,68,68,0.3)' },
   }
 
-  // Controller accent colour (amber/orange)
+  // Theme accent colour (amber/orange for controller, blue for admin/others)
+  const isControllerRole = user?.role === 'CONTROLLER'
   const A = {
-    grad:   'linear-gradient(135deg, #d97706 0%, #f59e0b 50%, #fbbf24 100%)',
-    solid:  '#f59e0b',
-    dim:    'rgba(245,158,11,0.12)',
-    border: 'rgba(245,158,11,0.3)',
-    text:   '#f59e0b',
+    grad:   isControllerRole ? 'linear-gradient(135deg, #d97706 0%, #f59e0b 50%, #fbbf24 100%)' : 'linear-gradient(135deg, #2563eb 0%, #3b82f6 50%, #60a5fa 100%)',
+    heroGrad: isControllerRole ? 'linear-gradient(135deg, #92400e 0%, #b45309 35%, #d97706 65%, #f59e0b 100%)' : 'linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 35%, #2563eb 65%, #3b82f6 100%)',
+    solid:  isControllerRole ? '#f59e0b' : '#3b82f6',
+    dim:    isControllerRole ? 'rgba(245,158,11,0.12)' : 'rgba(59,130,246,0.12)',
+    border: isControllerRole ? 'rgba(245,158,11,0.3)' : 'rgba(59,130,246,0.3)',
+    text:   isControllerRole ? '#f59e0b' : '#3b82f6',
+    shadow: isControllerRole ? 'rgba(180,83,9,0.3)' : 'rgba(37,99,235,0.3)'
   }
 
   const normalizeReg = str => (str || '').replace(/[\u2010-\u2015\u2212]/g, '-').trim().toUpperCase()
@@ -246,7 +249,7 @@ export default function VehicleProfilePage() {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content" style={{ background: D.bg }}>
         <Topbar title="Vehicle Profile" subtitle={`Home / Vehicles / ${regNo || ''}`} onMenuToggle={() => setSidebarOpen(o => !o)} />
-        <div className="page-body" style={{ padding: '28px 32px 48px' }}>
+        <div className="page-body" style={{ padding: '24px 32px 48px' }}>
           {children}
         </div>
       </div>
@@ -257,8 +260,8 @@ export default function VehicleProfilePage() {
   if (loading) return (
     <Shell>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16, color: D.textSub }}>
-        <div style={{ width: 40, height: 40, border: `3px solid ${D.border}`, borderTopColor: A.solid, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-        <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Loading vehicle profile…</span>
+        <div style={{ width: 44, height: 44, border: `3px solid ${D.border}`, borderTopColor: A.solid, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <span style={{ fontSize: '0.92rem', fontWeight: 700, color: D.text }}>Loading vehicle profile…</span>
         <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
       </div>
     </Shell>
@@ -268,18 +271,20 @@ export default function VehicleProfilePage() {
   if (error || !vehicle) return (
     <Shell>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 18, textAlign: 'center', padding: 24 }}>
-        <div style={{ width: 72, height: 72, borderRadius: 20, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${D.border}` }}>
-          <Car size={40} style={{ color: D.textSub, opacity: 0.6 }} />
+        <div style={{ width: 72, height: 72, borderRadius: 22, background: D.surfaceHi, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${D.border}` }}>
+          <Car size={38} style={{ color: D.textSub, opacity: 0.6 }} />
         </div>
         <div>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: D.text, margin: '0 0 6px' }}>{error || 'Vehicle not found'}</h3>
-          <p style={{ fontSize: '0.85rem', color: D.textSub, margin: 0, maxWidth: 400 }}>Unable to retrieve profile for &ldquo;{regNo}&rdquo;.</p>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: D.text, margin: '0 0 6px' }}>{error || 'Vehicle not found'}</h3>
+          <p style={{ fontSize: '0.85rem', color: D.textSub, margin: 0, maxWidth: 420 }}>
+            Unable to retrieve profile information for &ldquo;{regNo}&rdquo;. Please verify the registration number.
+          </p>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           <button onClick={fetchData} style={{ padding: '10px 20px', borderRadius: 12, border: `1px solid ${D.border}`, background: D.surface, color: D.text, fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <RotateCcw size={15} /> Try Again
           </button>
-          <button onClick={() => navigate('/vehicles')} style={{ padding: '10px 22px', borderRadius: 12, border: 'none', background: A.grad, color: '#fff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={() => navigate('/vehicles')} style={{ padding: '10px 22px', borderRadius: 12, border: 'none', background: A.grad, color: '#fff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: `0 4px 14px ${A.shadow}` }}>
             <ChevronLeft size={16} /> Back to Vehicles
           </button>
         </div>
@@ -287,7 +292,7 @@ export default function VehicleProfilePage() {
     </Shell>
   )
 
-  // ── Derived ────────────────────────────────────────────────────────────────
+  // ── Derived data ───────────────────────────────────────────────────────────
   const sc = SC[vehicle.status] || { bg: 'rgba(255,255,255,0.05)', color: D.textSub, border: D.border }
   const today = new Date()
   const insDiff = vehicle.insuranceExpiryDate ? Math.ceil((new Date(vehicle.insuranceExpiryDate) - today) / 864e5) : null
@@ -300,36 +305,49 @@ export default function VehicleProfilePage() {
 
   // ── Sub-components ─────────────────────────────────────────────────────────
 
-  // Stat card
-  const StatCard = ({ icon, label, value, accent, accentDim, onClick, clickHint }) => (
+  // Top Stat card
+  const StatCard = ({ icon, label, value, subtext, accent, accentDim, onClick, clickHint }) => (
     <div
       onClick={onClick}
       title={clickHint || ''}
       style={{
         background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16,
-        padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14,
-        cursor: onClick ? 'pointer' : 'default', transition: 'all 0.2s',
-        flex: 1, minWidth: 0,
+        padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14,
+        cursor: onClick ? 'pointer' : 'default', transition: 'all 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+        flex: 1, minWidth: 200, position: 'relative', overflow: 'hidden'
       }}
-      onMouseEnter={e => { if (onClick) { e.currentTarget.style.borderColor = accent; e.currentTarget.style.transform = 'translateY(-1px)' }}}
-      onMouseLeave={e => { if (onClick) { e.currentTarget.style.borderColor = D.border; e.currentTarget.style.transform = 'translateY(0)' }}}
+      onMouseEnter={e => {
+        if (onClick) {
+          e.currentTarget.style.borderColor = accent
+          e.currentTarget.style.transform = 'translateY(-2px)'
+          e.currentTarget.style.boxShadow = `0 8px 20px ${accentDim}`
+        }
+      }}
+      onMouseLeave={e => {
+        if (onClick) {
+          e.currentTarget.style.borderColor = D.border
+          e.currentTarget.style.transform = 'translateY(0)'
+          e.currentTarget.style.boxShadow = 'none'
+        }
+      }}
     >
-      <div style={{ width: 46, height: 46, borderRadius: 13, background: accentDim, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${accent}30` }}>
+      <div style={{ width: 44, height: 44, borderRadius: 12, background: accentDim, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${accent}30` }}>
         {icon}
       </div>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: '0.65rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{label}</div>
-        <div style={{ fontSize: '1.05rem', fontWeight: 800, color: D.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: '0.68rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: D.text, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
+        {subtext && <div style={{ fontSize: '0.68rem', color: D.textFaint, marginTop: 1 }}>{subtext}</div>}
       </div>
     </div>
   )
 
-  // Section header
+  // Section Header
   const SectionHeader = ({ icon, title, action }) => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${D.border}` }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {icon}
-        <span style={{ fontSize: '0.8rem', fontWeight: 800, color: D.text, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</span>
+        <span style={{ fontSize: '0.82rem', fontWeight: 800, color: D.text, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</span>
       </div>
       {action}
     </div>
@@ -337,17 +355,17 @@ export default function VehicleProfilePage() {
 
   // Card wrapper
   const Card = ({ children, style = {} }) => (
-    <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 18, padding: '20px 22px', ...style }}>
+    <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 18, padding: '20px 22px', boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.04)', ...style }}>
       {children}
     </div>
   )
 
-  // Expiry row
+  // Expiry Row with interactive progress
   const ExpiryRow = ({ label, date, diff }) => {
     if (!date) return (
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+      <div style={{ padding: '12px 0', borderBottom: `1px solid ${D.border}40`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontWeight: 700, color: D.text, fontSize: '0.85rem' }}>{label}</span>
-        <span style={{ color: D.textFaint, fontSize: '0.78rem', background: D.surfaceHi, padding: '3px 10px', borderRadius: 8 }}>Not Set</span>
+        <span style={{ color: D.textFaint, fontSize: '0.75rem', background: D.surfaceHi, padding: '3px 10px', borderRadius: 8 }}>Not Set</span>
       </div>
     )
     const expired = diff < 0, soon = diff <= 30
@@ -356,24 +374,24 @@ export default function VehicleProfilePage() {
     const badgeBg  = expired ? 'rgba(239,68,68,0.12)'  : soon ? 'rgba(245,158,11,0.12)'  : 'rgba(34,197,94,0.12)'
     const badgeCol = expired ? '#ef4444' : soon ? '#f59e0b' : '#22c55e'
     return (
-      <div style={{ padding: '10px 0', borderBottom: `1px solid ${D.border}30` }}>
+      <div style={{ padding: '12px 0', borderBottom: `1px solid ${D.border}40` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div>
-            <p style={{ margin: 0, fontSize: '0.84rem', fontWeight: 700, color: D.text }}>{label}</p>
+            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: D.text }}>{label}</p>
             <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: D.textSub }}>{new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
           </div>
-          <span style={{ background: badgeBg, color: badgeCol, padding: '4px 12px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 800, border: `1px solid ${badgeCol}30` }}>
+          <span style={{ background: badgeBg, color: badgeCol, padding: '3px 12px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 800, border: `1px solid ${badgeCol}30` }}>
             {expired ? `Expired ${Math.abs(diff)}d ago` : `${diff} days left`}
           </span>
         </div>
-        <div style={{ height: 6, background: `${D.border}`, borderRadius: 999, overflow: 'hidden' }}>
-          <div style={{ width: `${expired ? 100 : pct}%`, height: '100%', background: barColor, borderRadius: 999, transition: 'width 0.8s ease', boxShadow: `0 0 6px ${barColor}60` }} />
+        <div style={{ height: 6, background: D.surfaceHi, borderRadius: 999, overflow: 'hidden' }}>
+          <div style={{ width: `${expired ? 100 : pct}%`, height: '100%', background: barColor, borderRadius: 999, transition: 'width 0.8s ease', boxShadow: `0 0 8px ${barColor}60` }} />
         </div>
       </div>
     )
   }
 
-  // Doc block
+  // Document row item
   const DocBlock = ({ docType, label, path }) => {
     const busy = uploadingDoc.type === docType && uploadingDoc.loading
     const fn = path ? path.substring(path.lastIndexOf('_') + 1) : null
@@ -400,7 +418,7 @@ export default function VehicleProfilePage() {
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
           {hasDoc ? (<>
-            <button onClick={() => viewDoc(docType)} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: D.surface, color: D.text, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <button onClick={() => viewDoc(docType)} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${D.border}`, background: D.surface, color: D.text, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 4, transition: 'all 0.2s' }}>
               <FileText size={11} /> View
             </button>
             {isController && <>
@@ -415,7 +433,7 @@ export default function VehicleProfilePage() {
               </label>
             </>}
           </>) : isController ? (
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, background: A.dim, color: A.text, border: `1px solid ${A.border}`, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, background: A.dim, color: A.text, border: `1px solid ${A.border}`, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}>
               <input type="file" onChange={e => onFileSelect(docType, e.target.files[0])} style={{ display: 'none' }} disabled={busy} />
               {busy ? 'Uploading…' : <><Upload size={12} /> Upload</>}
             </label>
@@ -425,14 +443,14 @@ export default function VehicleProfilePage() {
     )
   }
 
-  // Tabs config
+  // Tabs
   const TABS = [
-    { id: 'overview',  label: 'Overview',    icon: <Activity size={14} /> },
-    { id: 'services',  label: 'Services',    icon: <Wrench size={14} /> },
-    { id: 'fuel',      label: 'Fuel & Usage', icon: <Fuel size={14} /> },
+    { id: 'overview',  label: 'Overview',    icon: <Activity size={15} /> },
+    { id: 'services',  label: 'Services',    icon: <Wrench size={15} /> },
+    { id: 'fuel',      label: 'Fuel & Usage', icon: <Fuel size={15} /> },
   ]
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Main UI Layout ─────────────────────────────────────────────────────────
   return (
     <Shell>
       <style>{`
@@ -443,34 +461,34 @@ export default function VehicleProfilePage() {
 
       {/* ── HERO BANNER ── */}
       <div style={{
-        background: 'linear-gradient(135deg, #92400e 0%, #b45309 35%, #d97706 65%, #f59e0b 100%)',
-        borderRadius: 22, padding: '26px 32px', marginBottom: 24,
+        background: A.heroGrad,
+        borderRadius: 22, padding: '24px 32px', marginBottom: 22,
         position: 'relative', overflow: 'hidden',
-        boxShadow: '0 16px 48px rgba(180,83,9,0.35), 0 0 0 1px rgba(255,255,255,0.08)',
+        boxShadow: isDark ? `0 20px 60px rgba(0,0,0,0.5), 0 4px 24px ${A.shadow}` : '0 8px 30px rgba(0,0,0,0.12)',
       }}>
-        {/* Background orbs */}
+        {/* Ambient decorative spheres */}
         {[['80%','-20px','180px'],['5%','75%','100px'],['45%','90%','70px']].map(([t,l,s],i) => (
           <div key={i} style={{ position:'absolute', top:t, left:l, width:s, height:s, borderRadius:'50%', background:'rgba(255,255,255,0.04)', pointerEvents:'none' }} />
         ))}
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', position: 'relative' }}>
-          {/* Left: icon + title */}
+          {/* Left info: Image/Icon + Name + Badges */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <div style={{ width: 64, height: 64, borderRadius: 18, background: 'rgba(255,255,255,0.12)', border: '2px solid rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, backdropFilter: 'blur(8px)' }}>
+            <div style={{ width: 62, height: 62, borderRadius: 18, background: 'rgba(255,255,255,0.12)', border: '2px solid rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, backdropFilter: 'blur(8px)' }}>
               {vehicle.vehicleImage
                 ? <img src={vehicle.vehicleImage} alt={vehicle.registrationNo} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 16 }} />
                 : <Car size={30} color="rgba(255,255,255,0.9)" />}
             </div>
             <div>
-              <h1 style={{ margin: 0, fontSize: '1.7rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.025em', lineHeight: 1.1 }}>
+              <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.025em', lineHeight: 1.15 }}>
                 {vehicle.manufacturer} {vehicle.model}
               </h1>
               <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ background: 'rgba(0,0,0,0.25)', color: '#fff', padding: '3px 10px', borderRadius: 7, fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.04em', backdropFilter: 'blur(4px)' }}>
+                <span style={{ background: 'rgba(0,0,0,0.28)', color: '#fff', padding: '3px 10px', borderRadius: 7, fontSize: '0.74rem', fontWeight: 800, letterSpacing: '0.04em', backdropFilter: 'blur(4px)' }}>
                   {vehicle.registrationNo}
                 </span>
                 {vehicle.year && (
-                  <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.8rem', fontWeight: 600 }}>{vehicle.year}</span>
+                  <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.82rem', fontWeight: 600 }}>{vehicle.year}</span>
                 )}
                 <span style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', padding: '3px 10px', borderRadius: 99, fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>
                   {formatFuelType(vehicle.fuelType) || 'UNKNOWN'}
@@ -482,62 +500,66 @@ export default function VehicleProfilePage() {
             </div>
           </div>
 
-          {/* Right: back button */}
+          {/* Right action: Back Button */}
           <button
             onClick={() => navigate('/vehicles')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.12)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'inherit', backdropFilter: 'blur(8px)', transition: 'all 0.2s', flexShrink: 0 }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.22)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.14)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '0.84rem', fontFamily: 'inherit', backdropFilter: 'blur(8px)', transition: 'all 0.2s', flexShrink: 0 }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.24)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.14)'}
           >
             <ChevronLeft size={16} /> Back to Vehicles
           </button>
         </div>
       </div>
 
-      {/* ── STAT CARDS ROW ── */}
-      <div style={{ display: 'flex', gap: 14, marginBottom: 24, flexWrap: 'wrap' }}>
+      {/* ── TOP STAT CARDS (Always visible) ── */}
+      <div style={{ display: 'flex', gap: 14, marginBottom: 22, flexWrap: 'wrap' }}>
         <StatCard
           icon={<Gauge size={20} color={A.text} />}
           label="Current Mileage"
           value={vehicle.currentMileageKm != null ? `${vehicle.currentMileageKm.toLocaleString()} km` : '—'}
+          subtext={isController ? "Click to update odometer" : ""}
           accent={A.solid} accentDim={A.dim}
           onClick={isController ? () => { setNewMileage(vehicle.currentMileageKm != null ? String(vehicle.currentMileageKm) : ''); setMileageError(''); setOdometerOpen(true) } : null}
-          clickHint={isController ? 'Click to update mileage' : ''}
+          clickHint={isController ? 'Click to update odometer' : ''}
         />
         <StatCard
           icon={<Activity size={20} color="#60a5fa" />}
           label="Avg Efficiency"
           value={sidebarFuelStat ? `${sidebarFuelStat.fuelEfficiency?.toFixed(1) || '0.0'} km/L` : '—'}
-          accent="#3b82f6" accentDim="rgba(59,130,246,0.1)"
+          subtext={sidebarFuelStat?.efficiencyStatus ? `Status: ${sidebarFuelStat.efficiencyStatus}` : ""}
+          accent="#3b82f6" accentDim="rgba(59,130,246,0.12)"
         />
         <StatCard
           icon={<Fuel size={20} color="#22c55e" />}
           label="Tank Capacity"
           value={vehicle.fuelCapacity ? `${vehicle.fuelCapacity} L` : '—'}
-          accent="#22c55e" accentDim="rgba(34,197,94,0.1)"
+          subtext={`Fuel: ${formatFuelType(vehicle.fuelType) || 'N/A'}`}
+          accent="#22c55e" accentDim="rgba(34,197,94,0.12)"
         />
         <StatCard
           icon={<Settings size={20} color="#a78bfa" />}
           label="Total Fuel Cost"
           value={sidebarFuelStat ? `Rs. ${Math.round(sidebarFuelStat.totalSpending || 0).toLocaleString()}` : '—'}
-          accent="#a78bfa" accentDim="rgba(167,139,250,0.1)"
+          subtext="Lifetime consumption"
+          accent="#a78bfa" accentDim="rgba(167,139,250,0.12)"
         />
       </div>
 
-      {/* ── TAB BAR ── */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 24, background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16, padding: 7 }}>
+      {/* ── PILL TAB BAR ── */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 22, background: D.surface, border: `1px solid ${D.border}`, borderRadius: 16, padding: 6 }}>
         {TABS.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             style={{
-              flex: 1, padding: '10px 16px', borderRadius: 11,
-              fontSize: '0.84rem', fontWeight: 700, border: 'none', cursor: 'pointer',
+              flex: 1, padding: '11px 18px', borderRadius: 12,
+              fontSize: '0.85rem', fontWeight: 700, border: 'none', cursor: 'pointer',
               fontFamily: 'inherit', transition: 'all 0.22s',
               background: activeTab === tab.id ? A.grad : 'transparent',
               color: activeTab === tab.id ? '#fff' : D.textSub,
-              boxShadow: activeTab === tab.id ? '0 4px 14px rgba(180,83,9,0.28)' : 'none',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+              boxShadow: activeTab === tab.id ? `0 4px 14px ${A.shadow}` : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}
           >
             {tab.icon}{tab.label}
@@ -546,31 +568,58 @@ export default function VehicleProfilePage() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════
-          OVERVIEW TAB
+          TAB 1: OVERVIEW (Clean 2-Column Layout)
           ══════════════════════════════════════════════════════════════════ */}
       {activeTab === 'overview' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 20, animation: 'fadeUp 0.3s ease both' }}>
 
-          {/* LEFT COLUMN */}
+          {/* LEFT COLUMN: Vehicle Details + Driver + Recent Service */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
             {/* Vehicle Details */}
             <Card>
-              <SectionHeader icon={<Car size={15} color={A.text} />} title="Vehicle Details" />
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 10 }}>
+              <SectionHeader icon={<Car size={16} color={A.text} />} title="Vehicle Specifications" />
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: 10,
+              }}>
                 {[
-                  { label: 'Manufacturer', value: vehicle.manufacturer || 'N/A' },
-                  { label: 'Model',        value: vehicle.model || 'N/A' },
-                  { label: 'Year',         value: vehicle.year || 'N/A' },
-                  { label: 'Vehicle Type', value: vehicle.vehicleType ? (vehicle.vehicleType.charAt(0) + vehicle.vehicleType.slice(1).toLowerCase()) : 'N/A' },
-                  { label: 'Chassis No',   value: vehicle.chassisNumber || vehicle.chassisNo || 'N/A' },
-                  { label: 'Engine No',    value: vehicle.engineNumber  || vehicle.engineNo  || 'N/A' },
-                  { label: 'Fuel Type',    value: formatFuelType(vehicle.fuelType) || 'N/A' },
-                  { label: 'Fuel Capacity',value: vehicle.fuelCapacity ? `${vehicle.fuelCapacity} L` : 'N/A' },
+                  { label: 'Manufacturer',   value: vehicle.manufacturer || 'N/A', icon: <Car size={16} color={A.text} /> },
+                  { label: 'Model',          value: vehicle.model || 'N/A',        icon: <Car size={16} color={A.text} /> },
+                  { label: 'Year',           value: vehicle.year || 'N/A',         icon: <Calendar size={16} color={A.text} /> },
+                  { label: 'Vehicle Type',   value: vehicle.vehicleType ? (vehicle.vehicleType.charAt(0) + vehicle.vehicleType.slice(1).toLowerCase()) : 'N/A', icon: <Car size={16} color={A.text} /> },
+                  { label: 'Fuel Type',      value: formatFuelType(vehicle.fuelType) || 'N/A', icon: <Fuel size={16} color={A.text} /> },
+                  { label: 'Tank Capacity',  value: vehicle.fuelCapacity ? `${vehicle.fuelCapacity} L` : 'N/A', icon: <Fuel size={16} color={A.text} /> },
+                  { label: 'Chassis Number', value: vehicle.chassisNumber || vehicle.chassisNo || 'N/A', icon: <Shield size={16} color={A.text} /> },
+                  { label: 'Engine Number',  value: vehicle.engineNumber  || vehicle.engineNo  || 'N/A', icon: <IdCard size={16} color={A.text} /> },
                 ].map((item, i) => (
-                  <div key={i} style={{ background: D.bg, border: `1px solid ${D.border}`, borderRadius: 12, padding: '12px 14px' }}>
-                    <div style={{ fontSize: '0.63rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5 }}>{item.label}</div>
-                    <div style={{ fontSize: '0.86rem', color: D.text, fontWeight: 700, wordBreak: 'break-all', lineHeight: 1.4 }}>{item.value}</div>
+                  <div key={i} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    padding: '12px 16px',
+                    borderRadius: 12,
+                    background: D.surfaceHi,
+                    border: `1px solid ${D.border}`,
+                    transition: 'all 0.2s ease',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                      {item.icon}
+                      <span style={{ fontSize: '0.84rem', fontWeight: 600, color: D.textSub }}>
+                        {item.label}
+                      </span>
+                    </div>
+                    <span style={{
+                      fontSize: '0.88rem',
+                      fontWeight: 800,
+                      color: D.text,
+                      textAlign: 'right',
+                      wordBreak: 'break-all'
+                    }}>
+                      {item.value}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -580,27 +629,27 @@ export default function VehicleProfilePage() {
             {(isAdmin || isController) && (
               <Card>
                 <SectionHeader
-                  icon={<User size={15} color={A.text} />}
+                  icon={<User size={16} color={A.text} />}
                   title="Assigned Driver"
                   action={vehicle.driverUsername && (
-                    <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '3px 10px', borderRadius: 99, background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.25)' }}>ACTIVE</span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '3px 10px', borderRadius: 99, background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.25)' }}>ASSIGNED</span>
                   )}
                 />
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
                   {vehicle.driverUsername ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                      <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg,#d97706,#f59e0b)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <div style={{ width: 48, height: 48, borderRadius: 14, background: A.grad, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 4px 12px ${A.shadow}` }}>
                         <User size={22} color="#fff" />
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.97rem', fontWeight: 800, color: D.text }}>{vehicle.driverUsername}</div>
-                        <div style={{ fontSize: '0.72rem', color: D.textSub, marginTop: 2 }}>Current Driver</div>
+                        <div style={{ fontSize: '0.98rem', fontWeight: 800, color: D.text }}>{vehicle.driverUsername}</div>
+                        <div style={{ fontSize: '0.74rem', color: D.textSub, marginTop: 2 }}>Current Active Driver</div>
                       </div>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 12, background: D.bg, border: `1px dashed ${D.border}`, flex: 1 }}>
                       <User size={18} color={D.textFaint} />
-                      <span style={{ fontSize: '0.85rem', color: D.textSub, fontStyle: 'italic' }}>No driver assigned</span>
+                      <span style={{ fontSize: '0.85rem', color: D.textSub, fontStyle: 'italic' }}>No driver assigned to this vehicle</span>
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
@@ -609,7 +658,7 @@ export default function VehicleProfilePage() {
                         <UserX size={14} /> Unassign
                       </button>
                     )}
-                    <button onClick={openAssignModal} disabled={driverBusy} style={{ padding: '9px 18px', borderRadius: 10, border: 'none', background: A.grad, color: '#fff', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 12px rgba(180,83,9,0.25)', transition: 'all 0.2s' }}>
+                    <button onClick={openAssignModal} disabled={driverBusy} style={{ padding: '9px 18px', borderRadius: 10, border: 'none', background: A.grad, color: '#fff', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 6, boxShadow: `0 4px 12px ${A.shadow}`, transition: 'all 0.2s' }}>
                       <UserCheck size={14} /> {vehicle.driverUsername ? 'Change Driver' : 'Assign Driver'}
                     </button>
                   </div>
@@ -617,14 +666,14 @@ export default function VehicleProfilePage() {
               </Card>
             )}
 
-            {/* Recent Service */}
+            {/* Recent Service Preview */}
             <Card>
               <SectionHeader
-                icon={<Wrench size={15} color="#fb923c" />}
-                title="Recent Service"
+                icon={<Wrench size={16} color="#fb923c" />}
+                title="Recent Service Record"
                 action={
                   <button onClick={() => setActiveTab('services')} style={{ background: 'none', border: 'none', fontSize: '0.75rem', color: '#60a5fa', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>
-                    View All →
+                    View All Services →
                   </button>
                 }
               />
@@ -634,46 +683,46 @@ export default function VehicleProfilePage() {
                     <Wrench size={18} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: D.text }}>{sidebarServiceRec.serviceType}</p>
+                    <p style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: D.text }}>{sidebarServiceRec.serviceType}</p>
                     <p style={{ margin: '3px 0 0', fontSize: '0.74rem', color: D.textSub }}>
                       {sidebarServiceRec.serviceDate ? new Date(sidebarServiceRec.serviceDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                     </p>
                     <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: '0.74rem', color: D.textSub, flexWrap: 'wrap' }}>
-                      {sidebarServiceRec.currentMileageKm != null && <span>At <strong style={{ color: D.text }}>{sidebarServiceRec.currentMileageKm.toLocaleString()} km</strong></span>}
-                      {sidebarServiceRec.nextServiceDue && <span>Next: <strong style={{ color: D.text }}>{new Date(sidebarServiceRec.nextServiceDue).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></span>}
+                      {sidebarServiceRec.currentMileageKm != null && <span>Odometer: <strong style={{ color: D.text }}>{sidebarServiceRec.currentMileageKm.toLocaleString()} km</strong></span>}
+                      {sidebarServiceRec.nextServiceDue && <span>Next Due: <strong style={{ color: D.text }}>{new Date(sidebarServiceRec.nextServiceDue).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></span>}
                     </div>
                   </div>
                 </div>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '18px 16px', borderRadius: 12, background: D.bg, border: `1px dashed ${D.border}` }}>
                   <Wrench size={20} style={{ opacity: 0.3, color: D.textFaint }} />
-                  <span style={{ fontSize: '0.85rem', color: D.textSub }}>No service records yet</span>
+                  <span style={{ fontSize: '0.85rem', color: D.textSub }}>No service records logged yet for this vehicle</span>
                 </div>
               )}
             </Card>
           </div>
 
-          {/* RIGHT COLUMN */}
+          {/* RIGHT COLUMN: Compliance & Expiries + Documents */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-            {/* Compliance & Expiries */}
+            {/* Compliance & Expiries Card */}
             <Card>
-              <SectionHeader icon={<Clock size={15} color="#a78bfa" />} title="Compliance & Expiries" />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              <SectionHeader icon={<Clock size={16} color="#a78bfa" />} title="Compliance & Expiries" />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <ExpiryRow label="Insurance Expiry" date={vehicle.insuranceExpiryDate} diff={insDiff} />
-                <ExpiryRow label="License Expiry"   date={vehicle.licenseExpiryDate}   diff={licDiff} />
+                <ExpiryRow label="License & Road Tax" date={vehicle.licenseExpiryDate} diff={licDiff} />
               </div>
-              {(insDiff !== null && insDiff <= 30 || licDiff !== null && licDiff <= 30) && (
+              {((insDiff !== null && insDiff <= 30) || (licDiff !== null && licDiff <= 30)) && (
                 <div style={{ marginTop: 14, display: 'flex', gap: 8, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
                   <AlertTriangle size={14} color="#f59e0b" style={{ flexShrink: 0, marginTop: 1 }} />
-                  <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 600 }}>One or more documents are expiring soon. Please renew them promptly.</span>
+                  <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 600 }}>One or more documents are expiring soon. Please renew promptly.</span>
                 </div>
               )}
             </Card>
 
-            {/* Documents */}
+            {/* Documents & Papers Card */}
             <Card>
-              <SectionHeader icon={<FileText size={15} color="#60a5fa" />} title="Documents & Papers" />
+              <SectionHeader icon={<FileText size={16} color="#60a5fa" />} title="Documents & Papers" />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <DocBlock docType="insurance"    label="Insurance Certificate"  path={vehicle.insuranceDocumentPath} />
                 <DocBlock docType="license"      label="License & Road Tax"     path={vehicle.licenseDocumentPath} />
@@ -685,7 +734,7 @@ export default function VehicleProfilePage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════
-          SERVICES TAB
+          TAB 2: SERVICES TAB
           ══════════════════════════════════════════════════════════════════ */}
       {activeTab === 'services' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, animation: 'fadeUp 0.3s ease both' }}>
@@ -709,7 +758,7 @@ export default function VehicleProfilePage() {
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
                       <div>
-                        <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: D.text }}>{rec.serviceType}</p>
+                        <p style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: D.text }}>{rec.serviceType}</p>
                         <p style={{ margin: '3px 0 0', fontSize: '0.74rem', color: D.textSub }}>
                           {rec.serviceDate ? new Date(rec.serviceDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                         </p>
@@ -721,7 +770,7 @@ export default function VehicleProfilePage() {
                       )}
                     </div>
                     {rec.description && <p style={{ margin: '8px 0 0', fontSize: '0.8rem', color: D.textSub, lineHeight: 1.5 }}>{rec.description}</p>}
-                    <div style={{ display: 'flex', gap: 20, marginTop: 10, fontSize: '0.74rem', color: D.textSub, flexWrap: 'wrap', paddingTop: 10, borderTop: `1px solid ${D.border}30` }}>
+                    <div style={{ display: 'flex', gap: 20, marginTop: 10, fontSize: '0.74rem', color: D.textSub, flexWrap: 'wrap', paddingTop: 10, borderTop: `1px solid ${D.border}40` }}>
                       {rec.currentMileageKm != null && <span>Odometer: <strong style={{ color: D.text }}>{rec.currentMileageKm.toLocaleString()} km</strong></span>}
                       {rec.nextServiceMileageKm != null && <span>Next at: <strong style={{ color: D.text }}>{rec.nextServiceMileageKm.toLocaleString()} km</strong></span>}
                     </div>
@@ -734,7 +783,7 @@ export default function VehicleProfilePage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════
-          FUEL & USAGE TAB
+          TAB 3: FUEL & USAGE TAB
           ══════════════════════════════════════════════════════════════════ */}
       {activeTab === 'fuel' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20, animation: 'fadeUp 0.3s ease both' }}>
@@ -841,7 +890,7 @@ export default function VehicleProfilePage() {
             <div style={{ background: A.grad, padding: '22px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#fff' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Gauge size={20} /></div>
-                <div><h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>Update Odometer</h3><p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: 'rgba(255,255,255,0.8)' }}>{vehicle.registrationNo}</p></div>
+                <div><h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>Update Odometer</h3><p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)' }}>{vehicle.registrationNo}</p></div>
               </div>
               <button onClick={() => setOdometerOpen(false)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, padding: 6, color: '#fff', cursor: 'pointer' }}><X size={18} /></button>
             </div>
@@ -849,7 +898,7 @@ export default function VehicleProfilePage() {
               <label style={lbl}>Current Mileage (KM)</label>
               <input type="number" value={newMileage} onChange={e => setNewMileage(e.target.value)} required style={inp({ marginBottom: mileageError ? 6 : 20 })} placeholder="Enter new mileage…" />
               {mileageError && <p style={{ margin: '0 0 16px', fontSize: '0.75rem', color: '#f87171' }}>{mileageError}</p>}
-              <button type="submit" style={{ width: '100%', padding: 12, borderRadius: 10, border: 'none', background: A.grad, color: '#fff', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 14px rgba(180,83,9,0.3)' }}>Update Mileage</button>
+              <button type="submit" style={{ width: '100%', padding: 12, borderRadius: 10, border: 'none', background: A.grad, color: '#fff', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'inherit', boxShadow: `0 4px 14px ${A.shadow}` }}>Update Mileage</button>
             </form>
           </div>
         </div>
@@ -860,10 +909,7 @@ export default function VehicleProfilePage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1250 }} onClick={() => setAssignDriverModal(false)}>
           <div style={{ background: D.surface, borderRadius: 24, width: '92%', maxWidth: 440, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.5)', border: `1px solid ${D.border}` }} onClick={e => e.stopPropagation()}>
             <div style={{ background: A.grad, padding: '22px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#fff' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><UserCheck size={20} /></div>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>Assign Driver</h3>
-              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><UserCheck size={20} /></div><h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>Assign Driver</h3></div>
               <button onClick={() => setAssignDriverModal(false)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, padding: 6, color: '#fff', cursor: 'pointer' }}><X size={18} /></button>
             </div>
             <div style={{ padding: '24px 28px' }}>
@@ -873,7 +919,7 @@ export default function VehicleProfilePage() {
                 {allDrivers.map(d => <option key={d.id} value={d.username || d.userName}>{d.username || d.userName} ({d.firstName} {d.lastName})</option>)}
               </select>
               {driverError && <p style={{ margin: '0 0 12px', fontSize: '0.75rem', color: '#f87171' }}>{driverError}</p>}
-              <button onClick={doAssign} disabled={driverBusy} style={{ width: '100%', padding: 12, borderRadius: 10, border: 'none', background: A.grad, color: '#fff', fontWeight: 800, fontSize: '0.9rem', cursor: driverBusy ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 14px rgba(180,83,9,0.3)', opacity: driverBusy ? 0.7 : 1 }}>
+              <button onClick={doAssign} disabled={driverBusy} style={{ width: '100%', padding: 12, borderRadius: 10, border: 'none', background: A.grad, color: '#fff', fontWeight: 800, fontSize: '0.9rem', cursor: driverBusy ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: `0 4px 14px ${A.shadow}`, opacity: driverBusy ? 0.7 : 1 }}>
                 {driverBusy ? 'Assigning…' : 'Confirm Assignment'}
               </button>
             </div>
@@ -889,12 +935,12 @@ export default function VehicleProfilePage() {
         </div>
       )}
 
-      {/* Expiry date confirm modal */}
+      {/* Expiry Date Confirm Modal */}
       {pendingUpload && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300 }}>
           <div style={{ background: D.surface, borderRadius: 20, width: '92%', maxWidth: 400, padding: 28, border: `1px solid ${D.border}` }}>
             <h3 style={{ margin: '0 0 8px', fontSize: '1rem', fontWeight: 800, color: D.text }}>Set Expiry Date</h3>
-            <p style={{ margin: '0 0 16px', fontSize: '0.8rem', color: D.textSub }}>Confirm expiry for <strong>{pendingUpload.docType}</strong>:</p>
+            <p style={{ margin: '0 0 16px', fontSize: '0.8rem', color: D.textSub }}>Confirm expiry date for <strong>{pendingUpload.docType}</strong> document:</p>
             <input type="date" value={pendingUpload.expiryDate} onChange={e => setPendingUpload(p => ({ ...p, expiryDate: e.target.value }))} style={inp({ marginBottom: 20 })} />
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => setPendingUpload(null)} style={{ flex: 1, padding: 11, borderRadius: 10, border: `1px solid ${D.border}`, background: D.bg, color: D.textSub, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
