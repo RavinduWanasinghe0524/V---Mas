@@ -370,6 +370,25 @@ const mapNotificationToActivity = (n) => {
     timestamp: new Date(n.createdAt)
   }
 }
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return null
+  if (dateStr instanceof Date) return dateStr
+  const parts = String(dateStr).split('T')[0].split('-')
+  if (parts.length === 3) {
+    return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+  }
+  return new Date(dateStr)
+}
+
+const classifyFuelType = (raw) => {
+  const clean = String(raw || '').toUpperCase().replace(/_/g, ' ')
+  if (clean.includes('SUPER DIESEL')) return 'superDiesel'
+  if (clean.includes('DIESEL') || clean.includes('AUTO DIESEL')) return 'diesel'
+  if (clean.includes('SUPER PETROL') || clean.includes('95') || clean.includes('PETROL 95')) return 'superPetrol'
+  if (clean.includes('PETROL') || clean.includes('92') || clean.includes('PETROL 92')) return 'petrol'
+  return 'diesel'
+}
+
 const FleetFuelChart = ({ isDark, logs }) => {
   const [hover, setHover] = useState(null) // { i, type: 'diesel' | 'superDiesel' | 'petrol' | 'superPetrol' | 'month' }
   const svgRef = useRef(null)
@@ -380,7 +399,7 @@ const FleetFuelChart = ({ isDark, logs }) => {
 
   const [selectedYear, setSelectedYear] = useState(currentYear)
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
-  const [selectedWeek, setSelectedWeek] = useState(1)
+  const [selectedWeek, setSelectedWeek] = useState('all')
 
   const numDays = useMemo(() => {
     if (selectedMonth === 'all') return 30
@@ -392,8 +411,8 @@ const FleetFuelChart = ({ isDark, logs }) => {
     const yrs = new Set()
     yrs.add(currentYear)
     ;(logs || []).forEach(l => {
-      if (l.date) {
-        const y = new Date(l.date).getFullYear()
+      if (l.date && !l.isDeleted && !l.deleted && l.status !== 'REJECTED') {
+        const y = parseLocalDate(l.date)?.getFullYear()
         if (y) yrs.add(y)
       }
     })
@@ -421,21 +440,18 @@ const FleetFuelChart = ({ isDark, logs }) => {
     }))
 
     ;(logs || []).forEach(l => {
-      const d = new Date(l.date)
-      if (d.getFullYear() !== selectedYear) return
+      if (l.isDeleted || l.deleted || l.status === 'REJECTED') return
+      const d = parseLocalDate(l.date)
+      if (!d || d.getFullYear() !== selectedYear) return
       const m = d.getMonth()
-      let ft = (l.fuelType || '').toLowerCase().replace('_', ' ')
-      if (ft === 'petrol' || ft.includes('92')) ft = 'petrol';
-      else if (ft === 'super petrol' || ft.includes('95')) ft = 'super petrol';
-      else if (ft === 'diesel' || ft.includes('auto')) ft = 'diesel';
-      else if (ft.includes('super diesel')) ft = 'super diesel';
+      const ft = classifyFuelType(l.fuelType)
 
       const liters = Number(l.liters) || 0
       const reg = l.vehicleRegNumber || 'Unknown'
       if (ft === 'diesel') { agg[m].diesel += liters; agg[m].dieselMap[reg] = (agg[m].dieselMap[reg] || 0) + liters }
-      else if (ft === 'super diesel') { agg[m].superDiesel += liters; agg[m].superDieselMap[reg] = (agg[m].superDieselMap[reg] || 0) + liters }
+      else if (ft === 'superDiesel') { agg[m].superDiesel += liters; agg[m].superDieselMap[reg] = (agg[m].superDieselMap[reg] || 0) + liters }
       else if (ft === 'petrol') { agg[m].petrol += liters; agg[m].petrolMap[reg] = (agg[m].petrolMap[reg] || 0) + liters }
-      else if (ft === 'super petrol') { agg[m].superPetrol += liters; agg[m].superPetrolMap[reg] = (agg[m].superPetrolMap[reg] || 0) + liters }
+      else if (ft === 'superPetrol') { agg[m].superPetrol += liters; agg[m].superPetrolMap[reg] = (agg[m].superPetrolMap[reg] || 0) + liters }
     })
 
     for (let m = 0; m <= maxMonth; m++) {
@@ -454,8 +470,8 @@ const FleetFuelChart = ({ isDark, logs }) => {
     }
   } else {
     // Specific month selected -> daily view
-    const numDays = new Date(selectedYear, selectedMonth + 1, 0).getDate()
-    const aggDays = Array.from({ length: numDays }, () => ({
+    const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate()
+    const aggDays = Array.from({ length: daysInMonth }, () => ({
       diesel: 0,
       superDiesel: 0,
       petrol: 0,
@@ -467,31 +483,27 @@ const FleetFuelChart = ({ isDark, logs }) => {
     }))
 
     ;(logs || []).forEach(l => {
-      const d = new Date(l.date)
-      if (d.getFullYear() !== selectedYear || d.getMonth() !== selectedMonth) return
+      if (l.isDeleted || l.deleted || l.status === 'REJECTED') return
+      const d = parseLocalDate(l.date)
+      if (!d || d.getFullYear() !== selectedYear || d.getMonth() !== selectedMonth) return
       const dateNum = d.getDate()
       const idx = dateNum - 1
-      if (idx < 0 || idx >= numDays) return
+      if (idx < 0 || idx >= daysInMonth) return
 
-      let ft = (l.fuelType || '').toLowerCase().replace('_', ' ')
-      if (ft === 'petrol' || ft.includes('92')) ft = 'petrol';
-      else if (ft === 'super petrol' || ft.includes('95')) ft = 'super petrol';
-      else if (ft === 'diesel' || ft.includes('auto')) ft = 'diesel';
-      else if (ft.includes('super diesel')) ft = 'super diesel';
-
+      const ft = classifyFuelType(l.fuelType)
       const liters = Number(l.liters) || 0
       const reg = l.vehicleRegNumber || 'Unknown'
       if (ft === 'diesel') { aggDays[idx].diesel += liters; aggDays[idx].dieselMap[reg] = (aggDays[idx].dieselMap[reg] || 0) + liters }
-      else if (ft === 'super diesel') { aggDays[idx].superDiesel += liters; aggDays[idx].superDieselMap[reg] = (aggDays[idx].superDieselMap[reg] || 0) + liters }
+      else if (ft === 'superDiesel') { aggDays[idx].superDiesel += liters; aggDays[idx].superDieselMap[reg] = (aggDays[idx].superDieselMap[reg] || 0) + liters }
       else if (ft === 'petrol') { aggDays[idx].petrol += liters; aggDays[idx].petrolMap[reg] = (aggDays[idx].petrolMap[reg] || 0) + liters }
-      else if (ft === 'super petrol') { aggDays[idx].superPetrol += liters; aggDays[idx].superPetrolMap[reg] = (aggDays[idx].superPetrolMap[reg] || 0) + liters }
+      else if (ft === 'superPetrol') { aggDays[idx].superPetrol += liters; aggDays[idx].superPetrolMap[reg] = (aggDays[idx].superPetrolMap[reg] || 0) + liters }
     })
 
-    for (let d = 0; d < numDays; d++) {
+    for (let d = 0; d < daysInMonth; d++) {
       const dayNum = d + 1
       if (selectedWeek !== 'all') {
-        const startDay = (selectedWeek - 1) * 7 + 1
-        const endDay = selectedWeek === 5 ? numDays : selectedWeek * 7
+        const startDay = (Number(selectedWeek) - 1) * 7 + 1
+        const endDay = Number(selectedWeek) === 5 ? daysInMonth : Number(selectedWeek) * 7
         if (dayNum < startDay || dayNum > endDay) continue
       }
       pts0.push({
@@ -573,7 +585,7 @@ const FleetFuelChart = ({ isDark, logs }) => {
               onChange={(e) => {
                 const val = e.target.value
                 setSelectedMonth(val === 'all' ? 'all' : Number(val))
-                setSelectedWeek(1)
+                setSelectedWeek('all')
               }}
               style={{
                 padding: '6px 28px 6px 12px',
@@ -629,6 +641,7 @@ const FleetFuelChart = ({ isDark, logs }) => {
                   transition: 'border-color 0.2s',
                 }}
               >
+                <option value="all">Full Month</option>
                 <option value={1}>Week 1 (1 - 7)</option>
                 <option value={2}>Week 2 (8 - 14)</option>
                 <option value={3}>Week 3 (15 - 21)</option>
@@ -636,7 +649,6 @@ const FleetFuelChart = ({ isDark, logs }) => {
                 {numDays > 28 && (
                   <option value={5}>Week 5 (29 - {numDays})</option>
                 )}
-                <option value="all">Full Month</option>
               </select>
             </div>
           )}
@@ -808,23 +820,27 @@ const MaintenanceCostDonutChart = ({ isDark, services = [] }) => {
 
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-  const uniqueMonths = Array.from(new Set(services.map(s => {
+  const activeServices = (services || []).filter(s => !s.isDeleted && !s.deleted && s.status !== 'REJECTED')
+
+  const uniqueMonths = Array.from(new Set(activeServices.map(s => {
     if (!s.serviceDate) return null
-    return new Date(s.serviceDate).getMonth()
-  }).filter(m => m !== null))).sort((a, b) => a - b)
+    return parseLocalDate(s.serviceDate)?.getMonth()
+  }).filter(m => m !== null && m !== undefined))).sort((a, b) => a - b)
 
-  const uniqueVehicles = Array.from(new Set(services.map(s => s.vehicleRegNumber).filter(Boolean))).sort()
+  const uniqueVehicles = Array.from(new Set(activeServices.map(s => s.vehicleRegNumber).filter(Boolean))).sort()
 
-  const filteredServices = services.filter(s => {
+  const filteredServices = activeServices.filter(s => {
     if (!s.serviceDate || !s.serviceCost) return false
     
     if (selectedMonth !== 'ALL') {
-      const m = new Date(s.serviceDate).getMonth()
+      const m = parseLocalDate(s.serviceDate)?.getMonth()
       if (m !== Number(selectedMonth)) return false
     }
 
     if (selectedVehicle !== 'ALL') {
-      if (s.vehicleRegNumber !== selectedVehicle) return false
+      const vReg = (s.vehicleRegNumber || '').replace(/^VEH-/i, '').trim().toUpperCase()
+      const targetReg = selectedVehicle.replace(/^VEH-/i, '').trim().toUpperCase()
+      if (vReg !== targetReg) return false
     }
 
     return true
@@ -1007,13 +1023,13 @@ const MaintenanceCostDonutChart = ({ isDark, services = [] }) => {
     </div>
   )
 }
-const StatusBreakdown = ({ isDark, statusData, stats }) => {
+const StatusBreakdown = ({ isDark, statusData, stats = {} }) => {
   const [animProgress, setAnimProgress] = useState(0)
 
   useEffect(() => {
     let frame
     let start = null
-    const duration = 1200
+    const duration = 1000
     const animate = (ts) => {
       if (!start) start = ts
       const p = Math.min((ts - start) / duration, 1)
@@ -1022,14 +1038,15 @@ const StatusBreakdown = ({ isDark, statusData, stats }) => {
     }
     frame = requestAnimationFrame(animate)
     return () => cancelAnimationFrame(frame)
-  }, [statusData])
+  }, [stats.active, stats.maintenance, stats.available, stats.inactive, stats.total, statusData])
 
   const donutData = [
     { label: 'Active',      value: stats.active || 0, color: '#34d399' },
-    { label: 'Maintenance', value: stats.maintenance || 0,  color: '#fbbf24' },
-    { label: 'Available',   value: stats.available || 0,  color: '#3b82f6' },
+    { label: 'Maintenance', value: stats.maintenance || 0, color: '#fbbf24' },
+    { label: 'Available',   value: stats.available || 0, color: '#3b82f6' },
+    ...(stats.inactive > 0 ? [{ label: 'Inactive', value: stats.inactive, color: '#ef4444' }] : [])
   ]
-  const total = donutData.reduce((s, d) => s + d.value, 0)
+  const total = stats.total ?? donutData.reduce((s, d) => s + d.value, 0)
   
   const cx = 110, cy = 110, R = 104, r = 74
   let angle = -Math.PI / 2
@@ -1072,7 +1089,11 @@ const StatusBreakdown = ({ isDark, statusData, stats }) => {
           <text x={cx} y={cy - 6} fontSize="28" fontWeight="900" fill="var(--text-primary)" textAnchor="middle" fontFamily="'Plus Jakarta Sans',sans-serif">{total}</text>
           <text x={cx} y={cy + 14} fontSize="11" fill="var(--text-muted)" textAnchor="middle" fontWeight="700" fontFamily="inherit" style={{ textTransform: 'uppercase' }} letterSpacing="0.05em">Total</text>
         </svg>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', width: '100%', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: donutData.length === 4 ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)',
+          width: '100%', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 16
+        }}>
           {donutData.map((d, i) => (
             <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
@@ -2052,13 +2073,39 @@ const DashboardPage = () => {
 
           if (user?.role === 'CONTROLLER') {
             try {
-              const response = await vehicleAPI.getAllVehicles()
-              const vehicles = response.data.data || []
+              const [response, tripsRes] = await Promise.all([
+                vehicleAPI.getAllVehicles(),
+                tripAPI.getAllTrips().catch(() => ({ data: { data: [] } }))
+              ])
+              const vehicles = (response.data.data || []).filter(v => !v.isDeleted && !v.deleted)
+              const activeTrips = (tripsRes.data.data || []).filter(t => !t.deleted && !t.isDeleted)
+
+              const cleanReg = (r) => (r || '').toLowerCase().trim().replace(/^veh-/i, '')
+              const computeVehicleStatus = (vehicle) => {
+                const backendStatus = (vehicle.status || '').toUpperCase()
+                if (backendStatus === 'INACTIVE') return 'INACTIVE'
+                const reg = cleanReg(vehicle.registrationNo)
+                const startedJob = activeTrips.find(t => {
+                  const tReg = cleanReg(t.vehicleRegNumber)
+                  return tReg === reg && t.status === 'STARTED'
+                })
+                if (startedJob) {
+                  return (startedJob.purpose || '').startsWith('[Service]') ? 'IN_SERVICE' : 'ACTIVE'
+                }
+                return 'AVAILABLE'
+              }
+
+              const activeCount = vehicles.filter(v => computeVehicleStatus(v) === 'ACTIVE').length
+              const maintenanceCount = vehicles.filter(v => computeVehicleStatus(v) === 'IN_SERVICE').length
+              const availableCount = vehicles.filter(v => computeVehicleStatus(v) === 'AVAILABLE').length
+              const inactiveCount = vehicles.filter(v => computeVehicleStatus(v) === 'INACTIVE').length
+
               setControllerStats({
                 total: vehicles.length,
-                active: vehicles.filter(v => v.status === 'ACTIVE').length,
-                maintenance: vehicles.filter(v => v.status === 'SERVICE').length,
-                available: vehicles.filter(v => v.status === 'AVAILABLE').length,
+                active: activeCount,
+                maintenance: maintenanceCount,
+                available: availableCount,
+                inactive: inactiveCount,
               })
 
               const notifsRes = await notificationAPI.getAll()

@@ -145,6 +145,25 @@ const LineChart = ({ data, maxVal, minVal, D }) => {
   )
 }
 
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return null
+  if (dateStr instanceof Date) return dateStr
+  const parts = String(dateStr).split('T')[0].split('-')
+  if (parts.length === 3) {
+    return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+  }
+  return new Date(dateStr)
+}
+
+const classifyFuelType = (raw) => {
+  const clean = String(raw || '').toUpperCase().replace(/_/g, ' ')
+  if (clean.includes('SUPER DIESEL')) return 'superDiesel'
+  if (clean.includes('DIESEL') || clean.includes('AUTO DIESEL')) return 'diesel'
+  if (clean.includes('SUPER PETROL') || clean.includes('95') || clean.includes('PETROL 95')) return 'superPetrol'
+  if (clean.includes('PETROL') || clean.includes('92') || clean.includes('PETROL 92')) return 'petrol'
+  return 'diesel'
+}
+
 /* -- Fuel Consumption Line Chart (Diesel vs Petrol, per vehicle hover) -- */
 const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
   const [hover, setHover] = useState(null)
@@ -164,21 +183,18 @@ const FleetFuelConsumptionChart = ({ logs, D, isDark }) => {
     superPetrolMap: {}
   }))
   ;(logs || []).forEach(l => {
-    const d = new Date(l.date)
-    if (d.getFullYear() !== yr) return
+    if (l.isDeleted || l.deleted || l.status === 'REJECTED') return
+    const d = parseLocalDate(l.date)
+    if (!d || d.getFullYear() !== yr) return
     const m = d.getMonth()
-    let ft = (l.fuelType || '').toLowerCase().replace('_', ' ')
-    if (ft === 'petrol' || ft.includes('92')) ft = 'petrol';
-    else if (ft === 'super petrol' || ft.includes('95')) ft = 'super petrol';
-    else if (ft === 'diesel' || ft.includes('auto')) ft = 'diesel';
-    else if (ft.includes('super diesel')) ft = 'super diesel';
+    const ft = classifyFuelType(l.fuelType)
 
     const liters = Number(l.liters) || 0
     const reg = l.vehicleRegNumber || 'Unknown'
     if (ft === 'diesel') { agg[m].diesel += liters; agg[m].dieselMap[reg] = (agg[m].dieselMap[reg] || 0) + liters }
-    else if (ft === 'super diesel') { agg[m].superDiesel += liters; agg[m].superDieselMap[reg] = (agg[m].superDieselMap[reg] || 0) + liters }
+    else if (ft === 'superDiesel') { agg[m].superDiesel += liters; agg[m].superDieselMap[reg] = (agg[m].superDieselMap[reg] || 0) + liters }
     else if (ft === 'petrol') { agg[m].petrol += liters; agg[m].petrolMap[reg] = (agg[m].petrolMap[reg] || 0) + liters }
-    else if (ft === 'super petrol') { agg[m].superPetrol += liters; agg[m].superPetrolMap[reg] = (agg[m].superPetrolMap[reg] || 0) + liters }
+    else if (ft === 'superPetrol') { agg[m].superPetrol += liters; agg[m].superPetrolMap[reg] = (agg[m].superPetrolMap[reg] || 0) + liters }
   })
   const toList = map => Object.entries(map).map(([reg, liters]) => ({ reg, liters })).sort((a, b) => b.liters - a.liters)
   const pts0 = []
