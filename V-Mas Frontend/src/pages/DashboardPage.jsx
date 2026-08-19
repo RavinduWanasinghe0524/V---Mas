@@ -1699,7 +1699,7 @@ const DriverFuelChart = ({ logs = [], isDark }) => {
 }
 
 /* ── Driver's active-trip panel with Start / Decline / Complete actions ── */
-const ActiveTripPanel = ({ trip, isDark, onChanged, navigate }) => {
+const ActiveTripPanel = ({ trip, isDark, onChanged, navigate, hasOtherInProgress = false }) => {
   const A = useAccents(isDark)
   const [busy, setBusy] = useState(false)
   const [modalAction, setModalAction] = useState(null) // 'start' | 'decline' | 'complete'
@@ -1785,7 +1785,12 @@ const ActiveTripPanel = ({ trip, isDark, onChanged, navigate }) => {
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         {status === 'ASSIGNED' && (
           <>
-            <button onClick={() => setModalAction('start')} disabled={busy} style={tripBtnStyle('linear-gradient(135deg,#059669,#10b981)', '#fff', busy)}>
+            <button
+              onClick={() => setModalAction('start')}
+              disabled={busy || hasOtherInProgress}
+              style={tripBtnStyle(hasOtherInProgress ? 'var(--surface-hi)' : 'linear-gradient(135deg,#059669,#10b981)', hasOtherInProgress ? 'var(--text-muted)' : '#fff', busy || hasOtherInProgress, hasOtherInProgress ? '1px solid var(--surface-border)' : null)}
+              title={hasOtherInProgress ? 'Complete your in-progress job first' : 'Accept Job'}
+            >
               <Play size={15} /> Accept Job
             </button>
             <button onClick={() => setModalAction('decline')} disabled={busy} style={tripBtnStyle(A.redDim, A.red, busy, `1px solid ${A.red}40`)}>
@@ -1832,7 +1837,10 @@ const tripBtnStyle = (bg, color, busy, border) => ({
 const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
   const A = useAccents(isDark)
   const allTrips = trips || []
-  const activeTrip = allTrips.find(t => ['ASSIGNED', 'STARTED'].includes((t.status || '').toUpperCase()))
+  const inProgressTrip = allTrips.find(t => (t.status || '').toUpperCase() === 'STARTED')
+  const assignedTrip = allTrips.find(t => (t.status || '').toUpperCase() === 'ASSIGNED')
+  const activeTrip = inProgressTrip || assignedTrip
+  const hasOtherInProgress = !!inProgressTrip && inProgressTrip.id !== activeTrip?.id
   const tripStatusLabel = { ASSIGNED: 'Awaiting response', STARTED: 'In progress' }
   const activeStatus = (activeTrip?.status || '').toUpperCase()
 
@@ -1939,7 +1947,7 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
       )}
 
       {activeTrip ? (
-        <ActiveTripPanel trip={activeTrip} isDark={isDark} onChanged={onTripChanged} navigate={navigate} />
+        <ActiveTripPanel trip={activeTrip} isDark={isDark} onChanged={onTripChanged} navigate={navigate} hasOtherInProgress={hasOtherInProgress} />
       ) : (
         <div style={{
           background: 'var(--surface)', borderRadius: 24, border: '1px solid var(--surface-border)',

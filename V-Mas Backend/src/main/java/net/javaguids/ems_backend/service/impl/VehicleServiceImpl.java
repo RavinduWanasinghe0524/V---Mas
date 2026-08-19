@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -355,7 +356,7 @@ public class VehicleServiceImpl implements VehicleService {
     @Override
     @Transactional
     public VehicleDto assignDriver(Long vehicleId, String driverUsername) {
-        Vehicle vehicle = vehicleRepository.findById(vehicleId)
+        Vehicle vehicle = vehicleRepository.findById(Objects.requireNonNull(vehicleId))
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found: " + vehicleId));
 
         if (driverUsername == null || driverUsername.isBlank()) {

@@ -27,6 +27,7 @@ public class ServiceRecordMapper {
         dto.setDeletedBy(record.getDeletedBy());
         dto.setDeletedAt(record.getDeletedAt());
         dto.setStatus(record.getStatus());
+        dto.setTripId(record.getTripId());
         return dto;
     }
 
@@ -43,6 +44,7 @@ public class ServiceRecordMapper {
         record.setNextServiceMileageKm(dto.getNextServiceMileageKm());
         record.setDescription(dto.getDescription());
         record.setPartsReplaced(dto.getPartsReplaced());
+        record.setTripId(dto.getTripId());
         if (dto.getServiceClassification() != null) {
             record.setServiceClassification(dto.getServiceClassification());
         }

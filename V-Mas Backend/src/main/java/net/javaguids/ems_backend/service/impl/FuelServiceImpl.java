@@ -55,6 +55,7 @@ public class FuelServiceImpl implements FuelService {
         fuelLog.setMileage(fuelLogDto.getMileage());
         fuelLog.setDate(fuelLogDto.getDate() != null ? fuelLogDto.getDate() : LocalDate.now());
         fuelLog.setDriverUsername(driverUsername); // ← tie this log to the driver
+        fuelLog.setTripId(fuelLogDto.getTripId()); // ← tie to specific trip/job if provided
         fuelLog.setUploadedBy(driverUsername); // ← track who uploaded it
         fuelLog.setStatus(ApprovalStatus.PENDING);
 
@@ -112,6 +113,9 @@ public class FuelServiceImpl implements FuelService {
         fuelLog.setMileage(fuelLogDto.getMileage());
         if (fuelLogDto.getDate() != null) {
             fuelLog.setDate(fuelLogDto.getDate());
+        }
+        if (fuelLogDto.getTripId() != null) {
+            fuelLog.setTripId(fuelLogDto.getTripId());
         }
 
         // Mark as updated
@@ -291,6 +295,7 @@ public class FuelServiceImpl implements FuelService {
         fuelLog.setDate(fuelLogDto.getDate() != null ? fuelLogDto.getDate() : LocalDate.now());
         // driverUsername may be supplied in the DTO (optional for controller)
         fuelLog.setDriverUsername(fuelLogDto.getDriverUsername());
+        fuelLog.setTripId(fuelLogDto.getTripId());
         fuelLog.setUploadedBy(fuelLogDto.getUploadedBy()); // ← track who uploaded it
         fuelLog.setStatus(ApprovalStatus.APPROVED);
 
@@ -322,6 +327,9 @@ public class FuelServiceImpl implements FuelService {
         }
         if (fuelLogDto.getDriverUsername() != null) {
             fuelLog.setDriverUsername(fuelLogDto.getDriverUsername());
+        }
+        if (fuelLogDto.getTripId() != null) {
+            fuelLog.setTripId(fuelLogDto.getTripId());
         }
 
         // Mark as updated and track who updated it
@@ -586,6 +594,7 @@ public class FuelServiceImpl implements FuelService {
         dto.setMileage(fuelLog.getMileage());
         dto.setDate(fuelLog.getDate());
         dto.setDriverUsername(fuelLog.getDriverUsername());
+        dto.setTripId(fuelLog.getTripId());
         // Audit fields
         dto.setUploadedBy(fuelLog.getUploadedBy());
         dto.setIsUpdated(fuelLog.getIsUpdated() != null && fuelLog.getIsUpdated());

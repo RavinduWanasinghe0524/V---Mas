@@ -244,6 +244,9 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
         if (dto.getServiceClassification() != null) {
             record.setServiceClassification(dto.getServiceClassification());
         }
+        if (dto.getTripId() != null) {
+            record.setTripId(dto.getTripId());
+        }
 
         if (isDriver) {
             record.setStatus(ApprovalStatus.PENDING);
@@ -620,7 +623,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
     @Override
     @org.springframework.transaction.annotation.Transactional
     public ServiceRecordDto approveServiceRecord(Long id) {
-        ServiceRecord record = serviceRecordRepository.findById(id)
+        ServiceRecord record = serviceRecordRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Service record not found with id: " + id));
         record.setStatus(ApprovalStatus.APPROVED);
         ServiceRecord saved = serviceRecordRepository.save(record);
@@ -644,7 +647,7 @@ public class ServiceRecordServiceImpl implements ServiceRecordService {
     @Override
     @org.springframework.transaction.annotation.Transactional
     public ServiceRecordDto rejectServiceRecord(Long id) {
-        ServiceRecord record = serviceRecordRepository.findById(id)
+        ServiceRecord record = serviceRecordRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Service record not found with id: " + id));
         record.setStatus(ApprovalStatus.REJECTED);
         ServiceRecord saved = serviceRecordRepository.save(record);

@@ -23,6 +23,7 @@ public class FuelLogDto {
     private Double mileage;
     private LocalDate date;
     private String driverUsername;
+    private Long tripId;
 
     // Audit / status fields
     private String uploadedBy;
