@@ -47,4 +47,7 @@ public class VehicleDto {
     private Double fuelCapacity;
 
     private String driverUsername;   // assigned driver's username (null if unassigned)
+
+    /** Reason provided when vehicle was marked INACTIVE. Null for active vehicles. */
+    private String deactivationReason;
 }

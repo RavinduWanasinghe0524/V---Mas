@@ -32,4 +32,7 @@ public interface VehicleService {
     /** Fetch the vehicle that is assigned to the given driver username. */
     VehicleDto getMyVehicle(String driverUsername);
 
+    /** Find a non-deleted vehicle by its registration number. Throws ResourceNotFoundException if not found. */
+    VehicleDto getVehicleByRegistrationNo(String registrationNo);
+
 }

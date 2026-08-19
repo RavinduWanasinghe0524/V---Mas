@@ -161,6 +161,15 @@ public class VehicleController {
                 .body(resource);
     }
 
+    // GET /api/vehicles/registration/{registrationNo} — Find vehicle by registration number (BUG-01 fix)
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER', 'DRIVER')")
+    @GetMapping("/registration/{registrationNo}")
+    public ResponseEntity<ApiResponse<VehicleDto>> getVehicleByRegistrationNo(
+            @PathVariable String registrationNo) {
+        VehicleDto vehicle = vehicleService.getVehicleByRegistrationNo(registrationNo);
+        return ApiResponseUtil.success("Vehicle fetched successfully", vehicle, HttpStatus.OK);
+    }
+
     // PATCH /api/vehicles/{id}/assign-driver — Assign or unassign a driver to a vehicle
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLLER')")
     @PatchMapping("/{id}/assign-driver")

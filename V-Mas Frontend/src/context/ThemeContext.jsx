@@ -4,6 +4,11 @@ export const ThemeContext = createContext({ theme: 'blue', toggleTheme: () => { 
 
 export const useTheme = () => useContext(ThemeContext);
 
+// Lazy import AuthContext to avoid circular dependency
+// (ThemeContext is imported by AuthProvider, which provides AuthContext)
+let _authContextRef = null
+export const _setAuthContextRef = (ctx) => { _authContextRef = ctx }
+
 /**
  * useD() — drop-in replacement for the hardcoded `const D = {...}` dark palette.
  * Returns theme-aware color tokens so every page auto-responds to theme changes.
@@ -12,12 +17,18 @@ export const useD = () => {
   const { theme } = useContext(ThemeContext);
   const isDark = theme === 'blue';
 
+  // Read role from AuthContext if available, else fall back to localStorage
+  // (fallback needed because ThemeContext is loaded before AuthProvider)
   let role = 'NONE';
   try {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const parsed = JSON.parse(storedUser);
-      role = parsed.role || 'NONE';
+    if (_authContextRef) {
+      role = _authContextRef.user?.role || 'NONE';
+    } else {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        role = parsed.role || 'NONE';
+      }
     }
   } catch (e) { }
 

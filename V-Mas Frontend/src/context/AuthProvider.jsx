@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { authAPI } from '../services/api'
 import { AuthContext } from './AuthContext'
 import { LogOut, X } from 'lucide-react'
-import { useD, useTheme } from './ThemeContext'
+import { useD, useTheme, _setAuthContextRef } from './ThemeContext'
 
 // ── Helper: build a normalised user object from the backend UserDto ──
 const buildUser = (userDto) => ({
@@ -48,12 +49,15 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   // Apply user role data attribute to html node for dynamic CSS variables
+  // Also keep ThemeContext's auth ref in sync so useD() always has the real role
   useEffect(() => {
     if (user?.role) {
       document.documentElement.setAttribute('data-role', user.role);
     } else {
       document.documentElement.removeAttribute('data-role');
     }
+    // Update the ThemeContext ref so useD() reads from context, not stale localStorage
+    _setAuthContextRef(user ? { user } : null)
   }, [user]);
 
   // ── LOGIN ──────────────────────────────────────────────────────────
@@ -141,6 +145,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     token,
+    loading,
     login,
     register,
     logout,
@@ -182,7 +187,7 @@ const LogoutConfirmationModal = ({ onConfirm, onCancel }) => {
   const { theme } = useTheme()
   const isDark = theme === 'blue'
 
-  return (
+  return createPortal(
     <div 
       style={{ 
         position: 'fixed', 
@@ -192,7 +197,7 @@ const LogoutConfirmationModal = ({ onConfirm, onCancel }) => {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center', 
-        zIndex: 9999, 
+        zIndex: 99999, 
         animation: 'fadeIn 0.25s ease' 
       }} 
       onClick={onCancel}
@@ -219,55 +224,42 @@ const LogoutConfirmationModal = ({ onConfirm, onCancel }) => {
             right: 20,
             background: 'transparent', 
             border: 'none', 
-            borderRadius: 10, 
-            padding: 8, 
-            color: D.textSub, 
-            cursor: 'pointer', 
-            transition: 'all 0.2s',
+            color: D.textMuted, 
+            cursor: 'pointer',
+            padding: 8,
+            borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
-          }} 
-          onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} 
-          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            justifyContent: 'center',
+            transition: 'background 0.2s, color 0.2s'
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.color = D.text }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = D.textMuted }}
         >
           <X size={18} />
         </button>
 
         <div style={{ 
-          width: 56, 
-          height: 56, 
-          borderRadius: 16, 
-          background: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.1)', 
+          width: 64, 
+          height: 64, 
+          borderRadius: 20, 
+          background: D.redDim, 
           color: D.red, 
-          border: isDark ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(239,68,68,0.2)', 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center', 
-          margin: '12px auto 20px' 
+          margin: '0 auto 20px',
+          boxShadow: `0 8px 24px ${D.redDim}`
         }}>
-          <LogOut size={24} />
+          <LogOut size={28} />
         </div>
 
-        <h3 style={{ 
-          margin: '0 0 8px', 
-          fontWeight: 800, 
-          color: D.text, 
-          fontSize: '1.25rem', 
-          fontFamily: "'Plus Jakarta Sans', sans-serif", 
-          letterSpacing: '-0.02em' 
-        }}>
-          Sign Out
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: D.text, marginBottom: 8, letterSpacing: '-0.02em' }}>
+          Sign Out of V-MAS?
         </h3>
-
-        <p style={{ 
-          margin: '0 0 28px', 
-          color: D.textSub, 
-          fontSize: '0.9rem', 
-          lineHeight: 1.5,
-          fontFamily: "inherit"
-        }}>
-          Are you sure to sign out?
+        
+        <p style={{ fontSize: '0.88rem', color: D.textMuted, lineHeight: 1.5, marginBottom: 28, padding: '0 8px' }}>
+          Are you sure you want to end your current session? You will need to sign in again to access the dashboard.
         </p>
 
         <div style={{ display: 'flex', gap: 12 }}>
@@ -280,15 +272,15 @@ const LogoutConfirmationModal = ({ onConfirm, onCancel }) => {
               borderRadius: 12, 
               border: `1px solid ${D.border}`, 
               background: 'transparent', 
-              color: D.text, 
-              cursor: 'pointer', 
+              color: D.textSub, 
               fontSize: '0.88rem', 
-              fontWeight: 700, 
+              fontWeight: 600, 
+              cursor: 'pointer', 
               transition: 'all 0.2s',
               fontFamily: 'inherit'
             }} 
-            onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'} 
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            onMouseEnter={e => { e.currentTarget.style.background = D.surfaceHi; e.currentTarget.style.color = D.text }} 
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = D.textSub }}
           >
             Cancel
           </button>
@@ -317,6 +309,7 @@ const LogoutConfirmationModal = ({ onConfirm, onCancel }) => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

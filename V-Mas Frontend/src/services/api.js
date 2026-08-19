@@ -79,17 +79,10 @@ export const profileAPI = {
   changePassword:  (data) => api.put('/users/me/password', data),
 }
 
-export const employeeAPI = {
-  getAllEmployees:  ()         => api.get('/employees'),
-  getEmployeeById: (id)       => api.get(`/employees/${id}`),
-  createEmployee:  (data)     => api.post('/employees', data),
-  updateEmployee:  (id, data) => api.put(`/employees/${id}`, data),
-  deleteEmployee:  (id)       => api.delete(`/employees/${id}`),
-}
-
 export const vehicleAPI = {
   getAllVehicles:    ()                  => api.get('/vehicles'),
   getVehicleById:   (id)                => api.get(`/vehicles/${id}`),
+  getVehicleByRegNo: (regNo)             => api.get(`/vehicles/registration/${encodeURIComponent(regNo)}`),
   updateVehicle:    (id, data)          => api.put(`/vehicles/${id}`, data),
   deleteVehicle:    (id)                => api.delete(`/vehicles/${id}`),
   registerVehicle:  (data)              => api.post('/vehicles', data),
