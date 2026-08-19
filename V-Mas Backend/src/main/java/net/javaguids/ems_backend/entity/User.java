@@ -67,6 +67,9 @@ public class User {
     @Column(name = "experience")
     private String experience;
 
+    @Column(name = "address")
+    private String address;
+
     // ── Soft-delete fields ────────────────────────────────────────────────
 
     /** True when the record has been soft-deleted (not physically removed). */

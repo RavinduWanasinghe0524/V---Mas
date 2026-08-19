@@ -31,4 +31,5 @@ public class UserDto {
     private String licenseDocumentPath;
     private java.time.LocalDate dateJoined;
     private String experience;
+    private String address;
 }
