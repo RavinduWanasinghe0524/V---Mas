@@ -515,21 +515,44 @@ const TripsPage = () => {
     const cleanPurpose = getCleanPurpose(trip.purpose)
     const matchedType = SERVICE_TYPES.find(t => t.label.toLowerCase() === cleanPurpose.toLowerCase())
 
-    // Find vehicle from vehicles state array to pre-fill current mileage
-    const targetVeh = vehicles.find(v => (v.registrationNo || '').replace(/^VEH-/i, '').toUpperCase() === (trip.vehicleRegNumber || '').replace(/^VEH-/i, '').toUpperCase())
+    // Find vehicle from vehicles state array or API to pre-fill current mileage
+    const cleanReg = (trip.vehicleRegNumber || '').replace(/^VEH-/i, '').trim()
+    const targetVeh = vehicles.find(v => (v.registrationNo || '').replace(/^VEH-/i, '').toUpperCase() === cleanReg.toUpperCase())
     let currentKm = targetVeh?.currentMileageKm ?? targetVeh?.initialMileageKm ?? null
-    let prefillMileage = currentKm != null ? String(currentKm) : ''
 
-    if (currentKm == null) {
+    if (currentKm == null && cleanReg) {
       try {
-        const vRes = await vehicleAPI.getMyVehicle()
-        const v = vRes?.data?.data
-        if (v && (v.registrationNo || '').replace(/^VEH-/i, '').toUpperCase() === (trip.vehicleRegNumber || '').replace(/^VEH-/i, '').toUpperCase()) {
-          currentKm = v.currentMileageKm ?? null
-          if (currentKm != null) prefillMileage = String(currentKm)
+        const vRes = await vehicleAPI.getVehicleByRegNo(cleanReg)
+        const v = vRes?.data?.data || vRes?.data
+        if (v) {
+          currentKm = v.currentMileageKm ?? v.initialMileageKm ?? null
         }
-      } catch { /* non-fatal */ }
+      } catch {
+        try {
+          const vRes = await vehicleAPI.getMyVehicle()
+          const v = vRes?.data?.data || vRes?.data
+          if (v && (v.registrationNo || '').replace(/^VEH-/i, '').toUpperCase() === cleanReg.toUpperCase()) {
+            currentKm = v.currentMileageKm ?? v.initialMileageKm ?? null
+          }
+        } catch { /* non-fatal */ }
+      }
     }
+
+    // Fallback: check recent fuel logs or service records for the vehicle's odometer
+    if (currentKm == null && cleanReg) {
+      const vFuelLogs = (allFuelLogs || []).filter(l => (l.vehicleRegNumber || '').replace(/^VEH-/i, '').toUpperCase() === cleanReg.toUpperCase() && Number(l.mileage) > 0)
+      if (vFuelLogs.length > 0) {
+        const maxFuelMil = Math.max(...vFuelLogs.map(l => Number(l.mileage) || 0))
+        if (maxFuelMil > 0) currentKm = maxFuelMil
+      }
+      const vServices = (allServices || []).filter(s => (s.vehicleRegNumber || '').replace(/^VEH-/i, '').toUpperCase() === cleanReg.toUpperCase() && Number(s.currentMileageKm) > 0)
+      if (vServices.length > 0) {
+        const maxServMil = Math.max(...vServices.map(s => Number(s.currentMileageKm) || 0))
+        if (maxServMil > (currentKm || 0)) currentKm = maxServMil
+      }
+    }
+
+    let prefillMileage = currentKm != null ? String(currentKm) : ''
 
     setVehicleCurrentMileage(currentKm)
     setServiceLogForm({
@@ -537,7 +560,7 @@ const TripsPage = () => {
       vehicleRegNumber: trip.vehicleRegNumber || '',
       serviceType: matchedType ? matchedType.value : '',
       serviceDate: todayStr,
-      driverUsername: trip.driverUsername || '',
+      driverUsername: trip.driverUsername || user?.userName || '',
       currentMileageKm: prefillMileage,
     })
     setServiceLogFile(null)
@@ -651,11 +674,40 @@ const TripsPage = () => {
   }
 
   // ── Driver: open fuel log modal for a TRIP or FUEL job ─────────────────
-  const openFuelLog = (trip) => {
+  const openFuelLog = async (trip) => {
     const tripDate = trip.scheduledDate ? trip.scheduledDate.split('T')[0] : new Date().toISOString().split('T')[0]
-    const targetVeh = vehicles.find(v => (v.registrationNo || '').replace(/^VEH-/i, '').toUpperCase() === (trip.vehicleRegNumber || '').replace(/^VEH-/i, '').toUpperCase())
-    const currentKm = targetVeh?.currentMileageKm ?? targetVeh?.initialMileageKm ?? null
-    const fuelType = targetVeh?.fuelType ? formatFuelType(targetVeh.fuelType) : 'Auto Diesel'
+    const cleanReg = (trip.vehicleRegNumber || '').replace(/^VEH-/i, '').trim()
+    const targetVeh = vehicles.find(v => (v.registrationNo || '').replace(/^VEH-/i, '').toUpperCase() === cleanReg.toUpperCase())
+    let currentKm = targetVeh?.currentMileageKm ?? targetVeh?.initialMileageKm ?? null
+    let fuelType = targetVeh?.fuelType ? formatFuelType(targetVeh.fuelType) : 'Auto Diesel'
+
+    if (currentKm == null && cleanReg) {
+      try {
+        const vRes = await vehicleAPI.getVehicleByRegNo(cleanReg)
+        const v = vRes?.data?.data || vRes?.data
+        if (v) {
+          currentKm = v.currentMileageKm ?? v.initialMileageKm ?? null
+          if (v.fuelType) fuelType = formatFuelType(v.fuelType)
+        }
+      } catch {
+        try {
+          const vRes = await vehicleAPI.getMyVehicle()
+          const v = vRes?.data?.data || vRes?.data
+          if (v && (v.registrationNo || '').replace(/^VEH-/i, '').toUpperCase() === cleanReg.toUpperCase()) {
+            currentKm = v.currentMileageKm ?? v.initialMileageKm ?? null
+            if (v.fuelType) fuelType = formatFuelType(v.fuelType)
+          }
+        } catch { /* non-fatal */ }
+      }
+    }
+
+    if (currentKm == null && cleanReg) {
+      const vFuelLogs = (allFuelLogs || []).filter(l => (l.vehicleRegNumber || '').replace(/^VEH-/i, '').toUpperCase() === cleanReg.toUpperCase() && Number(l.mileage) > 0)
+      if (vFuelLogs.length > 0) {
+        const maxFuelMil = Math.max(...vFuelLogs.map(l => Number(l.mileage) || 0))
+        if (maxFuelMil > 0) currentKm = maxFuelMil
+      }
+    }
 
     setFuelVehicleMileage(currentKm)
     setFuelLogForm({
@@ -676,6 +728,23 @@ const TripsPage = () => {
     setFuelLogModal(null)
     setFuelLogForm(emptyFuelLog)
     setFuelLogError(null)
+  }
+
+  // ── Controller / Driver: open fuel log modal for editing an existing record ──
+  const openEditFuelLog = (log, trip) => {
+    setFuelVehicleMileage(log.mileage || null)
+    setFuelLogForm({
+      id: log.id,
+      vehicleRegNumber: log.vehicleRegNumber || '',
+      fuelType: formatFuelType(log.fuelType) || 'Auto Diesel',
+      liters: log.liters ? String(log.liters) : '',
+      costPerLiter: log.costPerLiter ? String(log.costPerLiter) : '',
+      totalCost: log.totalCost ? String(log.totalCost) : '',
+      mileage: log.mileage ? String(log.mileage) : '',
+      date: log.date ? log.date.split('T')[0] : '',
+    })
+    setFuelLogError(null)
+    setFuelLogModal(trip || { id: log.id, vehicleRegNumber: log.vehicleRegNumber })
   }
 
   const handleFuelLogSubmit = async (e) => {
@@ -712,12 +781,50 @@ const TripsPage = () => {
         totalCost,
         mileage: parseFloat(fuelLogForm.mileage),
         date: fuelLogForm.date,
+        status: canManage ? 'APPROVED' : 'PENDING',
       }
 
-      await fuelAPI.addFuelLog(payload)
-      flash('success', `Fuel log (${liters}L) recorded successfully for ${fuelLogForm.vehicleRegNumber}! Awaiting controller approval.`)
+      if (fuelLogForm.id) {
+        if (canManage) {
+          await fuelAPI.controllerUpdateLog(fuelLogForm.id, payload)
+          try { await fuelAPI.approveLog(fuelLogForm.id) } catch { /* non-fatal */ }
+        } else {
+          await fuelAPI.updateMyLog(fuelLogForm.id, payload)
+        }
+        flash('success', canManage ? 'Fuel record reviewed, updated & approved!' : 'Fuel record updated successfully!')
+      } else {
+        if (canManage) {
+          await fuelAPI.controllerAddLog(payload)
+        } else {
+          await fuelAPI.addFuelLog(payload)
+        }
+
+        // Notify controllers of new fuel submission
+        try {
+          const approvalMsg = `Driver ${user?.userName || 'Driver'} recorded fuel fill-up (${liters}L, Rs. ${totalCost.toLocaleString()}) for ${payload.vehicleRegNumber}${fuelLogModal?.id ? ` for Job #${fuelLogModal.id}` : ''} — awaiting your approval.`
+          await notificationAPI.create({ vehicleRegNumber: `VEH-${payload.vehicleRegNumber}`, message: approvalMsg, type: 'INFO' })
+        } catch { /* non-fatal */ }
+
+        // Automatically complete the job if this was a FUEL job assignment or completion
+        const isFuelJob = getJobType(fuelLogModal?.purpose) === 'FUEL'
+        const shouldAutoComplete = fuelLogModal?.id && (fuelLogModal.status === 'STARTED' || fuelLogModal.status === 'ASSIGNED') && (isFuelJob || fuelLogModal._completeOnSubmit)
+
+        if (shouldAutoComplete) {
+          try {
+            await tripAPI.completeTrip(fuelLogModal.id)
+          } catch (err) {
+            console.error("Auto-complete fuel job error:", err)
+          }
+        }
+
+        flash('success', shouldAutoComplete
+          ? `Fuel details submitted & Job #${fuelLogModal.id} completed! Awaiting controller approval.`
+          : `Fuel log (${liters}L) recorded successfully for ${fuelLogForm.vehicleRegNumber}! Awaiting controller approval.`)
+      }
+
       closeFuelLog()
       await loadFuelLogs()
+      loadTrips()
     } catch (err) {
       setFuelLogError(err.response?.data?.message || 'Failed to submit fuel log. Please try again.')
     } finally {
@@ -732,6 +839,7 @@ const TripsPage = () => {
       await fuelAPI.approveLog(fuelLogId)
       flash('success', 'Fuel record approved successfully!')
       await loadFuelLogs()
+      loadTrips()
     } catch (err) {
       flash('error', err.response?.data?.message || 'Failed to approve fuel record')
     } finally {
@@ -745,6 +853,7 @@ const TripsPage = () => {
       await fuelAPI.rejectLog(fuelLogId)
       flash('error', 'Fuel record rejected')
       await loadFuelLogs()
+      loadTrips()
     } catch (err) {
       flash('error', err.response?.data?.message || 'Failed to reject fuel record')
     } finally {
@@ -758,6 +867,7 @@ const TripsPage = () => {
       await fuelAPI.controllerDeleteLog(fuelLogId)
       flash('success', 'Fuel record deleted')
       await loadFuelLogs()
+      loadTrips()
     } catch (err) {
       flash('error', err.response?.data?.message || 'Failed to delete fuel record')
     } finally {
@@ -774,6 +884,7 @@ const TripsPage = () => {
       const res = await serviceAPI.getAllServices()
       setAllServices(res.data.data || [])
       setPendingDetailModal(null)
+      loadTrips()
     } catch (err) {
       flash('error', err.response?.data?.message || 'Failed to approve service record')
     } finally {
@@ -789,6 +900,7 @@ const TripsPage = () => {
       const res = await serviceAPI.getAllServices()
       setAllServices(res.data.data || [])
       setPendingDetailModal(null)
+      loadTrips()
     } catch (err) {
       flash('error', err.response?.data?.message || 'Failed to reject service record')
     } finally {
@@ -804,6 +916,7 @@ const TripsPage = () => {
       const res = await serviceAPI.getAllServices()
       setAllServices(res.data.data || [])
       setPendingDetailModal(null)
+      loadTrips()
     } catch (err) {
       flash('error', err.response?.data?.message || 'Failed to delete service record')
     } finally {
@@ -1070,15 +1183,15 @@ const TripsPage = () => {
                     style={{ display: 'flex', flexDirection: 'column', padding: '20px 32px', borderBottom: i < filteredTrips.length - 1 ? `1px solid ${D.border}` : 'none', transition: 'background 0.18s', cursor: 'pointer' }}
                     onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 20, width: '100%', flexWrap: 'nowrap' }}>
                       {/* Route + meta */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: '1 1 260px', minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: '1 1 auto', minWidth: 0 }}>
                         <div style={{ width: 44, height: 44, borderRadius: 12, background: typeConfig.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           {typeConfig.icon}
                         </div>
-                        <div style={{ minWidth: 0 }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: typeConfig.bg, color: typeConfig.icon.props.color, border: `1px solid ${typeConfig.icon.props.color}30`, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: typeConfig.bg, color: typeConfig.icon.props.color, border: `1px solid ${typeConfig.icon.props.color}30`, textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0 }}>
                               {typeConfig.label}
                             </span>
                             <div style={{ fontSize: '0.98rem', fontWeight: 800, color: D.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -1094,11 +1207,20 @@ const TripsPage = () => {
                         </div>
                       </div>
 
-                      {/* Status */}
-                      <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '5px 12px', borderRadius: 999, background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`, textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{badge.label}</span>
+                      {/* Status - Uniform Fixed Width Column for Consistent Alignment */}
+                      <div style={{ flexShrink: 0, width: 140, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <span style={{
+                          fontSize: '0.68rem', fontWeight: 800, padding: '6px 14px', borderRadius: 999,
+                          background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`,
+                          textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap',
+                          textAlign: 'center', minWidth: 105, display: 'inline-block', boxSizing: 'border-box'
+                        }}>
+                          {badge.label}
+                        </span>
+                      </div>
 
-                      {/* Actions */}
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginLeft: 'auto', alignItems: 'center' }}>
+                      {/* Actions - Uniformly Aligned Buttons */}
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end', flexShrink: 0 }}>
                         {/* Unified Details Button */}
                         <ActionBtn
                           onClick={() => setSelectedJobDetail(trip)}
@@ -1106,18 +1228,10 @@ const TripsPage = () => {
                           bg={D.surfaceHi}
                           color={D.text}
                           border={`1px solid ${D.border}`}
-                          icon={<Eye size={14} color="var(--primary)" />}
+                          icon={<Eye size={15} color="var(--primary)" />}
+                          minWidth={105}
                         >
                           Details
-                          {(jobServices.length > 0 || jobFuelLogs.length > 0) && (
-                            <span style={{
-                              fontSize: '0.68rem', fontWeight: 800, padding: '1px 6px', borderRadius: 999,
-                              background: 'var(--primary-glow)', color: 'var(--primary)',
-                              border: '1px solid var(--primary-border)', marginLeft: 2
-                            }}>
-                              {jobServices.length + jobFuelLogs.length}
-                            </span>
-                          )}
                         </ActionBtn>
 
                         {/* Driver Actions */}
@@ -1129,6 +1243,7 @@ const TripsPage = () => {
                               bg="linear-gradient(135deg,#059669,#10b981)"
                               color="#fff"
                               icon={<Play size={14} />}
+                              minWidth={95}
                             >
                               Accept
                             </ActionBtn>
@@ -1139,6 +1254,7 @@ const TripsPage = () => {
                               color={D.red}
                               border={`1px solid ${D.red}40`}
                               icon={<X size={14} />}
+                              minWidth={95}
                             >
                               Decline
                             </ActionBtn>
@@ -1146,109 +1262,64 @@ const TripsPage = () => {
                         )}
                         {!canManage && s === 'STARTED' && (
                           <>
-                            {/* Service jobs: show 'Log Service' button if controller granted access */}
-                            {type === 'SERVICE' && hasDriverServiceAccess(trip) && (
+                            {/* Service jobs: clicking Complete directly opens service details popup to record details and complete */}
+                            {type === 'SERVICE' && (
                               <ActionBtn
                                 onClick={() => openServiceLog(trip)}
                                 disabled={busy}
                                 bg="linear-gradient(135deg,#f59e0b,#d97706)"
                                 color="#fff"
-                                icon={<FileText size={14} />}
+                                icon={<CheckCircle size={14} />}
+                                minWidth={105}
                               >
-                                Log Service
+                                Complete
                               </ActionBtn>
                             )}
-                            {/* Trip or Fuel jobs: driver can log fuel fill-ups */}
-                            {(type === 'TRIP' || type === 'FUEL') && (
+
+                            {/* Fuel jobs: clicking Complete directly opens fuel fill-up popup to record details and complete */}
+                            {type === 'FUEL' && (
                               <ActionBtn
                                 onClick={() => openFuelLog(trip)}
                                 disabled={busy}
                                 bg="linear-gradient(135deg,#059669,#10b981)"
                                 color="#fff"
-                                icon={<Fuel size={14} />}
+                                icon={<CheckCircle size={14} />}
+                                minWidth={105}
                               >
-                                Log Fuel
+                                Complete
                               </ActionBtn>
                             )}
-                            <ActionBtn
-                              onClick={() => setDriverModal({ action: 'complete', trip })}
-                              disabled={busy}
-                              bg="linear-gradient(135deg,var(--primary-dark),var(--primary))"
-                              color="#fff"
-                              icon={<CheckCircle size={14} />}
-                            >
-                              Complete
-                            </ActionBtn>
+
+                            {/* Trip jobs: driver can optionally log fuel during trip, and complete when finished */}
+                            {type === 'TRIP' && (
+                              <>
+                                <ActionBtn
+                                  onClick={() => openFuelLog(trip)}
+                                  disabled={busy}
+                                  bg={D.surfaceHi}
+                                  color={D.text}
+                                  border={`1px solid ${D.border}`}
+                                  icon={<Fuel size={14} color="#10b981" />}
+                                  minWidth={105}
+                                >
+                                  Log Fuel
+                                </ActionBtn>
+                                <ActionBtn
+                                  onClick={() => setDriverModal({ action: 'complete', trip })}
+                                  disabled={busy}
+                                  bg="linear-gradient(135deg,var(--primary-dark),var(--primary))"
+                                  color="#fff"
+                                  icon={<CheckCircle size={14} />}
+                                  minWidth={105}
+                                >
+                                  Complete
+                                </ActionBtn>
+                              </>
+                            )}
                           </>
                         )}
 
-                        {/* Controller Actions */}
-                        {canManage && (
-                          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                            {/* Controller: Add Service Record ONLY if no service record has been entered for this job yet */}
-                            {type === 'SERVICE' && !hasAnyServiceRecordForTrip(trip, allServices) && (s === 'ASSIGNED' || s === 'STARTED') && (
-                              <ActionBtn
-                                onClick={() => openServiceLog(trip)}
-                                disabled={busy}
-                                bg="linear-gradient(135deg,#f59e0b,#d97706)"
-                                color="#fff"
-                                icon={<Wrench size={14} />}
-                              >
-                                Add Service Record
-                              </ActionBtn>
-                            )}
-
-                            {s === 'ASSIGNED' && (
-                              <ActionBtn
-                                onClick={() => {
-                                  const jobType = getJobType(trip.purpose)
-                                  setActiveTab(jobType)
-                                  setEditingTripId(trip.id)
-                                  setEditingTripStatus(trip.status || '')
-                                  setForm({
-                                    driverUsername: trip.driverUsername || '',
-                                    vehicleRegNumber: trip.vehicleRegNumber || '',
-                                    origin: trip.origin || '',
-                                    destination: trip.destination || '',
-                                    purpose: getCleanPurpose(trip.purpose) || '',
-                                    scheduledDate: trip.scheduledDate ? trip.scheduledDate.split('T')[0] : '',
-                                    allowDriverServiceLog: hasDriverServiceAccess(trip),
-                                  })
-                                  setShowAssignModal(true)
-                                }}
-                                disabled={busy}
-                                bg="linear-gradient(135deg, var(--primary-dark), var(--primary))"
-                                color="#fff"
-                                icon={<Edit2 size={14} />}
-                              >
-                                Edit
-                              </ActionBtn>
-                            )}
-
-                            {(s === 'ASSIGNED' || s === 'STARTED') && (
-                              <ActionBtn
-                                onClick={() => setTripToCancel(trip)}
-                                disabled={busy}
-                                bg={D.redDim}
-                                color={D.red}
-                                border={`1px solid ${D.red}40`}
-                                icon={<Ban size={14} />}
-                              >
-                                Cancel
-                              </ActionBtn>
-                            )}
-                            <ActionBtn
-                              onClick={() => setDeleteConfirmTrip(trip)}
-                              disabled={busy}
-                              bg="rgba(239,68,68,0.1)"
-                              color="#ef4444"
-                              border="1px solid rgba(239,68,68,0.2)"
-                              icon={<Trash2 size={14} />}
-                            >
-                              Delete
-                            </ActionBtn>
-                          </div>
-                        )}
+                        {/* Controller Actions: moved into Details panel */}
                       </div>
                     </div>
                   </div>
@@ -1928,32 +1999,143 @@ const TripsPage = () => {
                     <div style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text, display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Wrench size={16} color={D.gold} /> Recorded Service Details ({jobServices.length})
                     </div>
-                    {jobServices.map(serv => (
-                      <div key={serv.id} style={{ background: D.surfaceHi, borderRadius: 14, padding: '12px 16px', border: `1px solid ${D.border}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontWeight: 800, fontSize: '0.88rem', color: D.text }}>
-                            {serv.serviceTypeDetail || SERVICE_TYPES.find(t => t.value === serv.serviceType)?.label || serv.serviceType}
-                          </span>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: serv.status === 'PENDING' ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)', color: serv.status === 'PENDING' ? '#d97706' : '#059669' }}>
-                            {serv.status || 'APPROVED'}
-                          </span>
+                    {jobServices.map(serv => {
+                      const isPending = serv.status === 'PENDING'
+                      const isRejected = serv.status === 'REJECTED'
+                      return (
+                        <div key={serv.id} style={{
+                          background: D.surfaceHi, borderRadius: 14, padding: '14px 16px',
+                          border: isPending ? '1.5px solid rgba(245,158,11,0.35)' : isRejected ? '1.5px solid rgba(239,68,68,0.35)' : '1.5px solid rgba(16,185,129,0.35)',
+                          display: 'flex', flexDirection: 'column', gap: 10
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                            <span style={{ fontWeight: 800, fontSize: '0.9rem', color: D.text, display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <Wrench size={14} color={D.gold} />
+                              {serv.serviceTypeDetail || SERVICE_TYPES.find(t => t.value === serv.serviceType)?.label || serv.serviceType}
+                            </span>
+                            <span style={{
+                              fontSize: '0.7rem', fontWeight: 800, padding: '3px 10px', borderRadius: 999,
+                              background: isPending ? 'rgba(245,158,11,0.15)' : isRejected ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)',
+                              color: isPending ? '#d97706' : isRejected ? '#ef4444' : '#059669',
+                              border: isPending ? '1px solid rgba(245,158,11,0.3)' : isRejected ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(16,185,129,0.3)'
+                            }}>
+                              {isPending ? 'PENDING APPROVAL' : isRejected ? 'REJECTED' : 'APPROVED'}
+                            </span>
+                          </div>
+
+                          <div style={{ fontSize: '0.78rem', color: D.textSub, display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <span>Service Date: <strong>{fmtDate(serv.serviceDate)}</strong></span>
+                            <span>Cost: <strong style={{ color: D.text }}>Rs. {Number(serv.serviceCost || 0).toLocaleString()}</strong></span>
+                            <span>Mileage: <strong>{Number(serv.currentMileageKm || 0).toLocaleString()} km</strong></span>
+                            <span>Workshop: <strong>{serv.technicianWorkshop || 'N/A'}</strong></span>
+                            {serv.createdBy && <span>By: <strong>@{serv.createdBy}</strong></span>}
+                          </div>
+
+                          {serv.description && (
+                            <div style={{ fontSize: '0.76rem', color: D.textSub, fontStyle: 'italic', background: D.surface, padding: '6px 10px', borderRadius: 8, border: `1px solid ${D.border}` }}>
+                              "{serv.description}"
+                            </div>
+                          )}
+
+                          {/* Action Buttons for Service Record */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                            {serv.attachmentPath && (
+                              <button
+                                type="button"
+                                onClick={() => handleViewAttachmentInTrips(serv)}
+                                style={{
+                                  padding: '7px 12px', borderRadius: 8, background: '#3b82f6', color: '#fff',
+                                  border: 'none', fontWeight: 700, fontSize: '0.74rem', cursor: 'pointer',
+                                  display: 'inline-flex', alignItems: 'center', gap: 5
+                                }}
+                              >
+                                <Paperclip size={12} /> View Attachment
+                              </button>
+                            )}
+
+                            {/* Controller Actions: Review / Edit, Approve, Reject */}
+                            {canManage && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => openEditServiceLog(serv, trip)}
+                                  disabled={busyId === serv.id}
+                                  style={{
+                                    padding: '7px 12px', borderRadius: 8, border: `1px solid ${D.border}`,
+                                    background: D.surface, color: D.text, fontSize: '0.76rem', fontWeight: 800,
+                                    cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, transition: 'all 0.15s'
+                                  }}
+                                  onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}
+                                  onMouseLeave={e => e.currentTarget.style.background = D.surface}
+                                >
+                                  <Edit2 size={12} color="var(--primary)" /> Review / Edit Details
+                                </button>
+
+                                {isPending && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApproveServiceInTrips(serv.id)}
+                                      disabled={busyId === serv.id}
+                                      style={{
+                                        padding: '7px 14px', borderRadius: 8, border: 'none',
+                                        background: 'linear-gradient(135deg, #059669, #10b981)', color: '#fff',
+                                        fontSize: '0.76rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5,
+                                        boxShadow: '0 3px 10px rgba(16,185,129,0.3)'
+                                      }}
+                                    >
+                                      {busyId === serv.id ? <Loader2 size={12} className="spin" /> : <Check size={12} />} Approve
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRejectServiceInTrips(serv.id)}
+                                      disabled={busyId === serv.id}
+                                      style={{
+                                        padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)',
+                                        background: 'rgba(239,68,68,0.1)', color: '#ef4444',
+                                        fontSize: '0.76rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5
+                                      }}
+                                    >
+                                      {busyId === serv.id ? <Loader2 size={12} className="spin" /> : <X size={12} />} Reject
+                                    </button>
+                                  </>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteServiceInTrips(serv.id)}
+                                  disabled={busyId === serv.id}
+                                  title="Delete Service Record"
+                                  style={{
+                                    padding: '7px 10px', borderRadius: 8, border: 'none',
+                                    background: D.redDim, color: D.red, fontSize: '0.76rem', fontWeight: 800,
+                                    cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto'
+                                  }}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </>
+                            )}
+
+                            {/* Driver can edit their pending submission */}
+                            {!canManage && isPending && (
+                              <button
+                                type="button"
+                                onClick={() => openEditServiceLog(serv, trip)}
+                                disabled={busyId === serv.id}
+                                style={{
+                                  padding: '7px 12px', borderRadius: 8, border: `1px solid ${D.border}`,
+                                  background: D.surface, color: D.text, fontSize: '0.76rem', fontWeight: 800,
+                                  cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5
+                                }}
+                              >
+                                <Edit2 size={12} color="var(--primary)" /> Edit Submission
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div style={{ fontSize: '0.78rem', color: D.textSub, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-                          <span>Cost: <strong>Rs. {Number(serv.serviceCost || 0).toLocaleString()}</strong></span>
-                          <span>Mileage: <strong>{Number(serv.currentMileageKm || 0).toLocaleString()} km</strong></span>
-                          <span>Workshop: <strong>{serv.technicianWorkshop || 'N/A'}</strong></span>
-                        </div>
-                        {serv.attachmentPath && (
-                          <button
-                            type="button"
-                            onClick={() => handleViewAttachmentInTrips(serv)}
-                            style={{ alignSelf: 'flex-start', marginTop: 4, padding: '6px 12px', borderRadius: 8, background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 700, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
-                          >
-                            <Paperclip size={12} /> View Attachment
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
 
@@ -1985,6 +2167,7 @@ const TripsPage = () => {
                               {isPending ? 'PENDING APPROVAL' : isRejected ? 'REJECTED' : 'APPROVED'}
                             </span>
                           </div>
+
                           <div style={{ fontSize: '0.78rem', color: D.textSub, display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
                             <span>Date: <strong>{fmtDate(log.date)}</strong></span>
                             <span>Quantity: <strong>{log.liters} L</strong></span>
@@ -1994,37 +2177,89 @@ const TripsPage = () => {
                             {log.fuelEfficiency != null && log.fuelEfficiency > 0 && (
                               <span>Consumption: <strong style={{ color: '#10b981' }}>{Number(log.fuelEfficiency).toFixed(1)} km/L</strong></span>
                             )}
+                            {log.driverUsername && <span>By: <strong>@{log.driverUsername}</strong></span>}
                           </div>
 
-                          {/* Controller Direct Approval inside Drawer */}
-                          {canManage && isPending && (
-                            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                          {/* Controller & Driver Actions for Fuel Record */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                            {canManage && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => openEditFuelLog(log, trip)}
+                                  disabled={busyId === log.id}
+                                  style={{
+                                    padding: '7px 12px', borderRadius: 8, border: `1px solid ${D.border}`,
+                                    background: D.surface, color: D.text, fontSize: '0.76rem', fontWeight: 800,
+                                    cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, transition: 'all 0.15s'
+                                  }}
+                                  onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}
+                                  onMouseLeave={e => e.currentTarget.style.background = D.surface}
+                                >
+                                  <Edit2 size={12} color="var(--primary)" /> Review / Edit Details
+                                </button>
+
+                                {isPending && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApproveFuelInTrips(log.id)}
+                                      disabled={busyId === log.id}
+                                      style={{
+                                        padding: '7px 14px', borderRadius: 8, border: 'none',
+                                        background: 'linear-gradient(135deg, #059669, #10b981)', color: '#fff',
+                                        fontSize: '0.76rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5,
+                                        boxShadow: '0 3px 10px rgba(16,185,129,0.3)'
+                                      }}
+                                    >
+                                      {busyId === log.id ? <Loader2 size={12} className="spin" /> : <Check size={12} />} Approve
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRejectFuelInTrips(log.id)}
+                                      disabled={busyId === log.id}
+                                      style={{
+                                        padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)',
+                                        background: 'rgba(239,68,68,0.1)', color: '#ef4444',
+                                        fontSize: '0.76rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5
+                                      }}
+                                    >
+                                      {busyId === log.id ? <Loader2 size={12} className="spin" /> : <X size={12} />} Reject
+                                    </button>
+                                  </>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteFuelInTrips(log.id)}
+                                  disabled={busyId === log.id}
+                                  title="Delete Fuel Record"
+                                  style={{
+                                    padding: '7px 10px', borderRadius: 8, border: 'none',
+                                    background: D.redDim, color: D.red, fontSize: '0.76rem', fontWeight: 800,
+                                    cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto'
+                                  }}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </>
+                            )}
+
+                            {!canManage && isPending && (
                               <button
                                 type="button"
-                                onClick={() => handleApproveFuelInTrips(log.id)}
+                                onClick={() => openEditFuelLog(log, trip)}
                                 disabled={busyId === log.id}
                                 style={{
-                                  padding: '7px 14px', borderRadius: 8, border: 'none',
-                                  background: 'linear-gradient(135deg, #059669, #10b981)', color: '#fff',
-                                  fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5
+                                  padding: '7px 12px', borderRadius: 8, border: `1px solid ${D.border}`,
+                                  background: D.surface, color: D.text, fontSize: '0.76rem', fontWeight: 800,
+                                  cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5
                                 }}
                               >
-                                {busyId === log.id ? <Loader2 size={13} className="spin" /> : <Check size={13} />} Approve
+                                <Edit2 size={12} color="var(--primary)" /> Edit Submission
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => handleRejectFuelInTrips(log.id)}
-                                disabled={busyId === log.id}
-                                style={{
-                                  padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)',
-                                  background: 'rgba(239,68,68,0.1)', color: '#ef4444',
-                                  fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5
-                                }}
-                              >
-                                {busyId === log.id ? <Loader2 size={13} className="spin" /> : <X size={13} />} Reject
-                              </button>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
                       )
                     })}
@@ -2034,6 +2269,23 @@ const TripsPage = () => {
 
               {/* Drawer Footer Actions */}
               <div style={{ padding: '18px 28px', background: D.surfaceHi, borderTop: `1px solid ${D.border}`, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                {canManage && type === 'SERVICE' && !hasAnyServiceRecordForTrip(trip, allServices) && (s === 'ASSIGNED' || s === 'STARTED') && (
+                  <button
+                    onClick={() => {
+                      setSelectedJobDetail(null)
+                      openServiceLog(trip)
+                    }}
+                    style={{
+                      flex: 1, minWidth: 150, padding: '10px 16px', borderRadius: 12, border: 'none',
+                      background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff',
+                      fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      boxShadow: '0 4px 12px rgba(245,158,11,0.35)'
+                    }}
+                  >
+                    <Wrench size={14} /> Add Service Record
+                  </button>
+                )}
+
                 {canManage && s === 'ASSIGNED' && (
                   <button
                     onClick={() => {
@@ -2054,7 +2306,7 @@ const TripsPage = () => {
                       setShowAssignModal(true)
                     }}
                     style={{
-                      flex: 1, minWidth: 110, padding: '10px 16px', borderRadius: 12, border: 'none',
+                      flex: 1, minWidth: 100, padding: '10px 16px', borderRadius: 12, border: 'none',
                       background: 'linear-gradient(135deg, var(--primary-dark), var(--primary))', color: '#fff',
                       fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                       boxShadow: '0 4px 12px var(--primary-glow)'
@@ -2064,14 +2316,14 @@ const TripsPage = () => {
                   </button>
                 )}
 
-                {canManage && s === 'ASSIGNED' && (
+                {canManage && (s === 'ASSIGNED' || s === 'STARTED') && (
                   <button
                     onClick={() => {
                       setSelectedJobDetail(null)
                       setTripToCancel(trip)
                     }}
                     style={{
-                      flex: 1, minWidth: 110, padding: '10px 16px', borderRadius: 12, border: `1px solid ${D.red}40`,
+                      flex: 1, minWidth: 100, padding: '10px 16px', borderRadius: 12, border: `1px solid ${D.red}40`,
                       background: D.redDim, color: D.red, fontSize: '0.85rem', fontWeight: 800,
                       cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
                     }}
@@ -2087,13 +2339,116 @@ const TripsPage = () => {
                       setDeleteConfirmTrip(trip)
                     }}
                     style={{
-                      flex: 1, minWidth: 110, padding: '10px 16px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.25)',
+                      flex: 1, minWidth: 100, padding: '10px 16px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.25)',
                       background: 'rgba(239,68,68,0.1)', color: '#ef4444', fontSize: '0.85rem', fontWeight: 800,
                       cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
                     }}
                   >
                     <Trash2 size={14} /> Delete
                   </button>
+                )}
+
+                {/* Driver Actions inside Drawer */}
+                {!canManage && s === 'ASSIGNED' && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setSelectedJobDetail(null)
+                        setDriverModal({ action: 'start', trip })
+                      }}
+                      style={{
+                        flex: 1, minWidth: 110, padding: '10px 16px', borderRadius: 12, border: 'none',
+                        background: 'linear-gradient(135deg,#059669,#10b981)', color: '#fff',
+                        fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        boxShadow: '0 4px 12px rgba(16,185,129,0.35)'
+                      }}
+                    >
+                      <Play size={14} /> Accept
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedJobDetail(null)
+                        setDriverModal({ action: 'decline', trip })
+                      }}
+                      style={{
+                        flex: 1, minWidth: 110, padding: '10px 16px', borderRadius: 12, border: `1px solid ${D.red}40`,
+                        background: D.redDim, color: D.red, fontSize: '0.85rem', fontWeight: 800,
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                      }}
+                    >
+                      <X size={14} /> Decline
+                    </button>
+                  </>
+                )}
+
+                {!canManage && s === 'STARTED' && (
+                  <>
+                    {type === 'SERVICE' && (
+                      <button
+                        onClick={() => {
+                          setSelectedJobDetail(null)
+                          openServiceLog(trip)
+                        }}
+                        style={{
+                          flex: 1, minWidth: 140, padding: '10px 16px', borderRadius: 12, border: 'none',
+                          background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff',
+                          fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                          boxShadow: '0 4px 12px rgba(245,158,11,0.35)'
+                        }}
+                      >
+                        <CheckCircle size={14} /> Complete & Enter Details
+                      </button>
+                    )}
+
+                    {type === 'FUEL' && (
+                      <button
+                        onClick={() => {
+                          setSelectedJobDetail(null)
+                          openFuelLog(trip)
+                        }}
+                        style={{
+                          flex: 1, minWidth: 140, padding: '10px 16px', borderRadius: 12, border: 'none',
+                          background: 'linear-gradient(135deg,#059669,#10b981)', color: '#fff',
+                          fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                          boxShadow: '0 4px 12px rgba(16,185,129,0.35)'
+                        }}
+                      >
+                        <CheckCircle size={14} /> Complete & Enter Details
+                      </button>
+                    )}
+
+                    {type === 'TRIP' && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setSelectedJobDetail(null)
+                            openFuelLog(trip)
+                          }}
+                          style={{
+                            flex: 1, minWidth: 100, padding: '10px 16px', borderRadius: 12, border: `1px solid ${D.border}`,
+                            background: D.surfaceHi, color: D.text, fontSize: '0.85rem', fontWeight: 800,
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                          }}
+                        >
+                          <Fuel size={14} color="#10b981" /> Log Fuel
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedJobDetail(null)
+                            setDriverModal({ action: 'complete', trip })
+                          }}
+                          style={{
+                            flex: 1, minWidth: 110, padding: '10px 16px', borderRadius: 12, border: 'none',
+                            background: 'linear-gradient(135deg, var(--primary-dark), var(--primary))', color: '#fff',
+                            fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                            boxShadow: '0 4px 12px var(--primary-glow)'
+                          }}
+                        >
+                          <CheckCircle size={14} /> Complete Trip
+                        </button>
+                      </>
+                    )}
+                  </>
                 )}
 
                 <button
@@ -2251,17 +2606,17 @@ const TripsPage = () => {
             style={{ background: D.surface, borderRadius: 24, width: '94%', maxWidth: 600, maxHeight: '92vh', boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.28s cubic-bezier(0.16,1,0.3,1)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
           >
             {/* Header */}
-            <div style={{ background: 'linear-gradient(135deg, #92400e 0%, #b45309 45%, #d97706 100%)', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+            <div style={{ background: canManage ? 'linear-gradient(135deg, #92400e 0%, #b45309 45%, #d97706 100%)' : 'linear-gradient(135deg, #065f46 0%, #047857 45%, #10b981 100%)', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
                   <Wrench size={20} />
                 </div>
                 <div>
                   <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>
-                    {serviceLogForm.id ? 'Edit Pending Service Details' : 'Log Service Details'}
+                    {serviceLogForm.id ? 'Edit Pending Service Details' : (getJobType(serviceLogModal?.purpose) === 'SERVICE' ? 'Complete Service Job — Enter Details' : 'Log Service Details')}
                   </h2>
                   <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: 'rgba(255,255,255,0.78)', fontWeight: 500 }}>
-                    Job #{serviceLogModal?.id} · {serviceLogModal?.vehicleRegNumber} — Awaiting controller approval
+                    Job #{serviceLogModal?.id} · {serviceLogModal?.vehicleRegNumber} — {getJobType(serviceLogModal?.purpose) === 'SERVICE' ? 'Fill out service details to complete job (Awaiting controller approval)' : 'Awaiting controller approval'}
                   </p>
                 </div>
               </div>
@@ -2270,11 +2625,18 @@ const TripsPage = () => {
               </button>
             </div>
 
-            {/* Amber approval notice */}
-            <div style={{ margin: '16px 24px 0', padding: '10px 14px', borderRadius: 10, background: 'rgba(245,158,11,0.1)', border: '1.5px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-              <Clock size={15} color="#f59e0b" style={{ flexShrink: 0, marginTop: 1 }} />
-              <span style={{ fontSize: '0.76rem', color: '#92400e', fontWeight: 600, lineHeight: 1.5 }}>
-                These details will be submitted for Fleet Controller review and committed only after approval.
+            {/* Approval notice */}
+            <div style={{
+              margin: '16px 24px 0', padding: '10px 14px', borderRadius: 10,
+              background: canManage ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)',
+              border: canManage ? '1.5px solid rgba(245,158,11,0.3)' : '1.5px solid rgba(16,185,129,0.3)',
+              display: 'flex', alignItems: 'flex-start', gap: 10
+            }}>
+              <Clock size={15} color={canManage ? '#f59e0b' : '#10b981'} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span style={{ fontSize: '0.76rem', color: canManage ? '#92400e' : D.green, fontWeight: 600, lineHeight: 1.5 }}>
+                {getJobType(serviceLogModal?.purpose) === 'SERVICE'
+                  ? 'Submit the service record details below to complete this service job. Records will be reviewed by the Fleet Controller before approval.'
+                  : 'These details will be submitted for Fleet Controller review and committed only after approval.'}
               </span>
             </div>
 
@@ -2436,14 +2798,14 @@ const TripsPage = () => {
               <div style={{ display: 'flex', gap: 12 }}>
                 <button type="submit" disabled={serviceLogSubmitting} style={{
                   flex: 1, padding: '13px', borderRadius: 14, border: 'none',
-                  background: serviceLogSubmitting ? 'rgba(0,0,0,0.3)' : 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  background: serviceLogSubmitting ? 'rgba(0,0,0,0.3)' : (canManage ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #059669 0%, #10b981 100%)'),
                   color: '#fff', cursor: serviceLogSubmitting ? 'not-allowed' : 'pointer',
-                  fontSize: '0.92rem', fontWeight: 800, boxShadow: serviceLogSubmitting ? 'none' : '0 6px 20px rgba(245,158,11,0.4)',
+                  fontSize: '0.92rem', fontWeight: 800, boxShadow: serviceLogSubmitting ? 'none' : (canManage ? '0 6px 20px rgba(245,158,11,0.4)' : '0 6px 20px rgba(16,185,129,0.35)'),
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit',
                   opacity: serviceLogSubmitting ? 0.7 : 1,
                 }}>
                   {serviceLogSubmitting ? <Loader2 size={16} className="spin" /> : <Check size={16} />}
-                  {serviceLogSubmitting ? 'Saving…' : serviceLogForm.id ? 'Save & Notify Controller' : 'Submit for Approval'}
+                  {serviceLogSubmitting ? 'Saving…' : serviceLogForm.id ? 'Save & Notify Controller' : (getJobType(serviceLogModal?.purpose) === 'SERVICE' ? 'Submit Details & Complete Job' : 'Submit for Approval')}
                 </button>
                 <button type="button" onClick={closeServiceLog} disabled={serviceLogSubmitting} style={{
                   flex: 0.5, padding: '13px', borderRadius: 14, border: `1px solid ${D.border}`,
@@ -2479,10 +2841,10 @@ const TripsPage = () => {
                 </div>
                 <div>
                   <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}>
-                    Log Fuel Details
+                    {getJobType(fuelLogModal?.purpose) === 'FUEL' ? 'Complete Fuel Job — Enter Details' : 'Log Fuel Details'}
                   </h2>
                   <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: 'rgba(255,255,255,0.78)', fontWeight: 500 }}>
-                    Job #{fuelLogModal?.id} · {fuelLogModal?.vehicleRegNumber} — Record fuel fill-up
+                    Job #{fuelLogModal?.id} · {fuelLogModal?.vehicleRegNumber} — {getJobType(fuelLogModal?.purpose) === 'FUEL' ? 'Submit fuel information to complete job (Awaiting controller approval)' : 'Record fuel fill-up (Awaiting controller approval)'}
                   </p>
                 </div>
               </div>
@@ -2495,7 +2857,9 @@ const TripsPage = () => {
             <div style={{ margin: '16px 24px 0', padding: '10px 14px', borderRadius: 10, background: 'rgba(16,185,129,0.1)', border: '1.5px solid rgba(16,185,129,0.3)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
               <Fuel size={15} color="#10b981" style={{ flexShrink: 0, marginTop: 1 }} />
               <span style={{ fontSize: '0.76rem', color: D.green, fontWeight: 600, lineHeight: 1.5 }}>
-                Record fuel quantity, cost per liter, and current vehicle odometer reading for this trip.
+                {getJobType(fuelLogModal?.purpose) === 'FUEL'
+                  ? 'Record fuel quantity, cost per liter, and current vehicle odometer reading to complete this fuel job (requires Controller approval).'
+                  : 'Record fuel quantity, cost per liter, and current vehicle odometer reading for this trip (requires Controller approval).'}
               </span>
             </div>
 
@@ -2652,7 +3016,7 @@ const TripsPage = () => {
                   }}
                 >
                   {fuelLogSubmitting ? <Loader2 size={17} className="spin" /> : <Fuel size={17} />}
-                  {fuelLogSubmitting ? 'Saving Fuel Log…' : 'Submit Fuel Log'}
+                  {fuelLogSubmitting ? 'Saving Fuel Details…' : (getJobType(fuelLogModal?.purpose) === 'FUEL' ? 'Submit Details & Complete Job' : 'Submit Fuel Log')}
                 </button>
               </div>
             </form>
@@ -2790,14 +3154,34 @@ const TripsPage = () => {
   )
 }
 
-const ActionBtn = ({ children, onClick, disabled, bg, color, border, icon }) => (
-  <button onClick={(e) => { e.stopPropagation(); onClick?.(e) }} disabled={disabled} style={{
-    display: 'inline-flex', alignItems: 'center', gap: 6,
-    padding: '8px 16px', borderRadius: 10, border: border || 'none',
-    background: bg, color, fontSize: '0.81rem', fontWeight: 700,
-    cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.6 : 1,
-    fontFamily: 'inherit', transition: 'all 0.15s',
-  }}>
+const ActionBtn = ({ children, onClick, disabled, bg, color, border, icon, minWidth = 100, style = {} }) => (
+  <button
+    onClick={(e) => { e.stopPropagation(); onClick?.(e) }}
+    disabled={disabled}
+    style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 7,
+      minWidth: minWidth,
+      height: 38,
+      padding: '0 16px',
+      borderRadius: 10,
+      border: border || 'none',
+      background: bg,
+      color,
+      fontSize: '0.82rem',
+      fontWeight: 700,
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      opacity: disabled ? 0.6 : 1,
+      fontFamily: 'inherit',
+      transition: 'all 0.18s ease',
+      whiteSpace: 'nowrap',
+      boxSizing: 'border-box',
+      lineHeight: 1,
+      ...style,
+    }}
+  >
     {disabled ? <Loader2 size={14} className="spin" /> : icon}
     {children}
   </button>
