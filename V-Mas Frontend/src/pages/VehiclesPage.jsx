@@ -3344,11 +3344,11 @@ const VehiclesPage = () => {
               ) : (
                 <div style={{
                   width: '100%', height: 180,
-                  background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 55%, #1d4ed8 100%)',
+                  background: 'linear-gradient(135deg, #92400e 0%, #b45309 40%, #d97706 70%, #f59e0b 100%)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 10
                 }}>
-                  <Car size={52} color="rgba(255,255,255,0.25)" />
-                  <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.78rem', fontWeight: 600 }}>No photo available</span>
+                  <Car size={52} color="rgba(255,255,255,0.3)" />
+                  <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem', fontWeight: 600 }}>No photo available</span>
                 </div>
               )}
 
@@ -3415,23 +3415,23 @@ const VehiclesPage = () => {
             </div>
 
             {/* Tab Navigation */}
-            <div className="modal-tabs" style={{ display: 'flex', padding: '16px 32px 10px', background: D.surface, gap: 8, borderBottom: `1px solid ${D.border}` }}>
+            <div className="modal-tabs" style={{ display: 'flex', padding: '10px 16px', background: D.surface, gap: 6, borderBottom: `1px solid ${D.border}` }}>
               {['overview', 'services', 'fuel'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setProfileActiveTab(tab)}
                   style={{
                     flex: 1,
-                    padding: '8px 12px',
+                    padding: '9px 12px',
                     borderRadius: 10,
                     fontSize: '0.8rem',
                     fontWeight: 700,
                     border: 'none',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    background: profileActiveTab === tab ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'rgba(255,255,255,0.04)',
+                    transition: 'all 0.2s ease',
+                    background: profileActiveTab === tab ? 'linear-gradient(135deg, #d97706, #f59e0b)' : 'transparent',
                     color: profileActiveTab === tab ? '#fff' : D.textSub,
-                    boxShadow: profileActiveTab === tab ? '0 4px 10px rgba(37, 99, 235,0.25)' : 'none',
+                    boxShadow: profileActiveTab === tab ? '0 4px 12px rgba(180,83,9,0.28)' : 'none',
                     fontFamily: 'inherit'
                   }}
                 >
@@ -4232,16 +4232,18 @@ const VehiclesPage = () => {
 
             {/* Footer */}
             {isController && (
-              <div style={{ padding: '16px 32px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 10, background: D.surfaceHi, flexShrink: 0 }}>
+              <div style={{ padding: '14px 24px', borderTop: `1px solid ${D.border}`, display: 'flex', gap: 10, background: D.surface, flexShrink: 0 }}>
                 <button
                   onClick={() => { closeProfile(); openEditModal(selectedProfileVehicle); }}
-                  style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(37, 99, 235,0.35)' }}
+                  style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#d97706,#f59e0b)', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(180,83,9,0.3)', transition: 'all 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
                 >
                   <Edit2 size={15} /> Edit Vehicle
                 </button>
                 <button
                   onClick={() => openDeleteModal(selectedProfileVehicle)}
-                  style={{ flex: 0.6, padding: '10px 0', borderRadius: 10, border: `1px solid rgba(239,68,68,0.3)`, background: D.redDim, color: D.red, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
+                  style={{ flex: 0.6, padding: '10px 0', borderRadius: 10, border: `1px solid rgba(239,68,68,0.3)`, background: D.redDim, color: D.red, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'all 0.2s' }}
                 >
                   <Trash2 size={15} /> Delete
                 </button>

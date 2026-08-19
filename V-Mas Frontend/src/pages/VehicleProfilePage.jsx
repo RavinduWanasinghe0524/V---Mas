@@ -179,7 +179,7 @@ export default function VehicleProfilePage() {
     finally { setDriverBusy(false) }
   }
 
-  // ── Odometer update ────────────────────────────────────────────────────────
+  // ── Odometer ───────────────────────────────────────────────────────────────
   const submitOdometer = async e => {
     e.preventDefault()
     const v = parseFloat(newMileage)
