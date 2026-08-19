@@ -433,7 +433,7 @@ export default function VehicleProfilePage() {
 
       {/* ── Gradient Banner Header ── */}
       <div style={{
-        background: 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, #3b82f6 100%)',
+        background: 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
         borderRadius: 24, padding: '28px 36px', marginBottom: 28,
         position: 'relative', overflow: 'hidden',
         boxShadow: isDark ? '0 20px 60px rgba(0,0,0,0.5), 0 0 60px var(--primary-glow)' : '0 8px 32px rgba(0,0,0,0.15)',
@@ -753,37 +753,6 @@ export default function VehicleProfilePage() {
 
           {/* ── RIGHT SIDEBAR ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 90 }}>
-
-            {/* Quick Stats */}
-            <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, overflow: 'hidden', boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.3)' : '0 4px 24px rgba(0,0,0,0.07)' }}>
-              <div style={{ padding: '14px 18px', borderBottom: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Gauge size={15} color={D.blue} />
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: D.text, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Quick Stats</span>
-              </div>
-              <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[{
-                  icon: <Fuel size={14} color={D.green} />, label: 'Total Fuel Cost',
-                  value: sidebarFuelStat ? `Rs. ${Math.round(sidebarFuelStat.totalSpending || 0).toLocaleString()}` : '—',
-                  accent: D.green, accentDim: D.greenDim
-                }, {
-                  icon: <Gauge size={14} color={D.blue} />, label: 'Avg Efficiency',
-                  value: sidebarFuelStat ? `${sidebarFuelStat.fuelEfficiency?.toFixed(1) || '0.0'} km/L` : '—',
-                  accent: D.blue, accentDim: D.blueDim
-                }, {
-                  icon: <Car size={14} color={D.purple} />, label: 'Current Mileage',
-                  value: vehicle.currentMileageKm != null ? `${vehicle.currentMileageKm.toLocaleString()} km` : '—',
-                  accent: D.purple, accentDim: D.purpleDim
-                }].map((stat, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: stat.accentDim, border: `1px solid ${stat.accent}22` }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 9, background: `${stat.accent}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{stat.icon}</div>
-                    <div>
-                      <div style={{ fontSize: '0.62rem', color: D.textSub, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</div>
-                      <div style={{ fontSize: '0.95rem', color: D.text, fontWeight: 800 }}>{stat.value}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
 
             {/* Assigned Driver */}
             {(isAdmin || isController) && (
