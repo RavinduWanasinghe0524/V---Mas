@@ -1060,6 +1060,7 @@ const VehiclesPage = () => {
       const response = await vehicleAPI.getAllVehicles()
       setVehicles(response.data.data || [])
       setDeletedVehicles(prev => prev.filter(v => v.id !== id))
+      window.alert('Vehicle restored successfully!')
       setDeletedDetail(null)
     } catch (err) {
       console.error('Error restoring vehicle:', err)
