@@ -1246,11 +1246,21 @@ const ReportsPage = () => {
   }
 
   // ── Recent reports helpers ───────────────────────────────────────────────
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [deleteTargetName, setDeleteTargetName] = useState(null)
+
   const handleDeleteRecent = (name) => {
-    if (!window.confirm(`Remove "${name}" from recent downloads?`)) return
-    setReportsList(prev => prev.filter(r => r.name !== name))
-    setSuccessMsg(`Removed "${name}" from recent reports.`)
+    setDeleteTargetName(name)
+    setDeleteModalOpen(true)
+  }
+
+  const handleConfirmDeleteRecent = () => {
+    if (!deleteTargetName) return
+    setReportsList(prev => prev.filter(r => r.name !== deleteTargetName))
+    setSuccessMsg(`Removed "${deleteTargetName}" from recent reports.`)
     setTimeout(() => setSuccessMsg(''), 4000)
+    setDeleteModalOpen(false)
+    setDeleteTargetName(null)
   }
   const [clearHistoryModalOpen, setClearHistoryModalOpen] = useState(false)
 
@@ -1420,6 +1430,48 @@ const ReportsPage = () => {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═════ Remove Single Download Confirmation Modal ═══════════════════ */}
+      {deleteModalOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1110,
+          background: 'rgba(0,0,0,0.68)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+        }}>
+          <div style={{
+            background: D.surface, width: '100%', maxWidth: 520, borderRadius: 20,
+            border: `1.5px solid ${D.border}`, boxShadow: isDark ? '0 20px 50px rgba(0,0,0,0.6)' : '0 20px 40px rgba(0,0,0,0.12)',
+            overflow: 'hidden', textAlign: 'center', padding: '28px 26px'
+          }}>
+            <button onClick={() => { setDeleteModalOpen(false); setDeleteTargetName(null) }}
+              style={{ position: 'absolute', top: 18, right: 18, width: 34, height: 34, borderRadius: 10, border: `1px solid ${D.border}`, background: D.bg, color: D.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', outline: 'none' }}>
+              <X size={16} />
+            </button>
+
+            <div style={{ width: 64, height: 64, borderRadius: 16, background: D.redDim, border: `1px solid ${D.red}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: D.red, margin: '0 auto 18px' }}>
+              <FileText size={28} />
+            </div>
+
+            <h3 style={{ margin: '0 0 10px', fontSize: '1.25rem', fontWeight: 800, color: D.text, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+              Remove Download?
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.92rem', color: D.textSub, lineHeight: 1.6, marginBottom: 22 }}>
+              Are you sure you want to remove "{deleteTargetName}" from recent downloads?
+            </p>
+
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button type="button" onClick={() => { setDeleteModalOpen(false); setDeleteTargetName(null) }}
+                style={{ padding: '10px 18px', borderRadius: 12, border: `1.5px solid ${D.border}`, background: D.surface, color: D.textSub, fontSize: '0.88rem', fontWeight: 700, cursor: 'pointer', outline: 'none' }}>
+                Cancel
+              </button>
+              <button type="button" onClick={handleConfirmDeleteRecent}
+                style={{ padding: '10px 18px', borderRadius: 12, border: 'none', background: D.red, color: '#fff', fontSize: '0.88rem', fontWeight: 800, cursor: 'pointer', outline: 'none', boxShadow: `0 6px 18px ${D.red}33` }}>
+                Remove
+              </button>
             </div>
           </div>
         </div>

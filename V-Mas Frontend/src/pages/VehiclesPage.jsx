@@ -841,10 +841,12 @@ const VehiclesPage = () => {
 
       const response = await vehicleAPI.getAllVehicles()
       setVehicles(response.data.data || [])
+      window.alert('Vehicle added successfully!')
       closeModal()
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Failed to add vehicle.'
       setAddError(msg)
+      window.alert(msg)
       console.error('Error adding vehicle:', err)
     }
   }
@@ -998,10 +1000,12 @@ const VehiclesPage = () => {
 
       const response = await vehicleAPI.getAllVehicles()
       setVehicles(response.data.data || [])
+      window.alert('Vehicle updated successfully!')
       closeEditModal()
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Failed to update vehicle.'
       setEditError(msg)
+      window.alert(msg)
       console.error('Error updating vehicle:', err)
     } finally {
       setEditSubmitting(false)
@@ -1024,9 +1028,11 @@ const VehiclesPage = () => {
       await vehicleAPI.deleteVehicle(deletingVehicle.id)
       const response = await vehicleAPI.getAllVehicles()
       setVehicles(response.data.data || [])
+      window.alert('Vehicle deleted successfully!')
       closeDeleteModal()
       closeProfile()
     } catch (err) {
+      window.alert(err.response?.data?.message || 'Failed to delete vehicle.')
       console.error('Error deleting vehicle:', err)
     }
   }
@@ -1054,6 +1060,7 @@ const VehiclesPage = () => {
       const response = await vehicleAPI.getAllVehicles()
       setVehicles(response.data.data || [])
       setDeletedVehicles(prev => prev.filter(v => v.id !== id))
+      window.alert('Vehicle restored successfully!')
       setDeletedDetail(null)
     } catch (err) {
       console.error('Error restoring vehicle:', err)
