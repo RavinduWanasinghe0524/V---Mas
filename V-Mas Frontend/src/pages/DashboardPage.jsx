@@ -1438,6 +1438,7 @@ const ControllerDashboard = ({ navigate, isDark, chartData, fuelLogs = [], statu
 const dashboardAlertCategory = (a) => {
   const t = String(a?.type || '').toUpperCase()
   if (t.includes('DOCUMENT') || t.includes('INSURANCE') || t.includes('LICENSE') || t.includes('EXPIR')) return 'INSURANCE'
+  if (t === 'LOW_EFFICIENCY' || t === 'FUEL_LOW_EFF' || t === 'LOW_EFF' || t.includes('FUEL')) return 'FUEL'
   if (String(a?.severity || '').toUpperCase() === 'OVERDUE') return 'OVERDUE'
   return 'SERVICE'
 }
@@ -1933,7 +1934,8 @@ const DriverDashboard = ({ navigate, isDark, trips, onTripChanged }) => {
 }
 
 const DashboardPage = () => {
-  const { user, isAdmin } = useAuth()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'ADMIN'
   const { theme } = useTheme()
   const navigate = useNavigate()
   const isDark = theme === 'blue'
