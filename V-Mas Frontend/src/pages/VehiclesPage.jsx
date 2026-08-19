@@ -1000,10 +1000,12 @@ const VehiclesPage = () => {
 
       const response = await vehicleAPI.getAllVehicles()
       setVehicles(response.data.data || [])
+      window.alert('Vehicle updated successfully!')
       closeEditModal()
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Failed to update vehicle.'
       setEditError(msg)
+      window.alert(msg)
       console.error('Error updating vehicle:', err)
     } finally {
       setEditSubmitting(false)
