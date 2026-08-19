@@ -76,6 +76,7 @@ public class UserServiceImpl implements UserService {
         user.setLicenseExpiryDate(request.getLicenseExpiryDate());
         user.setDateJoined(request.getDateJoined());
         user.setExperience(request.getExperience());
+        user.setAddress(request.getAddress());
 
         userRepository.save(user);
 
@@ -158,6 +159,7 @@ public class UserServiceImpl implements UserService {
         user.setLicenseExpiryDate(request.getLicenseExpiryDate());
         user.setDateJoined(request.getDateJoined());
         user.setExperience(request.getExperience());
+        user.setAddress(request.getAddress());
 
         User savedUser = userRepository.save(Objects.requireNonNull(user));
         return mapToDto(savedUser);
@@ -185,6 +187,7 @@ public class UserServiceImpl implements UserService {
         user.setLicenseDocumentPath(userDto.getLicenseDocumentPath());
         user.setDateJoined(userDto.getDateJoined());
         user.setExperience(userDto.getExperience());
+        user.setAddress(userDto.getAddress());
 
         User updatedUser = userRepository.save(Objects.requireNonNull(user));
         notificationService.createNotification(
@@ -241,6 +244,7 @@ public class UserServiceImpl implements UserService {
         user.setLicenseExpiryDate(request.getLicenseExpiryDate());
         user.setDateJoined(request.getDateJoined());
         user.setExperience(request.getExperience());
+        user.setAddress(request.getAddress());
 
         User updatedUser = userRepository.save(java.util.Objects.requireNonNull(user));
         return mapToDto(updatedUser);
@@ -314,7 +318,8 @@ public class UserServiceImpl implements UserService {
                 user.getLicenseExpiryDate(),
                 user.getLicenseDocumentPath(),
                 user.getDateJoined(),
-                user.getExperience());
+                user.getExperience(),
+                user.getAddress());
     }
 
     @Override
