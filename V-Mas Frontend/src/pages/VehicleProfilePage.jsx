@@ -471,11 +471,8 @@ export default function VehicleProfilePage() {
         </button>
       </div>
 
-      {/* ── Two-column layout ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 24, alignItems: 'start' }}>
-
-        {/* ── LEFT COLUMN ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      {/* ── Single-column layout ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
 
             {/* Tab bar */}
@@ -749,60 +746,7 @@ export default function VehicleProfilePage() {
                 )}
               </div>
             )}
-          </div>{/* end LEFT COLUMN */}
-
-          {/* ── RIGHT SIDEBAR ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 90 }}>
-
-
-
-            {/* Recent Service */}
-            <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, overflow: 'hidden', boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.3)' : '0 4px 24px rgba(0,0,0,0.07)' }}>
-              <div style={{ padding: '14px 18px', borderBottom: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Wrench size={15} color={D.orange} />
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: D.text, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Recent Service</span>
-              </div>
-              <div style={{ padding: '14px 18px' }}>
-                {sidebarServiceRec ? (
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 10, background: D.orangeDim, color: D.orange, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Wrench size={16} /></div>
-                    <div>
-                      <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: D.text }}>{sidebarServiceRec.serviceType}</p>
-                      <p style={{ margin: '3px 0 0', fontSize: '0.72rem', color: D.textSub }}>{sidebarServiceRec.serviceDate ? new Date(sidebarServiceRec.serviceDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</p>
-                      {sidebarServiceRec.currentMileageKm != null && <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: D.textFaint }}>At {sidebarServiceRec.currentMileageKm.toLocaleString()} km</p>}
-                      {sidebarServiceRec.nextServiceDue && (
-                        <div style={{ marginTop: 8, padding: '5px 10px', borderRadius: 8, background: D.surfaceHi, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                          <Clock size={11} color={D.textSub} />
-                          <span style={{ fontSize: '0.7rem', color: D.textSub, fontWeight: 700 }}>Next: {new Date(sidebarServiceRec.nextServiceDue).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 0', gap: 8 }}>
-                    <Wrench size={28} style={{ opacity: 0.25, color: D.textFaint }} />
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: D.textSub, fontWeight: 700 }}>No service records</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Documents */}
-            <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, overflow: 'hidden', boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.3)' : '0 4px 24px rgba(0,0,0,0.07)' }}>
-              <div style={{ padding: '14px 18px', borderBottom: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <FileText size={15} color={D.purple} />
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: D.text, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Documents</span>
-              </div>
-              <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <DocBlock docType="insurance" label="Insurance Certificate" path={vehicle.insuranceDocumentPath} />
-                <DocBlock docType="license" label="License & Road Tax" path={vehicle.licenseDocumentPath} />
-                <DocBlock docType="registration" label="Registration Book (V5)" path={vehicle.registrationBookPath} />
-              </div>
-            </div>
-
-          </div>{/* end RIGHT SIDEBAR */}
-
-        </div>{/* end 2-col grid */}
+      </div>{/* end Single-column layout */}
 
       {/* ── Modals ── */}
       {odometerOpen && (
