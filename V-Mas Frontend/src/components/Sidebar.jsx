@@ -130,6 +130,62 @@ const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
     logout()
   }
 
+  // ── Route matching helper including sub-routes ──────────────────────────
+  const isItemActive = (to) => {
+    const pathname = location.pathname.toLowerCase()
+    const target = to.toLowerCase()
+
+    if (pathname === target) return true
+
+    // Vehicles route matching (/vehicles, /vehicle/:regNo, /vehicle/:regNo/edit)
+    if (target === '/vehicles') {
+      return pathname.startsWith('/vehicles') || pathname.startsWith('/vehicle/')
+    }
+
+    // Service route matching (/service, /service/add, /service/edit/:id)
+    if (target === '/service') {
+      return pathname.startsWith('/service')
+    }
+
+    // Jobs route matching (/jobs)
+    if (target === '/jobs') {
+      return pathname.startsWith('/jobs') || pathname.startsWith('/trips')
+    }
+
+    // Fuel routes matching
+    if (target === '/fuel-management') {
+      return pathname.startsWith('/fuel-management')
+    }
+    if (target === '/fuel-analysis') {
+      return pathname.startsWith('/fuel-analysis')
+    }
+    if (target === '/fuel-log') {
+      return pathname.startsWith('/fuel-log')
+    }
+
+    // Users route matching
+    if (target === '/users') {
+      return pathname.startsWith('/users') || pathname.startsWith('/user/')
+    }
+
+    // Reports route matching
+    if (target === '/reports') {
+      return pathname.startsWith('/reports')
+    }
+
+    // Profile route matching
+    if (target === '/profile') {
+      return pathname.startsWith('/profile')
+    }
+
+    // Dashboard route matching
+    if (target === '/dashboard') {
+      return pathname === '/dashboard' || pathname === '/'
+    }
+
+    return false
+  }
+
   // ── Render a single nav item ─────────────────────────────────────────────
   const renderItem = (item) => {
     // Disabled / coming-soon item
@@ -188,7 +244,7 @@ const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
                 <NavLink
                   key={child.label}
                   to={child.to}
-                  className={({ isActive }) => `nav-item nav-child${isActive ? ' active' : ''}`}
+                  className={`nav-item nav-child${isItemActive(child.to) ? ' active' : ''}`}
                 >
                   <span className="nav-icon" style={{ fontSize: '0.88em' }}>{child.icon}</span>
                   <span className="nav-label-text">{child.label}</span>
@@ -201,12 +257,13 @@ const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
     }
 
     // Plain nav link
+    const active = isItemActive(item.to)
     return (
       <div key={item.label} className="sidebar-nav-tooltip">
         <NavLink
           to={item.to}
           onClick={handleNavClick}
-          className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+          className={`nav-item${active ? ' active' : ''}`}
         >
           <span className="nav-icon">{item.icon}</span>
           <span className="nav-label-text">{item.label}</span>
