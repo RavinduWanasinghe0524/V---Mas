@@ -17,6 +17,8 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
+import org.springframework.lang.NonNull;
 
 public class S3StorageService implements StorageService {
 
@@ -117,13 +119,15 @@ public class S3StorageService implements StorageService {
         }
 
         @Override
+        @NonNull
         public String getDescription() {
             return "AWS S3 Resource: " + filename;
         }
 
         @Override
+        @NonNull
         public InputStream getInputStream() throws IOException {
-            return inputStream;
+            return Objects.requireNonNull(inputStream);
         }
 
         @Override
