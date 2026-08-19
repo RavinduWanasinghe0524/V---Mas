@@ -754,46 +754,7 @@ export default function VehicleProfilePage() {
           {/* ── RIGHT SIDEBAR ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 90 }}>
 
-            {/* Assigned Driver */}
-            {(isAdmin || isController) && (
-              <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, overflow: 'hidden', boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.3)' : '0 4px 24px rgba(0,0,0,0.07)' }}>
-                <div style={{ padding: '14px 18px', borderBottom: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <User size={15} color={D.orange} />
-                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: D.text, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Assigned Driver</span>
-                  </div>
-                  {vehicle.driverUsername && <span style={{ fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: D.greenDim, color: D.green }}>ACTIVE</span>}
-                </div>
-                <div style={{ padding: '14px 18px' }}>
-                  {vehicle.driverUsername ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                      <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,#2563eb,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <User size={20} color='#fff' />
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '0.95rem', fontWeight: 800, color: D.text }}>{vehicle.driverUsername}</div>
-                        <div style={{ fontSize: '0.72rem', color: D.textSub }}>Current Driver</div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, padding: '10px 12px', borderRadius: 12, background: D.surfaceHi, border: `1px dashed ${D.border}` }}>
-                      <User size={18} color={D.textFaint} />
-                      <span style={{ fontSize: '0.82rem', color: D.textSub, fontStyle: 'italic' }}>No driver assigned</span>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    {vehicle.driverUsername && (
-                      <button onClick={doUnassign} disabled={driverBusy} style={{ flex: 1, padding: '8px 10px', borderRadius: 10, border: `1px solid ${D.red}40`, background: D.redDim, color: D.red, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                        <UserX size={13} /> Unassign
-                      </button>
-                    )}
-                    <button onClick={openAssignModal} disabled={driverBusy} style={{ flex: 1, padding: '8px 10px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#2563eb,#3b82f6)', color: '#fff', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                      <UserCheck size={13} /> {vehicle.driverUsername ? 'Change' : 'Assign'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+
 
             {/* Recent Service */}
             <div style={{ background: D.surface, border: `1px solid ${D.border}`, borderRadius: 20, overflow: 'hidden', boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.3)' : '0 4px 24px rgba(0,0,0,0.07)' }}>
