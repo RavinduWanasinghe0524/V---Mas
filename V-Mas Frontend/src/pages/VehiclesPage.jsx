@@ -1028,9 +1028,11 @@ const VehiclesPage = () => {
       await vehicleAPI.deleteVehicle(deletingVehicle.id)
       const response = await vehicleAPI.getAllVehicles()
       setVehicles(response.data.data || [])
+      window.alert('Vehicle deleted successfully!')
       closeDeleteModal()
       closeProfile()
     } catch (err) {
+      window.alert(err.response?.data?.message || 'Failed to delete vehicle.')
       console.error('Error deleting vehicle:', err)
     }
   }
