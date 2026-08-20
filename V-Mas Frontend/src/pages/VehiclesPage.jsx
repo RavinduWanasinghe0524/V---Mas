@@ -1082,13 +1082,23 @@ const VehiclesPage = () => {
     const backendStatus = (vehicle.status || '').toUpperCase()
     if (backendStatus === 'INACTIVE') return 'INACTIVE'
     const reg = (vehicle.registrationNo || '').toLowerCase().trim()
+
+    // Service jobs: show IN_SERVICE as soon as the job is assigned (before driver accepts)
+    const assignedServiceJob = activeTrips.find(t => {
+      const tReg = (t.vehicleRegNumber || '').toLowerCase().trim()
+      return tReg === reg
+        && (t.status === 'ASSIGNED' || t.status === 'STARTED')
+        && (t.purpose || '').startsWith('[Service]')
+    })
+    if (assignedServiceJob) return 'IN_SERVICE'
+
+    // Fuel / Trip jobs: show ACTIVE only after the driver has accepted (STARTED)
     const startedJob = activeTrips.find(t => {
       const tReg = (t.vehicleRegNumber || '').toLowerCase().trim()
       return tReg === reg && t.status === 'STARTED'
     })
-    if (startedJob) {
-      return (startedJob.purpose || '').startsWith('[Service]') ? 'IN_SERVICE' : 'ACTIVE'
-    }
+    if (startedJob) return 'ACTIVE'
+
     return 'AVAILABLE'
   }
 
