@@ -426,7 +426,9 @@ const VehiclesPage = () => {
           const text = await err.response.data.text()
           const errorObj = JSON.parse(text)
           errMsg = errorObj.message || errMsg
-        } catch (e) { }
+        } catch {
+          // Ignore JSON parsing error on blob
+        }
       } else if (err.response?.data?.message) {
         errMsg = err.response.data.message
       }
@@ -485,7 +487,9 @@ const VehiclesPage = () => {
           const text = await err.response.data.text()
           const errorObj = JSON.parse(text)
           errMsg = errorObj.message || errMsg
-        } catch (e) { }
+        } catch {
+          // Ignore JSON parsing error on blob
+        }
       } else if (err.response?.data?.message) {
         errMsg = err.response.data.message
       }
@@ -4292,8 +4296,8 @@ const VehiclesPage = () => {
               </div>
 
               {odometerError && (
-                <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', color: D.red, fontSize: '0.8rem', fontWeight: 600 }}>
-                  âš  {odometerError}
+                <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', color: D.red, fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <AlertTriangle size={14} /> {odometerError}
                 </div>
               )}
 
@@ -4310,7 +4314,7 @@ const VehiclesPage = () => {
         </div>
       )}
 
-      {/* â”€â”€ Fuel Quick Update Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Fuel Quick Update Modal ────────────────────────────── */}
       {isFuelModalOpen && fuelModalVehicle && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1250, animation: 'fadeIn 0.25s ease' }} onClick={() => { setIsFuelModalOpen(false); setFuelModalVehicle(null); }}>
           <div style={{ background: D.surface, borderRadius: 32, width: '92%', maxWidth: 440, boxShadow: '0 32px 100px rgba(0,0,0,0.6)', border: `1px solid ${D.border}`, animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
@@ -4351,8 +4355,8 @@ const VehiclesPage = () => {
               </div>
 
               {fuelModalError && (
-                <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', color: D.red, fontSize: '0.8rem', fontWeight: 600 }}>
-                  âš  {fuelModalError}
+                <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', color: D.red, fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <AlertTriangle size={14} /> {fuelModalError}
                 </div>
               )}
 

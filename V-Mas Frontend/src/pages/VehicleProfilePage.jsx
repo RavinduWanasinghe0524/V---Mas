@@ -104,7 +104,9 @@ export default function VehicleProfilePage() {
           const direct = await vehicleAPI.getVehicleByRegNo(targetReg)
           const dData = direct?.data?.data || direct?.data
           if (dData && (dData.registrationNo || dData.id)) found = dData
-        } catch (_) {}
+        } catch {
+          // Ignore lookup fallback errors
+        }
       }
 
       if (!found) {
@@ -175,7 +177,9 @@ export default function VehicleProfilePage() {
     try {
       const r = await vehicleAPI.unassignDriver(vehicle.id)
       setVehicle(r.data?.data || r.data)
-    } catch (_) {}
+    } catch {
+      // Ignore unassign error and reset busy state in finally
+    }
     finally { setDriverBusy(false) }
   }
 

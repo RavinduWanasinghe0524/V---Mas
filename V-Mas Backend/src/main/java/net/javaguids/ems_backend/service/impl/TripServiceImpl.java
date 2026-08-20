@@ -269,7 +269,14 @@ public class TripServiceImpl implements TripService {
     }
 
     private TripDto toEnrichedDto(Trip trip) {
-        return TripMapper.mapToTripDto(trip);
+        if (trip == null) {
+            return null;
+        }
+        TripDto dto = TripMapper.mapToTripDto(trip);
+        if (trip.getDriverUsername() != null && !trip.getDriverUsername().isBlank()) {
+            dto.setDriverName(trip.getDriverUsername());
+        }
+        return dto;
     }
 
     @Override
