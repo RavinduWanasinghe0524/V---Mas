@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -177,6 +178,9 @@ public class TripServiceImpl implements TripService {
         if (trip.getStatus() != TripStatus.ASSIGNED) {
             throw new IllegalStateException("Only an assigned trip can be started");
         }
+        if (hasActiveInProgressTrip(driverUsername, id)) {
+            throw new IllegalStateException("You already have an active in-progress job. Please complete your current in-progress job before accepting another job.");
+        }
         LocalDateTime now = LocalDateTime.now();
         trip.setStatus(TripStatus.STARTED);
         trip.setStartedAt(now);
@@ -238,8 +242,20 @@ public class TripServiceImpl implements TripService {
 
     // ==================== HELPERS ====================
 
+    private boolean hasActiveInProgressTrip(String driverUsername, Long excludeTripId) {
+        if (driverUsername == null || driverUsername.isBlank()) {
+            return false;
+        }
+        List<Trip> active = tripRepository.findByDriverUsernameAndStatusInAndDeletedFalseOrderByCreatedAtDesc(
+                driverUsername, List.of(TripStatus.STARTED));
+        if (excludeTripId == null) {
+            return !active.isEmpty();
+        }
+        return active.stream().anyMatch(t -> !Objects.equals(t.getId(), excludeTripId));
+    }
+
     private Trip findTripOrThrow(Long id) {
-        return tripRepository.findById(id)
+        return tripRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Trip not found with id: " + id));
     }
 

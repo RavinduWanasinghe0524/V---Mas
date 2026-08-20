@@ -37,6 +37,7 @@ public class ServiceRecordDto {
     private String attachmentPath;      // optional — path/URL of bill attachment
     private String partsReplaced;       // optional
     private String serviceClassification; // ROUTINE or AD_HOC
+    private Long tripId;
 
     /** Auto-populated by backend — username of whoever created this record */
     private String createdBy;

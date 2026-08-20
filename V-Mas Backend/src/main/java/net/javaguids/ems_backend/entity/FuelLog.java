@@ -47,6 +47,10 @@ public class FuelLog {
     @Column(nullable = true)
     private String driverUsername;
 
+    /** Optional reference to the specific trip / job this fuel log was submitted for */
+    @Column(name = "trip_id", nullable = true)
+    private Long tripId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 50, columnDefinition = "VARCHAR(50) DEFAULT 'APPROVED'")
     private ApprovalStatus status = ApprovalStatus.APPROVED;

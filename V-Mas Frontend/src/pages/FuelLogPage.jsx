@@ -217,7 +217,8 @@ const FuelLogPage = () => {
         liters: parseFloat(formData.liters),
         costPerLiter: parseFloat(formData.costPerLiter),
         mileage: parseFloat(formData.mileage),
-        date: formData.date
+        date: formData.date,
+        tripId: activeTrip?.id || null,
       }
       
       await fuelAPI.addFuelLog(payload)

@@ -35,31 +35,75 @@ const hasDriverServiceAccess = (trip) => {
   return true
 }
 
-const hasAnyServiceRecordForTrip = (trip, allServices) => {
-  if (!trip || !trip.vehicleRegNumber) return false
+const isJobServiceRecord = (serv, trip) => {
+  if (!serv || serv.deleted || serv.isDeleted || !trip) return false
+  const type = getJobType(trip.purpose)
+  if (type !== 'SERVICE') return false
+
+  // 1. Explicit tripId match (100% accurate)
+  if (serv.tripId != null && trip.id != null) {
+    return Number(serv.tripId) === Number(trip.id)
+  }
+
+  // If attached to another trip, do not match here
+  if (serv.tripId != null && trip.id != null && Number(serv.tripId) !== Number(trip.id)) {
+    return false
+  }
+
+  // 2. An ASSIGNED, DECLINED, or CANCELLED trip was never started/in-progress by driver,
+  // so untagged historical logs MUST NOT be attached to it!
+  const status = (trip.status || '').toUpperCase()
+  if (status !== 'STARTED' && status !== 'COMPLETED') {
+    return false
+  }
+
+  const servReg = (serv.vehicleRegNumber || '').replace(/^VEH-/i, '').trim().toUpperCase()
   const tripReg = (trip.vehicleRegNumber || '').replace(/^VEH-/i, '').trim().toUpperCase()
+  if (servReg !== tripReg) return false
+
+  if (trip.driverUsername && serv.createdBy) {
+    if (serv.createdBy.toLowerCase() !== trip.driverUsername.toLowerCase()) return false
+  }
+
   const cleanP = getCleanPurpose(trip.purpose)
   const matchedType = SERVICE_TYPES.find(t => t.label.toLowerCase() === cleanP.toLowerCase())?.value
+  if (matchedType && serv.serviceType !== matchedType) return false
+  if (cleanP && serv.serviceTypeDetail && serv.serviceTypeDetail.toLowerCase() !== cleanP.toLowerCase()) return false
 
-  return (allServices || []).some(serv => {
-    if (!serv || serv.isDeleted || serv.deleted) return false
-    const servReg = (serv.vehicleRegNumber || '').replace(/^VEH-/i, '').trim().toUpperCase()
-    if (servReg !== tripReg) return false
+  const tripDateStr = (trip.startedAt || trip.scheduledDate || trip.createdAt || '').split('T')[0]
+  if (tripDateStr && serv.serviceDate) {
+    const servDateStr = typeof serv.serviceDate === 'string' ? serv.serviceDate.split('T')[0] : ''
+    if (servDateStr !== tripDateStr) return false
+  }
 
-    if (matchedType) {
-      return serv.serviceType === matchedType
-    }
-    if (cleanP && serv.serviceTypeDetail) {
-      return serv.serviceTypeDetail.toLowerCase() === cleanP.toLowerCase()
-    }
-    return serv.createdBy && trip.driverUsername && serv.createdBy.toLowerCase() === trip.driverUsername.toLowerCase()
-  })
+  return true
+}
+
+const hasAnyServiceRecordForTrip = (trip, allServices) => {
+  return (allServices || []).some(serv => isJobServiceRecord(serv, trip))
 }
 
 const isJobFuelLog = (log, trip) => {
   if (!log || log.deleted || log.isDeleted || !trip) return false
   const type = getJobType(trip.purpose)
   if (type !== 'TRIP' && type !== 'FUEL') return false
+
+  // 1. Explicit tripId match (100% accurate)
+  if (log.tripId != null && trip.id != null) {
+    return Number(log.tripId) === Number(trip.id)
+  }
+
+  // If this log is attached to another trip, never match it here
+  if (log.tripId != null && trip.id != null && Number(log.tripId) !== Number(trip.id)) {
+    return false
+  }
+
+  // 2. An ASSIGNED, DECLINED, or CANCELLED trip was never started/in-progress by driver,
+  // so untagged historical logs MUST NOT be attached to it!
+  const status = (trip.status || '').toUpperCase()
+  if (status !== 'STARTED' && status !== 'COMPLETED') {
+    return false
+  }
 
   const logReg = (log.vehicleRegNumber || '').replace(/^VEH-/i, '').trim().toUpperCase()
   const tripReg = (trip.vehicleRegNumber || '').replace(/^VEH-/i, '').trim().toUpperCase()
@@ -69,16 +113,11 @@ const isJobFuelLog = (log, trip) => {
     if (log.driverUsername.toLowerCase() !== trip.driverUsername.toLowerCase()) return false
   }
 
-  // Only show fuel records for this specific assigned job's scheduled timeframe (+/- 1 day)
-  const targetDateStr = (trip.scheduledDate || trip.createdAt || '').split('T')[0]
-  if (targetDateStr && log.date) {
+  // Only show fuel records for this specific assigned job's scheduled timeframe
+  const tripDateStr = (trip.startedAt || trip.scheduledDate || trip.createdAt || '').split('T')[0]
+  if (tripDateStr && log.date) {
     const logDateStr = typeof log.date === 'string' ? log.date.split('T')[0] : ''
-    if (logDateStr) {
-      const targetTime = new Date(targetDateStr).getTime()
-      const logTime = new Date(logDateStr).getTime()
-      const diffDays = Math.abs(targetTime - logTime) / (1000 * 60 * 60 * 24)
-      if (diffDays > 1) return false
-    }
+    if (logDateStr !== tripDateStr) return false
   }
 
   return true
@@ -184,6 +223,20 @@ const fmtDate = (d) => {
   return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+const fmtDateTime = (d) => {
+  if (!d) return '—'
+  const dt = new Date(d)
+  if (isNaN(dt.getTime())) return '—'
+  return dt.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  })
+}
+
 const up = (s) => (s || '').toUpperCase()
 
 const TripsPage = () => {
@@ -195,6 +248,9 @@ const TripsPage = () => {
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [trips, setTrips] = useState([])
+
+  const activeStartedJob = !canManage ? trips.find(t => (t.status || '').toUpperCase() === 'STARTED') : null
+  const hasActiveStartedJob = !!activeStartedJob
   const [drivers, setDrivers] = useState([])
   const [vehicles, setVehicles] = useState([])
   const [allServices, setAllServices] = useState([])
@@ -625,6 +681,7 @@ const TripsPage = () => {
         nextServiceDue: cleanDate(serviceLogForm.nextServiceDue),
         nextServiceMileageKm: serviceLogForm.nextServiceMileageKm ? Number(serviceLogForm.nextServiceMileageKm) : null,
         driverUsername: serviceLogForm.driverUsername || user?.userName || null,
+        tripId: serviceLogModal?.id || null,
         status: canManage ? 'APPROVED' : 'PENDING', // Controller submissions are auto-approved (APPROVED), driver submissions require approval (PENDING)
       }
 
@@ -781,6 +838,7 @@ const TripsPage = () => {
         totalCost,
         mileage: parseFloat(fuelLogForm.mileage),
         date: fuelLogForm.date,
+        tripId: fuelLogModal?.id || null,
         status: canManage ? 'APPROVED' : 'PENDING',
       }
 
@@ -938,6 +996,34 @@ const TripsPage = () => {
   }
 
   // ── Derived data ────────────────────────────────────────────────────────
+  const getJobServices = useCallback((trip) => {
+    if (!trip) return []
+    return (allServices || []).filter(serv => isJobServiceRecord(serv, trip))
+  }, [allServices])
+
+  const getJobFuelLogs = useCallback((trip) => {
+    if (!trip) return []
+    return (allFuelLogs || []).filter(log => isJobFuelLog(log, trip))
+  }, [allFuelLogs])
+
+  const getJobPendingInfo = useCallback((trip) => {
+    const jobServices = getJobServices(trip)
+    const jobFuelLogs = getJobFuelLogs(trip)
+    const pendingServices = jobServices.filter(s => s && s.status === 'PENDING')
+    const pendingFuel = jobFuelLogs.filter(f => f && f.status === 'PENDING')
+    const totalPending = pendingServices.length + pendingFuel.length
+    return {
+      jobServices,
+      jobFuelLogs,
+      pendingServices,
+      pendingFuel,
+      totalPending,
+      hasPending: totalPending > 0
+    }
+  }, [getJobServices, getJobFuelLogs])
+
+  const pendingReviewJobsCount = trips.filter(t => getJobPendingInfo(t).hasPending).length
+
   const stat = {
     total: trips.length,
     assigned: trips.filter(t => up(t.status) === 'ASSIGNED').length,
@@ -946,10 +1032,37 @@ const TripsPage = () => {
   }
   const uniqueDrivers = [...new Set(trips.map(t => t.driverUsername).filter(Boolean))]
   const filteredTrips = trips.filter(t => {
-    if (filterStatus !== 'all' && up(t.status) !== filterStatus) return false
+    if (filterStatus === 'NEEDS_REVIEW') {
+      if (!getJobPendingInfo(t).hasPending) return false
+    } else if (filterStatus !== 'all' && up(t.status) !== filterStatus) {
+      return false
+    }
     if (canManage && filterDriver !== 'all' && t.driverUsername !== filterDriver) return false
     if (filterJobType !== 'all' && getJobType(t.purpose) !== filterJobType) return false
     return true
+  }).sort((a, b) => {
+    // If both are COMPLETED, sort newly completed jobs first
+    if (a.status === 'COMPLETED' && b.status === 'COMPLETED') {
+      const aComp = a.completedAt ? new Date(a.completedAt).getTime() : (a.updatedAt ? new Date(a.updatedAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0))
+      const bComp = b.completedAt ? new Date(b.completedAt).getTime() : (b.updatedAt ? new Date(b.updatedAt).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0))
+      if (bComp !== aComp) return bComp - aComp
+    }
+    // Overall sort: latest event timestamp first (completedAt || startedAt || updatedAt || createdAt || scheduledDate)
+    const aLatest = Math.max(
+      a.completedAt ? new Date(a.completedAt).getTime() : 0,
+      a.startedAt ? new Date(a.startedAt).getTime() : 0,
+      a.updatedAt ? new Date(a.updatedAt).getTime() : 0,
+      a.createdAt ? new Date(a.createdAt).getTime() : 0,
+      a.scheduledDate ? new Date(a.scheduledDate).getTime() : 0
+    )
+    const bLatest = Math.max(
+      b.completedAt ? new Date(b.completedAt).getTime() : 0,
+      b.startedAt ? new Date(b.startedAt).getTime() : 0,
+      b.updatedAt ? new Date(b.updatedAt).getTime() : 0,
+      b.createdAt ? new Date(b.createdAt).getTime() : 0,
+      b.scheduledDate ? new Date(b.scheduledDate).getTime() : 0
+    )
+    return bLatest - aLatest
   })
 
   // ── Style helpers (match Fuel Management) ───────────────────────────────
@@ -1065,6 +1178,60 @@ const TripsPage = () => {
           )}
 
 
+          {/* ── Active in-progress job notice for driver ── */}
+          {!canManage && hasActiveStartedJob && (
+            <div style={{
+              marginBottom: 20, padding: '14px 20px', borderRadius: 16,
+              background: 'rgba(56,189,248,0.08)', border: '1.5px solid rgba(56,189,248,0.28)',
+              display: 'flex', alignItems: 'center', gap: 14, color: '#38bdf8',
+              animation: 'fadeIn 0.25s ease', boxShadow: '0 4px 16px rgba(56,189,248,0.1)'
+            }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(56,189,248,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Play size={16} />
+              </div>
+              <div style={{ flex: 1, fontSize: '0.86rem', lineHeight: 1.5 }}>
+                <span style={{ fontWeight: 800 }}>Job In Progress:</span> You are currently working on the job to <strong>"{activeStartedJob.destination}"</strong> ({activeStartedJob.vehicleRegNumber}). You must complete this job before accepting other job assignments.
+              </div>
+            </div>
+          )}
+
+          {/* ── Pending Review Banner for Controllers ── */}
+          {canManage && pendingReviewJobsCount > 0 && (
+            <div style={{
+              marginBottom: 20, padding: '16px 22px', borderRadius: 18,
+              background: 'rgba(245, 158, 11, 0.09)', border: '1.5px solid rgba(245, 158, 11, 0.35)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+              color: '#d97706', boxShadow: '0 4px 20px rgba(245,158,11,0.1)', flexWrap: 'wrap'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 12, background: 'rgba(245, 158, 11, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <AlertTriangle size={18} color="#d97706" />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '0.92rem', color: D.text }}>
+                    {pendingReviewJobsCount} Job{pendingReviewJobsCount !== 1 ? 's' : ''} Awaiting Driver Log Review
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: D.textSub, marginTop: 2 }}>
+                    Drivers have submitted fuel or service logs for completed jobs that require your review &amp; approval.
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setFilterStatus(filterStatus === 'NEEDS_REVIEW' ? 'all' : 'NEEDS_REVIEW')}
+                style={{
+                  padding: '9px 16px', borderRadius: 10,
+                  border: filterStatus === 'NEEDS_REVIEW' ? '1px solid #d97706' : '1px solid rgba(245,158,11,0.4)',
+                  background: filterStatus === 'NEEDS_REVIEW' ? '#d97706' : 'rgba(245,158,11,0.15)',
+                  color: filterStatus === 'NEEDS_REVIEW' ? '#fff' : '#d97706',
+                  fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.15s'
+                }}
+              >
+                <Filter size={13} /> {filterStatus === 'NEEDS_REVIEW' ? 'Show All Jobs' : 'Filter Needs Review'}
+              </button>
+            </div>
+          )}
+
           {/* ── Controls & List ───────────────────────────────────────── */}
           <div style={{ ...card, padding: 0 }}>
             <div style={{ padding: '22px 32px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, background: D.surfaceHi, flexWrap: 'wrap' }}>
@@ -1074,6 +1241,9 @@ const TripsPage = () => {
                   <ClipboardList size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: D.blue, pointerEvents: 'none', opacity: 0.8 }} />
                   <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...filterStyle, paddingLeft: 38 }} onFocus={onFocus} onBlur={onBlur}>
                     <option value="all">All Statuses</option>
+                    {canManage && pendingReviewJobsCount > 0 && (
+                      <option value="NEEDS_REVIEW">⚠️ Needs Review ({pendingReviewJobsCount})</option>
+                    )}
                     <option value="ASSIGNED">Assigned</option>
                     <option value="STARTED">In Progress</option>
                     <option value="COMPLETED">Completed</option>
@@ -1150,39 +1320,25 @@ const TripsPage = () => {
                   FUEL: { icon: <Fuel size={20} color={D.green} />, bg: D.greenDim, label: 'Fuel' },
                 }[type] || { icon: <Navigation size={20} color={D.blue} />, bg: D.blueDim, label: 'Trip' }
 
-                const jobServices = (allServices || []).filter(serv => {
-                  if (!serv || serv.deleted || serv.isDeleted) return false
-                  const servReg = (serv.vehicleRegNumber || '').replace(/^VEH-/i, '').trim().toUpperCase()
-                  const tripReg = (trip.vehicleRegNumber || '').replace(/^VEH-/i, '').trim().toUpperCase()
-                  if (servReg !== tripReg) return false
-
-                  const cleanP = getCleanPurpose(trip.purpose)
-                  const matchedType = SERVICE_TYPES.find(t => t.label.toLowerCase() === cleanP.toLowerCase())?.value
-
-                  if (type === 'SERVICE') {
-                    if (matchedType) {
-                      return serv.serviceType === matchedType
-                    }
-                    if (cleanP && serv.serviceTypeDetail) {
-                      return serv.serviceTypeDetail.toLowerCase() === cleanP.toLowerCase()
-                    }
-                    return serv.createdBy && trip.driverUsername && serv.createdBy.toLowerCase() === trip.driverUsername.toLowerCase()
-                  }
-                  return false
-                })
-
+                const pendingInfo = getJobPendingInfo(trip)
+                const jobServices = pendingInfo.jobServices
                 const isAnyServiceExpanded = jobServices.length > 0 && jobServices.some(s => expandedServices[s.id])
 
-                const jobFuelLogs = (allFuelLogs || []).filter(log => isJobFuelLog(log, trip))
-
+                const jobFuelLogs = pendingInfo.jobFuelLogs
                 const isAnyFuelExpanded = jobFuelLogs.length > 0 && jobFuelLogs.some(f => expandedFuelLogs[f.id])
 
                 return (
                   <div key={trip.id}
                     onClick={() => setSelectedJobDetail(trip)}
-                    style={{ display: 'flex', flexDirection: 'column', padding: '20px 32px', borderBottom: i < filteredTrips.length - 1 ? `1px solid ${D.border}` : 'none', transition: 'background 0.18s', cursor: 'pointer' }}
-                    onMouseEnter={e => e.currentTarget.style.background = D.surfaceHi}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                    style={{
+                      display: 'flex', flexDirection: 'column', padding: '20px 32px',
+                      borderBottom: i < filteredTrips.length - 1 ? `1px solid ${D.border}` : 'none',
+                      background: (canManage && pendingInfo.hasPending) ? 'rgba(245,158,11,0.02)' : 'transparent',
+                      borderLeft: (canManage && pendingInfo.hasPending) ? '3px solid #d97706' : '3px solid transparent',
+                      transition: 'all 0.18s', cursor: 'pointer'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = (canManage && pendingInfo.hasPending) ? 'rgba(245,158,11,0.06)' : D.surfaceHi}
+                    onMouseLeave={e => e.currentTarget.style.background = (canManage && pendingInfo.hasPending) ? 'rgba(245,158,11,0.02)' : 'transparent'}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 20, width: '100%', flexWrap: 'nowrap' }}>
                       {/* Route + meta */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: '1 1 auto', minWidth: 0 }}>
@@ -1203,12 +1359,39 @@ const TripsPage = () => {
                             {canManage && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><User size={13} /> {trip.driverUsername}</span>}
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Calendar size={13} /> {fmtDate(trip.scheduledDate)}</span>
                             {cleanPurpose && <span style={{ color: D.textSub, fontWeight: 500 }}>· {cleanPurpose}</span>}
+                            {canManage && pendingInfo.pendingFuel.length > 0 && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#d97706', fontWeight: 700 }}>
+                                · <Fuel size={12} /> Fuel Log Submitted
+                              </span>
+                            )}
+                            {canManage && pendingInfo.pendingServices.length > 0 && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#d97706', fontWeight: 700 }}>
+                                · <Wrench size={12} /> Service Log Submitted
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
 
+                      {/* Needs Review Pill (Placed to the left of the Status button) */}
+                      {canManage && pendingInfo.hasPending && (
+                        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+                          <span style={{
+                            fontSize: '0.7rem', fontWeight: 800, padding: '5px 12px', borderRadius: 999,
+                            background: 'rgba(245,158,11,0.14)', color: '#d97706',
+                            border: '1.2px solid rgba(245,158,11,0.38)',
+                            display: 'inline-flex', alignItems: 'center', gap: 5,
+                            letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0,
+                            whiteSpace: 'nowrap',
+                            boxShadow: '0 2px 8px rgba(245,158,11,0.1)'
+                          }}>
+                            <AlertTriangle size={12} color="#d97706" /> {pendingInfo.totalPending === 1 ? 'Needs Review' : `${pendingInfo.totalPending} Needs Review`}
+                          </span>
+                        </div>
+                      )}
+
                       {/* Status - Uniform Fixed Width Column for Consistent Alignment */}
-                      <div style={{ flexShrink: 0, width: 140, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      <div style={{ flexShrink: 0, width: 130, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
                         <span style={{
                           fontSize: '0.68rem', fontWeight: 800, padding: '6px 14px', borderRadius: 999,
                           background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`,
@@ -1221,29 +1404,52 @@ const TripsPage = () => {
 
                       {/* Actions - Uniformly Aligned Buttons */}
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end', flexShrink: 0 }}>
-                        {/* Unified Details Button */}
-                        <ActionBtn
-                          onClick={() => setSelectedJobDetail(trip)}
-                          disabled={busy}
-                          bg={D.surfaceHi}
-                          color={D.text}
-                          border={`1px solid ${D.border}`}
-                          icon={<Eye size={15} color="var(--primary)" />}
-                          minWidth={105}
-                        >
-                          Details
-                        </ActionBtn>
+                        {/* Unified Details / Review Button */}
+                        {canManage && pendingInfo.hasPending ? (
+                          <ActionBtn
+                            onClick={() => setSelectedJobDetail(trip)}
+                            disabled={busy}
+                            bg="linear-gradient(135deg, #d97706, #f59e0b)"
+                            color="#fff"
+                            border="none"
+                            icon={<FileText size={15} />}
+                            minWidth={115}
+                            style={{ boxShadow: '0 4px 14px rgba(245,158,11,0.35)' }}
+                          >
+                            Review Log
+                          </ActionBtn>
+                        ) : (
+                          <ActionBtn
+                            onClick={() => setSelectedJobDetail(trip)}
+                            disabled={busy}
+                            bg={D.surfaceHi}
+                            color={D.text}
+                            border={`1px solid ${D.border}`}
+                            icon={<Eye size={15} color="var(--primary)" />}
+                            minWidth={105}
+                          >
+                            Details
+                          </ActionBtn>
+                        )}
 
                         {/* Driver Actions */}
                         {!canManage && s === 'ASSIGNED' && (
                           <>
                             <ActionBtn
-                              onClick={() => setDriverModal({ action: 'start', trip })}
-                              disabled={busy}
-                              bg="linear-gradient(135deg,#059669,#10b981)"
-                              color="#fff"
+                              onClick={() => {
+                                if (hasActiveStartedJob) {
+                                  flash('error', 'You already have an active job in progress. Please complete it before accepting another job.')
+                                  return
+                                }
+                                setDriverModal({ action: 'start', trip })
+                              }}
+                              disabled={busy || hasActiveStartedJob}
+                              bg={hasActiveStartedJob ? D.surfaceHi : "linear-gradient(135deg,#059669,#10b981)"}
+                              color={hasActiveStartedJob ? D.textSub : "#fff"}
+                              border={hasActiveStartedJob ? `1px solid ${D.border}` : 'none'}
                               icon={<Play size={14} />}
                               minWidth={95}
+                              title={hasActiveStartedJob ? "Complete your in-progress job first" : "Accept Job"}
                             >
                               Accept
                             </ActionBtn>
@@ -1445,7 +1651,14 @@ const TripsPage = () => {
                     disabled={editingTripStatus === 'STARTED'}
                   >
                     <option value="">Select driver…</option>
-                    {drivers.map(d => <option key={d.id} value={d.userName}>{d.userName}</option>)}
+                    {drivers.map(d => {
+                      const isBusy = trips.some(t => t.driverUsername === d.userName && (t.status || '').toUpperCase() === 'STARTED' && (!editingTripId || t.id !== editingTripId))
+                      return (
+                        <option key={d.id} value={d.userName}>
+                          {d.userName}{isBusy ? ' ⏳ (Currently on job)' : ''}
+                        </option>
+                      )
+                    })}
                   </select>
                   {fieldErrors.driverUsername && (
                     <span style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 700, marginTop: 4, display: 'block' }}>
@@ -1743,6 +1956,7 @@ const TripsPage = () => {
       {/* ── Job Details Slide-over Drawer (Controller & Driver) ────── */}
       {selectedJobDetail && (() => {
         const trip = selectedJobDetail
+        const drawerPendingInfo = getJobPendingInfo(trip)
         const type = getJobType(trip.purpose)
         const cleanPurpose = getCleanPurpose(trip.purpose)
         const badge = statusBadge(trip.status)
@@ -1768,21 +1982,9 @@ const TripsPage = () => {
           FUEL: 'Fuel Assignment',
         }
 
-        const jobServices = (allServices || []).filter(serv => {
-          if (!serv || serv.deleted || serv.isDeleted) return false
-          const servReg = (serv.vehicleRegNumber || '').replace(/^VEH-/i, '').trim().toUpperCase()
-          const tripReg = (trip.vehicleRegNumber || '').replace(/^VEH-/i, '').trim().toUpperCase()
-          if (servReg !== tripReg) return false
-          if (type === 'SERVICE') {
-            const matchedType = SERVICE_TYPES.find(t => t.label.toLowerCase() === cleanPurpose.toLowerCase())?.value
-            if (matchedType) return serv.serviceType === matchedType
-            if (cleanPurpose && serv.serviceTypeDetail) return serv.serviceTypeDetail.toLowerCase() === cleanPurpose.toLowerCase()
-            return serv.createdBy && trip.driverUsername && serv.createdBy.toLowerCase() === trip.driverUsername.toLowerCase()
-          }
-          return false
-        })
+        const jobServices = drawerPendingInfo.jobServices
 
-        const jobFuelLogs = (allFuelLogs || []).filter(log => isJobFuelLog(log, trip))
+        const jobFuelLogs = drawerPendingInfo.jobFuelLogs
 
         return (
           <div
@@ -1808,7 +2010,7 @@ const TripsPage = () => {
             >
               {/* Header */}
               <div style={{
-                background: 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
+                background: typeHeaderGradients[type] || 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--primary-light) 100%)',
                 padding: '24px 28px', display: 'flex', alignItems: 'center',
                 justifyContent: 'space-between', flexShrink: 0, gap: 16,
               }}>
@@ -1852,6 +2054,24 @@ const TripsPage = () => {
 
               {/* Body */}
               <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* Pending Review Notice Banner (Controller only) */}
+                {canManage && drawerPendingInfo.hasPending && (
+                  <div style={{
+                    padding: '14px 18px', borderRadius: 16,
+                    background: 'rgba(245,158,11,0.12)', border: '1.5px solid rgba(245,158,11,0.38)',
+                    display: 'flex', alignItems: 'center', gap: 12, color: '#d97706',
+                    boxShadow: '0 4px 16px rgba(245,158,11,0.1)'
+                  }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <AlertTriangle size={18} color="#d97706" />
+                    </div>
+                    <div style={{ flex: 1, fontSize: '0.82rem', lineHeight: 1.45 }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.88rem', marginBottom: 2 }}>Log Review Required</div>
+                      Driver @{trip.driverUsername} recorded {drawerPendingInfo.totalPending} log(s) for this job that require your review. Please review, edit details if needed, and approve or reject below.
+                    </div>
+                  </div>
+                )}
+
                 {/* Status Notice Banner */}
                 <div style={{
                   padding: '14px 18px', borderRadius: 16,
@@ -1877,6 +2097,63 @@ const TripsPage = () => {
                           {canManage ? 'Driver declined this assignment.' : 'You declined this assignment.'} {trip.declineReason ? <>Reason: <strong style={{ color: D.red }}>"{trip.declineReason}"</strong></> : 'No reason provided.'}
                         </span>
                       )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Timeline & Execution Timestamps Card */}
+                <div style={{ background: D.surface, borderRadius: 18, border: `1px solid ${D.border}`, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: D.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Clock size={16} color="var(--primary)" /> Job Timeline &amp; Timestamps
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    {/* Assigned Date & Time */}
+                    <div style={{ background: D.surfaceHi, padding: '12px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase' }}>Assigned Date &amp; Time</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Calendar size={14} color="var(--primary)" />
+                        {fmtDateTime(trip.createdAt || trip.scheduledDate)}
+                      </div>
+                      {trip.assignedBy && (
+                        <div style={{ fontSize: '0.72rem', color: D.textSub, marginTop: 4 }}>
+                          Assigned by: <strong style={{ color: D.text }}>@{trip.assignedBy}</strong>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Finished / Completed Date & Time */}
+                    <div style={{
+                      background: s === 'COMPLETED' ? 'rgba(16,185,129,0.08)' : D.surfaceHi,
+                      padding: '12px 14px', borderRadius: 12,
+                      border: s === 'COMPLETED' ? '1.2px solid rgba(16,185,129,0.35)' : `1px solid ${D.border}`
+                    }}>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: s === 'COMPLETED' ? '#10b981' : D.textSub, textTransform: 'uppercase' }}>
+                        Finished / Completed Date &amp; Time
+                      </div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: s === 'COMPLETED' ? '#10b981' : D.text, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <CheckCircle size={14} color={s === 'COMPLETED' ? '#10b981' : D.textSub} />
+                        {trip.completedAt ? fmtDateTime(trip.completedAt) : s === 'COMPLETED' ? (trip.updatedAt ? fmtDateTime(trip.updatedAt) : 'Completed') : 'Not Completed Yet'}
+                      </div>
+                    </div>
+
+                    {/* Started Date & Time (if available) */}
+                    {trip.startedAt && (
+                      <div style={{ background: D.surfaceHi, padding: '12px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase' }}>Started / In Progress At</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Play size={14} color="#38bdf8" />
+                          {fmtDateTime(trip.startedAt)}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Scheduled Date */}
+                    <div style={{ background: D.surfaceHi, padding: '12px 14px', borderRadius: 12, border: `1px solid ${D.border}` }}>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: D.textSub, textTransform: 'uppercase' }}>Target Scheduled Date</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: D.text, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Calendar size={14} color="var(--primary)" />
+                        {fmtDate(trip.scheduledDate)}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2353,15 +2630,25 @@ const TripsPage = () => {
                   <>
                     <button
                       onClick={() => {
+                        if (hasActiveStartedJob) {
+                          flash('error', 'You already have an active job in progress. Please complete it before accepting another job.')
+                          return
+                        }
                         setSelectedJobDetail(null)
                         setDriverModal({ action: 'start', trip })
                       }}
+                      disabled={hasActiveStartedJob}
                       style={{
-                        flex: 1, minWidth: 110, padding: '10px 16px', borderRadius: 12, border: 'none',
-                        background: 'linear-gradient(135deg,#059669,#10b981)', color: '#fff',
-                        fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                        boxShadow: '0 4px 12px rgba(16,185,129,0.35)'
+                        flex: 1, minWidth: 110, padding: '10px 16px', borderRadius: 12,
+                        border: hasActiveStartedJob ? `1px solid ${D.border}` : 'none',
+                        background: hasActiveStartedJob ? D.surfaceHi : 'linear-gradient(135deg,#059669,#10b981)',
+                        color: hasActiveStartedJob ? D.textSub : '#fff',
+                        fontSize: '0.85rem', fontWeight: 800,
+                        cursor: hasActiveStartedJob ? 'not-allowed' : 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        boxShadow: hasActiveStartedJob ? 'none' : '0 4px 12px rgba(16,185,129,0.35)'
                       }}
+                      title={hasActiveStartedJob ? "Complete your in-progress job first" : "Accept Job"}
                     >
                       <Play size={14} /> Accept
                     </button>
