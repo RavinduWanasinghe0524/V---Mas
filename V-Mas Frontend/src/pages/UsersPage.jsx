@@ -1468,7 +1468,9 @@ const UsersPage = () => {
                                     const text = await err.response.data.text()
                                     const errorObj = JSON.parse(text)
                                     errMsg = errorObj.message || errMsg
-                                  } catch (e) { }
+                                  } catch {
+                                    // Ignore JSON parsing error on blob
+                                  }
                                 } else if (err.response?.data?.message) {
                                   errMsg = err.response.data.message
                                 }
@@ -1681,7 +1683,9 @@ const UsersPage = () => {
                                     const text = await err.response.data.text()
                                     const errorObj = JSON.parse(text)
                                     errMsg = errorObj.message || errMsg
-                                  } catch (e) { }
+                                  } catch {
+                                    // Ignore JSON parsing error on blob
+                                  }
                                 } else if (err.response?.data?.message) {
                                   errMsg = err.response.data.message
                                 }

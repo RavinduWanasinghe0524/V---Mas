@@ -8,7 +8,7 @@ import { fuelAPI, vehicleAPI } from '../services/api'
 import {
   Fuel, DollarSign, Droplets, Activity, Zap, ArrowUpRight, ArrowDownRight, TrendingUp, Gauge,
   Calendar, Car, User, Clock, RotateCcw, ChevronLeft, ChevronRight, Filter,
-  Search, X, Check, Edit2, MoreVertical, AlertTriangle, BadgeCheck, RefreshCw
+  Search, X, Check, Edit2, MoreVertical, AlertTriangle, BadgeCheck, RefreshCw, Plus
 } from 'lucide-react'
 import { computeLogsEfficiency, formatFuelType } from '../utils/fuelUtils'
 
@@ -536,21 +536,18 @@ const FuelTypeDonutChart = ({ logs, D }) => {
 
   // Build SVG donut arcs
   const CX = 100, CY = 100, R = 85, IR = 55
-  let cumAngle = -Math.PI / 2
-  const arcSlices = slices.map((sl, i) => {
+  const arcSlices = slices.reduce(({ list, cumAngle }, sl, i) => {
     const val = view === 'volume' ? sl.volume : sl.cost
     const frac = totalVal > 0 ? val / totalVal : 0
     const sweep = frac * 2 * Math.PI
     const startA = cumAngle
-    cumAngle += sweep
-    const endA = cumAngle
+    const endA = cumAngle + sweep
     const gap = 0.025
     const s1 = startA + gap, e1 = endA - gap
     const large = e1 - s1 > Math.PI ? 1 : 0
     const ox = (r, a) => CX + r * Math.cos(a)
     const oy = (r, a) => CY + r * Math.sin(a)
     const isActive = activeIdx === i
-    const scale = isActive ? 1.045 : 1
     const midA = (s1 + e1) / 2
     const tx = CX + (Math.cos(midA) * (isActive ? 6 : 0))
     const ty = CY + (Math.sin(midA) * (isActive ? 6 : 0))
@@ -561,8 +558,11 @@ const FuelTypeDonutChart = ({ logs, D }) => {
       `A ${R} ${R} 0 ${large} 0 ${ox(R, s1)} ${oy(R, s1)}`,
       'Z'
     ].join(' ')
-    return { ...sl, path, frac, isActive, tx, ty, midA }
-  })
+    return {
+      list: [...list, { ...sl, path, frac, isActive, tx, ty, midA }],
+      cumAngle: endA
+    }
+  }, { list: [], cumAngle: -Math.PI / 2 }).list
 
   const active = activeIdx != null ? arcSlices[activeIdx] : null
   const fmtVal = (v) => view === 'volume'

@@ -30,7 +30,9 @@ export const useD = () => {
         role = parsed.role || 'NONE';
       }
     }
-  } catch (e) { }
+  } catch {
+    // Fall back to NONE role on error
+  }
 
   // Base role-specific configuration mapping
   const roleColors = {

@@ -873,8 +873,7 @@ const MaintenanceCostDonutChart = ({ isDark, services = [] }) => {
   })).sort((a, b) => b.value - a.value)
 
   const cx = 90, cy = 90, R = 85, r = 60
-  let angle = -Math.PI / 2
-  const slices = data.map(d => {
+  const slices = data.reduce(({ list, angle }, d) => {
     const sweep = (d.value / (totalCost || 1)) * 2 * Math.PI
     const x1 = cx + R * Math.cos(angle), y1 = cy + R * Math.sin(angle)
     const x2 = cx + R * Math.cos(angle + sweep), y2 = cy + R * Math.sin(angle + sweep)
@@ -882,9 +881,11 @@ const MaintenanceCostDonutChart = ({ isDark, services = [] }) => {
     const ix2 = cx + r * Math.cos(angle + sweep), iy2 = cy + r * Math.sin(angle + sweep)
     const large = sweep > Math.PI ? 1 : 0
     const path = `M ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${r} ${r} 0 ${large} 0 ${ix1} ${iy1} Z`
-    angle += sweep
-    return { path, ...d }
-  })
+    return {
+      list: [...list, { path, ...d }],
+      angle: angle + sweep
+    }
+  }, { list: [], angle: -Math.PI / 2 }).list
 
   const D = {
     surface: 'var(--surface)',
@@ -2000,7 +2001,9 @@ const DashboardPage = () => {
         const saved = localStorage.getItem(`vmas-privacy-settings-${user?.id || 'me'}`)
         const parsed = saved ? JSON.parse(saved) : null
         setAlertFilter(Array.isArray(parsed?.alertTypes) ? parsed.alertTypes : ['SERVICE', 'INSURANCE', 'FUEL', 'OVERDUE'])
-      } catch { }
+      } catch {
+        // Fall back to default alert types on parsing error
+      }
     }
     load()
     window.addEventListener('focus', load)
